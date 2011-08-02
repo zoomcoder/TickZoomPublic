@@ -171,6 +171,7 @@ namespace TickZoom.Charting
 			// Vertical pan and zoom not allowed
 			dataGraph.IsEnableVPan = false;
 			dataGraph.IsEnableVZoom = false;
+		    dataGraph.PointToolTip.Active = false;
 			
 			// Fill background
 			master.Fill = new Fill( Color.FromArgb( 220, 220, 255 ));
@@ -214,7 +215,7 @@ namespace TickZoom.Charting
 				dataGraph.IsAutoScrollRange = true;
 				dataGraph.IsShowHScrollBar = true;
 				dataGraph.IsSynchronizeXAxes = true;
-				dataGraph.IsShowDrawObjectTags = true;
+				dataGraph.IsShowDrawObjectTags = false;
 				
 				// Horizontal pan and zoom allowed
 				dataGraph.IsEnableHPan = true;
@@ -432,8 +433,8 @@ namespace TickZoom.Charting
 				color = Color.Black;	
 			}
 			// One ticket open on tickzoom is to draw arrows to scale based
-			// on the price range of the chart. This numbers for size and position
-			// were hard code, calibrated to Forex prices.
+			// on the price range of the chart. These numbers for size and position
+			// were hard coded, calibrated to Forex prices.
 			ArrowObj arrow = CreateArrow( direction, color, 12.5f, ChartBars.BarCount, fillPrice);
             if (order.Tag != null)
             {
@@ -444,9 +445,13 @@ namespace TickZoom.Charting
                 var orderPrice = order.Price;
                 var orderPosition = order.Position;
                 var orderSerial = fill.OrderSerialNumber;
+                var bar = ChartBars.BarCount;
                 arrow.Tag = new TradeInfo( () =>
                 {
                     StringBuilder sb = new StringBuilder();
+                    sb.Append("Bar ");
+                    sb.Append(bar);
+                    sb.Append(" ");
                     sb.Append(order.TradeDirection);
                     sb.Append(" ");
                     sb.AppendLine(order.Type.ToString());
@@ -1189,11 +1194,66 @@ namespace TickZoom.Charting
 		   }
 		}
 
+	    private int currentToolTipIndex = 0;
+        private void HandleTradeTips(int dragIndex)
+        {
+            var startPair = (StockPt)stockPointList[dragIndex];
+            var top = dataGraph.GraphPane.YAxis.Scale.Transform( startPair.High);
+            var bottom = dataGraph.GraphPane.YAxis.Scale.Transform(startPair.Low);
+            using (Graphics g = this.CreateGraphics())
+            {
+                int index = 0;
+                var list = dataGraph.GraphPane.GraphObjList;
+                var matches = new List<GraphObj>();
+                for( int i=0; i<list.Count; i++ )
+                {
+                    var obj = list[i];
+                    var objPoint = obj.Location.TransformTopLeft(dataGraph.GraphPane);
+                    var left = dataGraph.GraphPane.XAxis.Scale.Transform(obj.Location.X - (ClusterWidth/2));
+                    var right = dataGraph.GraphPane.XAxis.Scale.Transform(obj.Location.X + (ClusterWidth / 2));
+                    var horizontal = false;
+                    var vertical = false;
+                    if (mousePt.X > objPoint.X - 10 && mousePt.X < objPoint.X + 10)
+                    {
+                        horizontal = true;
+                    }
+                    if (mousePt.X > left && mousePt.X < right)
+                    {
+                        horizontal = true;
+                    }
+                    if (mousePt.Y > top - 20 && mousePt.Y < bottom + 20)
+                    {
+                        vertical = true;
+                    }
+                    if( horizontal && vertical)
+                    {
+                        matches.Add(obj);
+                    }
+                }
+                if (matches.Count > 0)
+                {
+                    if (!dataGraph.PointToolTip.Active || dragIndex != currentToolTipIndex)
+                    {
+                        var sb = new StringBuilder();
+                        foreach (var match in matches)
+                        {
+                            sb.AppendLine(match.Tag.ToString());
+                        }
+                        dataGraph.PointToolTip.SetToolTip(dataGraph, sb.ToString());
+                        currentToolTipIndex = dragIndex;
+                        dataGraph.PointToolTip.Active = true;
+                    }
+                }
+                else
+                    dataGraph.PointToolTip.Active = false;
+            }
+        }
+
 	    private PointF mousePt;
         private bool DataGraphMouseMoveEvent(ZedGraph.ZedGraphControl sender, System.Windows.Forms.MouseEventArgs e)
 		{
-			try { 
-				// Save the mouse location
+			try {
+			    // Save the mouse location
 				mousePt = new PointF( e.X, e.Y );
 			    tickUpdate = true;
 			} catch( Exception ex) {
@@ -1248,6 +1308,7 @@ namespace TickZoom.Charting
                         dragIndex = temp;
                     }
                     FormatToolStripText(dragIndex);
+                    HandleTradeTips(dragIndex);
                 }
             } finally
             {
@@ -1323,10 +1384,14 @@ namespace TickZoom.Charting
                 if (trace) log.Trace("refreshTick()");
                 if (this.FindForm().WindowState != FormWindowState.Minimized)
                 {
-                    if( tickUpdate)
+                    if (tickUpdate)
                     {
                         tickUpdate = false;
                         FormatToolStripText();
+                    }
+                    if( dataGraph.PointToolTip.Active)
+                    {
+                        return;
                     }
 					System.Windows.Forms.Timer timer = (System.Windows.Forms.Timer) sender;
 					if( layoutChange) {

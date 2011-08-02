@@ -1,3 +1,5 @@
+using System.Windows.Forms;
+
 namespace ZedGraph
 {
 	partial class ZedGraphControl
@@ -7,7 +9,12 @@ namespace ZedGraph
 		/// </summary>
 		private System.ComponentModel.IContainer components = null;
 
-		#region Component Designer generated code
+	    public ToolTip PointToolTip
+	    {
+	        get { return pointToolTip; }
+	    }
+
+	    #region Component Designer generated code
 
 		/// <summary> 
 		/// Required method for Designer support - do not modify 
@@ -42,9 +49,9 @@ namespace ZedGraph
 			// 
 			// pointToolTip
 			// 
-			this.pointToolTip.AutoPopDelay = 5000;
-			this.pointToolTip.InitialDelay = 100;
-			this.pointToolTip.ReshowDelay = 0;
+			this.PointToolTip.AutoPopDelay = 5000;
+			this.PointToolTip.InitialDelay = 100;
+			this.PointToolTip.ReshowDelay = 0;
 			// 
 			// contextMenuStrip1
 			// 

@@ -37,6 +37,11 @@ namespace ZedGraph
 	    private List<GraphObj> list = new List<GraphObj>();
 	    private List<List<GraphObj>> zOrderList = new List<List<GraphObj>>();
 	    private SimpleLock listLock = new SimpleLock();
+
+	    public int Count
+	    {
+            get { return list.Count;  }
+	    }
 	
 		public void Add(GraphObj value)
 		{

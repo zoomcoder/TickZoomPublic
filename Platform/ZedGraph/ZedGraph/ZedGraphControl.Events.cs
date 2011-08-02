@@ -690,18 +690,18 @@ namespace ZedGraph
 							string label = this.PointValueEvent( this, pane, curve, iPt );
 							if ( label != null && label.Length > 0 )
 							{
-								this.pointToolTip.SetToolTip( this, label );
-								this.pointToolTip.Active = true;
+								this.PointToolTip.SetToolTip( this, label );
+								this.PointToolTip.Active = true;
 							}
 							else
-								this.pointToolTip.Active = false;
+								this.PointToolTip.Active = false;
 						}
 						else
 						{
 
 							if ( curve is PieItem )
 							{
-								this.pointToolTip.SetToolTip( this,
+								this.PointToolTip.SetToolTip( this,
 									( (PieItem)curve ).Value.ToString( _pointValueFormat ) );
 							}
 							//							else if ( curve is OHLCBarItem || curve is JapaneseCandleStickItem )
@@ -720,7 +720,7 @@ namespace ZedGraph
 								PointPair pt = curve.Points[iPt];
 
 								if ( pt.Tag is string )
-									this.pointToolTip.SetToolTip( this, (string)pt.Tag );
+									this.PointToolTip.SetToolTip( this, (string)pt.Tag );
 								else
 								{
 									double xVal, yVal, lowVal;
@@ -736,21 +736,21 @@ namespace ZedGraph
 									string yStr = MakeValueLabel( curve.GetYAxis( pane ), yVal, iPt,
 										curve.IsOverrideOrdinal );
 
-									this.pointToolTip.SetToolTip( this, "( " + xStr + ", " + yStr + " )" );
+									this.PointToolTip.SetToolTip( this, "( " + xStr + ", " + yStr + " )" );
 
 									//this.pointToolTip.SetToolTip( this,
 									//	curve.Points[iPt].ToString( this.pointValueFormat ) );
 								}
 							}
 
-							this.pointToolTip.Active = true;
+							this.PointToolTip.Active = true;
 						}
 					}
 					else
-						this.pointToolTip.Active = false;
+						this.PointToolTip.Active = false;
 				}
 				else
-					this.pointToolTip.Active = false;
+					this.PointToolTip.Active = false;
 
 				//g.Dispose();
 			}
@@ -775,18 +775,18 @@ namespace ZedGraph
 						GraphObj graphObj = (GraphObj)nearestObj;
 
 						if ( graphObj.Tag == null) {
-                            this.pointToolTip.Active = false;
+                            this.PointToolTip.Active = false;
 						} else {
-                            this.pointToolTip.SetToolTip(this, graphObj.Tag.ToString());
-                            this.pointToolTip.Active = true;
+                            this.PointToolTip.SetToolTip(this, graphObj.Tag.ToString());
+                            this.PointToolTip.Active = true;
                         }
 
 					}
 					else
-						this.pointToolTip.Active = false;
+						this.PointToolTip.Active = false;
 				}
 				else
-					this.pointToolTip.Active = false;
+					this.PointToolTip.Active = false;
 			}
 			return mousePt;
 		}
@@ -802,11 +802,11 @@ namespace ZedGraph
 				string yStr = MakeValueLabel( pane.YAxis, y, -1, true );
 				string y2Str = MakeValueLabel( pane.Y2Axis, y2, -1, true );
 
-				this.pointToolTip.SetToolTip( this, "( " + xStr + ", " + yStr + ", " + y2Str + " )" );
-				this.pointToolTip.Active = true;
+				this.PointToolTip.SetToolTip( this, "( " + xStr + ", " + yStr + ", " + y2Str + " )" );
+				this.PointToolTip.Active = true;
 			}
 			else
-				this.pointToolTip.Active = false;
+				this.PointToolTip.Active = false;
 			return mousePt;
 		}
 
