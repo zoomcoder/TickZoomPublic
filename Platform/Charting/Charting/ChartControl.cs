@@ -1650,6 +1650,7 @@ namespace TickZoom.Charting
 				isScrolling = false;
 			} else {
 				isScrolling = true;
+			    isAutoScroll = false;
 			}
 		}
 		
