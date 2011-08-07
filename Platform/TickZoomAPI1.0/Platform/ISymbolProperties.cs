@@ -31,67 +31,50 @@ namespace TickZoom.Api
 {
 	public interface ISymbolProperties : SymbolInfo
 	{
-		/// <summary>
-		/// The time of day that the primary session for this symbol starts.
-		/// </summary>
 		new Elapsed SessionStart {
 			get;
 			set;
 		}
 		
-		/// <summary>
-		/// The time of day that the primary session for this symbol ends.
-		/// </summary>
 		new Elapsed SessionEnd {
 			get;
 			set;
 		}
 	 
- 		/// <summary>
- 		/// With which other symbols does this one get drawn on a chart? Returns
- 		/// a group number where 0 means never draw this symbol on any chart.
- 		/// All symbols with the same ChartGroup number will appear on the same
- 		/// chart. You can only set this property inside your Loader before
- 		/// the engine initializes the portfolios and strategies.
- 		/// </summary>
  		new int ChartGroup {
  			get;
  			set;
  		}
  		
- 		/// <summary>
- 		/// Returns the ProfitLoss calculation for this symbols. It's used
- 		/// primarily to correctly calculate transaction costs for trades.
- 		/// To use your own broker's transaction costs formulas, you can
- 		/// implement the ProfitLoss interface and assign an instance of
- 		/// your object to this property in your loader.
- 		/// </summary>
  		new ProfitLoss ProfitLoss {
  			get;
  			set;
  		}
- 		
- 		/// <summary>
- 		/// Used by validation and loading of data to ensure parsing of prices yields
- 		/// appropriate values.
- 		/// </summary>
+
+        new string Destination
+        {
+            get;
+        }
+
+        new double MaxPositionSize
+        {
+            get; set; }
+
+        new double MaxOrderSize
+        {
+            get; set; }
+
  		new double MaxValidPrice {
  			get;
  			set;
  		}
 
-        /// <summary>
-        /// Controls how fills get simulated for ticks with bid/ask quote data.
-        /// None, means to ignore bid/ask quotes for filling orders which is useful
-        /// if you want to simulate fills based on trades alone.
-        /// </summary>
-        LimitOrderQuoteSimulation LimitOrderQuoteSimulation { get; set; }
+        new LimitOrderQuoteSimulation LimitOrderQuoteSimulation { get; set; }
 
-        /// <summary>
-        /// Controls how to simulate fills for ticks with trade data of price and size.
-        /// None, means to ignore trade data which is useful if you want to simulate
-        /// fills solely from quote ticks.
-        /// </summary>
-        LimitOrderTradeSimulation LimitOrderTradeSimulation { get; set; }
+        new LimitOrderTradeSimulation LimitOrderTradeSimulation { get; set; }
+
+        new FIXSimulationType FixSimulationType { get; set;  }
+
+        new bool OffsetTooLateToCancel { get; set; }
     }
 }

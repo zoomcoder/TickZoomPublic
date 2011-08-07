@@ -233,7 +233,7 @@ namespace Loaders
 			list.Add( new AutoTestSettings {
 			    Mode = AutoTestMode.Default,
 			    Name = "LimitChangeTest",
-			    Loader = new LimitChangeLoader(),
+			    Loader = new LimitChangeOffsetDisabledLoader(),
 				Symbols = primarySymbol,
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
@@ -242,7 +242,20 @@ namespace Loaders
 				IntervalDefault = Intervals.Minute1,
 			});
 
-			// Fast Running CSCO real time tests...
+            list.Add(new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
+                Name = "LimitChangeOffsetTest",
+                Loader = new LimitChangeLoader(),
+                Symbols = primarySymbol,
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                StartTime = new TimeStamp(1800, 1, 1),
+                EndTime = new TimeStamp(2009, 6, 10),
+                IntervalDefault = Intervals.Minute1,
+            });
+
+            // Fast Running CSCO real time tests...
 			var cscoRealTime = new AutoTestSettings {
 			    Mode = AutoTestMode.Default,
 			    Name = "RealTimeLimitOrderTest",

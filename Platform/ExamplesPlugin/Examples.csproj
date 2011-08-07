@@ -97,6 +97,7 @@
     <Compile Include="Loaders\ExampleDualSymbolLoader.cs" />
     <Compile Include="Loaders\LimitBracketLoader.cs" />
     <Compile Include="Loaders\LimitChangeLoader.cs" />
+    <Compile Include="Loaders\LimitChangeOffsetDisabledLoader.cs" />
     <Compile Include="Loaders\LimitReversalLoader.cs" />
     <Compile Include="Loaders\SimpleLoader.cs" />
     <Compile Include="Loaders\Test5000Strategies.cs" />

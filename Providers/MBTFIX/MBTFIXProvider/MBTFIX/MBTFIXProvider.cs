@@ -1217,11 +1217,12 @@ namespace TickZoom.MBTFIX
                 var origBrokerOrder = order.OriginalOrder.BrokerOrder;
                 fixMsg.SetClientOrderId(order.BrokerOrder);
 				fixMsg.SetOriginalClientOrderId(origBrokerOrder);
-				var origOrder = OrderStore.GetOrderById(origBrokerOrder);
-				if( origOrder != null) {
-					origOrder.ReplacedBy = order;
-					if( debug) log.Debug("Setting replace property of " + origBrokerOrder + " to " + order.BrokerOrder);
-				}
+			    CreateOrChangeOrder origOrder;
+				if( OrderStore.TryGetOrderById(origBrokerOrder, out origOrder))
+				{
+                    origOrder.ReplacedBy = order;
+                    if (debug) log.Debug("Setting replace property of " + origBrokerOrder + " to " + order.BrokerOrder);
+                }
 			} else {
 				fixMsg.SetClientOrderId(order.BrokerOrder);
 			}

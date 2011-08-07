@@ -64,7 +64,6 @@ namespace TickZoom.Api
 		/// </summary>
 		Elapsed SessionStart {
 			get;
-			set;
 		}
 		
 		/// <summary>
@@ -72,7 +71,6 @@ namespace TickZoom.Api
 		/// </summary>
 		Elapsed SessionEnd {
 			get;
-			set;
 		}
 		
 		/// <summary>
@@ -292,5 +290,12 @@ namespace TickZoom.Api
         /// Does this use a custom simulation type for the FIX Server Simulator?
         /// </summary>
 	    FIXSimulationType FixSimulationType{ get; }
+
+        /// <summary>
+        /// Will the order algorithm issues adjustment orders to correct fills that come
+        /// after an attempt to cancel that same order?
+        /// </summary>
+        bool OffsetTooLateToCancel{ get; }
+
 	}
 }

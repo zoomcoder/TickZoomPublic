@@ -54,6 +54,8 @@ namespace TickZoom.Common
         public CreateOrChangeOrder originalOrder;
         public CreateOrChangeOrder replacedBy;
         public TimeStamp utcCreateTime;
+        public OrderFlags orderFlags;
+
     }
 
 	public class CreateOrChangeOrderDefault : CreateOrChangeOrder
@@ -82,6 +84,7 @@ namespace TickZoom.Common
             }
             binary.originalOrder = origOrder;
             binary.replacedBy = default(CreateOrChangeOrder);
+            binary.orderFlags = origOrder.OrderFlags;
         }
 
         public CreateOrChangeOrder Clone()
@@ -120,6 +123,7 @@ namespace TickZoom.Common
 		    binary.originalOrder = null;
 			binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
 		    binary.utcCreateTime = logical.UtcChangeTime;
+		    binary.orderFlags = logical.OrderFlags;
 		}
 
 	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
@@ -319,5 +323,21 @@ namespace TickZoom.Common
             get { return binary.sequence; }
             set { binary.sequence = value; }
         }
+
+        #region PhysicalOrder Members
+
+                 
+        public bool OffsetTooLateToCancel
+        {
+            get { return (binary.orderFlags & OrderFlags.OffsetTooLateToCancel) > 0; }
+        }
+
+        public OrderFlags OrderFlags
+        {
+            get
+            {
+                return binary.orderFlags;}
+        }
+        #endregion
     }
 }

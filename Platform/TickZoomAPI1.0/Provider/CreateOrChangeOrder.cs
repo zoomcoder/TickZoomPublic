@@ -84,7 +84,12 @@ namespace TickZoom.Api
         TimeStamp LastStateChange { get; }
 
         TimeStamp UtcCreateTime { get; }
+
         int Sequence { get; set; }
+
+        OrderFlags OrderFlags { get;  }
+
+        bool OffsetTooLateToCancel { get; }
     }
 
 	public interface CreateOrChangeOrder : PhysicalOrder

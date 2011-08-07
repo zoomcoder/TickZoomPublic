@@ -886,6 +886,7 @@ namespace TickZoom.Common
 			CreateOrChangeOrder createOrChange;
             if( delta != 0)
             {
+                IsPositionSynced = false;
                 log.Notice("SyncPositionInternal() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
                 if (debug) log.Debug("TrySyncPosition - " + tickSync);
             }
@@ -1007,6 +1008,7 @@ namespace TickZoom.Common
             actualPosition += physical.Size;
             if( debug) log.Debug("Updating actual position from " + beforePosition + " to " + actualPosition + " from fill size " + physical.Size);
 			var isCompletePhysicalFill = physical.RemainingSize == 0;
+
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
 				originalPhysicals.Remove(physical.Order);
@@ -1024,26 +1026,42 @@ namespace TickZoom.Common
             {
 				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
 			}
-			LogicalFillBinary fill;
-			try { 
-				var logical = FindLogicalOrder(physical.Order.LogicalSerialNumber);
-				desiredPosition += physical.Size;
-				if( debug) log.Debug("Adjusting symbol position to desired " + desiredPosition + ", physical fill was " + physical.Size);
-				var position = logical.StrategyPosition + physical.Size;
-				if( debug) log.Debug("Creating logical fill with position " + position + " from strategy position " + logical.StrategyPosition);
-                var strategyPosition = (StrategyPositionDefault)logical.Strategy;
-				fill = new LogicalFillBinary(
-					position, strategyPosition.Recency+1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber,logical.Position,physical.IsSimulated);
-			} catch( ApplicationException ex) {
-                log.Warn("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
-                if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
-				if( debug) log.Debug("Performing extra compare.");
-				PerformCompareProtected();
-				TryRemovePhysicalFill(physical);
-				return;
-			}
-			if( debug) log.Debug("Fill price: " + fill);
-			ProcessFill( fill, isCompletePhysicalFill, physical.IsRealTime);
+
+            var isFilledAfterCancel = physical.Order.ReplacedBy != null &&
+                                      physical.Order.ReplacedBy.Action == OrderAction.Cancel;
+            if( isFilledAfterCancel && physical.Order.OffsetTooLateToCancel)
+            {
+                if (debug) log.Debug("Will sync positions because fill from order already canceled: " + physical.Order.ReplacedBy);
+                SyncPosition();
+                TryRemovePhysicalFill(physical);
+            }
+            else
+            {
+    		    LogicalFillBinary fill;
+                try
+                {
+                    var logical = FindLogicalOrder(physical.Order.LogicalSerialNumber);
+                    desiredPosition += physical.Size;
+                    if (debug) log.Debug("Adjusting symbol position to desired " + desiredPosition + ", physical fill was " + physical.Size);
+                    var position = logical.StrategyPosition + physical.Size;
+                    if (debug) log.Debug("Creating logical fill with position " + position + " from strategy position " + logical.StrategyPosition);
+                    var strategyPosition = (StrategyPositionDefault)logical.Strategy;
+                    fill = new LogicalFillBinary(
+                        position, strategyPosition.Recency + 1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
+                }
+                catch (ApplicationException ex)
+                {
+                    log.Warn("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
+                    if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
+                    if (debug) log.Debug("Performing extra compare.");
+                    PerformCompareProtected();
+                    TryRemovePhysicalFill(physical);
+                    return;
+                }
+                if (debug) log.Debug("Fill price: " + fill);
+                ProcessFill(fill, isCompletePhysicalFill, physical.IsRealTime);
+            }
+
 		}		
 
         private TaskLock performCompareLocker = new TaskLock();

@@ -32,7 +32,8 @@ using TickZoom.Common;
 namespace TickZoom.Examples
 {
     public class LimitChangeLoader : ModelLoaderCommon
-	{
+    {
+        private bool offsetLateToCancel;
 		public LimitChangeLoader() {
 			/// <summary>
 			/// IMPORTANT: You can personalize the name of each model loader.

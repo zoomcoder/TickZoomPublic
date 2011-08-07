@@ -28,7 +28,15 @@ using System;
 
 namespace TickZoom.Api
 {
-	public enum OrderStatus {
+    [Flags]
+    public enum OrderFlags
+    {
+        None = 0x00,
+        OffsetTooLateToCancel = 0x01,
+    }
+
+    public enum OrderStatus
+    {
 		Inactive,
 		NextBar,
         AutoCancel,
@@ -137,5 +145,7 @@ namespace TickZoom.Api
         /// How many minimum ticks between levels of multiple level orders.
         /// </summary>
         int LevelIncrement { get; }
+
+        OrderFlags OrderFlags { get; set; }
     }
 }
