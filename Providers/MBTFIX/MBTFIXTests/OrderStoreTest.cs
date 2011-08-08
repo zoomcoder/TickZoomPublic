@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using TickZoom.Api;
 using TickZoom.MBTFIX;
 using System.IO;

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Weifen Luo")]
 [assembly: AssemblyProduct("DockSample")]
-[assembly: AssemblyCopyright("Copyright © Weifen Luo 2007")]
+[assembly: AssemblyCopyright("Copyright ï¿½ Weifen Luo 2007")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 [assembly : AssemblyConfiguration("")]
 [assembly : AssemblyCompany("Dinosaurtech")]
 [assembly : AssemblyProduct("Krs.Ats.IBNet")]
-[assembly : AssemblyCopyright("Copyright © 2009")]
+[assembly : AssemblyCopyright("Copyright ï¿½ 2009")]
 [assembly : AssemblyTrademark("")]
 [assembly : AssemblyCulture("")]
 

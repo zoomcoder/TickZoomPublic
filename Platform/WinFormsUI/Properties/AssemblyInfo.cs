@@ -9,7 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Weifen Luo")]
 [assembly: AssemblyProduct("DockPanel Suite")]
-[assembly: AssemblyCopyright("Copyright © Weifen Luo 2007")]
+[assembly: AssemblyCopyright("Copyright ï¿½ Weifen Luo 2007")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: CLSCompliant(true)]

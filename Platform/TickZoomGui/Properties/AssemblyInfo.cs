@@ -12,7 +12,7 @@ using TickZoom.Api;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("TickZOOM Services, LLC")]
 [assembly: AssemblyProduct("TickZOOM")]
-[assembly: AssemblyCopyright("Copyright © TickZOOM Servicess 2008")]
+[assembly: AssemblyCopyright("Copyright ï¿½ TickZOOM Servicess 2008")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: Diagram( AttributePriority=1, AttributeTargetTypes = "TickZoom.*")]

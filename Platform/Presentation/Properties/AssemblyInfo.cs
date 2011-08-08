@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("TickZoom")]
 [assembly: AssemblyProduct("Presentation")]
-[assembly: AssemblyCopyright("Copyright © TickZoom 2010")]
+[assembly: AssemblyCopyright("Copyright ï¿½ TickZoom 2010")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

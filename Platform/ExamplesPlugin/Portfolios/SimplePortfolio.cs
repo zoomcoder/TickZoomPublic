@@ -1,4 +1,4 @@
-﻿using TickZoom.Common;
+using TickZoom.Common;
 
 namespace TickZoom.Examples
 {
