@@ -325,21 +325,22 @@ namespace TickZoom.FIX
 					        Message message = null;
 					        var foundMessage = false;
 
-					        if( !foundMessage)
+                            if( foundMessage = Socket.TryGetMessage(out message))
                             {
-                                if( foundMessage = Socket.TryGetMessage(out message))
+                                if (debug) log.Debug("Received FIX Message: " + message);
+                                var messageFIX = (MessageFIXT1_1)message;
+                                if (remoteSequence == 1)
                                 {
-                                    var messageFIX = (MessageFIXT1_1)message;
-                                    if (messageFIX.MessageType == "A")
-                                    {
-                                        HandleLogon(messageFIX);
-                                    }
+                                    remoteSequence = messageFIX.Sequence;
+                                }
+                                if (messageFIX.MessageType == "A")
+                                {
+                                    HandleLogon(messageFIX);
                                 }
                             }
 
 					        if( foundMessage) {
 								lastMessage = TimeStamp.UtcNow;
-                                if( debug ) log.Debug( "Received FIX Message: " + message);
                                 var messageFIX = (MessageFIXT1_1)message;
                                 switch( messageFIX.MessageType)
                                 {
