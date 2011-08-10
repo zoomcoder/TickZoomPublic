@@ -89,7 +89,8 @@ namespace TickZoom.MBTFIX
             OrderStore.ForceSnapShot();
             if (IsRecovered)
             {
-                log.Error("Logging out -- Sending EndBroker event.");
+      		    log.Error("MBTFIXProvider disconnected. Attempting to reconnected.");
+                log.Info("Logging out -- Sending EndBroker event.");
                 TrySendEndBroker();
             }
         }

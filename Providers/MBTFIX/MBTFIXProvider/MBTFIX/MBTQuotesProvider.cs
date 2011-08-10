@@ -46,7 +46,6 @@ namespace TickZoom.MBTQuotes
             trace = log.IsTraceEnabled;
         }
         private Dictionary<long, SymbolHandler> symbolHandlers = new Dictionary<long, SymbolHandler>();	
-		private YieldMethod ReceiveMessageMethod;
 		
 		public MBTQuotesProvider(string name)
 		{
@@ -62,9 +61,8 @@ namespace TickZoom.MBTQuotes
 			if( SyncTicks.Enabled) {
 	  			HeartbeatDelay = int.MaxValue;
 			} else {
-	  			HeartbeatDelay = 300;
+	  			HeartbeatDelay = 10;
 			}
-			ReceiveMessageMethod = ReceiveMessage;
         }
 		
 		public override void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
@@ -114,34 +112,20 @@ namespace TickZoom.MBTQuotes
 			EndRecovery();
 		}
 		
-		protected override Yield ReceiveMessage()
+		protected override void ReceiveMessage(MessageMbtQuotes packet)
 		{
-			Message rawMessage;
-			if(Socket.TryGetMessage(out rawMessage)) {
-				var packet = (MessageMbtQuotes) rawMessage;
-				packet.BeforeRead();
-				if( trace) log.Trace("Received tick: " + new string(packet.DataIn.ReadChars(packet.Remaining)));
-				switch( packet.MessageType) {
-					case '1':
-						Level1Update( packet);
-						break;
-					case '2':
-						log.Error( "Message type '2' unknown Message is: " + packet);
-						break;
-					case '3':
-						TimeAndSalesUpdate( (MessageMbtQuotes) packet);
-						break;
-					default:
-						throw new ApplicationException("MBTQuotes message type '" + packet.MessageType + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
-				}
-                Socket.MessageFactory.Release(rawMessage);
-				if( Socket.ReceiveQueueCount > 0) {
-					return Yield.DidWork.Invoke( ReceiveMessageMethod);
-				} else {
-					return Yield.DidWork.Repeat;
-				}
-			} else {
-				return Yield.NoWork.Repeat;
+			switch( packet.MessageType) {
+				case '1':
+					Level1Update( packet);
+					break;
+				case '2':
+					log.Error( "Message type '2' unknown Message is: " + packet);
+					break;
+				case '3':
+					TimeAndSalesUpdate( (MessageMbtQuotes) packet);
+					break;
+				default:
+					throw new ApplicationException("MBTQuotes message type '" + packet.MessageType + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
 			}
 		}
 		

@@ -73,7 +73,7 @@ namespace TickZoom.FIX
         public abstract void OnLogout();
         private string providerName;
 		private long heartbeatTimeout;
-		private int heartbeatDelay = 35;
+		private int heartbeatDelay;
 		private bool logRecovery = true;
         private string configFilePath;
         private string configSection;
@@ -272,7 +272,7 @@ namespace TickZoom.FIX
 					}
 				case SocketState.PendingConnect:
 					if( Factory.Parallel.TickCount >= retryTimeout) {
-						log.Warn("Connection Timeout");
+						log.Info("Connection Timeout");
 						SetupRetry();
 						retryDelay += retryIncrease;
 						retryDelay = Math.Min(retryDelay,retryMaximum);
@@ -316,8 +316,9 @@ namespace TickZoom.FIX
 								log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
 							}
 							if( Factory.Parallel.TickCount >= heartbeatTimeout) {
-								log.Warn("Heartbeat Timeout. Last Message UTC Time: " + lastMessage + ", current UTC Time: " + TimeStamp.UtcNow);
-								SyncTicks.LogStatus();
+								log.Info("Heartbeat Timeout. Last Message UTC Time: " + lastMessage + ", current UTC Time: " + TimeStamp.UtcNow);
+                                log.Error("FIXProvider Heartbeat Timeout.");
+                                SyncTicks.LogStatus();
 								SetupRetry();
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
@@ -393,7 +394,7 @@ namespace TickZoom.FIX
 							return Yield.NoWork.Repeat;
                         case Status.PendingRetry:
 							if( Factory.Parallel.TickCount >= retryTimeout) {
-								log.Warn("Retry Time Elapsed");
+								log.Info("Retry Time Elapsed");
 								OnRetry();
 								RegenerateSocket();
 								if( trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
@@ -497,6 +498,7 @@ namespace TickZoom.FIX
                 }
                 RemoteSequence = messageFIX.Sequence + 1;
                 if( debug) log.Debug("Incrementing remote sequence to " + RemoteSequence);
+                OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
                 return false;
             }
         }

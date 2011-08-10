@@ -68,13 +68,14 @@ namespace TickZoom.MBTQuotes
 		public abstract Yield OnLogin();
 		private string providerName;
 		private long heartbeatTimeout;
-		private int heartbeatDelay = 300;
+		private int heartbeatDelay;
 		private bool logRecovery = false;
 	    private string configFilePath;
 	    private string configSection;
         private bool useLocalTickTime = true;
         private volatile bool debugDisconnect = false;
-		
+	    private TrueTimer taskTimer;
+
 		public MBTQuoteProviderSupport()
 		{
 			log = Factory.SysLog.GetLogger(typeof(MBTQuoteProviderSupport)+"."+GetType().Name);
@@ -84,6 +85,14 @@ namespace TickZoom.MBTQuotes
 			RegenerateSocket();
 			socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
 			socketTask.Start();
+		    taskTimer = Factory.Parallel.CreateTimer(socketTask, SocketTask);
+		    TimeStamp currentTime;
+		    do
+		    {
+		        currentTime = TimeStamp.UtcNow;
+		        currentTime.AddSeconds(1);
+
+		    } while ( !taskTimer.Start(currentTime));
 	  		string logRecoveryString = Factory.Settings["LogRecovery"];
 	  		logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
 	    }
@@ -172,6 +181,7 @@ namespace TickZoom.MBTQuotes
 				return;
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
+		    log.Error("MBTQuoteProvider disconnected. Attempting to reconnected.");
 			connectionStatus = Status.Disconnected;
 		    debugDisconnect = true;
             if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
@@ -218,7 +228,14 @@ namespace TickZoom.MBTQuotes
 		
 		private Yield SocketTask() {
 			if( isDisposed ) return Yield.NoWork.Repeat;
-            if( debugDisconnect)
+            TimeStamp currentTime;
+            do
+            {
+                currentTime = TimeStamp.UtcNow;
+                currentTime.AddSeconds(1);
+
+            } while (!taskTimer.Start(currentTime));
+            if (debugDisconnect)
             {
                 if( debug) log.Debug("SocketTask: Current socket state: " + socket.State + ", connection status: " + connectionStatus);
                 debugDisconnect = false;
@@ -246,7 +263,7 @@ namespace TickZoom.MBTQuotes
 					}
 				case SocketState.PendingConnect:
 					if( Factory.Parallel.TickCount >= retryTimeout) {
-						log.Warn("Connection Timeout");
+                        log.Info("MBTQuoteProvider connect timed out. Retrying.");
 						SetupRetry();
 						retryDelay += retryIncrease;
 						return Yield.DidWork.Repeat;
@@ -272,16 +289,52 @@ namespace TickZoom.MBTQuotes
 								log.Info("(RetryDelay reset to " + retryDelay + " seconds.)");
 							}
 							if( Factory.Parallel.TickCount >= heartbeatTimeout) {
-								log.Warn("Heartbeat Timeout");
-								SetupRetry();
-								IncreaseRetryTimeout();
-								return Yield.DidWork.Repeat;
+                                if( !isPingSent)
+                                {
+                                    isPingSent = true;
+                                    SendPing();
+                                    IncreaseRetryTimeout();
+                                }
+                                else
+                                {
+                                    isPingSent = false;
+                                    log.Warn("MBTQuotesProvider ping timed out.");
+                                    SetupRetry();
+                                    IncreaseRetryTimeout();
+                                    return Yield.DidWork.Repeat;
+                                }
 							}
-							result = ReceiveMessage();
-							if( !result.IsIdle) {
-								IncreaseRetryTimeout();
-							}
-							return result;
+					        Message rawMessage;
+							var receivedMessage = false;
+                            while (Socket.ReceiveQueueCount > 0)
+                            {
+                                if (Socket.TryGetMessage(out rawMessage))
+                                {
+									receivedMessage = true;
+                                    var message = (MessageMbtQuotes) rawMessage;
+                                    message.BeforeRead();
+                                    if (trace)
+                                    {
+                                        log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
+                                    }
+                                    if (message.MessageType == '9')
+                                    {
+                                        // Received the ping response.
+                                        isPingSent = false;
+                                    }
+                                    else
+                                    {
+
+                                        ReceiveMessage(message);
+                                    }
+                                    Socket.MessageFactory.Release(rawMessage);
+                                }
+                            }
+							if( receivedMessage) {
+	                           	IncreaseRetryTimeout();
+                            }
+
+					        return Yield.DidWork.Repeat;
 						case Status.PendingLogin:
 						default:
 							return Yield.NoWork.Repeat;
@@ -299,8 +352,8 @@ namespace TickZoom.MBTQuotes
 							return Yield.NoWork.Repeat;
 						case Status.PendingRetry:
 							if( Factory.Parallel.TickCount >= retryTimeout) {
-								log.Warn("Retry Time Elapsed");
-								OnRetry();
+                                log.Info("MBTQuoteProvider retry time elapsed. Retrying.");
+                                OnRetry();
 								RegenerateSocket();
 								if( trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
 								return Yield.DidWork.Repeat;
@@ -314,12 +367,26 @@ namespace TickZoom.MBTQuotes
                             return Yield.NoWork.Repeat;
 					}
 				default:
-					string message = "Unknown socket state: " + socket.State;
-					log.Error( message);
-					throw new ApplicationException(message);
+					string errorMessage = "Unknown socket state: " + socket.State;
+                    log.Error(errorMessage);
+                    throw new ApplicationException(errorMessage);
 			}
 		}
-	
+
+	    private bool isPingSent = false;
+	    private void SendPing()
+	    {
+            Message message = Socket.MessageFactory.Create();
+            string textMessage = "9|";
+            if (debug) log.Debug("Ping request: " + textMessage);
+            message.DataOut.Write(textMessage.ToCharArray());
+            while (!Socket.TrySendMessage(message))
+            {
+                if (IsInterrupted) return;
+                Factory.Parallel.Yield();
+            }
+	    }
+
 		protected void IncreaseRetryTimeout() {
 			retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 			heartbeatTimeout = Factory.Parallel.TickCount + (long)heartbeatDelay * 1000L;
@@ -327,7 +394,7 @@ namespace TickZoom.MBTQuotes
 		
 		protected abstract void OnStartRecovery();
 		
-		protected abstract Yield ReceiveMessage();
+		protected abstract void ReceiveMessage(MessageMbtQuotes message);
 		
 		private long retryTimeout;
 		
@@ -372,10 +439,15 @@ namespace TickZoom.MBTQuotes
         }
         
         public abstract void OnStopSymbol(SymbolInfo symbol);
-	        
+
+	    private bool alreadyLoggedSectionAndFile = false;
 	    private void LoadProperties(string configFilePath) {
 	        this.configFilePath = configFilePath;
-	        log.Notice("Using section " + configSection + " in file: " + configFilePath);
+            if( !alreadyLoggedSectionAndFile)
+            {
+                log.Notice("Using section " + configSection + " in file: " + configFilePath);
+                alreadyLoggedSectionAndFile = true;
+            }
 	        var configFile = new ConfigFile(configFilePath);
         	configFile.AssureValue("EquityDemo/UseLocalTickTime","true");
         	configFile.AssureValue("EquityDemo/ServerAddress","216.52.236.111");
@@ -498,7 +570,7 @@ namespace TickZoom.MBTQuotes
 	    protected virtual void Dispose(bool disposing)
 	    {
        		if( !isDisposed) {
-                if (debug) log.Debug("Dispose(). Informational stack trace--not an error: " + Environment.StackTrace);
+                if (debug) log.Debug("Dispose()");
 	            isDisposed = true;   
 	            if (disposing) {
 	            	if( socketTask != null) {
