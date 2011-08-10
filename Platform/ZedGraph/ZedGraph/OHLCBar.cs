@@ -382,10 +382,21 @@ namespace ZedGraph
 					int maxOrdinal = int.MaxValue;
 					double minScale = baseAxis.Scale.Min;
 					double maxScale = baseAxis.Scale.Max;
-					if( baseAxis.Scale.IsAnyOrdinal && !curve.IsOverrideOrdinal) {
+                    var increment = 1;
+                    if (baseAxis.Scale.IsAnyOrdinal && !curve.IsOverrideOrdinal)
+                    {
 						minOrdinal = (int) baseAxis.Scale.Min;
 						maxOrdinal = (int) baseAxis.Scale.Max;
-					} else if( curve.Points.Count > 100000) {
+                        var ordinalWidth = maxOrdinal - minOrdinal + 1;
+                        var pixelWidth = maxX - minX + 1;
+                        var quotient = ordinalWidth / pixelWidth;
+                        if (quotient > 1)
+                        {
+                            increment = quotient;
+                        }
+                    }
+                    else if (curve.Points.Count > 100000)
+                    {
 						pt = curve.Points[0] as StockPt;
 						if( pt != null) {
 							double firstDate = pt.X;
@@ -403,7 +414,8 @@ namespace ZedGraph
 						}
 					}
 					// Loop over each defined point							
-					for ( int i = Math.Max(minOrdinal,0); i < curve.Points.Count && i < maxOrdinal; i++ )
+					var limit = Math.Min( curve.Points.Count, maxOrdinal);
+					for ( int i = Math.Max(minOrdinal,0); i < limit; i++)
 					{
 						pt = curve.Points[i] as StockPt;
 						if( pt == null) continue;

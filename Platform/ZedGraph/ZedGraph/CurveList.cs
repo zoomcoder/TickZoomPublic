@@ -20,6 +20,7 @@
 using System;
 using System.Drawing;
 using System.Collections.Generic;
+using TickZoom.Api;
 
 namespace ZedGraph
 {
@@ -34,7 +35,7 @@ namespace ZedGraph
 	[Serializable]
 	public class CurveList : List<CurveItem>, ICloneable
 	{
-
+	    private Log log = Factory.Log.GetLogger(typeof (CurveList));
 	#region Properties
 		// internal temporary value that keeps
 		// the max number of points for any curve
@@ -553,11 +554,12 @@ namespace ZedGraph
 			pane.XAxis.Scale.SetRange( pane, pane.XAxis );
 			pane.X2Axis.Scale.SetRange( pane, pane.X2Axis );
 
-			foreach ( YAxis axis in pane.YAxisList )
+            foreach (YAxis axis in pane.YAxisList)
 				axis.Scale.SetRange( pane, axis );
 			foreach ( Y2Axis axis in pane.Y2AxisList )
 				axis.Scale.SetRange( pane, axis );
-		}
+
+        }
 
 		private void InitScale( Scale scale, bool isBoundedRanges )
 		{
@@ -694,6 +696,10 @@ namespace ZedGraph
 			for ( int i = this.Count - 1; i >= 0; i-- )
 			{
 				CurveItem curve = this[i];
+                //if( !(curve is OHLCBarItem) && !(curve is LineItem))
+                //{
+                //    continue;
+                //}
 				
 				if ( curve.IsBar)
 					pos--;
@@ -705,7 +711,7 @@ namespace ZedGraph
 				{
 					curve.Draw( g, pane, pos, scaleFactor );
 				}
-			}
+            }
 		}
 
 

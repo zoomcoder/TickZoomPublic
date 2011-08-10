@@ -856,7 +856,7 @@ namespace ZedGraph
 		virtual public void GetRange( 	out double xMin, out double xMax,
 										out double yMin, out double yMax,
 										bool ignoreInitial,
-										bool isBoundedRanges,
+										bool isRequestBoundedRanges,
 										GraphPane pane )
 		{
 			// The lower and upper bounds of allowable data for the X values.  These
@@ -877,13 +877,14 @@ namespace ZedGraph
 			if ( yAxis == null || xAxis == null )
 				return;
 
-			if ( isBoundedRanges )
+			if ( isRequestBoundedRanges )
 			{
+
 				xLBound = xAxis._scale._lBound;
 				xUBound = xAxis._scale._uBound;
 				yLBound = yAxis._scale._lBound;
 				yUBound = yAxis._scale._uBound;
-			}
+            }
 
 
 			bool isZIncluded = this.IsZIncluded( pane );
@@ -894,11 +895,25 @@ namespace ZedGraph
 			bool isYOrdinal = yAxis.Scale.IsAnyOrdinal;
 			bool isZOrdinal = ( isXIndependent ? yAxis : xAxis ).Scale.IsAnyOrdinal;
 
-			// Loop over each point in the arrays
+            int minOrdinal = 0;
+            int maxOrdinal = this.Points.Count;
+            if (pane.XAxis.Scale.IsAnyOrdinal)
+            {
+                if (!pane.XAxis.Scale.MinAuto)
+                {
+                    minOrdinal = (int)Math.Max(minOrdinal, pane.XAxis.Scale.Min);
+                }
+                if( !pane.XAxis.Scale.MaxAuto)
+                {
+                    maxOrdinal = (int)Math.Min(maxOrdinal, pane.XAxis.Scale.Max);
+                }
+            }
+
+		    // Loop over each point in the arrays
 			//foreach ( PointPair point in this.Points )
-			for ( int i=0; i<this.Points.Count; i++ )
+            for (int i = minOrdinal; i < maxOrdinal; i ++)
 			{
-				PointPair point = this.Points[i];
+                PointPair point = this.Points[i];
 
 				double curX = isXOrdinal ? i + 1 : point.X;
 				double curY = isYOrdinal ? i + 1 : point.Y;

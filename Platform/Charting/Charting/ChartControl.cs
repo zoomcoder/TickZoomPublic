@@ -1406,26 +1406,31 @@ namespace TickZoom.Charting
                         if (!isScrolling && isAutoScroll)
                         {
                             timer.Interval = 200;
-							bool reset = false;
-							if( KeepWithinScale()) {
-								reset = true;	
+							bool resetAxis = false;
+                            bool redraw = false;
+                            if (KeepWithinScale())
+                            {
+								resetAxis = true;	
 							}
 							if( SetCommonXScale()) {
-								reset = true;
+								resetAxis = true;
 							}
                             if (addBarOccurred)
                             {
-                                reset = true;
+                                redraw = true;
                                 addBarOccurred = false;
                             }
-                            if (trace) log.Trace("reset=" + reset);
-                            if (reset)
+                            if (resetAxis)
                             {
-                                if (trace) log.Trace("refreshing graph");
+                                if (trace) log.Trace("refreshing axis");
                                 dataGraph.AxisChange();
-								dataGraph.Refresh();
 							}
-						}
+                            if( resetAxis || redraw)
+                            {
+                                if (trace) log.Trace("redrawing");
+                                dataGraph.Refresh();
+                            }
+                        }
 					}
 				}
 			} catch( Exception ex) {

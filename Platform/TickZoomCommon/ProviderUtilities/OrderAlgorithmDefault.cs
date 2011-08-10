@@ -998,11 +998,6 @@ namespace TickZoom.Common
         }
 		
 		public void ProcessFill( PhysicalFill physical) {
-		    if (!isPositionSynced && physical.Order.LogicalSerialNumber > 0L)
-            {
-                if (debug) log.Debug("ProcessFill() ignored. Position not yet synced.");
-                return;
-            }
             if (debug) log.Debug("ProcessFill() physical: " + physical);
 		    var beforePosition = actualPosition;
             actualPosition += physical.Size;
@@ -1035,8 +1030,11 @@ namespace TickZoom.Common
                 SyncPosition();
                 TryRemovePhysicalFill(physical);
             }
-            else
+            else if (!isPositionSynced && physical.Order.LogicalSerialNumber > 0L)
             {
+                if (debug) log.Debug("ProcessFill() for logical ignored. Position not yet synced.");
+                return;
+            } else {
     		    LogicalFillBinary fill;
                 try
                 {
@@ -1061,7 +1059,6 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Fill price: " + fill);
                 ProcessFill(fill, isCompletePhysicalFill, physical.IsRealTime);
             }
-
 		}		
 
         private TaskLock performCompareLocker = new TaskLock();

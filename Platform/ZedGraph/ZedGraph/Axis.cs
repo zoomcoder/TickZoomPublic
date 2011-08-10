@@ -726,18 +726,26 @@ namespace ZedGraph
 		/// <seealso cref="ZedGraph.Scale.FormatAuto"/>
 		public void ResetAutoScale( GraphPane pane, Graphics g )
 		{
-			_scale._minAuto = true;
-			_scale._maxAuto = true;
-			_scale._majorStepAuto = true;
-			_scale._minorStepAuto = true;
-			_crossAuto = true;
-			_scale._magAuto = true;
-			//this.numDecAuto = true;
-			_scale._formatAuto = true;
-			pane.AxisChange( g );
+            ResetAutoScale(pane,g,true);
 		}
 
-		/// <summary>
+        public void ResetAutoScale(GraphPane pane, Graphics g, bool axisChange)
+        {
+            _scale._minAuto = true;
+            _scale._maxAuto = true;
+            _scale._majorStepAuto = true;
+            _scale._minorStepAuto = true;
+            _crossAuto = true;
+            _scale._magAuto = true;
+            //this.numDecAuto = true;
+            _scale._formatAuto = true;
+            if( axisChange)
+            {
+                pane.AxisChange(g);
+            }
+        }
+
+        /// <summary>
 		/// Do all rendering associated with this <see cref="Axis"/> to the specified
 		/// <see cref="Graphics"/> device.
 		/// </summary>

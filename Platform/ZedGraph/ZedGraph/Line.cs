@@ -662,7 +662,7 @@ namespace ZedGraph
 		public void DrawCurve( Graphics g, GraphPane pane,
                                 CurveItem curve, float scaleFactor )
 		{
-			Line source = this;
+            Line source = this;
 			if ( curve.IsSelected )
 				source = Selection.Line;
 
@@ -708,15 +708,23 @@ namespace ZedGraph
                             curveDrawn.TryResize(maxX,maxY);
                         }
 					}
-					int minOrdinal = 0;
+                    int minOrdinal = 0;
 					int maxOrdinal = int.MaxValue;
 					Axis baseAxis = curve.BaseAxis(pane);
 					double minScale = baseAxis.Scale.Min;
 					double maxScale = baseAxis.Scale.Max;
+				    var increment = 1;
 					if( baseAxis.Scale.IsAnyOrdinal) {
 						minOrdinal = (int) baseAxis.Scale.Min;
 						maxOrdinal = (int) baseAxis.Scale.Max;
-					} else if( points.Count > 100000) {
+					    var ordinalWidth = maxOrdinal - minOrdinal + 1;
+					    var pixelWidth = maxX - minX + 1;
+					    var quotient = ordinalWidth/pixelWidth;
+                        if( quotient > 1)
+                        {
+                            increment = quotient;
+                        }
+					} else if( points.Count > 1000) {
 						PointPair pt = points[0];
 						if( pt != null) {
 							double firstX = pt.X;
@@ -733,7 +741,8 @@ namespace ZedGraph
 						}
 					}
 					// Loop over each point in the curve
-					for ( int i = Math.Max(minOrdinal,0); i < points.Count && i < maxOrdinal; i++ )
+                    int limit = Math.Min(points.Count,maxOrdinal);
+					for ( int i = Math.Max(minOrdinal,0); i < limit ; i+=increment )
 					{
 						curPt = points[i];
 						if ( pane.LineType == LineType.Stack )
@@ -767,10 +776,10 @@ namespace ZedGraph
 							// LastX and LastY are always the last valid point, so this works out
 							lastBad = lastBad || !pane.IsIgnoreMissing;
 							isOut = true;
-						}
+                        }
 						else
 						{
-							// Transform the current point from user scale units to
+                            // Transform the current point from user scale units to
 							// screen coordinates
 							tmpX = (int) xAxis.Scale.Transform( curve.IsOverrideOrdinal, i, curX );
 							tmpY = (int) yAxis.Scale.Transform( curve.IsOverrideOrdinal, i, curY );
@@ -875,7 +884,7 @@ namespace ZedGraph
 							//lastOut = isOut;
 						}
 					}
-				}
+                }
 			}
 		}
 

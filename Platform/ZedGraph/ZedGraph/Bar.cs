@@ -250,6 +250,12 @@ namespace ZedGraph
 							float bottom, float scaleFactor, bool fullFrame, bool isSelected,
 							PointPair dataValue )
 		{
+            // Check if the bar has any height
+            if( (int) top == (int) bottom)
+            {
+                return;
+            }
+
 			// Do a sanity check to make sure the top < bottom.  If not, reverse them
 			if ( top > bottom )
 			{
@@ -374,9 +380,25 @@ namespace ZedGraph
 					barType == BarType.SortedOverlay )
 				pos = 0;
 
-			// Loop over each defined point and draw the corresponding bar                
-			for ( int i=0; i<curve.Points.Count; i++ )
-				DrawSingleBar( g, pane, curve, i, pos, baseAxis, valueAxis, barWidth, scaleFactor );
+            int minX = (int)pane.Chart.Rect.Left;
+            int maxX = (int)pane.Chart.Rect.Right;
+            int minY = (int)pane.Chart.Rect.Top;
+            int maxY = (int)pane.Chart.Rect.Bottom;
+
+            int minOrdinal = 0;
+			int maxOrdinal = int.MaxValue;
+			if( baseAxis.Scale.IsAnyOrdinal) {
+				minOrdinal = (int) baseAxis.Scale.Min;
+				maxOrdinal = (int) baseAxis.Scale.Max;
+    		}
+            // Loop over each defined point and draw the corresponding bar                
+		    var start = Math.Max(0, minOrdinal);
+            int limit = Math.Min(curve.Points.Count, maxOrdinal);
+            for (int i = start; i < limit; i++)
+            {
+                continue;
+                DrawSingleBar(g, pane, curve, i, pos, baseAxis, valueAxis, barWidth, scaleFactor);
+            }
 		}
 
 		/// <summary>
@@ -494,7 +516,7 @@ namespace ZedGraph
 			//   by zero, etc.
 			// Also, any value <= zero on a log scale is invalid
 
-			if ( !curve.Points[index].IsInvalid )
+			if ( !curve.Points[index].IsInvalid && (int) curLowVal != (int) curHiVal)
 			{
 				// calculate a pixel value for the top of the bar on value axis
 				pixLowVal = valueAxis.Scale.Transform( curve.IsOverrideOrdinal, index, curLowVal );

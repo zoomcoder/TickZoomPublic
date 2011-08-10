@@ -699,12 +699,13 @@ namespace ZedGraph
 
 		public void ResetAutoScale( GraphPane pane, Graphics g )
 		{
-			pane.XAxis.ResetAutoScale( pane, g );
-			pane.X2Axis.ResetAutoScale( pane, g );
+			pane.XAxis.ResetAutoScale( pane, g, false);
+            pane.X2Axis.ResetAutoScale(pane, g, false);
 			foreach ( YAxis axis in pane.YAxisList )
-				axis.ResetAutoScale( pane, g );
+                axis.ResetAutoScale(pane, g, false);
 			foreach ( Y2Axis axis in pane.Y2AxisList )
-				axis.ResetAutoScale( pane, g );
+                axis.ResetAutoScale(pane, g, false);
+            pane.AxisChange(g);
 		}
 
 		/*

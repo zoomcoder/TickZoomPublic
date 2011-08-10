@@ -575,8 +575,8 @@ namespace ZedGraph
 		
 		public override void Draw( Graphics g )
 		{
-			// Save current AntiAlias mode
-			SmoothingMode sModeSave = g.SmoothingMode;
+            var last = TimeStamp.UtcNow;
+            SmoothingMode sModeSave = g.SmoothingMode;
 			TextRenderingHint sHintSave = g.TextRenderingHint;
 			CompositingQuality sCompQual = g.CompositingQuality;
 			InterpolationMode sInterpMode = g.InterpolationMode;
@@ -606,16 +606,27 @@ namespace ZedGraph
 			// Reset the clipping
 			g.ResetClip();
 
+		    var current = TimeStamp.UtcNow;
+		    var elapsed = current - last;
+		    last = current;
+
 			foreach ( GraphPane pane in _paneList ) {
 				pane.Draw( g );
-			}
+                //current = TimeStamp.UtcNow;
+                //elapsed = current - last;
+                //last = TimeStamp.UtcNow;
+            }
 
-			// Clip everything to the rect
+            current = TimeStamp.UtcNow;
+            elapsed = current - last;
+            last = current;
+
+            // Clip everything to the rect
 			g.SetClip( _rect );
 
 			_graphObjList.Draw( g, this, scaleFactor, ZOrder.B_BehindLegend );
-			
-			// Recalculate the legend rect, just in case it has not yet been done
+            
+            // Recalculate the legend rect, just in case it has not yet been done
 			// innerRect is the area for the GraphPane's
 			RectangleF innerRect = CalcClientRect( g, scaleFactor );
 			_legend.CalcRect( g, this, scaleFactor, ref innerRect );
@@ -628,7 +639,7 @@ namespace ZedGraph
 			// Reset the clipping
 			g.ResetClip();
 
-			// Restore original anti-alias mode
+            // Restore original anti-alias mode
 			g.SmoothingMode = sModeSave;
 			g.TextRenderingHint = sHintSave;
 			g.CompositingQuality = sCompQual;

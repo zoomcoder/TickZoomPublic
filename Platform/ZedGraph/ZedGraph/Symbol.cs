@@ -561,6 +561,10 @@ namespace ZedGraph
 		public void Draw( Graphics g, GraphPane pane, LineItem curve, float scaleFactor,
 			bool isSelected )
 		{
+            if( _type == SymbolType.None)
+            {
+                return;
+            }
 			Symbol source = this;
 			if ( isSelected )
 				source = Selection.Symbol;

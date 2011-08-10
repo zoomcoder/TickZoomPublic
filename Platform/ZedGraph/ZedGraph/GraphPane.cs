@@ -715,7 +715,7 @@ namespace ZedGraph
 		/// </param>
 		public override void Draw( Graphics g )
 		{
-			Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+            //Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 			
 			// Calculate the chart rect, deducting the area for the scales, titles, legend, etc.
 			//int		hStack;
@@ -793,12 +793,12 @@ namespace ZedGraph
 				// Draw the GraphItems that are behind the CurveItems
 				_graphObjList.Draw( g, this, scaleFactor, ZOrder.E_BehindCurves );
 	
-				// Clip the points to the actual plot area
+                // Clip the points to the actual plot area
 				g.SetClip( _chart._rect );
 				_curveList.Draw( g, this, scaleFactor );
 				g.SetClip( _rect );
 
-			}
+            }
 
 			if ( showGraf )
 			{
@@ -827,7 +827,7 @@ namespace ZedGraph
 				_graphObjList.Draw( g, this, scaleFactor, ZOrder.C_BehindChartBorder );
 			}
 
-			// Border the axis itself
+            // Border the axis itself
 			_chart.Border.Draw( g, this, scaleFactor, _chart._rect );
 
 			if ( showGraf )
@@ -841,7 +841,7 @@ namespace ZedGraph
 				_graphObjList.Draw( g, this, scaleFactor, ZOrder.A_InFront );
 			}
 
-			// Reset the clipping
+            // Reset the clipping
 			g.ResetClip();
 
 			// Reset scale data
