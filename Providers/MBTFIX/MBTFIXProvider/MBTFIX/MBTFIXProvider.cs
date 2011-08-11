@@ -500,6 +500,26 @@ namespace TickZoom.MBTFIX
                 }
             }
 		}
+
+        private void TryConfirmActive(SymbolInfo symbol, MessageFIX4_4 packetFIX)
+        {
+            var order = UpdateOrder(packetFIX, OrderState.PendingNew, null);
+            if (order != null)
+            {
+                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+                algorithm.ConfirmActive(order, IsRecovered);
+            }
+        }
+
+        private void TryConfirmCreate(SymbolInfo symbol, MessageFIX4_4 packetFIX)
+        {
+            var order = UpdateOrder(packetFIX, OrderState.Active, null);
+            if (order != null)
+            {
+                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+                algorithm.ConfirmCreate(order, IsRecovered);
+            }
+        }
 		
 		private void ExecutionReport( MessageFIX4_4 packetFIX) {
 			if( packetFIX.Text == "END") {
@@ -521,11 +541,14 @@ namespace TickZoom.MBTFIX
 							// symbol unknown.
 						}
 						if( symbol != null) {
-							order = UpdateOrder( packetFIX, OrderState.Active, null);
-                            if( order != null)
+                            if (symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+                                OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
+                                order.OrderState == OrderState.Active)
                             {
-                                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                                algorithm.ConfirmCreate(order, IsRecovered);
+                                if( debug) log.Debug("New order messaged ignored for Forex Stop: " + order);
+                            }
+                            else {
+    						    TryConfirmCreate(symbol, packetFIX);
                             }
 						}
 						break;
@@ -633,11 +656,15 @@ namespace TickZoom.MBTFIX
                         }
                         if( symbol != null)
                         {
-                            order = UpdateOrder(packetFIX, OrderState.Active, null);
-                            if (order != null)
+                            if( symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+                                OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
+                                order.OrderState == OrderState.PendingNew)
                             {
-                                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                                algorithm.ConfirmActive(order, IsRecovered);
+                                TryConfirmCreate(symbol, packetFIX);
+                            }
+                            else
+                            {
+                                TryConfirmActive(symbol, packetFIX);
                             }
                         }
                         break;
@@ -918,7 +945,7 @@ namespace TickZoom.MBTFIX
             try
             {
                 oldOrder = OrderStore.GetOrderById(clientOrderId);
-                if( oldOrder.OrderState == OrderState.Pending)
+                if( oldOrder.OrderState == OrderState.Pending || oldOrder.OrderState == OrderState.PendingNew)
                 {
                     oldOrder.OrderState = OrderState.Active;
                 }
@@ -1390,6 +1417,7 @@ namespace TickZoom.MBTFIX
             {
                 switch (queueOrder.OrderState)
                 {
+                    case OrderState.PendingNew:
                     case OrderState.Pending:
                     case OrderState.Active:
                         return true;

@@ -218,32 +218,34 @@ namespace TickZoom.GUI
         	execute.OnUIThread( () =>
             {
                 guiLog.AppendLine(msg);
-                int lines = 0;
-                for (int i = 0; i < guiLog[i]; i++)
+                int totalLines = 0;
+                for (int i = 0; i < guiLog.Length; i++)
                 {
                     if( guiLog[i] == '\n')
                     {
-                        lines++;
+                        totalLines++;
                     }
                 }
 	            int maxLines = 1000;
-	            int skipLines = lines - maxLines;
+	            int skipLines = totalLines - maxLines;
                 int skipTo = 0;
 	            if( skipLines > 0) {
-                    lines = 0;
-                    for (int i = 0; i < guiLog[i]; i++)
+                    var lines = 0;
+                    for (int i = 0; i < guiLog.Length; i++)
                     {
                         if (guiLog[i] == '\n')
                         {
                             lines++;
-                            if( lines == skipLines)
+                            if( lines >= skipLines)
                             {
                                 skipTo = i;
+                                break;
                             }
                         }
                     }
                 }
                 guiLog.Remove(0, skipTo);
+                log.Info("Capacity " + guiLog.Capacity + ", Length " + guiLog.Length + ", lines " + totalLines);
                 logOutput.Text = guiLog.ToString();
 	            logOutput.SelectionStart = logOutput.Text.Length;
 	            logOutput.ScrollToCaret();

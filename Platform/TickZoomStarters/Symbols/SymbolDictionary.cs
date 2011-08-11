@@ -221,7 +221,7 @@ namespace TickZoom.Symbols
 		}
 		
 		private void HandleProperty( XmlReader reader, object obj, string name, string str) {
-			PropertyInfo property = obj.GetType().GetProperty(name);
+			var property = obj.GetType().GetProperty(name,BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance);
 			if( property == null) {
 				Warning(reader,obj.GetType() + " does not have the property: " + name);
 				return;

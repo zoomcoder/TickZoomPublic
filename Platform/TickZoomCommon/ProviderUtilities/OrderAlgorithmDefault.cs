@@ -958,7 +958,8 @@ namespace TickZoom.Common
 		        next = current.Next;
 		        var order = current.Value;
 				if( order.OrderState == OrderState.Pending ||
-				    order.Type == OrderType.BuyMarket ||
+                    order.OrderState == OrderState.PendingNew || 
+                    order.Type == OrderType.BuyMarket ||
 				    order.Type == OrderType.SellMarket) {
 					if( debug) log.Debug("Pending order: " + order);
 					result = true;	
@@ -1516,16 +1517,16 @@ namespace TickZoom.Common
         {
             if( debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.SetOrder(order);
+            if (isRealTime)
+            {
+                PerformCompareProtected();
+            }
             if (SyncTicks.Enabled)
             {
                 tickSync.SetReprocessPhysicalOrders();
                 tickSync.RemovePhysicalOrder(order);
             }
-            if (isRealTime)
-            {
-                PerformCompareProtected();
-            }
-		}
+        }
 
         public void RejectOrder(CreateOrChangeOrder order, bool removeOriginal, bool isRealTime)
         {

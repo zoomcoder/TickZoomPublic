@@ -31,6 +31,7 @@ namespace TickZoom.Api
 {
 	public enum OrderState {
 		Pending,
+        PendingNew,
 		Active,
 		Suspended,
 		Filled
