@@ -319,7 +319,6 @@ namespace TickZoom.MBTFIX
             }
             if (VerifyLoginAck(message))
             {
-                RequestSessionUpdate();
                 return;
             }
             else
@@ -336,6 +335,7 @@ namespace TickZoom.MBTFIX
                     if (ConnectionStatus == Status.PendingLogin)
                     {
                         StartRecovery();
+                        RequestSessionUpdate();
                     }
                     SessionStatus(packetFIX);
 			        break;

@@ -330,12 +330,13 @@ namespace TickZoom.FIX
                             {
                                 if (debug) log.Debug("Received FIX Message: " + message);
                                 var messageFIX = (MessageFIXT1_1)message;
-                                if (remoteSequence == 1)
-                                {
-                                    remoteSequence = messageFIX.Sequence;
-                                }
                                 if (messageFIX.MessageType == "A")
                                 {
+                                    if( messageFIX.Sequence < remoteSequence)
+                                    {
+                                        remoteSequence = messageFIX.Sequence;
+                                        if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + RemoteSequence);
+                                    }
                                     HandleLogon(messageFIX);
                                 }
                             }
@@ -479,11 +480,11 @@ namespace TickZoom.FIX
         {
             var messageFIX = (MessageFIXT1_1) message;
             var sequence = messageFIX.Sequence;
-            if (TryRequestResend(messageFIX))
+            if (messageFIX.MessageType != "A" && TryRequestResend(messageFIX))
             {
                 return true;
             }
-            else if( messageFIX.Sequence < remoteSequence && messageFIX.Sequence > 1)
+            else if( messageFIX.Sequence < remoteSequence)
             {
                 if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Expecting " + remoteSequence + " as next sequence. Ignoring. \n" + messageFIX);
                 return true;

@@ -320,6 +320,7 @@ namespace TickZoom.MBTQuotes
                                     if (message.MessageType == '9')
                                     {
                                         // Received the ping response.
+                                        if( trace) log.Trace("Ping successfully received."); 
                                         isPingSent = false;
                                     }
                                     else
@@ -377,8 +378,8 @@ namespace TickZoom.MBTQuotes
 	    private void SendPing()
 	    {
             Message message = Socket.MessageFactory.Create();
-            string textMessage = "9|";
-            if (debug) log.Debug("Ping request: " + textMessage);
+            string textMessage = "9|\n";
+            if (trace) log.Trace("Ping request: " + textMessage);
             message.DataOut.Write(textMessage.ToCharArray());
             while (!Socket.TrySendMessage(message))
             {
