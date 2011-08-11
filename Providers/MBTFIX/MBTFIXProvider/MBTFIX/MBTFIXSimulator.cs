@@ -169,7 +169,8 @@ namespace TickZoom.MBTFIX
 
         private Yield FIXRequestSessionStatus(MessageFIX4_4 packet)
         {
-            if( packet.TradingSessionId != "TSSTATE")
+            //625=DEMOORDS1  340=2  336=TSSTATE
+            if (packet.TradingSessionId != "TSSTATE")
             {
                 throw new ApplicationException("Expected TSSTATE for trading session id but was: " + packet.TradingSessionId);
             }
@@ -177,6 +178,14 @@ namespace TickZoom.MBTFIX
             {
                 throw new ApplicationException("Expected unique trading session request id but was:" + packet.TradingSessionRequestId);
             }
+            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            mbtMsg.SetAccount("33006566");
+            mbtMsg.SetDestination("MBTX");
+            mbtMsg.SetTradingSessionId("TSSTATE");
+            mbtMsg.SetTradingSessionStatus("2");
+            mbtMsg.AddHeader("h");
+            SendMessage(mbtMsg);
+            if (debug) log.Debug("Sending session status report: " + mbtMsg);
             return Yield.DidWork.Repeat;
         }
 

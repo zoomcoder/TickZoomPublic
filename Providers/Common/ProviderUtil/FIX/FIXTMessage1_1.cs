@@ -54,6 +54,14 @@ namespace TickZoom.FIX
         }
 
         /// <summary>
+        /// 340 TradingSessionStatus
+        /// </summary>
+        public void SetTradingSessionStatus(string status)
+        {
+            Append(340, status);
+        }
+
+        /// <summary>
         /// 263 SubscriptionRequestType
         /// </summary>
         public void SetSubscriptionRequestType(int requestType)
