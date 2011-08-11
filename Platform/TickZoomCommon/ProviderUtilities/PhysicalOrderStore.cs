@@ -14,12 +14,21 @@ namespace TickZoom.Common
         public CreateOrChangeOrder CreateOrChangeOrder;
     }
 
-    public class PhysicalOrderStoreDefault : IDisposable, PhysicalOrderCache, PhysicalOrderStore
+    public class PhysicalOrderStoreDefault : IDisposable, PhysicalOrderCache, PhysicalOrderStore, LogAware
     {
-        private static readonly Log log = Factory.SysLog.GetLogger(typeof(PhysicalOrderStoreDefault));
-        private static readonly bool info = log.IsDebugEnabled;
-        private static readonly bool debug = log.IsDebugEnabled;
-        private static readonly bool trace = log.IsTraceEnabled;
+        private Log log;
+        private volatile bool info;
+        private volatile bool trace;
+        private volatile bool debug;
+        public void RefreshLogLevel()
+        {
+            if (log != null)
+            {
+                info = log.IsDebugEnabled;
+                debug = log.IsDebugEnabled;
+                trace = log.IsTraceEnabled;
+            }
+        }
         private Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
         private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
         private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
@@ -50,6 +59,8 @@ namespace TickZoom.Common
 
         public PhysicalOrderStoreDefault(string name)
         {
+            log = Factory.SysLog.GetLogger(typeof(PhysicalOrderStoreDefault));
+            log.Register(this);
             storeName = name;
             writeFileAction = SnapShotHandler;
             var appData = Factory.Settings["AppDataFolder"];
@@ -327,10 +338,12 @@ namespace TickZoom.Common
                 // Write the current sequence number
                 writer.Write(remoteSequence);
                 writer.Write(LocalSequence);
+                if (debug) log.Debug("Snapshot writing Local Sequence  " + localSequence + ", Remote Sequence " + remoteSequence);
                 foreach (var kvp in ordersByBrokerId)
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
+                    if( debug) log.Debug("Snapshot found order by Id: " + order);
                     foreach( var reference in OrderReferences(order))
                     {
                         AddUniqueOrder(reference);
@@ -341,6 +354,7 @@ namespace TickZoom.Common
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
+                    if (debug) log.Debug("Snapshot found order by serial: " + order);
                     foreach (var reference in OrderReferences(order))
                     {
                         AddUniqueOrder(reference);
@@ -351,6 +365,7 @@ namespace TickZoom.Common
                 foreach (var kvp in unique)
                 {
                     var order = kvp.Key;
+                    if (debug) log.Debug("Snapshot writing unique order: " + order);
                     var id = kvp.Value;
                     writer.Write(id);
                     writer.Write((int)order.Action);

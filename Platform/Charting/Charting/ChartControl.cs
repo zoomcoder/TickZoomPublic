@@ -78,7 +78,6 @@ namespace TickZoom.Charting
 		Interval intervalChartBar;
 		string storageFolder;
         SymbolInfo symbol;
-        bool showTradeTips = true;
 		private volatile bool isDrawn = false;
 		private Execute execute;
         
@@ -172,6 +171,7 @@ namespace TickZoom.Charting
 			dataGraph.IsEnableVPan = false;
 			dataGraph.IsEnableVZoom = false;
 		    dataGraph.PointToolTip.Active = false;
+		    dataGraph.PointToolTip.AutoPopDelay = 30000;
 			
 			// Fill background
 			master.Fill = new Fill( Color.FromArgb( 220, 220, 255 ));
@@ -739,8 +739,8 @@ namespace TickZoom.Charting
 		{
 			if ( dataGraph.MasterPane != null )
 			{
-			    isAutoScroll = true; // Turn on auto scroll when zooming to last.
 				AutoZoom( dataGraph.GraphPane);
+			    isAutoScroll = IsLastBarVisible && IsDynamicUpdate;
 			}
 		}
 		
@@ -905,7 +905,7 @@ namespace TickZoom.Charting
 			
 			Scale xScale = priceGraphPane.XAxis.Scale;
 			double xCurrent;
-			if( priceGraphPane.XAxis.Scale.IsAnyOrdinal) {
+			if( xScale.IsAnyOrdinal) {
 				xCurrent = lastBar;
 			} else {
 				xCurrent = lastTime;
@@ -1344,7 +1344,11 @@ namespace TickZoom.Charting
                 toolStripString.Append(", ");
                 toolStripString.Append(intervalChartBar);
                 var text = toolStripString.ToString();
-                execute.OnUIThread(() => toolStripStatusXY.Text = text );
+                execute.OnUIThread(() =>
+                                       {
+                                           toolStripStatusXY.Text = text;
+                                           statusStrip1.Refresh();
+                                       });
 
                 toolStripString.Length = 0;
                 var count = 0;
@@ -1373,7 +1377,7 @@ namespace TickZoom.Charting
                 execute.OnUIThread(() =>
                                        {
                                            indicatorValues.Text = text2;
-                                           this.Refresh();
+                                           indicatorValues.Refresh();
                                        });
             }
         }
@@ -1428,7 +1432,7 @@ namespace TickZoom.Charting
                             if( resetAxis || redraw)
                             {
                                 if (trace) log.Trace("redrawing");
-                                dataGraph.Refresh();
+                                this.Refresh();
                             }
                         }
 					}
@@ -1564,7 +1568,7 @@ namespace TickZoom.Charting
 		
 		void ToggleAutoScroll(object sender, EventArgs e) {
 			isAutoScroll = !isAutoScroll;
-            if (isAutoScroll && isDynamicUpdate)
+            if (isAutoScroll && isDynamicUpdate && !IsLastBarVisible)
             {
                 AutoZoom(dataGraph.GraphPane);
             }
@@ -1647,21 +1651,43 @@ namespace TickZoom.Charting
 			get { return stockPointList; }
 		}
 
+	    public bool IsLastBarVisible
+	    {
+	        get
+	        {
+                var xScale = priceGraphPane.XAxis.Scale;
+                var xCurrent = xScale.IsAnyOrdinal ? lastBar : lastTime;
+	            return xCurrent <= xScale.Max + 3 * _clusterWidth;
+	        }
+	    }
+
+		void DataGraphZoomEvent(object sender, ZoomState oldState, ZoomState newState)
+		{
+		    isAutoScroll = IsLastBarVisible && isDynamicUpdate;
+            if( isAutoScroll)
+            {
+                var xScale = dataGraph.GraphPane.XAxis.Scale;
+                xScale.Max += 10*_clusterWidth;
+            }
+		}
+
 		bool isScrolling = false;
 		void DataGraphScrollEvent(object sender, ScrollEventArgs e)
 		{
-//			log.Notice("ScrollEvent " + e.Type);
 			if( e.Type == ScrollEventType.EndScroll) {
 				isScrolling = false;
-			} else {
+			    isAutoScroll = IsLastBarVisible && IsDynamicUpdate;
+                if( isAutoScroll)
+                {
+                    var xScale = dataGraph.GraphPane.XAxis.Scale;
+                    xScale.Max += 10 * _clusterWidth;
+                }
+            }
+            else
+            {
 				isScrolling = true;
 			    isAutoScroll = false;
 			}
-		}
-		
-		public bool ShowTradeTips {
-			get { return showTradeTips; }
-			set { showTradeTips = value; }
 		}
 		
 		public bool IsDrawn {

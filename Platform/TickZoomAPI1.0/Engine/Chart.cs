@@ -95,11 +95,6 @@ namespace TickZoom.Api
 			set ;
 		}
 		
-		bool ShowTradeTips {
-			get ; 
-			set ;
-		}
-		
 		StrategyInterface StrategyForTrades {
 			get ;
 			set ;

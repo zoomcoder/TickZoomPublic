@@ -914,6 +914,7 @@ namespace ZedGraph
             for (int i = minOrdinal; i < maxOrdinal; i ++)
 			{
                 PointPair point = this.Points[i];
+                if( point == null) continue;
 
 				double curX = isXOrdinal ? i + 1 : point.X;
 				double curY = isYOrdinal ? i + 1 : point.Y;

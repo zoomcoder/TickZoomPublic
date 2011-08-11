@@ -48,6 +48,7 @@ namespace TickZoom.GUI
         private bool failedAlarmSound = false;
         private bool isEngineLoaded = false;
         private Log log;
+        private bool trace;
         private List<PortfolioDoc> portfolioDocs = new List<PortfolioDoc>();
         private bool stopMessages = false;
         private StarterConfig vm;
@@ -60,6 +61,7 @@ namespace TickZoom.GUI
         public StarterConfigView(Execute execute, StarterConfig vm)
         {
             log = Factory.SysLog.GetLogger(typeof(StarterConfig));
+            trace = log.IsTraceEnabled;
             this.vm = vm;
             this.execute = execute;
             InitializeComponent();
@@ -245,7 +247,7 @@ namespace TickZoom.GUI
                     }
                 }
                 guiLog.Remove(0, skipTo);
-                log.Info("Capacity " + guiLog.Capacity + ", Length " + guiLog.Length + ", lines " + totalLines);
+                if( trace) log.Trace("Capacity " + guiLog.Capacity + ", Length " + guiLog.Length + ", lines " + totalLines);
                 logOutput.Text = guiLog.ToString();
 	            logOutput.SelectionStart = logOutput.Text.Length;
 	            logOutput.ScrollToCaret();

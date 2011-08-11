@@ -120,6 +120,7 @@ namespace TickZoom.Charting
             this.dataGraph.MouseMoveEvent += new ZedGraph.ZedGraphControl.ZedMouseEventHandler(this.DataGraphMouseMoveEvent);
 		    this.dataGraph.IsShowDrawObjectTags = false;
 		    this.dataGraph.MouseHover += new EventHandler(this.DataGraphMouseHoverEvent);
+            this.dataGraph.ZoomEvent += new ZedGraphControl.ZoomEventHandler(this.DataGraphZoomEvent);
             this.dataGraph.ScrollEvent += new System.Windows.Forms.ScrollEventHandler(this.DataGraphScrollEvent);
             this.dataGraph.ContextMenuBuilder += new ZedGraph.ZedGraphControl.ContextMenuBuilderEventHandler(this.DataGraphContextMenuBuilder);
             // 

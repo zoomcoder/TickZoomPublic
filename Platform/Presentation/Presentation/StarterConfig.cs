@@ -292,6 +292,14 @@ namespace TickZoom.Presentation
             }
         }
 
+        public List<string> ChartBarUnitValues
+        {
+            get
+            {
+                return new List<string>(Enum.GetNames(typeof(BarUnit)));
+            }
+        }
+
         public int ChartPeriod
         {
             get { return chartPeriod; }
@@ -338,8 +346,12 @@ namespace TickZoom.Presentation
             }
         }
         
-        public Array DefaultBarUnitValues {
-        	get { return Enum.GetValues(typeof(BarUnit)); }
+        public List<string> DefaultBarUnitValues
+        {
+        	get
+        	{
+                return new List<string>(Enum.GetNames(typeof(BarUnit)));
+        	}
         }
 
         public int DefaultPeriod
@@ -384,6 +396,14 @@ namespace TickZoom.Presentation
             {
                 NotifyOfPropertyChange(() => EngineBarUnit);
                 engineBarUnit = value;
+            }
+        }
+
+        public List<string> EngineBarUnitValues
+        {
+            get
+            {
+                return new List<string>(Enum.GetNames(typeof(BarUnit)));
             }
         }
 
