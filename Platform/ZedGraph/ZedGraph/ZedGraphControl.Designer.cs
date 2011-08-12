@@ -49,7 +49,7 @@ namespace ZedGraph
 			// 
 			// pointToolTip
 			// 
-			this.PointToolTip.AutoPopDelay = 5000;
+			this.PointToolTip.AutoPopDelay = 30000;
 			this.PointToolTip.InitialDelay = 100;
 			this.PointToolTip.ReshowDelay = 0;
 			// 

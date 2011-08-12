@@ -247,7 +247,7 @@ namespace TickZoom.GUI
                     }
                 }
                 guiLog.Remove(0, skipTo);
-                if( trace) log.Trace("Capacity " + guiLog.Capacity + ", Length " + guiLog.Length + ", lines " + totalLines);
+                log.Info("Log Capacity " + guiLog.Capacity + ", Length " + guiLog.Length + ", lines " + totalLines + ", skipTo " + skipTo);
                 logOutput.Text = guiLog.ToString();
 	            logOutput.SelectionStart = logOutput.Text.Length;
 	            logOutput.ScrollToCaret();

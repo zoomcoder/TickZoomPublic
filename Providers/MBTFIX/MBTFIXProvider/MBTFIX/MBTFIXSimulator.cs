@@ -219,9 +219,17 @@ namespace TickZoom.MBTFIX
 			}
 			SendExecutionReport( order, "A", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
-		    var orderStatus = order.Symbol.FixSimulationType == FIXSimulationType.ForexPair ? "A" : "0";
-			SendExecutionReport( order, orderStatus, 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
-			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
+            if( order.Symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+                (order.Type == OrderType.BuyStop || order.Type == OrderType.StopLoss))
+            {
+                SendExecutionReport(order, "A", "D", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
+                SendPositionUpdate(order.Symbol, GetPosition(order.Symbol));
+            }
+            else
+            {
+                SendExecutionReport(order, "0", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
+                SendPositionUpdate(order.Symbol, GetPosition(order.Symbol));
+            }
 			CreateOrder( order);
 			return Yield.DidWork.Repeat;
 		}

@@ -254,6 +254,11 @@ namespace Loaders
 						throw;
 					}
 				}
+                finally
+				{
+				    config.Stop();
+				}
+
 				WriteHashes();
                 
 				WriteFinalStats();

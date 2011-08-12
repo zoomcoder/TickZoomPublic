@@ -171,7 +171,6 @@ namespace TickZoom.Charting
 			dataGraph.IsEnableVPan = false;
 			dataGraph.IsEnableVZoom = false;
 		    dataGraph.PointToolTip.Active = false;
-		    dataGraph.PointToolTip.AutoPopDelay = 30000;
 			
 			// Fill background
 			master.Fill = new Fill( Color.FromArgb( 220, 220, 255 ));
@@ -1242,10 +1241,17 @@ namespace TickZoom.Charting
                         dataGraph.PointToolTip.SetToolTip(dataGraph, sb.ToString());
                         currentToolTipIndex = dragIndex;
                         dataGraph.PointToolTip.Active = true;
+                        isAutoScroll = false;
                     }
                 }
                 else
+                {
+                    if( IsLastBarVisible && isDynamicUpdate)
+                    {
+                        isAutoScroll = true;
+                    }
                     dataGraph.PointToolTip.Active = false;
+                }
             }
         }
 
@@ -1393,25 +1399,19 @@ namespace TickZoom.Charting
                         tickUpdate = false;
                         FormatToolStripText();
                     }
-                    if( dataGraph.PointToolTip.Active)
-                    {
-                        return;
-                    }
 					System.Windows.Forms.Timer timer = (System.Windows.Forms.Timer) sender;
 					if( layoutChange) {
 						setLayout();
 						layoutChange = false;
 					}
-					var barsBehind = chartBars.BarCount - stockPointList.Count;
-                    if (trace) log.Trace("behind=" + barsBehind + ", count="+stockPointList.Count+",dynamic="+isDynamicUpdate);
-                    if (stockPointList.Count > 0 && barsBehind < 5 && isDynamicUpdate)
+                    if (stockPointList.Count > 0 && (chartBars.BarCount - stockPointList.Count) < 5 && isDynamicUpdate)
                     {
                         if (trace) log.Trace("dragging=" + isScrolling + ", AutoScroll = " + isAutoScroll);
+                        bool resetAxis = false;
+                        bool redraw = false;
+                        timer.Interval = 200;
                         if (!isScrolling && isAutoScroll)
                         {
-                            timer.Interval = 200;
-							bool resetAxis = false;
-                            bool redraw = false;
                             if (KeepWithinScale())
                             {
 								resetAxis = true;	
@@ -1419,23 +1419,23 @@ namespace TickZoom.Charting
 							if( SetCommonXScale()) {
 								resetAxis = true;
 							}
-                            if (addBarOccurred)
-                            {
-                                redraw = true;
-                                addBarOccurred = false;
-                            }
-                            if (resetAxis)
-                            {
-                                if (trace) log.Trace("refreshing axis");
-                                dataGraph.AxisChange();
-							}
-                            if( resetAxis || redraw)
-                            {
-                                if (trace) log.Trace("redrawing");
-                                this.Refresh();
-                            }
                         }
-					}
+                        if (addBarOccurred)
+                        {
+                            redraw = true;
+                            addBarOccurred = false;
+                        }
+                        if (resetAxis)
+                        {
+                            if (trace) log.Trace("refreshing axis");
+                            dataGraph.AxisChange();
+                        }
+                        if (resetAxis || redraw)
+                        {
+                            if (trace) log.Trace("redrawing");
+                            this.Refresh();
+                        }
+                    }
 				}
 			} catch( Exception ex) {
 				log.Notice( ex.ToString());

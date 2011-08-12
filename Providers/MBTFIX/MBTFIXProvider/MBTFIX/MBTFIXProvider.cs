@@ -189,6 +189,7 @@ namespace TickZoom.MBTFIX
 
             if (OrderStore.Recover())
             {
+                if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
                 RemoteSequence = OrderStore.RemoteSequence;
                 OrderStore.UpdateSequence(RemoteSequence,OrderStore.LocalSequence+500);
@@ -543,7 +544,7 @@ namespace TickZoom.MBTFIX
 						if( symbol != null) {
                             if (symbol.FixSimulationType == FIXSimulationType.ForexPair &&
                                 OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
-                                order.OrderState == OrderState.Active)
+                                (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                             {
                                 if( debug) log.Debug("New order messaged ignored for Forex Stop: " + order);
                             }
@@ -658,9 +659,17 @@ namespace TickZoom.MBTFIX
                         {
                             if( symbol.FixSimulationType == FIXSimulationType.ForexPair &&
                                 OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
-                                order.OrderState == OrderState.PendingNew)
+                                (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                             {
-                                TryConfirmCreate(symbol, packetFIX);
+                                // Ignore any 
+                                if( packetFIX.ExecutionType == "D")
+                                {
+                                    if( debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");
+                                }
+                                else
+                                {
+                                    TryConfirmCreate(symbol, packetFIX);
+                                }
                             }
                             else
                             {

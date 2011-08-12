@@ -480,7 +480,21 @@ namespace TickZoom.FIX
         {
             var messageFIX = (MessageFIXT1_1) message;
             var sequence = messageFIX.Sequence;
-            if (messageFIX.MessageType != "A" && TryRequestResend(messageFIX))
+            if( messageFIX.MessageType == "A")
+            {
+                if (messageFIX.Sequence == remoteSequence)
+                {
+                    RemoteSequence = messageFIX.Sequence + 1;
+                    if (debug) log.Debug("Login sequence matched. Incrementing remote sequence to " + RemoteSequence);
+                    OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
+                }
+                else
+                {
+                    if (debug) log.Debug("Login remote sequence mismatch. Resend needed.");
+                }
+                return false;
+            }
+            else if (TryRequestResend(messageFIX))
             {
                 return true;
             }
@@ -511,22 +525,26 @@ namespace TickZoom.FIX
             if (messageFIX.Sequence > remoteSequence)
             {
                 result = true;
-                if (debug) log.Debug("Sequence is " + messageFIX.Sequence + " but expected sequence is " + remoteSequence + ". Ignoring message.");
-                expectedResendSequence = messageFIX.Sequence;
-                if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
-                if (isResendComplete)
-                {
-                    isResendComplete = false;
-                    if (debug) log.Debug("TryRequestResend() Set resend complete: " + isResendComplete);
-                    var mbtMsg = fixFactory.Create();
-                    mbtMsg.AddHeader("2");
-                    mbtMsg.SetBeginSeqNum(remoteSequence);
-                    mbtMsg.SetEndSeqNum(0);
-                    if (debug) log.Debug(" Sending resend request: " + mbtMsg);
-                    SendMessage(mbtMsg);
-                }
+                HandleResend(messageFIX.Sequence);
             }
             return result;
+        }
+
+        private void HandleResend(int sequence) {
+            if (debug) log.Debug("Sequence is " + sequence + " but expected sequence is " + remoteSequence + ". Ignoring message.");
+            expectedResendSequence = sequence;
+            if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
+            if (isResendComplete)
+            {
+                isResendComplete = false;
+                if (debug) log.Debug("TryRequestResend() Set resend complete flag: " + isResendComplete);
+                var mbtMsg = fixFactory.Create();
+                mbtMsg.AddHeader("2");
+                mbtMsg.SetBeginSeqNum(remoteSequence);
+                mbtMsg.SetEndSeqNum(0);
+                if (debug) log.Debug(" Sending resend request: " + mbtMsg);
+                SendMessage(mbtMsg);
+            }
         }
 
         private FIXTMessage1_1 GapFillMessage(int currentSequence)
