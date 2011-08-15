@@ -37,8 +37,6 @@ namespace TickZoom.FIX
 {
 	public abstract class FIXProviderSupport : Provider, LogAware
 	{
-		private FIXFilter fixFilter;
-		private FIXPretradeFilter fixFilterController;
         private PhysicalOrderStore orderStore;
         private readonly Log log;
         private volatile bool trace;
@@ -122,9 +120,6 @@ namespace TickZoom.FIX
 			if( socket != null) {
 				socket.Dispose();
 			}
-			if( fixFilterController != null) {
-				fixFilterController.Dispose();
-			}
 			socket = Factory.Provider.Socket("MBTFIXSocket");
 			socket.ReceiveQueue.Connect( socketTask);
 			socket.OnDisconnect = OnDisconnect;
@@ -164,10 +159,7 @@ namespace TickZoom.FIX
         	// Initiate socket connection.
         	while( true) {
         		try { 
-        			fixFilterController = new FIXPretradeFilter(addrStr,port);
-        			fixFilterController.Filter = fixFilter;
-					socket.Connect("127.0.0.1",fixFilterController.LocalPort);
-//					socket.Connect("127.0.0.1",port);
+					socket.Connect("127.0.0.1",port);
 					if( debug) log.Debug("Requested Connect for " + socket);
 					return;
         		} catch( SocketErrorException ex) {
@@ -400,6 +392,8 @@ namespace TickZoom.FIX
 							} else {
 								return Yield.NoWork.Repeat;
 							}
+                        case Status.Disconnected:
+                            return Yield.NoWork.Repeat;
                         default:
                             throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
                     }
@@ -853,10 +847,6 @@ namespace TickZoom.FIX
                     {
                         socket.Dispose();
                     }
-                    if (fixFilterController != null)
-                    {
-                        fixFilterController.Dispose();
-                    }
                     if( orderStore != null)
                     {
                         orderStore.Dispose();
@@ -1018,11 +1008,6 @@ namespace TickZoom.FIX
 			get { return connectionStatus; }
 		}
 		
-		public FIXFilter FIXFilter {
-			get { return fixFilter; }
-			set { fixFilter = value; }
-		}
-        
 		public string ConfigSection {
 			get { return configSection; }
 			set { configSection = value; }

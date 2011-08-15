@@ -143,8 +143,14 @@ namespace TickZoom.Test
 		    var strategyPositions = new ActiveList<StrategyPosition>();
   			provider.SendEvent(verify,symbol,(int)EventType.PositionChange,new PositionChangeDetail(symbol,expectedPosition,orders,strategyPositions,TimeStamp.UtcNow.Internal));
 		}
-		
-		public LogicalOrder CreateEntry( StrategyInterface strategy, OrderType orderType, double price, int position, int strategyPosition) {
+
+        public LogicalOrder CreateChange(StrategyInterface strategy, OrderType orderType, double price, int position, int strategyPosition)
+        {
+            return CreateOrder(strategy, TradeDirection.Change, orderType, price, position, strategyPosition);
+        }
+
+        public LogicalOrder CreateEntry(StrategyInterface strategy, OrderType orderType, double price, int position, int strategyPosition)
+        {
 			return CreateOrder(strategy, TradeDirection.Entry, orderType,price,position,strategyPosition);
 		}
 		public LogicalOrder CreateExit( StrategyInterface strategy, OrderType orderType, double price, int strategyPosition) {

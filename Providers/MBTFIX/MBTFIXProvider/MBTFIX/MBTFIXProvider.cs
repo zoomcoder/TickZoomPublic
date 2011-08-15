@@ -82,7 +82,6 @@ namespace TickZoom.MBTFIX
   			} else {
 	  			HeartbeatDelay = 40;
   			}
-  			FIXFilter = new MBTFIXFilter();
 		}
 		
 		public override void OnDisconnect() {
@@ -1248,7 +1247,19 @@ namespace TickZoom.MBTFIX
             order.Sequence = fixMsg.Sequence;
             OrderStore.SetOrder(order);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
-			
+
+            if (order.Size > order.Symbol.MaxOrderSize)
+            {
+                throw new ApplicationException("Order was greater than MaxOrderSize of " + order.Symbol.MaxPositionSize + " for:\n" + order);
+            }
+
+            var orderHandler = GetAlgorithm(order.Symbol.BinaryIdentifier);
+		    var orderSize = order.Type == OrderType.SellLimit || order.Type == OrderType.SellMarket || order.Type == OrderType.SellStop ? -order.Size : order.Size;
+            if( Math.Abs(orderHandler.ActualPosition + orderSize) > order.Symbol.MaxPositionSize)
+            {
+                throw new ApplicationException("Order was greater than MaxPositionSize of " + order.Symbol.MaxPositionSize + " for:\n" + order);
+            }
+
 			if( debug) log.Debug( "Adding Order to open order list: " + order);
 			if( order.Action == OrderAction.Change) {
                 var origBrokerOrder = order.OriginalOrder.BrokerOrder;

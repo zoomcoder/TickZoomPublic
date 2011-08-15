@@ -83,9 +83,9 @@ namespace TickZoom.MBTQuotes
             RefreshLogLevel();
 	        log.Info(providerName+" Startup");
 			RegenerateSocket();
-			socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
-			socketTask.Start();
-		    taskTimer = Factory.Parallel.CreateTimer(socketTask, SocketTask);
+            socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
+            taskTimer = Factory.Parallel.CreateTimer(socketTask, SocketTask);
+            socketTask.Start();
 		    TimeStamp currentTime;
 		    do
 		    {

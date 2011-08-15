@@ -32,8 +32,8 @@ using TickZoom.FIX;
 namespace TickZoom.MBTFIX
 {
 
-	public class MBTFIXFilter : FIXFilter, LogAware {
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MBTFIXFilter));
+	public class MBTFIXFilterXXX : FIXFilter, LogAware {
+		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MBTFIXFilterXXX));
 		private static readonly bool info = log.IsDebugEnabled;
         private volatile bool debug;
         private volatile bool trace;
@@ -45,10 +45,10 @@ namespace TickZoom.MBTFIX
         private bool isPositionUpdateComplete = false;
 		private bool isOrderUpdateComplete = false;
 		private bool isRecovered = false;
-		private string fixSender = typeof(MBTFIXFilter).Name;
+		private string fixSender = typeof(MBTFIXFilterXXX).Name;
 		private Dictionary<long,double> symbolPositionMap = new Dictionary<long,double>();
 
-        public MBTFIXFilter()
+        public MBTFIXFilterXXX()
         {
             log.Register(this);
         }

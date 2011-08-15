@@ -41,13 +41,13 @@ namespace Test
 		{
 			log.Notice("Waiting 20 seconds for FIX server to reset.");
 			Thread.Sleep(20000);
-			SetSymbol("IBM");
+			SetSymbol("USD/JPY");
 			SetTickTest(TickTest.Level1);
 		}
 		
 		public override Provider ProviderFactory()
 		{
-			return new MBTProvider("EquityDemo");
+			return new MBTProvider("ForexLiveDemo");
 		}
 		
 	}
