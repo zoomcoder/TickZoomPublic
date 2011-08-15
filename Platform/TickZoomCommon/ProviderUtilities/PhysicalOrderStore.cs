@@ -56,6 +56,7 @@ namespace TickZoom.Common
         private TaskLock snapshotLocker = new TaskLock();
         private int remoteSequence = 0;
         private int localSequence = 0;
+        private object fileLocker = new object();
 
         public PhysicalOrderStoreDefault(string name)
         {
@@ -208,49 +209,53 @@ namespace TickZoom.Common
         private void ForceSnapshotRollover()
         {
             if( debug) log.Debug("Creating new snapshot file and rolling older ones to higher number.");
-            if (fs != null)
+            lock( fileLocker)
             {
-                fs.Close();
-            }
-            var files = FindSnapshotFiles();
-            for (var i = files.Count - 1; i >= 0; i--)
-            {
-                var count = files[i].Order;
-                var source = files[i].Filename;
-                if (File.Exists(source))
+                if (fs != null)
                 {
-                    if (count > 9)
+                    fs.Dispose();
+                }
+                var files = FindSnapshotFiles();
+                for (var i = files.Count - 1; i >= 0; i--)
+                {
+                    var count = files[i].Order;
+                    var source = files[i].Filename;
+                    if (File.Exists(source))
                     {
-                        File.Delete(source);
-                    }
-                    else
-                    {
-                        var replace = Path.Combine(dbFolder, storeName + ".dat." + (count + 1));
-                        var errorCount = 0;
-                        var errorList = new List<Exception>();
-                        while( errorCount < 3)
+                        if (count > 9)
                         {
-                            try
-                            {
-                                File.Move(source, replace);
-                                break;
-                            }
-                            catch( IOException ex)
-                            {
-                                errorList.Add(ex);
-                                errorCount++;
-                                Thread.Sleep(1000);
-                            }
+                            File.Delete(source);
                         }
-                        if( errorList.Count > 0)
+                        else
                         {
-                            var ex = errorList[errorList.Count - 1];
-                            throw new ApplicationException("Failed to mov " + source + " to " + replace, ex);
+                            var replace = Path.Combine(dbFolder, storeName + ".dat." + (count + 1));
+                            var errorCount = 0;
+                            var errorList = new List<Exception>();
+                            while (errorCount < 3)
+                            {
+                                try
+                                {
+                                    File.Move(source, replace);
+                                    break;
+                                }
+                                catch (IOException ex)
+                                {
+                                    errorList.Add(ex);
+                                    errorCount++;
+                                    Thread.Sleep(1000);
+                                }
+                            }
+                            if (errorList.Count > 0)
+                            {
+                                var ex = errorList[errorList.Count - 1];
+                                System.Diagnostics.Debugger.Break();
+                                throw new ApplicationException("Failed to mov " + source + " to " + replace, ex);
+                            }
                         }
                     }
                 }
+                OpenFile();
             }
-            OpenFile();
         }
 
         private void CheckSnapshotRollover()
@@ -493,40 +498,43 @@ namespace TickZoom.Common
 
         public bool Recover()
         {
-            if( fs != null)
+            lock( fileLocker)
             {
-                fs.Close();
-            }
-            var files = FindSnapshotFiles();
-            var loaded = false;
-            foreach (var file in files)
-            {
-                if (debug) log.Debug("Attempting recovery from snapshot file: " + file.Filename);
-                SnapshotReadAll(file.Filename);
-                var snapshots = SnapshotScan();
-                for (var i = snapshots.Count - 1; i >= 0; i--)
+                if (fs != null)
                 {
-                    var snapshot = snapshots[i];
-                    if (debug) log.Debug("Trying snapshot at offset: " + snapshot.Offset + ", length: " + snapshot.Length);
-                    if (SnapshotLoadLast(snapshot))
+                    fs.Close();
+                }
+                var files = FindSnapshotFiles();
+                var loaded = false;
+                foreach (var file in files)
+                {
+                    if (debug) log.Debug("Attempting recovery from snapshot file: " + file.Filename);
+                    SnapshotReadAll(file.Filename);
+                    var snapshots = SnapshotScan();
+                    for (var i = snapshots.Count - 1; i >= 0; i--)
                     {
-                        if (debug) log.Debug("Snapshot successfully loaded.");
-                        loaded = true;
+                        var snapshot = snapshots[i];
+                        if (debug) log.Debug("Trying snapshot at offset: " + snapshot.Offset + ", length: " + snapshot.Length);
+                        if (SnapshotLoadLast(snapshot))
+                        {
+                            if (debug) log.Debug("Snapshot successfully loaded.");
+                            loaded = true;
+                            break;
+                        }
+                    }
+                    if (loaded)
+                    {
                         break;
                     }
                 }
                 if (loaded)
                 {
-                    break;
+                    forceSnapShotRollover = true;
+                    ForceSnapShot();
                 }
+                OpenFile();
+                return loaded;
             }
-            if( loaded)
-            {
-                forceSnapShotRollover = true;
-                ForceSnapShot();
-            }
-            OpenFile();
-            return loaded;
         }
 
         private bool forceSnapShotRollover = false;

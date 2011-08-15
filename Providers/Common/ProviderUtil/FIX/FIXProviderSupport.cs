@@ -186,7 +186,7 @@ namespace TickZoom.FIX
 			Recovered,
             Disconnected,
 			PendingRetry,
-		    PendingLogOut
+		    PendingLogOut,
 		}
 		
 		public void WriteFailedLoginFile(string packetString) {
@@ -377,6 +377,7 @@ namespace TickZoom.FIX
                                             break;
                                         case "5": // log off confirm
                                             if( debug) log.Debug("Log off confirmation received.");
+                                            connectionStatus = Status.Disconnected;
                                             break;
                                         default:
                                             if( resetAtLogin && messageFIX.IsPossibleDuplicate)
