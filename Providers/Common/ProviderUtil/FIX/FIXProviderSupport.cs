@@ -80,7 +80,7 @@ namespace TickZoom.FIX
         private bool useLocalFillTime = true;
 		private FIXTFactory fixFactory;
 	    private string appDataFolder;
-        private TimeStamp lastMessage;
+        private TimeStamp lastMessageTime;
         private int remoteSequence = 1;
         
 		public bool UseLocalFillTime {
@@ -253,6 +253,9 @@ namespace TickZoom.FIX
 				return connectionStatus == Status.PendingRecovery;
 			}
 		}
+
+	    private TimeStamp utcLogonTime;
+	    private bool resetAtLogin = false;
 		
 		private Yield SocketTask() {
 			if( isDisposed ) return Yield.NoWork.Repeat;
@@ -316,7 +319,7 @@ namespace TickZoom.FIX
 								log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
 							}
 							if( Factory.Parallel.TickCount >= heartbeatTimeout) {
-								log.Info("Heartbeat Timeout. Last Message UTC Time: " + lastMessage + ", current UTC Time: " + TimeStamp.UtcNow);
+								log.Info("Heartbeat Timeout. Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
                                 log.Error("FIXProvider Heartbeat Timeout.");
                                 SyncTicks.LogStatus();
 								SetupRetry();
@@ -335,14 +338,20 @@ namespace TickZoom.FIX
                                     if( messageFIX.Sequence < remoteSequence)
                                     {
                                         remoteSequence = messageFIX.Sequence;
+                                        resetAtLogin = true;
                                         if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + RemoteSequence);
                                     }
+                                    else
+                                    {
+                                        resetAtLogin = false;
+                                    }
+                                    utcLogonTime = new TimeStamp(messageFIX.SendUtcTime);
                                     HandleLogon(messageFIX);
                                 }
                             }
 
 					        if( foundMessage) {
-								lastMessage = TimeStamp.UtcNow;
+								lastMessageTime = TimeStamp.UtcNow;
                                 var messageFIX = (MessageFIXT1_1)message;
                                 switch( messageFIX.MessageType)
                                 {
@@ -370,6 +379,15 @@ namespace TickZoom.FIX
                                             if( debug) log.Debug("Log off confirmation received.");
                                             break;
                                         default:
+                                            if( resetAtLogin && messageFIX.IsPossibleDuplicate)
+                                            {
+                                                var transactTime = new TimeStamp(messageFIX.TransactTime);
+                                                var timeSinceLogon = transactTime - utcLogonTime;
+                                                if (timeSinceLogon.TotalMinutes < 0)
+                                                {
+                                                    throw new ApplicationException("Transact time (field 60) was less than last reset logon time, " + utcLogonTime + " for:\n" + messageFIX);
+                                                }
+                                            }
                                             ReceiveMessage(messageFIX);
                                             break;
                                     }

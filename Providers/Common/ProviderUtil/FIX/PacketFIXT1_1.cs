@@ -53,7 +53,8 @@ namespace TickZoom.FIX
         private int id = 0;
         private byte* ptr;
         private byte* end;
-		private long sendUtcTime;
+        private long transactTime;
+        private long sendUtcTime;
         private long recvUtcTime;
 		private string version = null;
 		private int begSeqNum;
@@ -86,7 +87,8 @@ namespace TickZoom.FIX
 			id = ++packetIdCounter;
             data.Position = 0;
             data.SetLength(0);
-		    sendUtcTime = 0L;
+            transactTime = 0L;
+            sendUtcTime = 0L;
             recvUtcTime = 0L;
             heartBeatInterval = 0;
             isResetSeqNum = false;
@@ -400,6 +402,21 @@ namespace TickZoom.FIX
                 case 58:
                     result = GetString(out text);
                     break;
+                case 60:
+                    result = GetString(out timeStamp);
+                    if (result)
+                    {
+                        try
+                        {
+                            transactTime = new TimeStamp(timeStamp).Internal;
+                        }
+                        catch (Exception ex)
+                        {
+                            if (debug) log.Debug("Transaction time accuracy problem: " + TransactTime + "  Ignoring by using current time instead.");
+                            transactTime = TickZoom.Api.TimeStamp.UtcNow.Internal;
+                        }
+                    }
+                    break;
                 case 98:
                     result = GetString(out encryption);
                     break;
@@ -539,6 +556,11 @@ namespace TickZoom.FIX
         public bool IsResetSeqNum
         {
             get { return isResetSeqNum; }
+        }
+
+        public long TransactTime
+        {
+            get { return transactTime; }
         }
     }
 }
