@@ -148,23 +148,23 @@ namespace ZedGraph
 						this.ScrollDoneEvent( this, hScrollBar1, _zoomState,
 									new ZoomState( this.GraphPane, ZoomState.StateType.Scroll ) );
 
-                    using (Graphics g = this.CreateGraphics())
-                    {
-                        // always AxisChange() the dragPane
-                        this.GraphPane.AxisChange(g);
-
-                        foreach (GraphPane pane in _masterPane._paneList)
-                        {
-                            if (pane != this.GraphPane && (_isSynchronizeXAxes || _isSynchronizeYAxes))
-                                pane.AxisChange(g);
-                        }
-                    }
-
                     _zoomState = null;
 				}
 			}
 
-			if ( this.ScrollEvent != null )
+            using (Graphics g = this.CreateGraphics())
+            {
+                // always AxisChange() the dragPane
+                this.GraphPane.AxisChange(g);
+
+                foreach (GraphPane pane in _masterPane._paneList)
+                {
+                    if (pane != this.GraphPane && (_isSynchronizeXAxes || _isSynchronizeYAxes))
+                        pane.AxisChange(g);
+                }
+            }
+
+            if (this.ScrollEvent != null)
 				this.ScrollEvent( scrollBar, e );
 		}
 /*

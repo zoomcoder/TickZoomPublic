@@ -396,7 +396,6 @@ namespace ZedGraph
             int limit = Math.Min(curve.Points.Count, maxOrdinal);
             for (int i = start; i < limit; i++)
             {
-                continue;
                 DrawSingleBar(g, pane, curve, i, pos, baseAxis, valueAxis, barWidth, scaleFactor);
             }
 		}

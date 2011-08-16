@@ -296,8 +296,8 @@ namespace TickZoom.Charting
 			// The reason for this is so that the ChartRect's all end up being the same size.
 				
 			myPaneT.IsFontsScaled = false;
-			myPaneT.IsBoundedRanges = true;
-			master.Add( myPaneT);
+			myPaneT.IsBoundedRanges = false;
+            master.Add(myPaneT);
 			return myPaneT;
 		}
 		
@@ -758,8 +758,10 @@ namespace TickZoom.Charting
 					return;
 				}
 				
-				primaryPane.IsBoundedRanges = true;
-				Scale yScale = primaryPane.YAxis.Scale;
+                primaryPane.IsBoundedRanges = true;
+                primaryPane.YAxis.Scale.MaxAuto = true;
+                primaryPane.YAxis.Scale.MinAuto = true;
+                Scale yScale = primaryPane.YAxis.Scale;
 				double price = stockPointList[stockPointList.Count-1].Y;
 				double yMax = double.MinValue;
 				double yMin = double.MaxValue;
@@ -798,9 +800,9 @@ namespace TickZoom.Charting
 					ZoomDefault(primaryPane);
 					return;
 				}
-				
-				primaryPane.IsBoundedRanges = true;
-				Scale xScale = primaryPane.XAxis.Scale;
+
+                primaryPane.IsBoundedRanges = true;
+                Scale xScale = primaryPane.XAxis.Scale;
 				double time;
 				if( xScale.IsAnyOrdinal) {
 					time = stockPointList.Count;
@@ -1685,7 +1687,9 @@ namespace TickZoom.Charting
             }
             else
             {
-				isScrolling = true;
+                dataGraph.GraphPane.YAxis.Scale.MaxAuto = true;
+                dataGraph.GraphPane.YAxis.Scale.MinAuto = true;
+                isScrolling = true;
 			    isAutoScroll = false;
 			}
 		}
