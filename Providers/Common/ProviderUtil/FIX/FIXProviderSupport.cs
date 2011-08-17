@@ -384,7 +384,7 @@ namespace TickZoom.FIX
                                             ReceiveMessage(messageFIX);
                                             break;
                                     }
-                                    orderStore.UpdateSequence(remoteSequence, fixFactory.LastSequence);
+                                    orderStore.UpdateRemoteSequence(remoteSequence);
                                 }
                                 Socket.MessageFactory.Release(message);
                                 IncreaseRetryTimeout();
@@ -499,7 +499,7 @@ namespace TickZoom.FIX
                 {
                     RemoteSequence = messageFIX.Sequence + 1;
                     if (debug) log.Debug("Login sequence matched. Incrementing remote sequence to " + RemoteSequence);
-                    OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
+                    //OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
                 }
                 else
                 {
@@ -526,7 +526,7 @@ namespace TickZoom.FIX
                 }
                 RemoteSequence = messageFIX.Sequence + 1;
                 if( debug) log.Debug("Incrementing remote sequence to " + RemoteSequence);
-                OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
+                //OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
                 return false;
             }
         }
@@ -894,9 +894,9 @@ namespace TickZoom.FIX
             {
                 fixFactory.AddHistory(fixMsg);
             }
-            OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
             SendMessageInternal(fixMsg);
-	    }
+            OrderStore.UpdateLocalSequence(FixFactory.LastSequence);
+        }
 		
 	    private void SendMessageInternal(FIXTMessage1_1 fixMsg) {
 			var fixString = fixMsg.ToString();

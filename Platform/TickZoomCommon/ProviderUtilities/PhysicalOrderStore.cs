@@ -694,7 +694,7 @@ namespace TickZoom.Common
             }
             using (ordersLocker.Using())
             {
-                TrySnapshot();
+                //TrySnapshot();
                 CreateOrChangeOrder order = null;
                 if (ordersByBrokerId.TryGetValue(clientOrderId, out order))
                 {
@@ -735,12 +735,20 @@ namespace TickZoom.Common
             }
         }
 
-        public void UpdateSequence(int remoteSequence, int localSequence)
+        public void UpdateLocalSequence(int localSequence)
+        {
+            using (ordersLocker.Using())
+            {
+                this.localSequence = localSequence;
+                TrySnapshot();
+            }
+        }
+
+        public void UpdateRemoteSequence(int remoteSequence)
         {
             using (ordersLocker.Using())
             {
                 this.remoteSequence = remoteSequence;
-                this.localSequence = localSequence;
                 TrySnapshot();
             }
         }
@@ -799,7 +807,7 @@ namespace TickZoom.Common
                         throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
                     }
                 }
-                TrySnapshot();
+                //TrySnapshot();
             }
         }
 

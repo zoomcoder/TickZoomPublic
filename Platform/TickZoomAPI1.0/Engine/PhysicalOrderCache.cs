@@ -31,7 +31,8 @@ namespace TickZoom.Api
         CreateOrChangeOrder RemoveOrder(string clientOrderId);
         bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order);
         CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber);
-        void UpdateSequence(int remoteSequence, int localSequence);
+        void UpdateLocalSequence(int localSequence);
+        void UpdateRemoteSequence(int remoteSequence);
         void SetSequences(int remoteSequence, int localSequence);
         List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
         string LogOrders();

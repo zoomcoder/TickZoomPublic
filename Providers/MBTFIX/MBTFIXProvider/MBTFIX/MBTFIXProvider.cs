@@ -191,8 +191,8 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
                 RemoteSequence = OrderStore.RemoteSequence;
-                OrderStore.UpdateSequence(RemoteSequence,OrderStore.LocalSequence+500);
                 SendLogin(OrderStore.LocalSequence);
+                OrderStore.ForceSnapShot();
                 isOrderUpdateComplete = RecoverProgress.Completed;
             }
             else
@@ -261,6 +261,8 @@ namespace TickZoom.MBTFIX
 		}
 		
 		private void SendHeartbeat() {
+            if( !isBrokerStarted) RequestSessionUpdate();
+            if( !IsRecovered) TryEndRecovery();
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			fixMsg.AddHeader("0");
 			SendMessage( fixMsg);
