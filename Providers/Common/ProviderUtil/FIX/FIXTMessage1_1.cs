@@ -54,6 +54,14 @@ namespace TickZoom.FIX
         }
 
         /// <summary>
+        /// 625 TradingSessionID
+        /// </summary>
+        public void SetTradingSubSessionId(string subSessionId)
+        {
+            Append(625, subSessionId);
+        }
+
+        /// <summary>
         /// 340 TradingSessionStatus
         /// </summary>
         public void SetTradingSessionStatus(string status)

@@ -230,28 +230,14 @@ namespace TickZoom.MBTFIX
         public override void OnStartSymbol(SymbolInfo symbol)
 		{
         	if( IsRecovered) {
-				long end = Factory.Parallel.TickCount + 2000;
-        		while( !receiver.OnEvent(symbol,(int)EventType.StartBroker,symbol)) {
-        			if( IsInterrupted) return;
-					if( Factory.Parallel.TickCount > end) {
-						throw new ApplicationException("Timeout while sending start broker.");
-					}
-        			Factory.Parallel.Yield();
-        		}
+                TrySendStartBroker();
         	}
 		}
 
 		public override void OnStopSymbol(SymbolInfo symbol)
 		{
-			long end = Factory.Parallel.TickCount + 2000;
-			while( !receiver.OnEvent(symbol,(int)EventType.EndBroker,symbol)) {
-				if( IsInterrupted) return;
-				if( Factory.Parallel.TickCount > end) {
-					throw new ApplicationException("Timeout while sending stop broker.");
-				}
-				Factory.Parallel.Yield();
-			}
-		}
+            TrySendEndBroker();
+        }
 	
 		private void RequestPositions() {
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
@@ -453,23 +439,37 @@ namespace TickZoom.MBTFIX
 			MessageFIXT1_1.IsQuietRecovery = false;
 		}
 
+        private Dictionary<string,bool> sessionStatusMap = new Dictionary<string, bool>();
         private void SessionStatus(MessageFIX4_4 packetFIX)
         {
             log.Debug("Found session status for " + packetFIX.TradingSessionId + " or " + packetFIX.TradingSessionSubId + ": " + packetFIX.TradingSessionStatus);
-            if( packetFIX.TradingSessionId == "TSSTATE")
+            var subId = string.IsNullOrEmpty(packetFIX.TradingSessionSubId) ? packetFIX.TradingSessionId : packetFIX.TradingSessionSubId;
+            switch (packetFIX.TradingSessionStatus)
             {
-                switch( packetFIX.TradingSessionStatus)
+                case 2:
+                    sessionStatusMap[subId] = true;
+                    break;
+                case 3:
+                    sessionStatusMap[subId] = false;
+                    break;
+                default:
+                    log.Warn("Received unknown server session status: " + packetFIX.TradingSessionStatus);
+                    break;
+            }    
+            var statusOnline = true;
+            foreach( var status in sessionStatusMap)
+            {
+                if( !status.Value)
                 {
-                    case 2:
-                        TrySendStartBroker();
-                        break;
-                    case 3:
-                        TrySendEndBroker();
-                        break;
-                    default:
-                        log.Warn("Received unknown server session status: " + packetFIX.TradingSessionStatus);
-                        break;
-                }    
+                    statusOnline = false;
+                }
+            }
+            if( statusOnline)
+            {
+                TrySendStartBroker();
+            } else
+            {
+                TrySendEndBroker();
             }
         }
 
@@ -840,10 +840,18 @@ namespace TickZoom.MBTFIX
     	}
 		
 		public void ProcessFill( SymbolInfo symbol, LogicalFillBinary fill) {
-			if( debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
-			while( !receiver.OnEvent(symbol,(int)EventType.LogicalFill,fill)) {
-				Factory.Parallel.Yield();
-			}
+            if( isBrokerStarted)
+            {
+                if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
+                while (!receiver.OnEvent(symbol, (int)EventType.LogicalFill, fill))
+                {
+                    Factory.Parallel.Yield();
+                }
+            }
+            else
+            {
+                if (debug) log.Debug("Broker offline so fill not sent for " + symbol + " to receiver: " + fill);
+            }
 		}
 
 		public void RejectOrder( MessageFIX4_4 packetFIX) {
