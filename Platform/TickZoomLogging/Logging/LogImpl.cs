@@ -295,7 +295,7 @@ namespace TickZoom.Logging
         
         private void WriteScreen(LoggingEvent msg) {
         	if( messageQueue != null) {
-        		messageQueue.EnQueue(msg);
+                messageQueue.EnQueue(msg);
     	    }
         }
         
@@ -312,22 +312,35 @@ namespace TickZoom.Logging
         		return messageQueue.Count > 0;
         	}
         }
-        public bool TryReadLine(out LogEvent logEvent) {
+        public bool TryReadLine(out LogEvent[] logEvents) {
         	if( messageQueue == null) {
         		throw new ApplicationException( "Sorry. You must Connect before ReadLine");
         	}
         	LoggingEvent msg = default(LoggingEvent);
-        	if( messageQueue.Dequeue(out msg)) {
-	        	logEvent = new LogEventDefault() {
-	        		IsAudioAlarm = msg.Level >= Level.Error,
-	        		Color = msg.Level >= Level.Error ? Color.Red : msg.Level >= Level.Warn ? Color.Yellow : Color.Empty,
-					Message = msg.Level + ": " + msg.RenderedMessage,
-	        	};
-        		return true;
-        	} else {
-        		logEvent = null;
-        		return false;
-        	}
+            if( messageQueue.Count > 0)
+            {
+                logEvents = new LogEvent[messageQueue.Count];
+                for( var i=0; i< logEvents.Length; i++)
+                {
+                    if (messageQueue.Dequeue(out msg))
+                    {
+                        logEvents[i] = new LogEventDefault()
+                                          {
+                                              IsAudioAlarm = msg.Level >= Level.Error,
+                                              Color = msg.Level >= Level.Error ? Color.Red : msg.Level >= Level.Warn ? Color.Yellow : Color.Empty,
+                                              Message = msg.Level + ": " + msg.RenderedMessage,
+                                          };
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                return true;
+            }
+            logEvents = null;
+            return false;
         }
         
         int indent = 0;

@@ -77,6 +77,7 @@ namespace TickZoom.GUI
             this.stopAlarm = new System.Windows.Forms.Button();
             this.alarmTimer = new System.Windows.Forms.Timer(this.components);
             this.replayLabel = new System.Windows.Forms.Label();
+            this.refreshTimer = new System.Windows.Forms.Timer(this.components);
             this.intervals.SuspendLayout();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
@@ -511,6 +512,12 @@ namespace TickZoom.GUI
             this.replayLabel.Text = "x Normal Speed";
             this.replayLabel.Visible = false;
             // 
+            // refreshTimer
+            // 
+            this.refreshTimer.Enabled = true;
+            this.refreshTimer.Interval = 300;
+            this.refreshTimer.Tick += new System.EventHandler(this.RefreshTimerEvent);
+            // 
             // StarterConfigView
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -697,6 +704,7 @@ namespace TickZoom.GUI
         private Label replayLabel;
         private ComboBox loggingConfig;
         private Label loggingConfigLabel;
+        private Timer refreshTimer;
 
 	    public ComboBox StarterName
 	    {

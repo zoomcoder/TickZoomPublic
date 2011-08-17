@@ -44,7 +44,7 @@ namespace TickZoom.Api
         	get;
         }
         
-        bool TryReadLine(out LogEvent logEvent);
+        bool TryReadLine(out LogEvent[] logEvent);
         
  		string FileName {
 			get;

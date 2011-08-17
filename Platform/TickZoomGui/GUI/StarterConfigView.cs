@@ -65,7 +65,6 @@ namespace TickZoom.GUI
             this.vm = vm;
             this.execute = execute;
             InitializeComponent();
-            execute.OnUIThreadLoop( ProcessMessages);
         }
 
         #endregion Constructors
@@ -149,12 +148,17 @@ namespace TickZoom.GUI
         	var result = false;
             try {
                 if( !stopMessages && log.HasLine) {
-    				LogEvent message;
-    				if( log.TryReadLine(out message)) {
-                        if( message.IsAudioAlarm) {
-                            StartAlarm();
+    				LogEvent[] messages;
+    				if( log.TryReadLine(out messages)) {
+                        foreach( var message in messages)
+                        {
+                            if (message.IsAudioAlarm)
+                            {
+                                StartAlarm();
+                                break;
+                            }
                         }
-                        Echo(message.Message);
+                        Echo(messages);
     				}
         			result = true;
         		}
@@ -215,43 +219,47 @@ namespace TickZoom.GUI
         }
 
         private StringBuilder guiLog = new StringBuilder();
-        private void Echo(string msg)
+        private void Echo(LogEvent[] events)
         {
-        	execute.OnUIThread( () =>
+            foreach (var logEvent in events)
             {
-                guiLog.AppendLine(msg);
-                int totalLines = 0;
+                guiLog.AppendLine(logEvent.Message);
+            }
+            int totalLines = 0;
+            for (int i = 0; i < guiLog.Length; i++)
+            {
+                if (guiLog[i] == '\n')
+                {
+                    totalLines++;
+                }
+            }
+            int maxLines = 1000;
+            int skipLines = totalLines - maxLines;
+            int skipTo = 0;
+            if (skipLines > 0)
+            {
+                var lines = 0;
                 for (int i = 0; i < guiLog.Length; i++)
                 {
-                    if( guiLog[i] == '\n')
+                    if (guiLog[i] == '\n')
                     {
-                        totalLines++;
-                    }
-                }
-	            int maxLines = 1000;
-	            int skipLines = totalLines - maxLines;
-                int skipTo = 0;
-	            if( skipLines > 0) {
-                    var lines = 0;
-                    for (int i = 0; i < guiLog.Length; i++)
-                    {
-                        if (guiLog[i] == '\n')
+                        lines++;
+                        if (lines >= skipLines)
                         {
-                            lines++;
-                            if( lines >= skipLines)
-                            {
-                                skipTo = i;
-                                break;
-                            }
+                            skipTo = i;
+                            break;
                         }
                     }
                 }
-                guiLog.Remove(0, skipTo);
-                log.Info("Log Capacity " + guiLog.Capacity + ", Length " + guiLog.Length + ", lines " + totalLines + ", skipTo " + skipTo);
-                logOutput.Text = guiLog.ToString();
-	            logOutput.SelectionStart = logOutput.Text.Length;
-	            logOutput.ScrollToCaret();
-        	});
+            }
+            guiLog.Remove(0, skipTo);
+            var result = guiLog.ToString();
+            execute.OnUIThread(() =>
+            {
+                logOutput.Text = result;
+                logOutput.SelectionStart = logOutput.Text.Length;
+                logOutput.ScrollToCaret();
+            });
         }
 
         private void EndTimePickerCloseUp(object sender, System.EventArgs e)
@@ -371,6 +379,11 @@ namespace TickZoom.GUI
             {
                 control.Focus();
             }
+        }
+
+        private void RefreshTimerEvent(object sender, EventArgs e)
+        {
+            ProcessMessages();
         }
     }
 }

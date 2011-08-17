@@ -1004,6 +1004,8 @@ namespace TickZoom.Common
             actualPosition += physical.Size;
             if( debug) log.Debug("Updating actual position from " + beforePosition + " to " + actualPosition + " from fill size " + physical.Size);
 			var isCompletePhysicalFill = physical.RemainingSize == 0;
+            var isFilledAfterCancel = physical.Order.ReplacedBy != null &&
+                                      physical.Order.ReplacedBy.Action == OrderAction.Cancel;
 
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
@@ -1023,8 +1025,6 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
 			}
 
-            var isFilledAfterCancel = physical.Order.ReplacedBy != null &&
-                                      physical.Order.ReplacedBy.Action == OrderAction.Cancel;
             if( isFilledAfterCancel && physical.Order.OffsetTooLateToCancel)
             {
                 if (debug) log.Debug("Will sync positions because fill from order already canceled: " + physical.Order.ReplacedBy);

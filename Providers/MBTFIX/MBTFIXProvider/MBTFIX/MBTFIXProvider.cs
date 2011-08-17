@@ -522,63 +522,76 @@ namespace TickZoom.MBTFIX
         }
 		
 		private void ExecutionReport( MessageFIX4_4 packetFIX) {
-			if( packetFIX.Text == "END") {
-				isOrderUpdateComplete = RecoverProgress.Completed;
+            if (packetFIX.Text == "END")
+            {
+                isOrderUpdateComplete = RecoverProgress.Completed;
                 log.Debug("ExecutionReport Complete.");
- 			    TryEndRecovery();
-			} else {
-				if( debug && (LogRecovery || !IsRecovery) ) {
-					log.Debug("ExecutionReport: " + packetFIX);
-				}
-				CreateOrChangeOrder order;
-				string orderStatus = packetFIX.OrderStatus;
-				switch( orderStatus) {
-					case "0": // New
-						SymbolInfo symbol = null;
-						try {
-							symbol = Factory.Symbol.LookupSymbol( packetFIX.Symbol);
-						} catch( ApplicationException) {
-							// symbol unknown.
-						}
-						if( symbol != null) {
+                TryEndRecovery();
+            }
+            else
+            {
+                if (debug && (LogRecovery || !IsRecovery))
+                {
+                    log.Debug("ExecutionReport: " + packetFIX);
+                }
+                CreateOrChangeOrder order;
+                string orderStatus = packetFIX.OrderStatus;
+                switch (orderStatus)
+                {
+                    case "0": // New
+                        SymbolInfo symbol = null;
+                        try
+                        {
+                            symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                        }
+                        catch (ApplicationException)
+                        {
+                            // symbol unknown.
+                        }
+                        if (symbol != null)
+                        {
                             if (symbol.FixSimulationType == FIXSimulationType.ForexPair &&
                                 OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
                                 (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                             {
-                                if( debug) log.Debug("New order messaged ignored for Forex Stop: " + order);
+                                if (debug) log.Debug("New order messaged ignored for Forex Stop: " + order);
                             }
-                            else {
-    						    TryConfirmCreate(symbol, packetFIX);
+                            else
+                            {
+                                TryConfirmCreate(symbol, packetFIX);
                             }
-						}
-						break;
-					case "1": // Partial
-						UpdateOrder( packetFIX, OrderState.Active, null);
-						SendFill( packetFIX);
-						break;
-					case "2":  // Filled 
-                        if( packetFIX.CumulativeQuantity < packetFIX.LastQuantity)
+                        }
+                        break;
+                    case "1": // Partial
+                        UpdateOrder(packetFIX, OrderState.Active, null);
+                        SendFill(packetFIX);
+                        break;
+                    case "2":  // Filled 
+                        if (packetFIX.CumulativeQuantity < packetFIX.LastQuantity)
                         {
                             log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity + ". This is a workaround for a MBT FIX server which sends an extra invalid fill message on occasion.");
                             break;
                         }
-						SendFill( packetFIX);
-						break;
-					case "5": // Replaced
-						order = ReplaceOrder( packetFIX);
-						if( order != null) {
-							var algorithm = GetAlgorithm( order.Symbol.BinaryIdentifier);
-							algorithm.ConfirmChange( order, IsRecovered);
-						} else if( IsRecovered) {
-							log.Warn("Changing order status after cancel/replace failed. Probably due to already being canceled or filled. Ignoring.");
-						}
-						break;
-					case "4": // Canceled
-				        {
+                        SendFill(packetFIX);
+                        break;
+                    case "5": // Replaced
+                        order = ReplaceOrder(packetFIX);
+                        if (order != null)
+                        {
+                            var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
+                            algorithm.ConfirmChange(order, IsRecovered);
+                        }
+                        else if (IsRecovered)
+                        {
+                            log.Warn("Changing order status after cancel/replace failed. Probably due to already being canceled or filled. Ignoring.");
+                        }
+                        break;
+                    case "4": // Canceled
+                        {
                             var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
                             var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
-				            CreateOrChangeOrder clientOrder;
-                            if( !OrderStore.TryGetOrderById( packetFIX.ClientOrderId, out clientOrder))
+                            CreateOrChangeOrder clientOrder;
+                            if (!OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out clientOrder))
                             {
                                 if (LogRecovery || !IsRecovery)
                                 {
@@ -586,7 +599,7 @@ namespace TickZoom.MBTFIX
                                              " was not found. Probably already canceled.");
                                 }
                             }
-				            CreateOrChangeOrder origOrder;
+                            CreateOrChangeOrder origOrder;
                             if (!OrderStore.TryGetOrderById(packetFIX.OriginalClientOrderId, out origOrder))
                             {
                                 if (LogRecovery || !IsRecovery)
@@ -594,22 +607,22 @@ namespace TickZoom.MBTFIX
                                     log.Warn("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
                                 }
                             }
-                            if( clientOrder != null && clientOrder.ReplacedBy != null)
+                            if (clientOrder != null && clientOrder.ReplacedBy != null)
                             {
-                                algorithm.ConfirmCancel(clientOrder,IsRecovered);
+                                algorithm.ConfirmCancel(clientOrder, IsRecovered);
                             }
                             else if (origOrder != null && origOrder.ReplacedBy != null)
                             {
-                                algorithm.ConfirmCancel(origOrder,IsRecovered);
+                                algorithm.ConfirmCancel(origOrder, IsRecovered);
                             }
                             else
                             {
                                 if (debug) log.Debug("Cancel confirm message has neither client id nor original client id found order in cache with replaced by property set. Continuing with only original order.");
-                                if( clientOrder != null)
+                                if (clientOrder != null)
                                 {
                                     algorithm.ConfirmCancel(clientOrder, IsRecovered);
                                 }
-                                else if ( origOrder != null)
+                                else if (origOrder != null)
                                 {
                                     algorithm.ConfirmCancel(origOrder, IsRecovered);
                                 }
@@ -620,10 +633,10 @@ namespace TickZoom.MBTFIX
                             }
                             break;
                         }
-					case "6": // Pending Cancel
+                    case "6": // Pending Cancel
                         if (!string.IsNullOrEmpty(packetFIX.Text) && packetFIX.Text.Contains("multifunction order"))
                         {
-                            if( debug && (LogRecovery || IsRecovered))
+                            if (debug && (LogRecovery || IsRecovered))
                             {
                                 log.Debug("Pending cancel of multifunction order, so removing " + packetFIX.ClientOrderId + " and " + packetFIX.OriginalClientOrderId);
                             }
@@ -636,15 +649,15 @@ namespace TickZoom.MBTFIX
                             UpdateCancelOrder(packetFIX, OrderState.Pending);
                             TryHandlePiggyBackFill(packetFIX);
                         }
-						break;
-					case "8": // Rejected
-						RejectOrder( packetFIX);
-						break;
-					case "9": // Suspended
-						UpdateOrder( packetFIX, OrderState.Suspended, packetFIX);
-						// Ignore 
-						break;
-					case "A": // PendingNew
+                        break;
+                    case "8": // Rejected
+                        RejectOrder(packetFIX);
+                        break;
+                    case "9": // Suspended
+                        UpdateOrder(packetFIX, OrderState.Suspended, packetFIX);
+                        // Ignore 
+                        break;
+                    case "A": // PendingNew
                         symbol = null;
                         try
                         {
@@ -654,16 +667,16 @@ namespace TickZoom.MBTFIX
                         {
                             // symbol unknown.
                         }
-                        if( symbol != null)
+                        if (symbol != null)
                         {
-                            if( symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+                            if (symbol.FixSimulationType == FIXSimulationType.ForexPair &&
                                 OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
                                 (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                             {
                                 // Ignore any 
-                                if( packetFIX.ExecutionType == "D")
+                                if (packetFIX.ExecutionType == "D")
                                 {
-                                    if( debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");
+                                    if (debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");
                                 }
                                 else
                                 {
@@ -676,7 +689,7 @@ namespace TickZoom.MBTFIX
                             }
                         }
                         break;
-					case "E": // Pending Replace
+                    case "E": // Pending Replace
                         var clientOrderId = packetFIX.ClientOrderId;
                         var orderState = OrderState.Pending;
                         if (debug && (LogRecovery || !IsRecovery))
@@ -684,16 +697,16 @@ namespace TickZoom.MBTFIX
                             log.Debug("PendingReplace( " + clientOrderId + ", state = " + orderState + ")");
                         }
                         UpdateOrReplaceOrder(packetFIX, packetFIX.OriginalClientOrderId, clientOrderId, orderState, null);
-						TryHandlePiggyBackFill(packetFIX);
-						break;
-					case "R": // Resumed.
-						UpdateOrder( packetFIX, OrderState.Active, null);
-						// Ignore
-						break;
-					default:
-						throw new ApplicationException("Unknown order status: '" + orderStatus + "'");
-				}
-			}
+                        TryHandlePiggyBackFill(packetFIX);
+                        break;
+                    case "R": // Resumed.
+                        UpdateOrder(packetFIX, OrderState.Active, null);
+                        // Ignore
+                        break;
+                    default:
+                        throw new ApplicationException("Unknown order status: '" + orderStatus + "'");
+                }
+            }
 		}
 
 		private void TryHandlePiggyBackFill(MessageFIX4_4 packetFIX) {
