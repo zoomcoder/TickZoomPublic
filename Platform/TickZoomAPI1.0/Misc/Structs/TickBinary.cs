@@ -42,7 +42,9 @@ namespace TickZoom.Api
 		public byte ContentMask;
 	    public long Id;
 		public long UtcTime;
-		public long Bid;
+        public long UtcOptionExpiration;
+        public long Strike;
+        public long Bid;
 		public long Ask;
 		public byte Side;
 		public long Price;

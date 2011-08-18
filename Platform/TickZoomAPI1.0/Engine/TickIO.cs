@@ -43,8 +43,14 @@ namespace TickZoom.Api
 		/// with SetTime(), SetTrade(), SetQuote(), or SetDepth().
 		/// </summary>
 		void Initialize();
-		
-		/// <summary>
+
+        /// <summary>
+        /// Sets the opton type, strike price and time of expiration which is usually accurate to the date.
+        /// </summary>
+        /// <param name="utcTime">Must be the UTC expiration time.</param>
+        void SetOption(OptionType optionType, double strikePrice, TimeStamp utcOptionExpiration);
+
+        /// <summary>
 		/// Sets quote data for the tick
 		/// </summary>
 		/// <param name="dBid">The Bid price.</param>

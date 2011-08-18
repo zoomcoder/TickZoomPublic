@@ -140,7 +140,9 @@ namespace TickZoom.Api
 		
 		public static string StripInvalidPathChars(this string symbolStr) {
        		List<char> invalidChars = new List<char>(Path.GetInvalidPathChars());
-       		invalidChars.Add('\\');
+            invalidChars.Add('$');
+            invalidChars.Add('+');
+            invalidChars.Add('\\');
        		invalidChars.Add('/');
        		foreach( char invalid in invalidChars) {
        			symbolStr = symbolStr.Replace(new string(invalid,1),"");

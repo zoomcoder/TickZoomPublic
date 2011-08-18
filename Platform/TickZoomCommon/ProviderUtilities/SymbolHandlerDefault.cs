@@ -42,7 +42,10 @@ namespace TickZoom.Common
 		private bool isTradeInitialized = false;
 		private bool isQuoteInitialized = false;
 		private double position = 0D;
-		public int bidSize;
+		private int bidSize;
+	    private OptionType optionType;
+	    private double strikePrice = 0D;
+	    private TimeStamp utcOptionExpiration;
 		public double bid = 0D;
 		public int askSize;
 		public double ask = 0D;
@@ -63,6 +66,11 @@ namespace TickZoom.Common
 		{
 			isRunning = false;
 		}
+
+        public void Clear()
+        {
+            
+        }
         
 		public SymbolHandlerDefault(SymbolInfo symbol, Receiver receiver) {
         	this.symbol = symbol;
@@ -130,8 +138,68 @@ namespace TickZoom.Common
 			}
 			return isTradeInitialized;
 		}
-        
-		bool errorWrongTimeAndSalesType = false;
+
+        private bool errorOptionChainType = false;
+	    private bool errorStrikeAndExpiration = false;
+        public void SendOptionPrice()
+        {
+            if (!isRunning)
+            {
+                return;
+            }
+            if (symbol.OptionChain != OptionChain.Complete)
+            {
+                if (!errorOptionChainType)
+                {
+                    log.Error("Received option price but " + symbol + " is configured for TimeAndSales = " + symbol.OptionChain + " in the symbol dictionary.");
+                    errorOptionChainType = true;
+                }
+                return;
+            }
+            if (!isQuoteInitialized && !VerifyQuote())
+            {
+                return;
+            }
+
+            if( strikePrice == 0D || utcOptionExpiration == default(TimeStamp))
+            {
+                if( !errorStrikeAndExpiration)
+                {
+                    log.Error("Received option price but strike or expiration was blank: Strike " + strikePrice + ", " + utcOptionExpiration);
+                    errorStrikeAndExpiration = true;
+                }
+                return;
+            }
+            tickIO.Initialize();
+            tickIO.SetSymbol(symbol.BinaryIdentifier);
+            tickIO.SetTime(Time);
+            tickIO.SetOption(optionType,strikePrice,utcOptionExpiration);
+            if( Last != 0D)
+            {
+                tickIO.SetTrade(Last, LastSize);
+            }
+            if ( Bid != 0 && Ask != 0 && BidSize != 0 && AskSize != 0)
+            {
+                tickIO.SetQuote(Bid, Ask, (short)BidSize, (short)AskSize);
+            }
+            var box = tickPool.Create();
+            var tickId = box.TickBinary.Id;
+            box.TickBinary = tickIO.Extract();
+            box.TickBinary.Id = tickId;
+            if (tickIO.IsTrade && tickIO.Price == 0D)
+            {
+                log.Warn("Found trade tick with zero price: " + tickIO);
+            }
+            salesLatency.TryUpdate(box.TickBinary.Symbol, box.TickBinary.UtcTime);
+            while (!receiver.OnEvent(symbol, (int)EventType.Tick, box))
+            {
+                Factory.Parallel.Yield();
+            }
+            if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
+            if (trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
+        }
+
+        bool errorWrongTimeAndSalesType = false;
 		bool errorNeverAnyLevel1Tick = false;
 		public void SendTimeAndSales() {
 			if( !isRunning ) {
@@ -248,5 +316,23 @@ namespace TickZoom.Common
 			get { return time; }
 			set { time = value; }
 		}
+
+	    public double StrikePrice
+	    {
+	        get { return strikePrice; }
+	        set { strikePrice = value; }
+	    }
+
+	    public TimeStamp UtcOptionExpiration
+	    {
+	        get { return utcOptionExpiration; }
+	        set { utcOptionExpiration = value; }
+	    }
+
+	    public OptionType OptionType
+	    {
+	        get { return optionType; }
+	        set { optionType = value; }
+	    }
 	}
 }

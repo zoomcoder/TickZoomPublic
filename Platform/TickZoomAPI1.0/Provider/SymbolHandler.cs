@@ -31,10 +31,12 @@ namespace TickZoom.Api
 {
 	public interface SymbolHandler {
 		bool IsRunning { get; }
+	    void Clear();
 		void Start();
 		void Stop();
 		void SendQuote();
-		void SendTimeAndSales();
+        void SendOptionPrice();
+        void SendTimeAndSales();
 		void SetPosition(double position);
 		void AddPosition(double position);
 		OrderAlgorithm LogicalOrderHandler {
@@ -72,5 +74,9 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
+
+	    double StrikePrice { get; set; }
+	    TimeStamp UtcOptionExpiration { get; set; }
+	    OptionType OptionType { get; set; }
 	}
 }

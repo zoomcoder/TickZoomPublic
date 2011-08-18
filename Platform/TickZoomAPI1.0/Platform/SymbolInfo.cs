@@ -154,8 +154,16 @@ namespace TickZoom.Api
  		TimeAndSales TimeAndSales {
  			get;
  		}
- 		
- 		/// <summary>
+
+        /// <summary>
+        /// What type of option data to capture and stream.
+        /// </summary>
+        OptionChain OptionChain
+        {
+            get;
+        }
+
+        /// <summary>
  		/// What time zone to use for displaying of date for this symbol.
  		/// Optional values are "Exchange", "UTC", or "Local"
  		/// "Exchange" means to use the time zone set by the TimeZone property

@@ -58,7 +58,9 @@ namespace TickZoom.TickUtil
 
 		byte dataVersion;
 		TickBinary binary;
-		long lastBid;
+        long lastOptionExpiration;
+        long lastStrike;
+        long lastBid;
 		long lastAsk;
 		long lastPrice;
 		int lastSize;
@@ -134,8 +136,16 @@ namespace TickZoom.TickUtil
 			binary.Price = lPrice;
 			binary.Size = size;
 		}
-		
-		public void SetDepth(short[] bidSize, short[] askSize)
+
+        public void SetOption(OptionType optionType, double strikePrice, TimeStamp utcOptionExpiration)
+        {
+            this.IsOption = true;
+            binary.Strike = strikePrice.ToLong();
+            binary.UtcOptionExpiration = utcOptionExpiration.Internal;
+            this.OptionType = optionType;
+        }
+
+        public void SetDepth(short[] bidSize, short[] askSize)
 		{
 			HasDepthOfMarket = true;
 			fixed( ushort *b = binary.DepthBidLevels)
@@ -164,7 +174,9 @@ namespace TickZoom.TickUtil
 			bool simulateTicks = (contentMask & ContentBit.SimulateTicks) != 0;
 			bool quote = (contentMask & ContentBit.Quote) != 0;
 			bool trade = (contentMask & ContentBit.TimeAndSales) != 0;
-			Initialize();
+            bool option = (contentMask & ContentBit.Option) != 0;
+            bool callOrPut = (contentMask & ContentBit.CallOrPut) != 0;
+            Initialize();
 			SetSymbol(tick.lSymbol);
 			SetTime(tick.UtcTime);
 			IsSimulateTicks = simulateTicks;
@@ -174,7 +186,13 @@ namespace TickZoom.TickUtil
 			if( trade) {
 				SetTrade(tick.Side, tick.lPrice, tick.Size);
 			}
-			if( dom) {
+            if (option)
+            {
+                var type = callOrPut ? OptionType.Call : OptionType.Put;
+                SetOption(type, tick.Strike, tick.UtcOptionExpiration);
+            }
+            if (dom)
+            {
 				fixed( ushort *b = binary.DepthBidLevels)
 				fixed( ushort *a = binary.DepthAskLevels)
 				for(int i=0;i<TickBinary.DomLevels;i++) {
@@ -245,7 +263,9 @@ namespace TickZoom.TickUtil
 			AskSize,
 			ContentMask,
 			Precision,
-			Reset=30,
+            Strike,
+            OptionExpiration,
+            Reset = 30,
 			Empty=31
 		}
 		public enum FieldSize {
@@ -347,6 +367,14 @@ namespace TickZoom.TickUtil
 					lastPrice = binary.Price / pricePrecision;
 					lastSize = binary.Size;
 				}
+                if( IsOption)
+                {
+                    WriteField(BinaryField.Strike, &ptr, binary.Strike / pricePrecision - lastStrike);
+                    lastStrike = binary.Strike/pricePrecision;
+                    diff = (binary.UtcOptionExpiration - lastOptionExpiration);
+                    WriteField(BinaryField.OptionExpiration, &ptr, diff);
+                    lastOptionExpiration = binary.UtcOptionExpiration;
+                }
 				if( HasDepthOfMarket) {
 					var field = (byte) ((byte) BinaryField.BidSize << 3);
 					for( int i=0; i<TickBinary.DomLevels; i++) {
@@ -539,7 +567,16 @@ namespace TickZoom.TickUtil
 					case BinaryField.Time:
 						binary.UtcTime += ReadField( &ptr);
 						break;
-					case BinaryField.Bid:
+                    case BinaryField.Strike:
+                        binary.Strike += ReadField(&ptr) * pricePrecision; 
+                        break;
+                    case BinaryField.OptionExpiration:
+                        var readField = ReadField(&ptr);
+				        var currentExpiration = binary.UtcOptionExpiration + readField;
+				        var time = new TimeStamp(currentExpiration);
+                        binary.UtcOptionExpiration = currentExpiration;
+                        break;
+                    case BinaryField.Bid:
 						binary.Bid += ReadField( &ptr) * pricePrecision;
 						break;
 					case BinaryField.Ask:
@@ -984,8 +1021,19 @@ namespace TickZoom.TickUtil
 		public byte DataVersion {
 			get { return dataVersion; }
 		}
-		
-		public double Bid {
+
+        public double Strike
+        {
+            get { return binary.Strike.ToDouble(); }
+        }
+
+        public long lStrike
+        {
+            get { return binary.Strike; }
+        }
+
+        public double Bid  
+        {
 			get { return binary.Bid.ToDouble(); }
 		}
 		
@@ -1034,11 +1082,12 @@ namespace TickZoom.TickUtil
 			get { return localTime; }
 		}
 		
-		public TimeStamp UTCTime {
-			get { return new TimeStamp(binary.UtcTime); }
-		}
-		
-		public override int GetHashCode()
+        public TimeStamp UtcOptionExpiration
+        {
+            get { return new TimeStamp(binary.UtcOptionExpiration); }
+        }
+
+        public override int GetHashCode()
 		{
 			return base.GetHashCode();
 		}
@@ -1117,8 +1166,41 @@ namespace TickZoom.TickUtil
 				}
 			}
 		}
-		
-		public bool HasDepthOfMarket {
+
+        public bool IsOption
+        {
+            get { return (binary.ContentMask & ContentBit.Option) > 0; }
+            set
+            {
+                if (value)
+                {
+                    binary.ContentMask |= ContentBit.Option;
+                }
+                else
+                {
+                    binary.ContentMask &= ContentBit.Option;
+                }
+            }
+        }
+
+        public OptionType OptionType
+        {
+            get { return (binary.ContentMask & ContentBit.CallOrPut) > 0 ? OptionType.Call : OptionType.Put; }
+            set
+            {
+                if (value == OptionType.Call)
+                {
+                    binary.ContentMask |= ContentBit.CallOrPut;
+                }
+                else
+                {
+                    binary.ContentMask &= ContentBit.CallOrPut;
+                }
+            }
+        }
+
+        public bool HasDepthOfMarket
+        {
 			get { return (binary.ContentMask & ContentBit.DepthOfMarket) > 0; }
 			set {
 				if( value ) {
@@ -1179,5 +1261,10 @@ namespace TickZoom.TickUtil
 	    {
 	        get { return binary.UtcTime; }
 	    }
-	}
+
+        public long lUtcOptionExpiration
+        {
+            get { return binary.UtcOptionExpiration; }
+        }
+    }
 }

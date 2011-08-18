@@ -45,7 +45,8 @@ namespace TickZoom.MBTQuotes
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
         }
-        private Dictionary<long, SymbolHandler> symbolHandlers = new Dictionary<long, SymbolHandler>();	
+        private Dictionary<long, SymbolHandler> symbolHandlers = new Dictionary<long, SymbolHandler>();
+        private Dictionary<long, SymbolHandler> symbolOptionHandlers = new Dictionary<long, SymbolHandler>();	
 		
 		public MBTQuotesProvider(string name)
 		{
@@ -122,9 +123,12 @@ namespace TickZoom.MBTQuotes
 					log.Error( "Message type '2' unknown Message is: " + packet);
 					break;
 				case '3':
-					TimeAndSalesUpdate( (MessageMbtQuotes) packet);
+					TimeAndSalesUpdate( packet);
 					break;
-				default:
+                case '4':
+                    OptionChainUpdate( packet);
+                    break;
+                default:
 					throw new ApplicationException("MBTQuotes message type '" + packet.MessageType + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
 			}
 		}
@@ -166,8 +170,49 @@ namespace TickZoom.MBTQuotes
             }
             handler.Time = currentTime;
         }
-		
-		private unsafe void TimeAndSalesUpdate( MessageMbtQuotes message) {
+
+        private unsafe void OptionChainUpdate(MessageMbtQuotes message)
+        {
+            var symbol = message.Symbol;
+            var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
+            var handler = symbolOptionHandlers[symbolInfo.BinaryIdentifier];
+            if (message.Bid != 0)
+            {
+                handler.Bid = message.Bid;
+            }
+            if (message.Ask != 0)
+            {
+                handler.Ask = message.Ask;
+            }
+            if (message.AskSize != 0)
+            {
+                handler.AskSize = message.AskSize;
+            }
+            if (message.BidSize != 0)
+            {
+                handler.BidSize = message.BidSize;
+            }
+            if( message.Last != 0)
+            {
+                handler.Last = message.Last;
+            }
+            if( message.LastSize != 0)
+            {
+                handler.LastSize = message.LastSize;
+            }
+            if( message.Strike != 0)
+            {
+                handler.StrikePrice = message.Strike;
+            }
+            handler.UtcOptionExpiration = new TimeStamp(message.UtcOptionExpiration);
+            UpdateTime(handler, message);
+            handler.SendOptionPrice();
+            handler.Clear();
+            return;
+        }
+
+        private unsafe void TimeAndSalesUpdate(MessageMbtQuotes message)
+        {
 			var symbol = message.Symbol;
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 			var handler = symbolHandlers[symbolInfo.BinaryIdentifier];
@@ -225,7 +270,11 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		private void RequestStartSymbol(SymbolInfo symbol) {
-            var handler = GetSymbolHandler(symbol,receiver);
+            StartSymbolHandler(symbol,receiver);
+            if( symbol.OptionChain != OptionChain.None)
+            {
+                StartSymbolOptionHandler(symbol, receiver);
+            }
 			string quoteType = "";
 			switch( symbol.QuoteType) {
 				case QuoteType.Level1:
@@ -258,7 +307,21 @@ namespace TickZoom.MBTQuotes
 					return;
 			}
 
-			if( tradeType != null)
+            string optionChain = "";
+            switch (symbol.OptionChain)
+            {
+                case OptionChain.Complete:
+                    optionChain = "20004";
+                    break;
+                case OptionChain.None:
+                    optionChain = null;
+                    break;
+                default:
+                    SendError("Unknown OptionChain " + symbol.OptionChain + " for symbol " + symbol + ".");
+                    return;
+            }
+
+            if (tradeType != null)
 			{
 			    Message message = Socket.MessageFactory.Create();
 				string textMessage = "S|1003="+symbol.Symbol+";2000="+tradeType+"\n";
@@ -281,8 +344,22 @@ namespace TickZoom.MBTQuotes
 					Factory.Parallel.Yield();
 				}
 			}
-			
-            while( !receiver.OnEvent(symbol,(int)EventType.StartRealTime,null)) {
+
+            if (optionChain != null)
+            {
+                Message message = Socket.MessageFactory.Create();
+                string textMessage = "S|1003=" + symbol.Symbol + ";2000=" + optionChain+ "\n";
+                if (debug) log.Debug("Symbol request: " + textMessage);
+                message.DataOut.Write(textMessage.ToCharArray());
+                while (!Socket.TrySendMessage(message))
+                {
+                    if (IsInterrupted) return;
+                    Factory.Parallel.Yield();
+                }
+            }
+
+            while (!receiver.OnEvent(symbol, (int)EventType.StartRealTime, null))
+            {
             	if( IsInterrupted) return;
             	Factory.Parallel.Yield();
             }
@@ -301,29 +378,37 @@ namespace TickZoom.MBTQuotes
 		
 		
 		
-        private SymbolHandler GetSymbolHandler(SymbolInfo symbol, Receiver receiver) {
+        private void StartSymbolHandler(SymbolInfo symbol, Receiver receiver) {
 			lock( symbolHandlersLocker) {
 	        	SymbolHandler symbolHandler;
 	        	if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier,out symbolHandler)) {
 	        		symbolHandler.Start();
-	        		return symbolHandler;
 	        	} else {
 	    	    	symbolHandler = Factory.Utility.SymbolHandler(symbol,receiver);
 	    	    	symbolHandlers.Add(symbol.BinaryIdentifier,symbolHandler);
 	    	    	symbolHandler.Start();
-	    	    	return symbolHandler;
 	        	}
 			}
         }
 
-		private object symbolHandlersLocker = new object();
-        private void RemoveSymbolHandler(SymbolInfo symbol) {
-			lock( symbolHandlersLocker) {
-	        	if( symbolHandlers.ContainsKey(symbol.BinaryIdentifier) ) {
-	        		symbolHandlers.Remove(symbol.BinaryIdentifier);
-	        	}
-			}
+        private void StartSymbolOptionHandler(SymbolInfo symbol, Receiver receiver)
+        {
+            lock (symbolHandlersLocker)
+            {
+                SymbolHandler symbolHandler;
+                if (symbolOptionHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolHandler))
+                {
+                    symbolHandler.Start();
+                }
+                else
+                {
+                    symbolHandler = Factory.Utility.SymbolHandler(symbol, receiver);
+                    symbolOptionHandlers.Add(symbol.BinaryIdentifier, symbolHandler);
+                    symbolHandler.Start();
+                }
+            }
         }
+        private object symbolHandlersLocker = new object();
         
 		public static string Hash(string password) {
 			SHA256 hash = new SHA256Managed();

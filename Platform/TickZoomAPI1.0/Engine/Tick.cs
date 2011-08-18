@@ -37,9 +37,16 @@ namespace TickZoom.Api
 		public const byte TimeAndSales=2;
 		public const byte DepthOfMarket=4;
 		public const byte SimulateTicks=8;
-		public const byte FakeTick=16;
+		public const byte Option=16;
 		public const byte RealTime=32;
-	}
+        public const byte CallOrPut=64;
+    }
+
+    public enum OptionType
+    {
+        Call,
+        Put
+    }
 	
 	/// <summary>
 	/// Description of TickDOM.
@@ -53,8 +60,19 @@ namespace TickZoom.Api
 		int AskDepth {
 			get;
 		}
-		
-		double Bid {
+
+        double Strike
+        {
+            get;
+        }
+
+        long lStrike
+        {
+            get;
+        }
+
+        double Bid
+        {
 			get;
 		}
 		
@@ -97,8 +115,14 @@ namespace TickZoom.Api
 		int DomLevels {
 			get;
 		}
-		
-		TimeStamp Time {
+
+        TimeStamp UtcOptionExpiration
+        {
+            get;
+        }
+
+        TimeStamp Time
+        {
 			get;
 		}
 		
@@ -109,8 +133,16 @@ namespace TickZoom.Api
 		byte ContentMask {
 			get;
 		}
-		
-		bool IsTrade {
+
+        bool IsOption
+        {
+            get;
+        }
+
+	    OptionType OptionType { get; }
+
+        bool IsTrade
+        {
 			get;
 		}
 		

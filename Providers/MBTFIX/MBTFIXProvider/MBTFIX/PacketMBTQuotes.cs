@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -47,8 +48,12 @@ namespace TickZoom.MBTQuotes
         private static int packetIdCounter = 0;
         private int id = 0;
         private StringBuilder symbol = new StringBuilder();
+        private StringBuilder optionSymbol = new StringBuilder();
         private StringBuilder feedType = new StringBuilder();
         private double bid;
+        private OptionType optionType;
+        private double strike;
+        private long utcOptionExpiration;
         private double ask;
         private int askSize;
         private int bidSize;
@@ -58,8 +63,12 @@ namespace TickZoom.MBTQuotes
         private long _sendUtcTime = long.MaxValue;
         private long _recvUtcTime = long.MaxValue;
         private double last;
+        private int century;
 
-        public MessageMbtQuotes() {
+        public MessageMbtQuotes()
+        {
+            var currentTime = TimeStamp.UtcNow;
+            century = currentTime.Year / 100 * 100;
             dataIn = new BinaryReader(data, Encoding.ASCII);
             dataOut = new BinaryWriter(data, Encoding.ASCII);
             Clear();
@@ -149,8 +158,15 @@ namespace TickZoom.MBTQuotes
 		
         public unsafe void CreateHeader(int counter) {
         }
-		
-        private unsafe void ParseData() {
+
+        private readonly char[] semiColon = new char[] { ';' };
+        private readonly char[] equalSign = new char[] { '=' };
+        private readonly char[] hyphen = new char[] { '-' };
+        private readonly char[] slash = new char[] { '/' };
+        string[] curlyBraces = new string[] { "{", "}" };
+        private readonly char[] optionTypeChar = new char[] { 'C', 'P' };
+        private unsafe void ParseData()
+        {
             data.Position = 2;
             fixed( byte *bptr = data.GetBuffer()) {
                 messageType = (char) *bptr;
@@ -159,8 +175,28 @@ namespace TickZoom.MBTQuotes
                 while( ptr - bptr < data.Length) {
                     int key = GetKey(ref ptr, end);
                     switch( key) {
-                        case 1003: // Symbol
-                            GetString( symbol, ref ptr, end);
+                        case 2034:
+                            GetString(symbol, ref ptr, end);
+                            var test = symbol.ToString();
+                            break;
+                        case 1003:
+                            if( messageType == '4') {
+                                GetString(optionSymbol, ref ptr, end);
+                                //+XDE-120616P154.00
+                                var symbolParts = optionSymbol.ToString().Split(hyphen);
+                                optionType = symbolParts[1].Contains("C") ? OptionType.Call : OptionType.Put;
+                                var dateStrike = symbolParts[1].Split(optionTypeChar);
+                                strike = double.Parse(dateStrike[1]);
+                                var dateString = dateStrike[0];
+                                var year = dateString.Substring(0, 2);
+                                var month = dateString.Substring(2, 2);
+                                var day = dateString.Substring(4, 2);
+                                utcOptionExpiration = new TimeStamp(century + int.Parse(year), int.Parse(day), int.Parse(month)).Internal;
+                            }
+                            else
+                            {
+                                GetString(symbol, ref ptr, end);
+                            }
                             break;
                         case 2000: // Type of Data
                             GetString( feedType, ref ptr, end);
@@ -431,6 +467,21 @@ namespace TickZoom.MBTQuotes
         {
             get { return _recvUtcTime; }
             set { _recvUtcTime = value; }
+        }
+
+        public OptionType OptionType
+        {
+            get { return optionType; }
+        }
+
+        public double Strike
+        {
+            get { return strike; }
+        }
+
+        public long UtcOptionExpiration
+        {
+            get { return utcOptionExpiration; }
         }
     }
 }

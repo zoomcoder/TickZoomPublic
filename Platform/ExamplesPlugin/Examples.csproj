@@ -89,6 +89,7 @@
     <Compile Include="Loaders\ExampleCustomBarsLoader.cs" />
     <Compile Include="Loaders\ExampleMixedLoader.cs" />
     <Compile Include="Loaders\ExampleMultiSymbolLoader.cs" />
+    <Compile Include="Loaders\ExampleOptionLoader.cs" />
     <Compile Include="Loaders\ExampleOrdersLoader.cs" />
     <Compile Include="Loaders\ExampleMultiStrategyLoader.cs" />
     <Compile Include="Loaders\ExampleScannerLoader.cs" />
@@ -107,6 +108,7 @@
     <Compile Include="Portfolios\Portfolio5000Strategies.cs" />
     <Compile Include="Strategies\ExampleBreakoutReversal.cs" />
     <Compile Include="Strategies\ExampleBreakoutStops.cs" />
+    <Compile Include="Strategies\ExampleOptionStrategy.cs" />
     <Compile Include="Strategies\LimitBracketStrategy.cs" />
     <Compile Include="Strategies\LimitChangeStrategy.cs" />
     <Compile Include="Strategies\LimitReversalStrategy.cs" />

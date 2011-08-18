@@ -29,7 +29,8 @@ using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
-	public enum TimeAndSales {
+    public enum TimeAndSales
+    {
 		/// <summary>
 		/// Uses actual trades and is appropriate for stocks and futures.
 		/// </summary>
