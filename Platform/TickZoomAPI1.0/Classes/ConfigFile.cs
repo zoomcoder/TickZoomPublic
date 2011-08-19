@@ -336,7 +336,13 @@ namespace TickZoom.Api
 		private void loadDoc ( XmlDocument doc )
 		{
 			using( StreamReader streamReader = new StreamReader(_cfgFile)) {
-				doc.Load( streamReader);
+                try
+                {
+                    doc.Load(streamReader);
+                } catch( Exception ex)
+                {
+                    throw new ApplicationException("Error loading XML from file '"+ _cfgFile +"': " + ex.Message, ex);
+                }
 			}
 		}
 		
