@@ -191,7 +191,8 @@ namespace TickZoom.MBTQuotes
                                 var year = dateString.Substring(0, 2);
                                 var month = dateString.Substring(2, 2);
                                 var day = dateString.Substring(4, 2);
-                                utcOptionExpiration = new TimeStamp(century + int.Parse(year), int.Parse(day), int.Parse(month)).Internal;
+                                var ts = new TimeStamp(century + int.Parse(year), int.Parse(month), int.Parse(day));
+                                utcOptionExpiration = ts.Internal;
                             }
                             else
                             {

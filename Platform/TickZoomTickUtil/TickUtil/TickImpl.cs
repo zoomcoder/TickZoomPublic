@@ -353,7 +353,7 @@ namespace TickZoom.TickUtil
 					isCompressStarted = true;
 				}
 				WriteField( BinaryField.ContentMask, &ptr, binary.ContentMask - lastBinary.ContentMask);
-				var diff = (binary.UtcTime - lastBinary.UtcTime);
+                var diff = (binary.UtcTime - lastBinary.UtcTime);
 				WriteField( BinaryField.Time, &ptr, diff);
 				if( IsQuote) {
 					WriteField( BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBid);
@@ -1140,7 +1140,7 @@ namespace TickZoom.TickUtil
 				if( value ) {
 					binary.ContentMask |= ContentBit.Quote;
 				} else {
-					binary.ContentMask &= ContentBit.Quote;
+					binary.ContentMask &= (0xFF & ~ContentBit.Quote);
 				}
 			}
 		}
@@ -1151,7 +1151,7 @@ namespace TickZoom.TickUtil
 				if( value ) {
 					binary.ContentMask |= ContentBit.SimulateTicks;
 				} else {
-					binary.ContentMask &= ContentBit.SimulateTicks;
+					binary.ContentMask &= (0xFF & ~ContentBit.SimulateTicks);
 				}
 			}
 		}
@@ -1162,7 +1162,7 @@ namespace TickZoom.TickUtil
 				if( value ) {
 					binary.ContentMask |= ContentBit.TimeAndSales;
 				} else {
-					binary.ContentMask &= ContentBit.TimeAndSales;
+					binary.ContentMask &= (0xFF & ~ContentBit.TimeAndSales);
 				}
 			}
 		}
@@ -1178,7 +1178,7 @@ namespace TickZoom.TickUtil
                 }
                 else
                 {
-                    binary.ContentMask &= ContentBit.Option;
+                    binary.ContentMask &= (0xFF & ~ContentBit.Option);
                 }
             }
         }
@@ -1194,7 +1194,7 @@ namespace TickZoom.TickUtil
                 }
                 else
                 {
-                    binary.ContentMask &= ContentBit.CallOrPut;
+                    binary.ContentMask &= (0xFF & ~ContentBit.CallOrPut);
                 }
             }
         }
@@ -1206,7 +1206,7 @@ namespace TickZoom.TickUtil
 				if( value ) {
 					binary.ContentMask |= ContentBit.DepthOfMarket;
 				} else {
-					binary.ContentMask &= ContentBit.DepthOfMarket;
+					binary.ContentMask &= (0xFF & ~ContentBit.DepthOfMarket);
 				}
 			}
 		}

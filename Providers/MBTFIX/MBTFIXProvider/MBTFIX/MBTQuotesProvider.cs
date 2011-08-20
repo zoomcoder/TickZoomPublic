@@ -216,6 +216,7 @@ namespace TickZoom.MBTQuotes
             {
                 handler.StrikePrice = message.Strike;
             }
+            handler.OptionType = message.OptionType;
             handler.UtcOptionExpiration = new TimeStamp(message.UtcOptionExpiration);
             UpdateTime(handler, message);
             handler.SendOptionPrice();

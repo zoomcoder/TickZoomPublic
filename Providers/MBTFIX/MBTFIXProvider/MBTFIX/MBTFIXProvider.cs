@@ -599,7 +599,7 @@ namespace TickZoom.MBTFIX
                             {
                                 if (LogRecovery || !IsRecovery)
                                 {
-                                    log.Warn("Cancel order for " + packetFIX.ClientOrderId +
+                                    log.Info("Cancel order for " + packetFIX.ClientOrderId +
                                              " was not found. Probably already canceled.");
                                 }
                             }
@@ -608,7 +608,7 @@ namespace TickZoom.MBTFIX
                             {
                                 if (LogRecovery || !IsRecovery)
                                 {
-                                    log.Warn("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                                    log.Info("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
                                 }
                             }
                             if (clientOrder != null && clientOrder.ReplacedBy != null)
@@ -1400,7 +1400,7 @@ namespace TickZoom.MBTFIX
 			} catch( ApplicationException ex) {
                 if (LogRecovery || !IsRecovery)
                 {
-                    log.Warn("Order probably already canceled. " + ex.Message);
+                    log.Info("Order probably already canceled. " + ex.Message);
                 }
 			    if( SyncTicks.Enabled) {
 					var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
