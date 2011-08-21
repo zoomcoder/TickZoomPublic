@@ -325,7 +325,7 @@ namespace TickZoom.MBTFIX
                                                                 fill.Order.BrokerOrder, null, TimeStamp.UtcNow);
                 SendExecutionReport(marketOrder, "0", 0.0, 0, 0, 0, (int)marketOrder.Size, TimeStamp.UtcNow);
             }
-			if( debug) log.Debug("Converting physical fill to FIX: " + fill);
+			if( debug) log.Debug    ("Converting physical fill to FIX: " + fill);
 			SendPositionUpdate(fill.Order.Symbol, GetPosition(fill.Order.Symbol));
 			var orderStatus = fill.CumulativeSize == fill.TotalSize ? "2" : "1";
 			SendExecutionReport( fill.Order, orderStatus, "F", fill.Price, fill.TotalSize, fill.CumulativeSize, fill.Size, fill.RemainingSize, fill.UtcTime);
@@ -340,7 +340,7 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetText(error);
             mbtMsg.SetSymbol(order.Symbol.Symbol);
 			mbtMsg.AddHeader("8");
-            if (debug) log.Debug("Sending position update: " + mbtMsg);
+            if (trace) log.Trace("Sending reject order: " + mbtMsg);
             SendMessage(mbtMsg);
         }
 
@@ -354,7 +354,7 @@ namespace TickZoom.MBTFIX
             mbtMsg.SetText(error);
             mbtMsg.SetSymbol(order.Symbol.Symbol);
             mbtMsg.AddHeader("9");
-            if (debug) log.Debug("Sending position update: " + mbtMsg);
+            if (trace) log.Trace("Sending reject cancel." + mbtMsg);
             SendMessage(mbtMsg);
         }
 
@@ -370,7 +370,7 @@ namespace TickZoom.MBTFIX
 			}
 			mbtMsg.AddHeader("AP");
             SendMessage(mbtMsg);
-			if(debug) log.Debug("Sending position update: " + mbtMsg);
+			if(trace) log.Trace("Sending position update: " + mbtMsg);
         }	
 
 		private void SendExecutionReport(CreateOrChangeOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time)
@@ -431,7 +431,7 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetLeavesQuantity( Math.Abs(leavesQty));
 			mbtMsg.AddHeader("8");
             SendMessage(mbtMsg);
-			if(debug) log.Debug("Sending execution report: " + mbtMsg);
+			if(trace) log.Trace("Sending execution report: " + mbtMsg);
 		}
 
 		
@@ -468,20 +468,35 @@ namespace TickZoom.MBTFIX
 			return Yield.DidWork.Repeat;
 		}
 
-        private StringBuilder quoteBuilder = new StringBuilder(256);
+        private Dictionary<long, StringBuilder> quoteBuilders = new Dictionary<long, StringBuilder>();
         private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
-		private void OnTick( Message quoteMessage, SymbolInfo symbol, Tick tick) {
-			if( trace) log.Trace("Sending tick: " + tick);
+        //private int entryCounter = 0;
+	    private string otherStackTrace;
+		private void OnTick( Message quoteMessage, SymbolInfo symbol, Tick tick)
+		{
+            if (trace) log.Trace("Sending tick: " + tick);
+            StringBuilder quoteBuilder;
+            if( !quoteBuilders.TryGetValue(symbol.BinaryIdentifier, out quoteBuilder))
+            {
+                quoteBuilder = new StringBuilder(256);
+                quoteBuilders.Add(symbol.BinaryIdentifier, quoteBuilder);
+            }
+            //var value = Interlocked.Increment(ref entryCounter);
+            //if( value > 1)
+            //{
+            //    throw new ApplicationException("Thread counter " + value + "\n" + Environment.StackTrace + "\n other stack trace \n" + otherStackTrace + "\n real stack trace \n");
+            //}
+            //otherStackTrace = Environment.StackTrace;
 			TickIO lastTick;
 			if( !lastTicks.TryGetValue( symbol.BinaryIdentifier, out lastTick)) {
 			   	lastTick = Factory.TickUtil.TickIO();
 			   	lastTicks[symbol.BinaryIdentifier] = lastTick;
 			}
-            if( quoteBuilder.Length == 0)
-            {
-                quoteBuilder.Append("Nothing");
-            }
-		    quoteBuilder.Replace(quoteBuilder.ToString(), "");
+            //if( quoteBuilder.Length == 0)
+            //{
+            //    quoteBuilder.Append("Nothing");
+            //}
+		    quoteBuilder.Length = 0;
             if( tick.IsTrade) {
 				quoteBuilder.Append("3|"); // Trade
 			} else {
@@ -554,6 +569,7 @@ namespace TickZoom.MBTFIX
 			if( trace) log.Trace("Tick message: " + message);
 			quoteMessage.DataOut.Write(message.ToCharArray());
 			lastTick.Inject(tick.Extract());
+            //Interlocked.Decrement(ref entryCounter);
 		}
 		
 		private void CloseWithQuotesError(MessageMbtQuotes message, string textMessage) {

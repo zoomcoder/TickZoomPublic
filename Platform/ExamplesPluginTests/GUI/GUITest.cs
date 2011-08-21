@@ -164,7 +164,7 @@ namespace Other
 		public void TestGUIRealTimeDemo()
 		{
 			Assert.Ignore();
-            StrategyTest.CleanupFiles();
+            StrategyTest.CleanupFiles(null);
             try
             {
                 while (true)

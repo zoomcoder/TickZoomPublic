@@ -57,6 +57,7 @@ namespace TickZoom.FIX
 	    private int heartbeatDelay = 1;
         private ServerState fixState = ServerState.Startup;
         private bool simulateDisconnect = false;
+        private bool simulateMissed = false;
 
 		// FIX fields.
 		private ushort fixPort = 0;
@@ -579,7 +580,7 @@ namespace TickZoom.FIX
                 simulateConnectionLoss = true;
                 return true;
             }
-            if (fixFactory != null && random.Next(10) == 1)
+            if (simulateMissed && fixFactory != null && random.Next(10) == 1)
             {
                 // Ignore this message. Pretend we never received it.
                 // This will test the message recovery.

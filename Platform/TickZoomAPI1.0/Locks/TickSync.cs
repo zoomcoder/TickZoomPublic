@@ -92,7 +92,9 @@ namespace TickZoom.Api
 
         private bool CheckProcessingOrders()
         {
-            return state.positionChange > 0 || state.physicalOrders > 0 || state.physicalFills > 0;
+            return state.positionChange > 0 || state.physicalOrders > 0 ||
+                   state.physicalFills > 0 || state.processPhysical > 0 ||
+                   state.reprocessPhysical > 0;
         }
 
         private TickSyncState rollback;
@@ -106,8 +108,9 @@ namespace TickZoom.Api
         {
             if (!CheckCompletedInternal())
             {
-                System.Diagnostics.Debugger.Break();
-                throw new ApplicationException("Tick, position changes, physical orders, and physical fills, must all complete before clearing the tick sync. Current numbers are: " + this);
+                log.Error("All counters must complete to 0 before clearing the tick sync. Currently: " + this);
+                //System.Diagnostics.Debugger.Break();
+                //throw new ApplicationException("Tick, position changes, physical orders, and physical fills, must all complete before clearing the tick sync. Current numbers are: " + this);
             }
             ForceClear();
         }
@@ -183,8 +186,8 @@ namespace TickZoom.Api
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref state.physicalFills);
-                log.Warn("PhysicalFills counter was " + value + ". Incremented to " + temp);
-                if (trace) System.Diagnostics.Debugger.Break();
+                log.Error("PhysicalFills counter was " + value + ". Incremented to " + temp);
+                //if (trace) System.Diagnostics.Debugger.Break();
             }
         }
 
@@ -210,8 +213,8 @@ namespace TickZoom.Api
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref state.physicalOrders);
-                log.Warn("PhysicalOrders counter was " + value + ". Incremented to " + temp);
-                if (trace) System.Diagnostics.Debugger.Break();
+                log.Error("PhysicalOrders counter was " + value + ". Incremented to " + temp);
+                //if (trace) System.Diagnostics.Debugger.Break();
             }
         }
         public void RemovePhysicalOrder()
@@ -221,8 +224,8 @@ namespace TickZoom.Api
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref state.physicalOrders);
-                log.Warn("PhysicalOrders counter was " + value + ". Incremented to " + temp);
-                if (trace) System.Diagnostics.Debugger.Break();
+                log.Error("PhysicalOrders counter was " + value + ". Incremented to " + temp);
+                //if (trace) System.Diagnostics.Debugger.Break();
             }
         }
         public void AddPositionChange()
@@ -252,8 +255,8 @@ namespace TickZoom.Api
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref state.positionChange);
-                log.Warn("PositionChange counter was " + value + ". Incremented to " + temp);
-                if (trace) System.Diagnostics.Debugger.Break();
+                log.Error("PositionChange counter was " + value + ". Incremented to " + temp);
+                //if (trace) System.Diagnostics.Debugger.Break();
             }
         }
 

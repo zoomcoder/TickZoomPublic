@@ -60,6 +60,7 @@ namespace TickZoom.GUI
         	}
             while( !exit && AppIsIdle()) {
                 Interlocked.Increment( ref loopcount);
+                Interlocked.Exchange(ref busycount, 0);
                 if( tasks.Count > 0) {
                     lock( tasksLocker) {
                         var task = tasks[0];
@@ -74,7 +75,7 @@ namespace TickZoom.GUI
                         Interlocked.Increment( ref busycount);
                 	}
                 }
-                if( loopcount > 1000) {
+                if( busycount == 0 || loopcount > 1000) {
                     TrySleep();
                 }
             }

@@ -231,6 +231,10 @@ namespace Loaders
 				// Run the loader.
 				try { 
 					config = SetupConfigStarter(autoTestMode);
+                    while (config.IsBusy)
+                    {
+                        Thread.Sleep(10);
+                    }
                     config.Start();
                     var tempStarter = config.Starter;
                     while (config.IsBusy)
@@ -282,10 +286,10 @@ namespace Loaders
 			return (ModelLoaderInterface) type.Assembly.CreateInstance(type.FullName);
 		}
 
-        public static void CleanupFiles()
-        {
-            CleanupFiles(null);
-        }
+        //public static void CleanupFiles()
+        //{
+        //    CleanupFiles(null);
+        //}
 		
 		public static void CleanupFiles(string symbols) {
 			CleanupServerCache(symbols);
@@ -299,13 +303,16 @@ namespace Loaders
             {
                 var errors = new List<Exception>();
                 var errorCount = 0;
-                while( errorCount < 3)
+                while( errorCount < 30)
                 {
                     try
                     {
+                        log.Info("Deleting (" + errorCount + ") " + path);
                         File.Delete(path);
+                        errors.Clear();
                         break;
-                    } catch( Exception ex)
+                    }
+                    catch( Exception ex)
                     {
                         errors.Add(ex);
                         Thread.Sleep(1000);
@@ -315,21 +322,23 @@ namespace Loaders
                 if( errors.Count > 0)
                 {
                     var ex = errors[errors.Count - 1];
+                    log.Error("Can't delete " + path, ex);
+                    Thread.Sleep(1000000);
                     throw new IOException("Can't delete " + path, ex);
                 }
             }
             var filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
 			File.Delete(filePath);
-		    filePath = Path.Combine(Factory.SysLog.LogFolder,"Trades.log");
-            File.Delete(filePath);
-		    filePath = Path.Combine(Factory.SysLog.LogFolder,"BarData.log");
-			File.Delete(filePath);
-		    filePath = Path.Combine(Factory.SysLog.LogFolder,"Stats.log");
-			File.Delete(filePath);
-		    filePath = Path.Combine(Factory.SysLog.LogFolder,"Transactions.log");
-			File.Delete(filePath);
-		    filePath = Path.Combine(Factory.SysLog.LogFolder,"MockProviderTransactions.log");
-			File.Delete(filePath);
+            //filePath = Path.Combine(Factory.SysLog.LogFolder,"Trades.log");
+            //File.Delete(filePath);
+            //filePath = Path.Combine(Factory.SysLog.LogFolder,"BarData.log");
+            //File.Delete(filePath);
+            //filePath = Path.Combine(Factory.SysLog.LogFolder,"Stats.log");
+            //File.Delete(filePath);
+            //filePath = Path.Combine(Factory.SysLog.LogFolder,"Transactions.log");
+            //File.Delete(filePath);
+            //filePath = Path.Combine(Factory.SysLog.LogFolder,"MockProviderTransactions.log");
+            //File.Delete(filePath);
 		}
 		
 		private static void CleanupServerCache(string symbols) {

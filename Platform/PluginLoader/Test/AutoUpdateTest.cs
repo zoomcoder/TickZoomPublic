@@ -39,7 +39,7 @@ namespace TickZoom.Utilities
 	public class AutoUpdateTest
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-		private string testVersion = "0.9.3.381";
+        private string testVersion = "1.2.38.38678";
 		private string appData;
 		private string dllFolder;
 		[TestFixtureSetUp]
@@ -86,11 +86,9 @@ namespace TickZoom.Utilities
 			AutoUpdate updater = new AutoUpdate();
 			updater.CurrentVersion = testVersion;
 			string[] files = updater.GetFileList();
-			Assert.AreEqual(4,files.Length);
-			Assert.AreEqual("IBProviderService-0.9.3.381.exe.zip 0fd11edfa0fdd939124db4abf80d6443",files[0]);
-			Assert.AreEqual("Krs.Ats.IBNet-0.9.3.381.dll.zip 05d553bd4779d2ba2c24bf8b6dcfcf8e",files[1]);
-			Assert.AreEqual("ProviderCommon-0.9.3.381.dll.zip 5e5bcdd92d30ed2450ffc04e48315a69",files[2]);
-			Assert.AreEqual("TickZoomEngine-0.9.3.381.dll.zip 4d753fc28cee519a100ac37ec859ec9b",files[3]);
+			Assert.AreEqual(2,files.Length);
+            Assert.AreEqual("ProviderCommon-1.2.38.38678.dll.zip b26e183db82b71d15bba64634abd2a5a", files[0]);
+            Assert.AreEqual("TickZoomEngine-1.2.38.38678.dll.zip 820785a774a3ce49f1d14801995181ea", files[1]);
 		}
 		
 		[Test]

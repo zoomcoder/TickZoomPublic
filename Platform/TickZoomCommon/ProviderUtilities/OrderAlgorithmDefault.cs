@@ -1065,9 +1065,14 @@ namespace TickZoom.Common
         private TaskLock performCompareLocker = new TaskLock();
 		private void PerformCompareProtected() {
 			var count = Interlocked.Increment(ref recursiveCounter);
-			if( count == 1) {
+		    if( count == 1)
+			{
+                //var whileCounter = 0;
 				while( recursiveCounter > 0) {
-					Interlocked.Exchange( ref recursiveCounter, 1);
+                    for (var i = 0; i < recursiveCounter-1; i++ )
+                    {
+                        Interlocked.Decrement(ref recursiveCounter);
+                    }
 					try
 					{
                         if (!isPositionSynced)
@@ -1083,19 +1088,35 @@ namespace TickZoom.Common
                         }
                         PerformCompareInternal();
                         physicalOrderHandler.ProcessOrders();
-                        if( SyncTicks.Enabled)
+                        if (trace) log.Trace("PerformCompare finished - " + tickSync);
+
+                        if (SyncTicks.Enabled)
                         {
                             tickSync.RollbackPhysicalOrders();
                             tickSync.RollbackPositionChange();
                             tickSync.RollbackProcessPhysicalOrders();
                             tickSync.RollbackPhysicalFills();
                         }
-                        if (trace) log.Trace("PerformCompare finished - " + tickSync);
-                    }
+					}
                     finally {
 						Interlocked.Decrement( ref recursiveCounter);
                     }
 				}
+                if (SyncTicks.Enabled)
+                {
+                    if( tickSync.SentPositionChange)
+                    {
+                        tickSync.RemovePositionChange();
+                    }
+                    else
+                    {
+                        int x = 0;
+                    }
+                }
+            }
+            else
+			{
+			    if( debug) log.Debug( "Skipping ProcesOrders. RecursiveCounter " + count + "\n" + tickSync);
 			}
 		}
 		private long nextOrderId = 1000000000;

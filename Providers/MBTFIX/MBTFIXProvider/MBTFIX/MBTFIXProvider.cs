@@ -43,12 +43,14 @@ namespace TickZoom.MBTFIX
 		private readonly bool info = log.IsDebugEnabled;
         private volatile bool trace = log.IsTraceEnabled;
         private volatile bool debug = log.IsDebugEnabled;
+        private volatile bool verbose = log.IsVerboseEnabled;
         private bool isBrokerStarted = false;
         public override void RefreshLogLevel()
         {
             base.RefreshLogLevel();
             if (log != null)
             {
+                verbose = log.IsVerboseEnabled;
                 debug = log.IsDebugEnabled;
                 trace = log.IsTraceEnabled;
             }
@@ -1228,11 +1230,6 @@ namespace TickZoom.MBTFIX
 
                 algorithm.ProcessOrders();
 
-                if(SyncTicks.Enabled)
-                {
-                    var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                    tickSync.RemovePositionChange();
-                }
             }
 		}
 		
@@ -1351,9 +1348,9 @@ namespace TickZoom.MBTFIX
 			fixMsg.SetUserName();
             if (order.Action == OrderAction.Change)
             {
-				if( debug) log.Debug("Change order: \n" + fixMsg);
+				if( verbose) log.Verbose("Change order: \n" + fixMsg);
 			} else {
-				if( debug) log.Debug("Create new order: \n" + fixMsg);
+                if (verbose) log.Verbose("Create new order: \n" + fixMsg);
 			}
             if( resend)
             {

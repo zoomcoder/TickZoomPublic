@@ -39,12 +39,9 @@ namespace TickZoom.Common
 	public class Strategy : Model, StrategyInterface
 	{
 		PositionInterface position;
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(Strategy));
-		private readonly bool debug = log.IsDebugEnabled;
-		private readonly bool trace = log.IsTraceEnabled;
 		private readonly Log instanceLog;
-		private readonly bool instanceDebug;
-		private readonly bool instanceTrace;
+		private readonly bool debug;
+		private readonly bool trace;
 		private Result result;
         private OrderManager orderManager;
 		private Dictionary<int,LogicalOrder> ordersHash = new Dictionary<int,LogicalOrder>();
@@ -71,11 +68,16 @@ namespace TickZoom.Common
 		
 		public Strategy()
 		{
-			instanceLog = Factory.SysLog.GetLogger(this.GetType()+"."+Name);
-			instanceDebug = instanceLog.IsDebugEnabled;
-			instanceTrace = instanceLog.IsTraceEnabled;
+		    var logName = this.GetType().FullName;
+            if( this.GetType().Name != Name)
+            {
+                logName += "." + Name;
+            }
+			instanceLog = Factory.SysLog.GetLogger(logName);
+			debug = instanceLog.IsDebugEnabled;
+			trace = instanceLog.IsTraceEnabled;
 			position = new PositionCommon(this);
-			if( trace) log.Trace("Constructor");
+			if( trace) instanceLog.Trace("Constructor");
 			Chain.Dependencies.Clear();
 			isStrategy = true;
 			result = new Result(this);
@@ -193,7 +195,7 @@ namespace TickZoom.Common
 					sb.Append("        ");
 					sb.AppendLine( item.ToString());
 				}
-				log.Trace("Order #" + order.Id + " was modified while position = " + position.Current + "\n" + sb);
+				instanceLog.Trace("Order #" + order.Id + " was modified while position = " + position.Current + "\n" + sb);
 				sb.AppendLine();
 			}
 		}
@@ -311,11 +313,11 @@ namespace TickZoom.Common
 		}
 		
 		public bool IsDebug {
-			get { return instanceDebug; }
+			get { return debug; }
 		}
 		
 		public bool IsTrace {
-			get { return instanceTrace; }
+			get { return trace; }
 		}
 
         public virtual void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)

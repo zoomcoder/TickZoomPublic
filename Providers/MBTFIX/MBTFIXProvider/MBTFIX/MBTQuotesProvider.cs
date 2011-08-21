@@ -113,29 +113,41 @@ namespace TickZoom.MBTQuotes
 			EndRecovery();
 		}
 		
-		protected override void ReceiveMessage(MessageMbtQuotes packet)
+		protected override void ReceiveMessage(MessageMbtQuotes message)
 		{
-			switch( packet.MessageType) {
+			switch( message.MessageType) {
 				case '1':
-					Level1Update( packet);
+					Level1Update( message);
 					break;
 				case '2':
-					log.Error( "Message type '2' unknown Message is: " + packet);
-					break;
+					log.Error( "Message type '2' unknown Message is: " + message);
+                    log.Info("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
+                    break;
 				case '3':
-					TimeAndSalesUpdate( packet);
+					TimeAndSalesUpdate( message);
 					break;
                 case '4':
-                    OptionChainUpdate( packet);
+                    OptionChainUpdate( message);
                     break;
                 default:
-					throw new ApplicationException("MBTQuotes message type '" + packet.MessageType + "' was unknown: \n" + new string(packet.DataIn.ReadChars(packet.Remaining)));
+                    log.Info("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
+                    throw new ApplicationException("MBTQuotes message type '" + message.MessageType + "' was unknown: \n" + new string(message.DataIn.ReadChars(message.Remaining)));
 			}
 		}
 		
-		private unsafe void Level1Update( MessageMbtQuotes message) {
-			SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
-			var handler = symbolHandlers[symbolInfo.BinaryIdentifier];
+		private unsafe void Level1Update( MessageMbtQuotes message)
+		{
+		    SymbolHandler handler;
+            try
+            {
+                SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
+                handler = symbolHandlers[symbolInfo.BinaryIdentifier];
+            }
+            catch (ApplicationException)
+            {
+                log.Info("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
+                throw;
+            }
 			if( message.Bid != 0) {
 				handler.Bid = message.Bid;
 			}

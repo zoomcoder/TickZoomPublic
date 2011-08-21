@@ -50,9 +50,9 @@ namespace TickZoom.Common
 		Chart chart;
 		Context context;
 		Formula formula;
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(Model));
-		private readonly bool debug = log.IsDebugEnabled;
-		private readonly bool trace = log.IsTraceEnabled;
+		private static readonly Log instanceLog = Factory.SysLog.GetLogger(typeof(Model));
+		private readonly bool debug = instanceLog.IsDebugEnabled;
+		private readonly bool trace = instanceLog.IsTraceEnabled;
 		bool isOptimizeMode = false;
 		private Dictionary<int,ActiveList<ModelInterface>> eventListeners = new Dictionary<int,ActiveList<ModelInterface>>();
 		
@@ -69,7 +69,7 @@ namespace TickZoom.Common
 			drawing = new DrawingCommon(this);
 			formula = new Formula(this);
 			
-			if( trace) log.Trace(GetType().Name+".new");
+			if( trace) instanceLog.Trace(GetType().Name+".new");
 			chain = Factory.Engine.Chain(this);
 
 			RequestEvent( EventType.Open);
@@ -482,9 +482,9 @@ namespace TickZoom.Common
 			get { return isActive; }
 			set { if( isActive != value) {
 					if( value) {
-						if( trace) log.Trace( Name + " waking up.");
+						if( trace) instanceLog.Trace( Name + " waking up.");
 					} else {
-						if( trace) log.Trace( Name + " going to sleep.");
+						if( trace) instanceLog.Trace( Name + " going to sleep.");
 					}
 					isActive = value;
 					IsActiveChanged();

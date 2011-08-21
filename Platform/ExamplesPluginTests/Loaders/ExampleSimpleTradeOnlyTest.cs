@@ -50,7 +50,7 @@ namespace Loaders
 		public override void RunStrategy() {
     		Assert.Ignore();
 
-			CleanupFiles();
+			CleanupFiles(null);
 			try {
 				Starter starter = CreateStarterCallback();
 				

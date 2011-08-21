@@ -79,6 +79,7 @@ namespace TickZoom.Common
                 try
                 {
                     fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
+                    log.Info("Opened " + databasePath);
                     snapshotLength = fs.Length;
                     memory = new MemoryStream();
                     writer = new BinaryWriter(memory, Encoding.UTF8);
@@ -211,10 +212,7 @@ namespace TickZoom.Common
             if( debug) log.Debug("Creating new snapshot file and rolling older ones to higher number.");
             lock( fileLocker)
             {
-                if (fs != null)
-                {
-                    fs.Dispose();
-                }
+                TryClose();
                 var files = FindSnapshotFiles();
                 for (var i = files.Count - 1; i >= 0; i--)
                 {
@@ -348,7 +346,7 @@ namespace TickZoom.Common
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if( debug) log.Debug("Snapshot found order by Id: " + order);
+                    if( trace) log.Trace("Snapshot found order by Id: " + order);
                     foreach( var reference in OrderReferences(order))
                     {
                         AddUniqueOrder(reference);
@@ -359,7 +357,7 @@ namespace TickZoom.Common
                 {
                     var order = kvp.Value;
                     AddUniqueOrder(order);
-                    if (debug) log.Debug("Snapshot found order by serial: " + order);
+                    if (trace) log.Trace("Snapshot found order by serial: " + order);
                     foreach (var reference in OrderReferences(order))
                     {
                         AddUniqueOrder(reference);
@@ -370,7 +368,7 @@ namespace TickZoom.Common
                 foreach (var kvp in unique)
                 {
                     var order = kvp.Key;
-                    if (debug) log.Debug("Snapshot writing unique order: " + order);
+                    if (trace) log.Trace("Snapshot writing unique order: " + order);
                     var id = kvp.Value;
                     writer.Write(id);
                     writer.Write((int)order.Action);
@@ -496,14 +494,20 @@ namespace TickZoom.Common
             return snapshots;
         }
 
+        private void TryClose()
+        {
+            if (fs != null)
+            {
+                fs.Close();
+                log.Info("Closed " + databasePath);
+            }
+        }
+
         public bool Recover()
         {
             lock( fileLocker)
             {
-                if (fs != null)
-                {
-                    fs.Close();
-                }
+                TryClose();
                 var files = FindSnapshotFiles();
                 var loaded = false;
                 foreach (var file in files)
@@ -860,10 +864,7 @@ namespace TickZoom.Common
                     if (debug) log.Debug("Dispose()");
                     ForceSnapShot();
                     WaitForSnapshot();
-                    if (fs != null)
-                    {
-                        fs.Close();
-                    }
+                    TryClose();
                 }
             }
         }

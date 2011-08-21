@@ -110,8 +110,8 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-			    Mode = AutoTestMode.Default,
-			    Name = "DualStrategyLimitOrder",
+                Mode = AutoTestMode.Historical, //  | AutoTestMode.SimulateFIX,
+                Name = "DualStrategyLimitOrder",
 			    Loader = new TestDualStrategyLoader(),
 				Symbols = primarySymbol + ",EUR/USD",
 				StoreKnownGood = storeKnownGood,
@@ -194,7 +194,7 @@ namespace Loaders
 			});
 			
 			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.Historical | AutoTestMode.SimulateFIX,
+			    Mode = AutoTestMode.Historical, //  | AutoTestMode.SimulateFIX,
 			    Name = "ExampleMixedTest",
 			    Loader = new ExampleMixedLoader(),
 				Symbols = primarySymbol + ",EUR/USD,USD/CHF",

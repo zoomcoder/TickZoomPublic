@@ -44,7 +44,8 @@ namespace TickZoom.FIX
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MessageFIXT1_1));
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static readonly bool trace = log.IsTraceEnabled;
-		private MemoryStream data = new MemoryStream();
+        private static readonly bool verbose = log.IsVerboseEnabled;
+        private MemoryStream data = new MemoryStream();
 		private BinaryReader dataIn;
 		private BinaryWriter dataOut;
 		private static int packetIdCounter = 0;
@@ -165,7 +166,7 @@ namespace TickZoom.FIX
 			    end = ptr + data.Length;
 			    int key;
 			    while( NextKey( out key)) {
-				    if( trace) log.Trace("HandleKey("+key+")");
+                    if (verbose) log.Verbose("HandleKey(" + key + ")");
 				    HandleKey(key);
 				    if( key == 10 ) {
 					    isComplete = true;
@@ -252,7 +253,7 @@ namespace TickZoom.FIX
 	        ++ptr;
 	        Position += (int) (ptr - bptr);
 	        if( negative) val *= -1;
-			if( trace) log.Trace("int = " + val);
+            if (verbose) log.Verbose("int = " + val);
 	        return true;
 		}
 		
@@ -283,7 +284,7 @@ namespace TickZoom.FIX
 		        ++ptr;
 		        Position += (int) (ptr - bptr);
 		        result = val + (double) fract / divisor;
-				if( trace) log.Trace("double = " + result);
+                if (verbose) log.Verbose("double = " + result);
 				return true;
 	        }
 		}
@@ -299,7 +300,7 @@ namespace TickZoom.FIX
 	        ++ptr;
 			result = new string(dataIn.ReadChars(length));
 			data.Position++;
-			if( trace) log.Trace("string = " + result);
+            if (verbose) log.Verbose("string = " + result);
 			return true;
 		}
 	        
@@ -311,7 +312,7 @@ namespace TickZoom.FIX
 	        ++ptr;
 	        int length = (int) (ptr - bptr);
 	        Position += length;
-			if( trace) log.Trace("skipping " + length + " bytes.");
+			if( verbose) log.Verbose("skipping " + length + " bytes.");
 			return true;
 		}
 		

@@ -170,6 +170,7 @@ namespace TickZoom.FIX
 
 	    private bool alreadyEmpty = false;
 	    private Integers queueCounts = Factory.Engine.Integers();
+	    private TickIO currentTick = Factory.TickUtil.TickIO();
 		private Yield DequeueTick() {
             LatencyManager.IncrementSymbolHandler();
             var result = Yield.NoWork.Repeat;
@@ -198,19 +199,29 @@ namespace TickZoom.FIX
                     alreadyEmpty = false;
 					tickStatus = TickStatus.None;
 					tickCounter++;
-				   	if( isPlayBack) {
-						if( isFirstTick) {
-							playbackOffset = fixSimulatorSupport.GetRealTimeOffset(binary.UtcTime);
-							prevTickTime = TimeStamp.UtcNow.Internal + 5000000;
-					   		isFirstTick = false;
-						}
-				   	    binary.UtcTime = GetNextUtcTime(binary.UtcTime);
+                    if( isFirstTick)
+                    {
+                        currentTick.Inject(binary);
+                    }
+                    else
+                    {
+                        currentTick.Inject(nextTick.Extract());
+                    }
+                    if (isPlayBack)
+                    {
+                        if (isFirstTick)
+                        {
+                            playbackOffset = fixSimulatorSupport.GetRealTimeOffset(binary.UtcTime);
+                            prevTickTime = TimeStamp.UtcNow.Internal + 5000000;
+                        }
+                        binary.UtcTime = GetNextUtcTime(binary.UtcTime);
 				   	    prevTickTime = binary.UtcTime;
 						if( tickCounter > 10) {
 							intervalTime = 1000;
 						}
-				   	} 
-				   	nextTick.Inject( binary);
+                    }
+                    isFirstTick = false;
+                    nextTick.Inject(binary);
 				   	tickSync.AddTick();
 				   	if( !isPlayBack) {
 				   		if( isFirstTick) {

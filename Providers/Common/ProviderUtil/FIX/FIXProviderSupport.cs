@@ -41,6 +41,7 @@ namespace TickZoom.FIX
         private readonly Log log;
         private volatile bool trace;
         private volatile bool debug;
+        private volatile bool verbose;
         public virtual void RefreshLogLevel()
         {
             if (log != null)
@@ -100,7 +101,8 @@ namespace TickZoom.FIX
 		{
 			log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+GetType().Name);
 		    log.Register(this);
-			debug = log.IsDebugEnabled;
+            verbose = log.IsVerboseEnabled;
+            debug = log.IsDebugEnabled;
 			trace = log.IsTraceEnabled;
         	log.Info(providerName+" Startup");
 			RegenerateSocket();
@@ -534,7 +536,7 @@ namespace TickZoom.FIX
         private bool TryRequestResend(MessageFIXT1_1 messageFIX)
         {
             var result = false;
-            if( debug) log.Debug("Comparing fix sequence " + messageFIX.Sequence + " to expected sequence " + remoteSequence);
+            if( verbose) log.Verbose("Comparing fix sequence " + messageFIX.Sequence + " to expected sequence " + remoteSequence);
             if (messageFIX.Sequence > remoteSequence)
             {
                 result = true;
@@ -555,7 +557,7 @@ namespace TickZoom.FIX
                 mbtMsg.AddHeader("2");
                 mbtMsg.SetBeginSeqNum(remoteSequence);
                 mbtMsg.SetEndSeqNum(0);
-                if (debug) log.Debug(" Sending resend request: " + mbtMsg);
+                if (verbose) log.Verbose(" Sending resend request: " + mbtMsg);
                 SendMessage(mbtMsg);
             }
         }

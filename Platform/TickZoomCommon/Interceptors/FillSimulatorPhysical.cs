@@ -37,6 +37,7 @@ namespace TickZoom.Interceptors
 	{
 		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical));
 		private volatile bool trace = staticLog.IsTraceEnabled;
+        private volatile bool verbose = staticLog.IsVerboseEnabled;
         private volatile bool debug = staticLog.IsDebugEnabled;
         public void RefreshLogLevel()
         {
@@ -270,21 +271,22 @@ namespace TickZoom.Interceptors
 			currentTick.Inject( lastTick.Extract());
 			hasCurrentTick = true;
 		}
-		
+
 		private void ProcessOrdersInternal(Tick tick) {
 			if( isOpenTick && tick.Time > openTime) {
 				if( trace) {
-					if( isOpenTick) {
-						log.Trace( "ProcessOrders( " + symbol + ", " + tick + " ) [OpenTick]") ;
-					} else {
-						log.Trace( "ProcessOrders( " + symbol + ", " + tick + " )") ;
-					}
+    				log.Trace( "ProcessOrders( " + symbol + ", " + tick + " ) [OpenTick]") ;
 				}
 				isOpenTick = false;
 			}
+            else if( verbose)
+			{
+                log.Verbose("ProcessOrders( " + symbol + ", " + tick + " )");
+            }
 			if( symbol == null) {
 				throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
 			}
+            if( trace) log.Trace( "Orders: Market " + marketOrders.Count + ", Increase " + increaseOrders.Count + ", Decrease " + decreaseOrders.Count);
 			for( var node = marketOrders.First; node != null; node = node.Next) {
 				var order = node.Value;
 				OnProcessOrder(order, tick);

@@ -934,7 +934,7 @@ namespace TickZoom.Charting
                         }
                         else
                         {
-                            log.Warn("_min is NAN from MoveByPixels with xScale " + xScale + ", xScale.Min " +
+                            if( debug) log.Debug("_min is NAN from MoveByPixels with xScale " + xScale + ", xScale.Min " +
                                      xScale.Min + ", resetXScaleSpeed " + resetXScaleSpeed);
                         }
                     }
@@ -951,7 +951,7 @@ namespace TickZoom.Charting
                         }
                         else
                         {
-                            log.Warn("_max is NAN from MoveByPixels with xScale " + xScale + ", xScale.Max " +
+                            if( debug) log.Debug("_max is NAN from MoveByPixels with xScale " + xScale + ", xScale.Max " +
                                      xScale.Max + ", resetXScaleSpeed " + resetXScaleSpeed);
                         }
                     }

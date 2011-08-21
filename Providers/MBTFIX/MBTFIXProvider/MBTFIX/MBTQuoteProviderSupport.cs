@@ -51,7 +51,7 @@ namespace TickZoom.MBTQuotes
 		protected readonly object symbolsRequestedLocker = new object();
 		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
 		private Socket socket;
-		private Task socketTask;
+        private Task socketTask;
 		private string failedFile;
 		protected Receiver receiver;
 		private long retryDelay = 30; // seconds
@@ -84,15 +84,16 @@ namespace TickZoom.MBTQuotes
 	        log.Info(providerName+" Startup");
 			RegenerateSocket();
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
-            taskTimer = Factory.Parallel.CreateTimer(socketTask, SocketTask);
+            taskTimer = Factory.Parallel.CreateTimer(socketTask, TimerTask);
             socketTask.Start();
-		    TimeStamp currentTime;
-		    do
-		    {
-		        currentTime = TimeStamp.UtcNow;
-		        currentTime.AddSeconds(1);
 
-		    } while ( !taskTimer.Start(currentTime));
+            TimeStamp currentTime;
+            do
+            {
+                currentTime = TimeStamp.UtcNow;
+                currentTime.AddSeconds(1);
+            } while (!taskTimer.Start(currentTime));
+
 	  		string logRecoveryString = Factory.Settings["LogRecovery"];
 	  		logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
 	    }
@@ -141,7 +142,7 @@ namespace TickZoom.MBTQuotes
         	while( true) {
         		try { 
 					socket.Connect(addrStr,port);
-					if( debug) log.Debug("Requested Connect for " + socket);
+					log.Info("Requested Connect for " + socket);
 					return;
         		} catch( SocketErrorException ex) {
         			log.Error("Non fatal error while trying to connect: " + ex.Message);
@@ -225,16 +226,21 @@ namespace TickZoom.MBTQuotes
 
 	    private Status lastStatus;
         private SocketState lastSocketState;
-		
-		private Yield SocketTask() {
-			if( isDisposed ) return Yield.NoWork.Repeat;
+
+        private Yield TimerTask()
+        {
+            if (isDisposed) return Yield.NoWork.Repeat;
             TimeStamp currentTime;
             do
             {
                 currentTime = TimeStamp.UtcNow;
                 currentTime.AddSeconds(1);
-
             } while (!taskTimer.Start(currentTime));
+            return SocketTask();
+        }
+
+	    private Yield SocketTask() {
+			if( isDisposed ) return Yield.NoWork.Repeat;
             if (debugDisconnect)
             {
                 if( debug) log.Debug("SocketTask: Current socket state: " + socket.State + ", connection status: " + connectionStatus);
@@ -367,7 +373,9 @@ namespace TickZoom.MBTQuotes
                             log.Warn("Forces connection state to be: " + connectionStatus);
                             return Yield.NoWork.Repeat;
 					}
-				default:
+                case SocketState.Disposed:
+                    return Yield.DidWork.Repeat;
+                default:
 					string errorMessage = "Unknown socket state: " + socket.State;
                     log.Error(errorMessage);
                     throw new ApplicationException(errorMessage);
@@ -578,7 +586,13 @@ namespace TickZoom.MBTQuotes
 		            	socketTask.Stop();
                         if( debug) log.Debug("Stopped socket task.");
 	            	}
-	            	if( socket != null) {
+                    if (taskTimer != null)
+                    {
+                        taskTimer.Cancel();
+                        if (debug) log.Debug("Stopped task timer.");
+                    }
+                    if (socket != null)
+                    {
 		            	socket.Dispose();
 	            	}
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;

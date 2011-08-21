@@ -53,7 +53,7 @@ namespace Loaders
 		[TestFixtureSetUp]
 		public override void RunStrategy() {
        		Assert.Ignore();
-            CleanupFiles();
+            CleanupFiles(null);
             StartGUIThread();
 			Starter starter = new HistoricalStarter();
 			
