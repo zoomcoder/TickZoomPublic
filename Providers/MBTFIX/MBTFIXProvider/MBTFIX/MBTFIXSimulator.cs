@@ -194,18 +194,18 @@ namespace TickZoom.MBTFIX
         private Yield FIXCancelOrder(MessageFIX4_4 packet)
         {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-            var order = ConstructOrder(packet, packet.ClientOrderId);
             if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
 			CreateOrChangeOrder origOrder = null;
 			try {
 				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
 			} catch( ApplicationException) {
 				if( debug) log.Debug( symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Probably already filled or canceled.");
-                OnRejectCancel(order, packet.OriginalClientOrderId, "No such order");
+                OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "No such order");
 				return Yield.DidWork.Return;
 			}
-		    var cancelOrder = Factory.Utility.PhysicalOrder(OrderState.Active, symbol, origOrder);
-			CancelOrder( cancelOrder);
+            var cancelOrder = ConstructCancelOrder(packet, packet.ClientOrderId);
+            cancelOrder.OriginalOrder = origOrder;
+            CancelOrder(cancelOrder);
 		    var randomOrder = random.Next(0, 10) < 5 ? cancelOrder : origOrder;
             SendExecutionReport( randomOrder, "6", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
             SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
@@ -290,6 +290,27 @@ namespace TickZoom.MBTFIX
 			return physicalOrder;
 		}
 
+        private CreateOrChangeOrder ConstructCancelOrder(MessageFIX4_4 packet, string clientOrderId)
+        {
+            if (string.IsNullOrEmpty(clientOrderId))
+            {
+                var message = "Client order id was null or empty. FIX Message is: " + packet;
+                log.Error(message);
+                throw new ApplicationException(message);
+            }
+            var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
+            var side = OrderSide.Buy;
+            var type = OrderType.None;
+            var clientId = clientOrderId.Split(new char[] { '.' });
+            var logicalId = int.Parse(clientId[0]);
+            var utcCreateTime = new TimeStamp(packet.TransactionTime);
+            var physicalOrder = Factory.Utility.PhysicalOrder(
+                OrderAction.Cancel, OrderState.Active, symbol, side, type,
+                0D, 0, logicalId, 0, clientOrderId, null, utcCreateTime);
+            if (debug) log.Debug("Received physical Order: " + physicalOrder);
+            return physicalOrder;
+        }
+
         protected override FIXTFactory1_1 CreateFIXFactory(int sequence, string target, string sender)
         {
             this.target = target;
@@ -347,15 +368,15 @@ namespace TickZoom.MBTFIX
             SendMessage(mbtMsg);
         }
 
-        private void OnRejectCancel(CreateOrChangeOrder order, string origClientOrderId, string error)
+        private void OnRejectCancel(string symbol, string clientOrderId, string origClientOrderId, string error)
         {
             var mbtMsg = (FIXMessage4_4)FixFactory.Create();
             mbtMsg.SetAccount("33006566");
-            mbtMsg.SetClientOrderId(order.BrokerOrder.ToString());
+            mbtMsg.SetClientOrderId(clientOrderId);
             mbtMsg.SetOriginalClientOrderId(origClientOrderId);
             mbtMsg.SetOrderStatus("8");
             mbtMsg.SetText(error);
-            mbtMsg.SetSymbol(order.Symbol.Symbol);
+            mbtMsg.SetSymbol(symbol);
             mbtMsg.AddHeader("9");
             if (trace) log.Trace("Sending reject cancel." + mbtMsg);
             SendMessage(mbtMsg);

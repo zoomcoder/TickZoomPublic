@@ -193,7 +193,7 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
                 RemoteSequence = OrderStore.RemoteSequence;
-                SendLogin(OrderStore.LocalSequence);
+                SendLogin(OrderStore.LocalSequence+100);
                 OrderStore.ForceSnapShot();
                 isOrderUpdateComplete = RecoverProgress.Completed;
             }
@@ -428,9 +428,10 @@ namespace TickZoom.MBTFIX
         //    return isCancelingPendingOrders;
         //}
 
-		private void StartPositionSync() {
-			StringBuilder sb = new StringBuilder();
-		    var list = OrderStore.GetOrders((x) => true);
+        private string GetOpenOrders()
+        {
+            var sb = new StringBuilder();
+            var list = OrderStore.GetOrders((x) => true);
 			foreach( var order in list) {
 				sb.Append( "    ");
 				sb.Append( (string) order.BrokerOrder);
@@ -438,7 +439,11 @@ namespace TickZoom.MBTFIX
 				sb.Append( order);
 				sb.AppendLine();
 			}
-			log.Info("Recovered Open Orders:\n" + sb);
+            return sb.ToString();
+        }
+        private void StartPositionSync()
+        {
+			log.Info("Recovered Open Orders:\n" + GetOpenOrders());
 			TrySendStartBroker();
 			MessageFIXT1_1.IsQuietRecovery = false;
 		}
@@ -600,7 +605,7 @@ namespace TickZoom.MBTFIX
                                 if (LogRecovery || !IsRecovery)
                                 {
                                     log.Info("Cancel order for " + packetFIX.ClientOrderId +
-                                             " was not found. Probably already canceled.");
+                                             " was not found. Probably already canceled:\n" + GetOpenOrders());
                                 }
                             }
                             CreateOrChangeOrder origOrder;
@@ -608,7 +613,7 @@ namespace TickZoom.MBTFIX
                             {
                                 if (LogRecovery || !IsRecovery)
                                 {
-                                    log.Info("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled.");
+                                    log.Info("Orig order for " + packetFIX.ClientOrderId + " was not found. Probably already canceled:\n" + GetOpenOrders());
                                 }
                             }
                             if (clientOrder != null && clientOrder.ReplacedBy != null)
