@@ -96,7 +96,8 @@ namespace TickZoom.MBTFIX
                     break;
                 case "5":
                     log.Info("Received logout message.");
-                    Dispose();
+                    SendLogout();
+                    //Dispose();
                     break;
                 default: 
 					throw new ApplicationException("Unknown FIX message type '" + packetFIX.MessageType + "'\n" + packetFIX);
@@ -189,7 +190,9 @@ namespace TickZoom.MBTFIX
             return Yield.DidWork.Repeat;
         }
 
-	    private Yield FIXCancelOrder(MessageFIX4_4 packet) {
+
+        private Yield FIXCancelOrder(MessageFIX4_4 packet)
+        {
 			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
             if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
@@ -434,6 +437,13 @@ namespace TickZoom.MBTFIX
 			if(trace) log.Trace("Sending execution report: " + mbtMsg);
 		}
 
+        private void SendLogout()
+        {
+            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            mbtMsg.AddHeader("5");
+            SendMessage(mbtMsg);
+            if (trace) log.Trace("Sending logout confirmation: " + mbtMsg);
+        }
 		
 		private unsafe Yield SymbolRequest(MessageMbtQuotes message) {
 			var symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);

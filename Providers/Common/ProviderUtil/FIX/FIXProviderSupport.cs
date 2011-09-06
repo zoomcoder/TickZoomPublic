@@ -917,7 +917,8 @@ namespace TickZoom.FIX
 				}
 				Factory.Parallel.Yield();
 			}
-	    }
+            lastMessageTime = TimeStamp.UtcNow;
+        }
 
         protected virtual void TryEndRecovery()
         {
@@ -928,12 +929,12 @@ namespace TickZoom.FIX
         {
             if( connectionStatus == Status.Recovered)
             {
-                while (socket != null && socket.State == SocketState.Connected)
+                while (socket != null && connectionStatus != Status.Disconnected)
                 {
                     OnLogout();
                     connectionStatus = Status.PendingLogOut;
                     var end = Factory.TickCount + 1000;
-                    while (socket != null && socket.State == SocketState.Connected && Factory.TickCount < end)
+                    while (socket != null && connectionStatus != Status.Disconnected && Factory.TickCount < end)
                     {
                         Factory.Parallel.Yield();
                     }
