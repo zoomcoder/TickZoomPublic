@@ -48,7 +48,11 @@ namespace TickZoom.FIX
         }
     }
 	public class FIXMessage4_4 : FIXTMessage1_1 {
-		internal FIXMessage4_4(string sender,string destination) : base("FIX.4.4",sender,destination) {
+        protected string orderStatus;
+	    private string symbol;
+        internal FIXMessage4_4(string sender, string destination)
+            : base("FIX.4.4", sender, destination)
+        {
 		}
 		/// <summary>
 		/// 1 Account mnemonic as agreed between buy and sell sides, e.g. broker and institution or investor/intermediary and fund manager.
@@ -187,11 +191,23 @@ namespace TickZoom.FIX
 		/// <summary>
 		/// 39 The status of this execution order.
 		/// </summary>
-		public void SetOrderStatus(string value) {
+		public void SetOrderStatus(string value)
+		{
+		    orderStatus = value;
 			Append(39, value);
 		}
-		
-		/// <summary>
+
+	    public string OrderStatus 
+	    {
+	        get { return orderStatus;  }
+	    }
+
+	    public string Symbol
+	    {
+	        get { return symbol; }
+	    }
+
+	    /// <summary>
 		/// 40 The type of order which is placed; valid values are:
 		/// 1=Market, 2=Limit, 3=Stop,4=StopLimit, P=TrailingStop, T=TTO		
 		/// </summary>
@@ -216,9 +232,13 @@ namespace TickZoom.FIX
 		/// <summary>
 		/// 55 Stock Symbol, or Currency Pair
 		/// </summary>
-		public void SetSymbol(string value) {
+		public void SetSymbol(string value)
+		{
+		    symbol = value;
 			Append(55, value);
 		}
+
+
 		
 		///<summary>
 		/// 54 The action to take on the order. Valid entries are: 

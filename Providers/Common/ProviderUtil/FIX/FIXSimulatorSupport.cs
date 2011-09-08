@@ -38,7 +38,7 @@ namespace TickZoom.FIX
         Recovered,
     }
 
-    public class FIXSimulatorSupport : FIXSimulator, LogAware
+    public abstract class FIXSimulatorSupport : FIXSimulator, LogAware
 	{
 		private string localAddress = "0.0.0.0";
 		private static Log log = Factory.SysLog.GetLogger(typeof(FIXSimulatorSupport));
@@ -54,10 +54,11 @@ namespace TickZoom.FIX
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
-	    private int heartbeatDelay = 1;
+	    private int heartbeatDelay = 1; 
         private ServerState fixState = ServerState.Startup;
-        private bool simulateDisconnect = false;
-        private bool simulateMissed = false;
+        private bool simulateDisconnect = true;
+        private bool simulateReceiveFailed = true;
+        private bool simulateSendFailed = true;
 
 		// FIX fields.
 		private ushort fixPort = 0;
@@ -92,7 +93,19 @@ namespace TickZoom.FIX
 			ListenToQuotes(quotesPort);
 			MainLoopMethod = MainLoop;
             if( debug) log.Debug("Starting FIX Simulator.");
-		}
+            if( !simulateDisconnect)
+            {
+                log.Error("SimulateDisconnect is disabled.");
+            }
+            if (!simulateReceiveFailed)
+            {
+                log.Error("SimulateReceiveFailed is disabled.");
+            }
+            if (!simulateSendFailed)
+            {
+                log.Error("SimulateSendFailed is disabled.");
+            }
+        }
 
         public void DumpHistory()
         {
@@ -350,26 +363,25 @@ namespace TickZoom.FIX
 
                 }
 
-                var fixString = textMessage.ToString();
-		        if( debug) {
-                    string view = fixString.Replace(FIXTBuffer.EndFieldStr, "  ");
-                    if (gapFill)
+                if (gapFill)
+                {
+                    if (debug)
                     {
-                        log.Debug("Send Gap Fill message " + i + ": \n" + view);
+                        var fixString = textMessage.ToString();
+                        string view = fixString.Replace(FIXTBuffer.EndFieldStr, "  ");
+                        log.Debug("Sending Gap Fill message " + i + ": \n" + view);
                     }
-                    else
-                    {
-                        log.Debug("Resend FIX message " + i + ": \n" + view);
-                    }
-		        }
-                var packet = fixSocket.MessageFactory.Create();
-                packet.SendUtcTime = TimeStamp.UtcNow.Internal;
-		        packet.DataOut.Write(fixString.ToCharArray());
-                SendMessageInternal(packet);
-                result = true;
+                    ResendMessageProtected(textMessage);
+                }
+                else
+                {
+                    ResendMessage(textMessage);
+                }
             }
-            return result;
+            return true;
         }
+
+        protected abstract void ResendMessage(FIXTMessage1_1 textMessage);
 
         private bool ProcessQuotePackets()
         {
@@ -580,7 +592,7 @@ namespace TickZoom.FIX
                 simulateConnectionLoss = true;
                 return true;
             }
-            if (simulateMissed && fixFactory != null && random.Next(10) == 1)
+            if (simulateReceiveFailed && fixFactory != null && random.Next(10) == 1)
             {
                 // Ignore this message. Pretend we never received it.
                 // This will test the message recovery.
@@ -684,6 +696,23 @@ namespace TickZoom.FIX
 		    return result;
 		}
 
+        protected void ResendMessageProtected(FIXTMessage1_1 fixMessage)
+        {
+            if (simulateConnectionLoss) return;
+            var writePacket = fixSocket.MessageFactory.Create();
+            var message = fixMessage.ToString();
+            writePacket.DataOut.Write(message.ToCharArray());
+            writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
+            if (debug) log.Debug("Resending simulated FIX Message: " + fixMessage);
+            while (!fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.SendUtcTime))
+            {
+                if (fixPacketQueue.IsFull)
+                {
+                    throw new ApplicationException("Fix Queue is full.");
+                }
+            }
+        }
+
         private bool SendMessageInternal( Message message)
         {
             if (fixSocket.TrySendMessage(message))
@@ -742,15 +771,16 @@ namespace TickZoom.FIX
                 simulateConnectionLoss = true;
                 return;
             }
-            if (random.Next(20) == 4)
+            if (simulateSendFailed && IsRecovered && random.Next(20) == 4)
             {
-                if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message.");
+                if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message. FIX state: " + fixState);
                 return;
             }
             var writePacket = fixSocket.MessageFactory.Create();
             var message = fixMessage.ToString();
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
+            if( debug) log.Debug("Simulating FIX Message: " + fixMessage);
             while (!fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.SendUtcTime))
             {
                 if (fixPacketQueue.IsFull)
@@ -822,6 +852,11 @@ namespace TickZoom.FIX
                 }
 			}
 		}
+
+        public bool IsRecovered
+        {
+            get { return fixState == ServerState.Recovered;  }
+        }
 
 		public ushort FIXPort {
 			get { return fixPort; }

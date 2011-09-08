@@ -200,8 +200,19 @@ namespace TickZoom.Common
             return sb.ToString();
         }
 
-        private static long lastId = TimeStamp.UtcNow.Internal;
+        private static long lastId = 0L;
 		private static string CreateBrokerOrderId(int logicalId) {
+            if( lastId == 0L)
+            {
+                if( SyncTicks.Enabled)
+                {
+                    lastId = 111111111111L;
+                }
+                else
+                {
+                    lastId = TimeStamp.UtcNow.Internal;
+                }
+            }
 			var longId = Interlocked.Increment(ref lastId);
 			return logicalId + "." + longId;
 		}

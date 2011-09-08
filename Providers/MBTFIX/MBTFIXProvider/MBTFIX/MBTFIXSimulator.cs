@@ -161,12 +161,17 @@ namespace TickZoom.MBTFIX
 				OnRejectOrder(origOrder,false,message);
 				return;     
 			}
+			ChangeOrder(order);
+            ProcessChangeOrder(order);
+		}
+
+        private void ProcessChangeOrder(CreateOrChangeOrder order)
+        {
 			SendExecutionReport( order, "E", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
 			SendExecutionReport( order, "5", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
-			ChangeOrder(order);
-		}
+        }
 
         private Yield FIXRequestSessionStatus(MessageFIX4_4 packet)
         {
@@ -193,33 +198,54 @@ namespace TickZoom.MBTFIX
 
         private Yield FIXCancelOrder(MessageFIX4_4 packet)
         {
-			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-            if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
-			CreateOrChangeOrder origOrder = null;
-			try {
-				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
-			} catch( ApplicationException) {
-				if( debug) log.Debug( symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Probably already filled or canceled.");
+            var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
+            if (debug)
+                log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " +
+                          packet.OriginalClientOrderId);
+            CreateOrChangeOrder origOrder = null;
+            try
+            {
+                origOrder = GetOrderById(symbol, packet.OriginalClientOrderId);
+            }
+            catch (ApplicationException)
+            {
+                if (debug)
+                    log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId +
+                              ". Probably already filled or canceled.");
                 OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "No such order");
-				return Yield.DidWork.Return;
-			}
+                return Yield.DidWork.Return;
+            }
             var cancelOrder = ConstructCancelOrder(packet, packet.ClientOrderId);
             cancelOrder.OriginalOrder = origOrder;
             CancelOrder(cancelOrder);
+            ProcessCancelOrder(cancelOrder);
+            return Yield.DidWork.Repeat;
+        }
+
+        private void ProcessCancelOrder(CreateOrChangeOrder cancelOrder)
+        {
+            var origOrder = cancelOrder.OriginalOrder;
 		    var randomOrder = random.Next(0, 10) < 5 ? cancelOrder : origOrder;
             SendExecutionReport( randomOrder, "6", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
-            SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
+            SendPositionUpdate(cancelOrder.Symbol, GetPosition(cancelOrder.Symbol));
             SendExecutionReport( randomOrder, "4", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
-            SendPositionUpdate( origOrder.Symbol, GetPosition(origOrder.Symbol));
-			return Yield.DidWork.Repeat;
+            SendPositionUpdate(cancelOrder.Symbol, GetPosition(cancelOrder.Symbol));
 		}
-		
-		private Yield FIXCreateOrder(MessageFIX4_4 packet) {
-			if( debug) log.Debug( "FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
-			var order = ConstructOrder( packet, packet.ClientOrderId);
-			if( string.IsNullOrEmpty(packet.ClientOrderId)) {
-				System.Diagnostics.Debugger.Break();
-			}
+
+        private Yield FIXCreateOrder(MessageFIX4_4 packet)
+        {
+            if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
+            var order = ConstructOrder(packet, packet.ClientOrderId);
+            if (string.IsNullOrEmpty(packet.ClientOrderId))
+            {
+                System.Diagnostics.Debugger.Break();
+            }
+            CreateOrder(order);
+            ProcessCreateOrder(order);
+            return Yield.DidWork.Repeat;
+        }
+
+	    private void ProcessCreateOrder(CreateOrChangeOrder order) {
 			SendExecutionReport( order, "A", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
             if( order.Symbol.FixSimulationType == FIXSimulationType.ForexPair &&
@@ -233,8 +259,6 @@ namespace TickZoom.MBTFIX
                 SendExecutionReport(order, "0", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
                 SendPositionUpdate(order.Symbol, GetPosition(order.Symbol));
             }
-			CreateOrder( order);
-			return Yield.DidWork.Repeat;
 		}
 		
 		private CreateOrChangeOrder ConstructOrder(MessageFIX4_4 packet, string clientOrderId) {
@@ -384,17 +408,17 @@ namespace TickZoom.MBTFIX
 
         private void SendPositionUpdate(SymbolInfo symbol, int position)
 		{
-			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
-			mbtMsg.SetAccount( "33006566");
-			mbtMsg.SetSymbol( symbol.Symbol);
-			if( position <= 0) {
-				mbtMsg.SetShortQty( position);
-			} else {
-				mbtMsg.SetLongQty( position);
-			}
-			mbtMsg.AddHeader("AP");
-            SendMessage(mbtMsg);
-			if(trace) log.Trace("Sending position update: " + mbtMsg);
+            //var mbtMsg = (FIXMessage4_4) FixFactory.Create();
+            //mbtMsg.SetAccount( "33006566");
+            //mbtMsg.SetSymbol( symbol.Symbol);
+            //if( position <= 0) {
+            //    mbtMsg.SetShortQty( position);
+            //} else {
+            //    mbtMsg.SetLongQty( position);
+            //}
+            //mbtMsg.AddHeader("AP");
+            //SendMessage(mbtMsg);
+            //if(trace) log.Trace("Sending position update: " + mbtMsg);
         }	
 
 		private void SendExecutionReport(CreateOrChangeOrder order, string status, double price, int orderQty, int cumQty, int lastQty, int leavesQty, TimeStamp time)
@@ -457,6 +481,32 @@ namespace TickZoom.MBTFIX
             SendMessage(mbtMsg);
 			if(trace) log.Trace("Sending execution report: " + mbtMsg);
 		}
+
+        protected override void ResendMessage(FIXTMessage1_1 textMessage)
+        {
+            var mbtMsg = (FIXMessage4_4) textMessage;
+            if( SyncTicks.Enabled && !IsRecovered && mbtMsg.Type == "8")
+            {
+                switch( mbtMsg.OrderStatus )
+                {
+                    case "E":
+                    case "6":
+                    case "A":
+                        var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                        var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                        tickSync.AddPhysicalOrder();
+                        break;
+                    case "2":
+                    case "1":
+                        symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                        tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                        tickSync.AddPhysicalFill();
+                        break;
+                }
+                
+            }
+            ResendMessageProtected(textMessage);
+        }
 
         private void SendLogout()
         {

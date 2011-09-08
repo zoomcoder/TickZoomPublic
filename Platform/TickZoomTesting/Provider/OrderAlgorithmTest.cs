@@ -1179,7 +1179,7 @@ namespace Orders
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
 			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
-			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
+			Assert.AreEqual(1,handler.Orders.CanceledOrders.Count);
 			
 		}
 		
@@ -1388,7 +1388,7 @@ namespace Orders
 			
 			string sellOrder1 = "abc";
             var sellLimit = CreateLogicalEntryOrder(OrderType.SellLimit, 134.12, 15);
-            handler.Orders.AddPhysicalOrder(OrderState.Active, OrderSide.SellShort, OrderType.SellLimit, 134.12, 15, sellLimit, sellOrder1);
+            handler.Orders.AddPhysicalOrder(OrderState.Pending, OrderSide.SellShort, OrderType.SellLimit, 134.12, 15, sellLimit, sellOrder1);
 
 			handler.SetDesiredPosition(position);
 			handler.SetLogicalOrders(null);
