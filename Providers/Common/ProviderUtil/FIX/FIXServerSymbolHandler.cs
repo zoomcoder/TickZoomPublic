@@ -222,7 +222,7 @@ namespace TickZoom.FIX
                     }
                     isFirstTick = false;
                     nextTick.Inject(binary);
-				   	tickSync.AddTick();
+				   	tickSync.AddTick(nextTick);
 				   	if( !isPlayBack) {
 				   		if( isFirstTick) {
 						   	FillSimulator.StartTick( nextTick);

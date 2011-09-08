@@ -102,6 +102,7 @@ namespace TickZoom.Api
         public void CaptureState()
         {
             rollback = state;
+            if (trace) log.Trace("Captured state for rollback: " + ToString(rollback));
         }
 
         public void Clear()
@@ -147,15 +148,15 @@ namespace TickZoom.Api
             return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills " + temp.physicalFills + ")";
         }
 
-        public void AddTick()
+        public void AddTick(Tick tick)
         {
             var value = Interlocked.Increment(ref state.ticks);
-            if (trace) log.Trace("AddTick(" + value + ")");
+            if (trace) log.Trace("AddTick(" + tick + ") " + this);
         }
         public void RemoveTick()
         {
             var value = Interlocked.Decrement(ref state.ticks);
-            if (trace) log.Trace("RemoveTick(" + value + ")");
+            if (trace) log.Trace("RemoveTick(" + value + ") " + this);
             if (value < 0)
             {
                 Interlocked.Increment(ref state.ticks);
@@ -163,11 +164,18 @@ namespace TickZoom.Api
             }
         }
 
+        public void AddPhysicalFill()
+        {
+            var value = Interlocked.Increment(ref state.physicalFills);
+            RollbackPhysicalFills();
+            if (trace) log.Trace("AddPhysicalFill( from resend? ) " + this);
+        }
+
         public void AddPhysicalFill(PhysicalFill fill)
         {
             var value = Interlocked.Increment(ref state.physicalFills);
             RollbackPhysicalFills();
-            if (trace) log.Trace("AddPhysicalFill(" + value + "," + fill + "," + fill.Order + ")");
+            if (trace) log.Trace("AddPhysicalFill(" + value + "," + fill + "," + fill.Order + ") " + this);
         }
 
         public void RollbackPhysicalFills()
@@ -182,7 +190,7 @@ namespace TickZoom.Api
         public void RemovePhysicalFill(object fill)
         {
             var value = Interlocked.Decrement(ref state.physicalFills);
-            if (trace) log.Trace("RemovePhysicalFill(" + value + "," + fill + ")");
+            if (trace) log.Trace("RemovePhysicalFill(" + value + "," + fill + ") " + this);
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref state.physicalFills);
@@ -191,11 +199,18 @@ namespace TickZoom.Api
             }
         }
 
+        public void AddPhysicalOrder()
+        {
+            var value = Interlocked.Increment(ref state.physicalOrders);
+            RollbackPhysicalOrders();
+            if (trace) log.Trace("AddPhysicalOrder( resent order? ) " + this);
+        }
+
         public void AddPhysicalOrder(CreateOrChangeOrder order)
         {
             var value = Interlocked.Increment(ref state.physicalOrders);
             RollbackPhysicalOrders();
-            if (trace) log.Trace("AddPhysicalOrder(" + value + "," + order + ")");
+            if (trace) log.Trace("AddPhysicalOrder(" + value + "," + order + ") " + this);
         }
 
         public void RollbackPhysicalOrders()
@@ -209,7 +224,7 @@ namespace TickZoom.Api
         public void RemovePhysicalOrder(object order)
         {
             var value = Interlocked.Decrement(ref state.physicalOrders);
-            if (trace) log.Trace("RemovePhysicalOrder(" + value + "," + order + ")");
+            if (trace) log.Trace("RemovePhysicalOrder(" + value + "," + order + ") " + this);
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref state.physicalOrders);
@@ -220,7 +235,7 @@ namespace TickZoom.Api
         public void RemovePhysicalOrder()
         {
             var value = Interlocked.Decrement(ref state.physicalOrders);
-            if (trace) log.Trace("RemovePhysicalOrder(" + value + ")");
+            if (trace) log.Trace("RemovePhysicalOrder(" + value + ") " + this);
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref state.physicalOrders);
@@ -232,7 +247,7 @@ namespace TickZoom.Api
         {
             var value = Interlocked.Increment(ref state.positionChange);
             RollbackPositionChange();
-            if (trace) log.Trace("AddPositionChange(" + value + ")");
+            if (trace) log.Trace("AddPositionChange(" + value + ") " + this);
         }
 
         public void RollbackPositionChange()
@@ -247,7 +262,7 @@ namespace TickZoom.Api
         public void RemovePositionChange()
         {
             var value = Interlocked.Decrement(ref state.positionChange);
-            if (trace) log.Trace("RemovePositionChange(" + value + ")");
+            if (trace) log.Trace("RemovePositionChange(" + value + ") " + this);
             if (value < 0)
             {
                 log.Warn("Completed: value below zero: " + state.positionChange);
@@ -264,7 +279,7 @@ namespace TickZoom.Api
         {
             var value = Interlocked.Increment(ref state.processPhysical);
             RollbackProcessPhysicalOrders();
-            if (trace) log.Trace("AddProcessPhysicalOrders(" + value + ")");
+            if (trace) log.Trace("AddProcessPhysicalOrders(" + value + ") " + this);
         }
 
         public void RollbackProcessPhysicalOrders()
@@ -279,16 +294,16 @@ namespace TickZoom.Api
         public void RemoveProcessPhysicalOrders()
         {
             var value = Interlocked.Decrement(ref state.processPhysical);
-            if (trace) log.Trace("RemoveProcessPhysicalOrders(" + value + ")");
+            if (trace) log.Trace("RemoveProcessPhysicalOrders(" + value + ") " + this);
             if (value < 0)
             {
                 log.Warn("Completed: value below zero: " + state.processPhysical);
             }
             if (value < 0)
             {
-                //var temp = Interlocked.Increment(ref state.processPhysical);
-                //log.Warn("ProcessPhysical counter was " + value + ". Incremented to " + temp);
-                if (trace) System.Diagnostics.Debugger.Break();
+                var temp = Interlocked.Increment(ref state.processPhysical);
+                log.Error("ProcessPhysical counter was " + value + ". Incremented to " + temp);
+                //if (trace) System.Diagnostics.Debugger.Break();
             }
         }
 
@@ -297,20 +312,30 @@ namespace TickZoom.Api
             if( state.reprocessPhysical == 0)
             {
                 var value = Interlocked.Increment(ref state.reprocessPhysical);
-                if (trace) log.Trace("SetReprocessPhysicalOrders(" + value + ")");
+                if (trace) log.Trace("SetReprocessPhysicalOrders(" + value + ") " + this);
             }
         }
 
         public void AddReprocessPhysicalOrders()
         {
             var value = Interlocked.Increment(ref state.reprocessPhysical);
-            if (trace) log.Trace("AddReprocessPhysicalOrders(" + value + ")");
+            RollbackReprocessPhysicalOrders();
+            if (trace) log.Trace("AddReprocessPhysicalOrders(" + value + ") " + this);
+        }
+
+        public void RollbackReprocessPhysicalOrders()
+        {
+            while (rollback.reprocessPhysical > 0 && state.reprocessPhysical >= 0)
+            {
+                Interlocked.Decrement(ref state.reprocessPhysical);
+                Interlocked.Decrement(ref rollback.reprocessPhysical);
+            }
         }
 
         public void RemoveReprocessPhysicalOrders()
         {
             var value = Interlocked.Decrement(ref state.reprocessPhysical);
-            if (trace) log.Trace("RemoveReprocessPhysicalOrders(" + value + ")");
+            if (trace) log.Trace("RemoveReprocessPhysicalOrders(" + value + ") " + this);
             if (value < 0)
             {
                 log.Warn("Completed: value below zero: " + state.reprocessPhysical);
