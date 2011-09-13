@@ -256,10 +256,15 @@ namespace TickZoom.Api
 	    		}
 	    	}
 	    }
-	    
+
+	    private SimpleLock statsLocker = new SimpleLock();
+	    private StringBuilder statsStringBuilder = new StringBuilder();
+
 	    public string GetStats() {
-	    	var sb = new StringBuilder();
-	    	lock( listMapLocker) {
+            using( statsLocker.Using())
+	    	lock( listMapLocker)
+	    	{
+	    	    statsStringBuilder.Length = 0;
 		    	foreach( var kvp in listMap) {
 		        	var symbol = kvp.Key;
 		        	var list = kvp.Value;
@@ -269,13 +274,13 @@ namespace TickZoom.Api
 		    	    {
 		    	        next = current.Next;
 		    	        var metric = current.Value;
-		        		sb.Append( metric.GetStats(previous));
-		        		sb.AppendLine();
+		        		statsStringBuilder.Append( metric.GetStats(previous));
+		        		statsStringBuilder.AppendLine();
 		        		previous = metric;	
 		        	}
 		    	}
 	    	}
-	    	return sb.ToString();
+	    	return statsStringBuilder.ToString();
 	    }
 	}
 }

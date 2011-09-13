@@ -77,14 +77,10 @@ namespace TickZoom.MBTFIX
 				throw new ApplicationException("Please remove .config from config section name.");
 			}
   			ConfigSection = name;
-  			if( SyncTicks.Enabled) {
-	  			HeartbeatDelay = int.MaxValue;
-  			} else {
-	  			HeartbeatDelay = 40;
-  			}
 		}
 		
 		public override void OnDisconnect() {
+            HeartbeatDelay = int.MaxValue;
             OrderStore.ForceSnapShot();
             if (IsRecovered)
             {
@@ -174,6 +170,14 @@ namespace TickZoom.MBTFIX
                 log.Debug("Login message: \n" + mbtMsg);
             }
             SendMessage(mbtMsg);
+            if (SyncTicks.Enabled)
+            {
+                HeartbeatDelay = int.MaxValue;
+            }
+            else
+            {
+                HeartbeatDelay = 40;
+            }
         }
 
         public override bool OnLogin()

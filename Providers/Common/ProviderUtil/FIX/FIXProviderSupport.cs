@@ -288,7 +288,6 @@ namespace TickZoom.FIX
                             if( orderStore == null)
                             {
                                 orderStore = Factory.Utility.PhyscalOrderStore(ProviderName);
-                                orderStore.OpenFile();
                             }
                             isResendComplete = true;
                             if (debug) log.Debug("Set resend complete: " + IsResendComplete);
@@ -312,9 +311,11 @@ namespace TickZoom.FIX
 								retryDelay = retryStart;
 								log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
 							}
-							if( Factory.Parallel.TickCount >= heartbeatTimeout) {
-								log.Info("Heartbeat Timeout. Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
-                                log.Error("FIXProvider Heartbeat Timeout.");
+							if( Factory.Parallel.TickCount >= heartbeatTimeout)
+							{
+							    var typeStr = connectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
+								log.Info( typeStr + ". Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
+                                log.Error("FIXProvider " + typeStr);
                                 SyncTicks.LogStatus();
 								SetupRetry();
 								IncreaseRetryTimeout();

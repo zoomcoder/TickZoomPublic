@@ -14,7 +14,6 @@ namespace TickZoom.Api
 
     public interface PhysicalOrderStore : PhysicalOrderCache
     {
-        void OpenFile();
         string DatabasePath { get; }
         long SnapshotRolloverSize { get; set; }
         int RemoteSequence { get; }

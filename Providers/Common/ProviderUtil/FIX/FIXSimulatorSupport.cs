@@ -145,7 +145,6 @@ namespace TickZoom.FIX
 
 		protected virtual void OnConnectFIX(Socket socket)
 		{
-		    firstHeartbeat = true;
 			fixSocket = socket;
             fixState = ServerState.Startup;
             fixSocket.MessageFactory = _fixMessageFactory;
@@ -249,7 +248,9 @@ namespace TickZoom.FIX
 			var result = false;
 			switch( state) {
 				case State.Start:
-					if( FIXReadLoop()) {
+					if( FIXReadLoop())
+					{
+					    IncreaseHeartbeat(Factory.Parallel.TickCount);
 						result = true;
 					} else {
 						TryRequestHeartbeat( Factory.Parallel.TickCount);
@@ -592,7 +593,7 @@ namespace TickZoom.FIX
                 simulateConnectionLoss = true;
                 return true;
             }
-            if (simulateReceiveFailed && fixFactory != null && random.Next(10) == 1)
+            if (simulateReceiveFailed && fixFactory != null && random.Next(50) == 1)
             {
                 // Ignore this message. Pretend we never received it.
                 // This will test the message recovery.
@@ -717,6 +718,7 @@ namespace TickZoom.FIX
         {
             if (fixSocket.TrySendMessage(message))
             {
+                IncreaseHeartbeat(Factory.Parallel.TickCount);
                 if (trace) log.Trace("Local Write: " + message);
                 return true;
             }
@@ -738,19 +740,13 @@ namespace TickZoom.FIX
 			}
 		}
 
-		private long heartbeatTimer;
-		private bool firstHeartbeat = true;
+        private long heartbeatTimer = long.MaxValue;
 		private void IncreaseHeartbeat(long currentTime) {
 			heartbeatTimer = currentTime;
 		    heartbeatTimer += heartbeatDelay*1000; // 30 seconds.
 		}		
 
 		private void TryRequestHeartbeat(long currentTime) {
-			if( firstHeartbeat) {
-				IncreaseHeartbeat(currentTime);
-				firstHeartbeat = false;
-				return;
-			}
 			if( currentTime > heartbeatTimer) {
 				IncreaseHeartbeat(currentTime);
 				OnHeartbeat();
@@ -771,7 +767,7 @@ namespace TickZoom.FIX
                 simulateConnectionLoss = true;
                 return;
             }
-            if (simulateSendFailed && IsRecovered && random.Next(20) == 4)
+            if (simulateSendFailed && IsRecovered && random.Next(50) == 4)
             {
                 if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message. FIX state: " + fixState);
                 return;

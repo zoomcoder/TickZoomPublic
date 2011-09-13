@@ -68,23 +68,24 @@ namespace TickZoom.Common
             dbFolder = Path.Combine(appData, "DataBase");
             Directory.CreateDirectory(dbFolder);
             databasePath = Path.Combine(dbFolder, name + ".dat");
+            memory = new MemoryStream();
+            writer = new BinaryWriter(memory, Encoding.UTF8);
+            reader = new BinaryReader(memory, Encoding.UTF8);
         }
 
-        public void OpenFile()
+        public bool TryOpen()
         {
+            if( fs != null && fs.CanWrite) return true;
             var list = new List<Exception>();
             var errorCount = 0;
-            while( errorCount < 3)
+            while( errorCount < 3 && !isDisposed)
             {
                 try
                 {
                     fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
                     log.Info("Opened " + databasePath);
                     snapshotLength = fs.Length;
-                    memory = new MemoryStream();
-                    writer = new BinaryWriter(memory, Encoding.UTF8);
-                    reader = new BinaryReader(memory, Encoding.UTF8);
-                    break;
+                    return true;
                 }
                 catch (IOException ex)
                 {
@@ -98,6 +99,7 @@ namespace TickZoom.Common
                 var ex = list[list.Count - 1];
                 throw new ApplicationException( "Failed to open the snapshot file after 3 tries", ex);
             }
+            return false;
         }
 
         public string DatabasePath
@@ -252,7 +254,6 @@ namespace TickZoom.Common
                         }
                     }
                 }
-                OpenFile();
             }
         }
 
@@ -326,8 +327,6 @@ namespace TickZoom.Common
 
         private void SnapShot()
         {
-            if (fs == null) return;
-
             CheckSnapshotRollover();
 
             memory.SetLength(0);
@@ -447,11 +446,13 @@ namespace TickZoom.Common
             }
             memory.Position = 0;
             writer.Write((Int32)memory.Length - sizeof(Int32)); // length excludes the size of the length value.
-            fs.Write(memory.GetBuffer(), 0, (int)memory.Length);
-            snapshotLength += memory.Length;
-            log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
-                ", Size = " + memory.Length + ". File Size = " + snapshotLength);
-
+            if( TryOpen())
+            {
+                fs.Write(memory.GetBuffer(), 0, (int)memory.Length);
+                snapshotLength += memory.Length;
+                log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
+                    ", Size = " + memory.Length + ". File Size = " + snapshotLength);
+            }
         }
 
         private void SnapshotReadAll(string filePath)
@@ -536,7 +537,6 @@ namespace TickZoom.Common
                     forceSnapShotRollover = true;
                     ForceSnapShot();
                 }
-                OpenFile();
                 return loaded;
             }
         }
