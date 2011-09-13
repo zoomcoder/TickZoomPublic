@@ -54,7 +54,7 @@ namespace TickZoom.FIX
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
-	    private int heartbeatDelay = 1; 
+	    private int heartbeatDelay = 5; 
         private ServerState fixState = ServerState.Startup;
         private bool simulateDisconnect = true;
         private bool simulateReceiveFailed = true;

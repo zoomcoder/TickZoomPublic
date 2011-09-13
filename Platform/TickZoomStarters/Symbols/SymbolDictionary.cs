@@ -466,6 +466,7 @@ namespace TickZoom.Symbols
       <symbol name=""/NQU0"" />
       <symbol name=""/ESH1""/>
       <symbol name=""TestException"" />
+      <symbol name=""TestPending"" />
       <category name=""TradeOnly"">
         <property name=""TimeAndSales"" value=""ActualTrades"" />
         <property name=""QuoteType"" value=""None"" />

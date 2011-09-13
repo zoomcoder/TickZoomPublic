@@ -240,10 +240,29 @@ namespace TickZoom.MBTFIX
 		private void SendHeartbeat() {
             if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
+		    CheckForPending();
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			fixMsg.AddHeader("0");
 			SendMessage( fixMsg);
 		}
+
+        private void CheckForPending()
+        {
+            var list = OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending);
+            if( list.Count > 0)
+            {
+                var sb = new StringBuilder();
+                foreach( var order in list)
+                {
+                    sb.AppendLine(order.ToString());
+                }
+                log.Error("Found these orders still pending at heartbeat: \n" + sb.ToString());
+                var message = "Found orders still pending at heartbeat. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
+                log.Error(message);
+                Dispose();
+                throw new ApplicationException( message);
+            }
+        }
 
         private unsafe bool VerifyLoginAck(MessageFIXT1_1 message)
 		{
@@ -363,24 +382,6 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-		private bool isCancelingPendingOrders = false;
-		
-        //private bool TryCancelRejectedOrders() {
-        //    var pending = orderStore.GetOrders((o) => o.OrderState == OrderState.Pending && "ReplaceRejected".Equals(o.Tag));
-        //    if( pending.Count == 0) {
-        //        isCancelingPendingOrders = false;
-        //        return false;
-        //    } else if( !isCancelingPendingOrders) {
-        //        isCancelingPendingOrders = true;
-        //        log.Info("Recovery completed with pending orders. Canceling them now..");
-        //        foreach( var order in pending) {
-        //            log.Info("Canceling Pending Order: " + order);
-        //            OnCancelBrokerOrder(order.Symbol, order.BrokerOrder);
-        //        }
-        //    }
-        //    return isCancelingPendingOrders;
-        //}
-
         private string GetOpenOrders()
         {
             var sb = new StringBuilder();

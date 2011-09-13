@@ -236,12 +236,19 @@ namespace TickZoom.MBTFIX
         {
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if (string.IsNullOrEmpty(packet.ClientOrderId))
+            if( packet.Symbol == "TestPending")
             {
-                System.Diagnostics.Debugger.Break();
+                log.Info("Ignoring FIX order since symbol is " + packet.Symbol);
             }
-            CreateOrder(order);
-            ProcessCreateOrder(order);
+            else
+            {
+                if (string.IsNullOrEmpty(packet.ClientOrderId))
+                {
+                    System.Diagnostics.Debugger.Break();
+                }
+                CreateOrder(order);
+                ProcessCreateOrder(order);
+            }
             return Yield.DidWork.Repeat;
         }
 
