@@ -313,6 +313,7 @@ namespace TickZoom.Logging
 	    <rollingStyle value=""Size"" />
 	    <maxSizeRollBackups value=""100"" />
 	    <maximumFileSize value=""100MB"" />
+		<appendToFile value=""false"" />
 		<file value=""LogFolder\TickZoom.log"" />
 		<lockingModel type=""log4net.Appender.FileAppender+MinimalLock"" />
 		<layout type=""log4net.Layout.PatternLayout"">

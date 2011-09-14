@@ -208,6 +208,7 @@ namespace TickZoom.MBTFIX
 
         public override void OnLogout()
         {
+            if (isDisposed) return;
             var mbtMsg = FixFactory.Create();
             mbtMsg.AddHeader("5");
             SendMessage(mbtMsg);
@@ -237,6 +238,16 @@ namespace TickZoom.MBTFIX
             TrySendEndBroker();
         }
 	
+		private void RequestPositions() {
+			var fixMsg = (FIXMessage4_4) FixFactory.Create();
+			fixMsg.SetSubscriptionRequestType(0);
+			fixMsg.SetAccount(AccountNumber);
+			fixMsg.SetPositionRequestId(1);
+			fixMsg.SetPositionRequestType(0);
+            //fixMsg.SetSubscriptionRequestType(1);
+			fixMsg.AddHeader("AN");
+			SendMessage(fixMsg);
+		}
 		private void SendHeartbeat() {
             if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
@@ -376,7 +387,9 @@ namespace TickZoom.MBTFIX
             if( ConnectionStatus == Status.Recovered) return;
             if (IsResendComplete && isSessionStatusOnline)
 			{
-			    EndRecovery();
+                OrderStore.ForceSnapShot();
+                EndRecovery();
+                RequestPositions();
                 StartPositionSync();
                 return;
 			}
