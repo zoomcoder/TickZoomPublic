@@ -259,7 +259,10 @@ namespace TickZoom.MBTFIX
 
         private void CheckForPending()
         {
-            var list = OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending);
+            var seconds = 30;
+            var expiryLimit = TimeStamp.UtcNow;
+            expiryLimit.AddSeconds(-seconds);
+            var list = OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending && x.LastStateChange < expiryLimit);
             if( list.Count > 0)
             {
                 var sb = new StringBuilder();
@@ -267,8 +270,8 @@ namespace TickZoom.MBTFIX
                 {
                     sb.AppendLine(order.ToString());
                 }
-                log.Error("Found these orders still pending at heartbeat: \n" + sb.ToString());
-                var message = "Found orders still pending at heartbeat. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
+                log.Error("Found these orders still pending after " + seconds + " or since " + expiryLimit + ": \n" + sb);
+                var message = "Found orders still pending after " + seconds + " seconds. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
                 log.Error(message);
                 Dispose();
                 throw new ApplicationException( message);

@@ -65,7 +65,7 @@ namespace TickZoom.Common
         public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
         {
             binary.action = OrderAction.Cancel;
-            binary.orderState = orderState;
+            OrderState = orderState;
             binary.lastStateChange = TimeStamp.UtcNow;
             binary.symbol = symbol;
             binary.side = default(OrderSide);
@@ -108,7 +108,7 @@ namespace TickZoom.Common
 		public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
 		{
             binary.action = OrderAction.Create;
-			binary.orderState = orderState;
+			OrderState = orderState;
 		    binary.lastStateChange = TimeStamp.UtcNow;
 			binary.symbol = symbol;
 			binary.side = side;
@@ -129,7 +129,7 @@ namespace TickZoom.Common
 	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
 	    {
             binary.action = action;
-			binary.orderState = orderState;
+			OrderState = orderState;
 		    binary.lastStateChange = TimeStamp.UtcNow;
 			binary.symbol = symbol;
 			binary.side = side;
@@ -197,6 +197,8 @@ namespace TickZoom.Common
                 sb.Append(" sequence: ");
                 sb.Append(binary.sequence);
             }
+            sb.Append(" last change: ");
+            sb.Append(binary.lastStateChange);
             return sb.ToString();
         }
 

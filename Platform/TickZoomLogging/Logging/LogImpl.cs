@@ -99,14 +99,17 @@ namespace TickZoom.Logging
                 for (int i = logListeners.Count - 1; i >= 0; i--)
                 {
                     var reference = logListeners[i];
-                    if (!reference.IsAlive)
+                    if( reference != null)
                     {
-                        logListeners.RemoveAt(i);
-                    }
-                    else
-                    {
-                        var logAware = (LogAware)reference.Target;
-                        logAware.RefreshLogLevel();
+                        if (!reference.IsAlive)
+                        {
+                            logListeners.RemoveAt(i);
+                        }
+                        else
+                        {
+                            var logAware = (LogAware)reference.Target;
+                            logAware.RefreshLogLevel();
+                        }
                     }
                 }
             }
