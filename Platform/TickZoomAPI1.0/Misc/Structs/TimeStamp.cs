@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 
@@ -194,27 +195,29 @@ namespace TickZoom.Api
 		public static TimeStamp Parse(string value) {
 			return new TimeStamp(value);
 		}
-		private static DateTime GetAdjustedDateTime() {
-        	DateTime nowUtcTime = DateTime.UtcNow;
-        	long dateTimeDelta = nowUtcTime.Ticks - lastDateTime;
-        	var stopWatch = System.Diagnostics.Stopwatch.GetTimestamp();
-        	long stopWatchDelta = ( stopWatch - lastStopWatch) * tickFrequency / stopWatchFrequency ;
-        	long timeDelta = stopWatchDelta - dateTimeDelta;
-        	// Check is system time was change.
-        	if( timeDelta > 1000000L || timeDelta < -1000000L) {
-        		Synchronize();
-        		return new DateTime(lastDateTime);
-        	} else {
-        		return nowUtcTime.AddTicks(timeDelta);
-        	}
-		}
+
+        private static object originalTimeStampLocker = new object();
+	    private static long originalMicroCounter;
+        private static TimeStamp originalTimeStamp;
 		
 		public static TimeStamp UtcNow {
-			get { 
-				DateTime dateTimeNow = GetAdjustedDateTime();
-				var timeStamp = new TimeStamp(dateTimeNow.Ticks/10 - DateTimeToTimeStampAdjust);
-				return timeStamp;
-			}
+			get {
+                if (originalTimeStamp == default(TimeStamp))
+                {
+                    lock (originalTimeStampLocker)
+                    {
+                        originalTimeStamp = new TimeStamp(DateTime.UtcNow);
+                        stopWatchFrequency = Stopwatch.Frequency;
+                        var stopwatch = Stopwatch.GetTimestamp();
+                        stopwatch *= 1000000L;
+                        originalMicroCounter = stopwatch / stopWatchFrequency;
+                    }
+                }
+                var result = originalTimeStamp;
+                var change = Stopwatch.GetTimestamp() * 1000000L / stopWatchFrequency - originalMicroCounter;
+                result.AddMicroseconds(change);
+                return result;
+            }
 		}
 		
 	    private static int Occurrences(string text, char chr)
@@ -229,7 +232,7 @@ namespace TickZoom.Api
 	        }
 	        return count;
 	    }
-	    
+
 		public TimeStamp( string timeString) {
 	    	timeString = timeString.Replace("  "," ").Trim();
 			int spaceCount = Occurrences(timeString,' ');
@@ -326,10 +329,8 @@ namespace TickZoom.Api
 		}
 		public TimeStamp( DateTime dateTime )
 		{
-			_timeStamp = CalendarDateTotimeStamp( dateTime.Year, dateTime.Month,
-							dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second,
-							dateTime.Millisecond, 0);
-		}
+            _timeStamp = dateTime.Ticks/10 - DateTimeToTimeStampAdjust;
+        }
 		public TimeStamp( int year, int month, int day )
 		{
 			_timeStamp = CalendarDateTotimeStamp( year, month, day, 0, 0, 0 );

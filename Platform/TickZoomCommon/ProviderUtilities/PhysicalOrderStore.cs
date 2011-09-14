@@ -20,6 +20,7 @@ namespace TickZoom.Common
         private volatile bool info;
         private volatile bool trace;
         private volatile bool debug;
+        private volatile bool anySnapShotWritten = false;
         public void RefreshLogLevel()
         {
             if (log != null)
@@ -137,7 +138,6 @@ namespace TickZoom.Common
         public void TrySnapshot()
         {
             if (isDisposed) return;
-            updateCount++;
             if (updateCount > 100)
             {
                 ForceSnapShot();
@@ -327,6 +327,7 @@ namespace TickZoom.Common
 
         private void SnapShot()
         {
+            anySnapShotWritten = true;
             CheckSnapshotRollover();
 
             memory.SetLength(0);
@@ -858,12 +859,15 @@ namespace TickZoom.Common
         {
             if (!isDisposed)
             {
+                if( anySnapShotWritten)
+                {
+                    ForceSnapShot();
+                    WaitForSnapshot();
+                }
                 isDisposed = true;
                 if (disposing)
                 {
                     if (debug) log.Debug("Dispose()");
-                    ForceSnapShot();
-                    WaitForSnapshot();
                     TryClose();
                 }
             }

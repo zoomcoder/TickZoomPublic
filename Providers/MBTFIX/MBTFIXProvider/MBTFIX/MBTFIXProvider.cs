@@ -45,6 +45,8 @@ namespace TickZoom.MBTFIX
         private volatile bool debug = log.IsDebugEnabled;
         private volatile bool verbose = log.IsVerboseEnabled;
         private bool isBrokerStarted = false;
+        private TimeStamp loginTime;
+
         public override void RefreshLogLevel()
         {
             base.RefreshLogLevel();
@@ -244,10 +246,11 @@ namespace TickZoom.MBTFIX
 			fixMsg.SetAccount(AccountNumber);
 			fixMsg.SetPositionRequestId(1);
 			fixMsg.SetPositionRequestType(0);
-            //fixMsg.SetSubscriptionRequestType(1);
+            fixMsg.SetSubscriptionRequestType(1);
 			fixMsg.AddHeader("AN");
 			SendMessage(fixMsg);
 		}
+
 		private void SendHeartbeat() {
             if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
@@ -289,6 +292,7 @@ namespace TickZoom.MBTFIX
 		        "0" == packetFIX.Encryption)
 		    {
 		        RetryStart = RetryMaximum = packetFIX.HeartBeatInterval;
+		        loginTime = new TimeStamp(packetFIX.SendUtcTime);
                 return true;
             }
             else
@@ -338,7 +342,15 @@ namespace TickZoom.MBTFIX
                     SessionStatus(packetFIX);
 			        break;
 				case "8":
-					ExecutionReport( packetFIX);
+			        var transactTime = new TimeStamp(packetFIX.TransactionTime);
+                    if( transactTime >= loginTime || SyncTicks.Enabled)
+                    {
+                        ExecutionReport(packetFIX);
+                    }
+                    else
+                    {
+                        log.Info("Ignoring execution report of sequence " + packetFIX.Sequence + " because transact time " + transactTime + " is earlier than login " + loginTime);
+                    }
 					break;
 				case "9":
 					CancelRejected( packetFIX);

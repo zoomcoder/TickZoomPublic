@@ -110,7 +110,7 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Historical, //  | AutoTestMode.SimulateFIX,
+                Mode = AutoTestMode.Historical  | AutoTestMode.SimulateFIX,
                 Name = "DualStrategyLimitOrder",
 			    Loader = new TestDualStrategyLoader(),
 				Symbols = primarySymbol + ",EUR/USD",
@@ -312,7 +312,7 @@ namespace Loaders
 			list.Add( spyQuoteDataOnly);
 			
 			var multiSymbolOrders = new AutoTestSettings {
-			    Mode = AutoTestMode.Historical,
+			    Mode = AutoTestMode.Historical, // | AutoTestMode.SimulateFIX,
 			    Name = "MultiSymbolOrders",
 			    Loader = new ExampleOrdersLoader(),
 				Symbols = @"AD.1month, BO.1month, BP.1month, CC.1month, CD.1month, CL.1month,
