@@ -224,6 +224,7 @@ namespace TickZoom.MBTFIX
 			if( !LogRecovery) {
 				MessageFIXT1_1.IsQuietRecovery = true;
 			}
+		    CancelRecovered();
             TryEndRecovery();
 		}
 
@@ -341,6 +342,10 @@ namespace TickZoom.MBTFIX
                     }
                     SessionStatus(packetFIX);
 			        break;
+                case "AP":
+				case "AO":
+					PositionUpdate( packetFIX);
+					break;
 				case "8":
 			        var transactTime = new TimeStamp(packetFIX.TransactionTime);
                     if( transactTime >= loginTime || SyncTicks.Enabled)
@@ -397,8 +402,7 @@ namespace TickZoom.MBTFIX
 		}
 		
 		protected override void TryEndRecovery() {
-            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " + isSessionStatusOnline +
-                ", Resend Complete " + IsResendComplete);
+            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " + isSessionStatusOnline + ", Resend Complete " + IsResendComplete);
             if( ConnectionStatus == Status.Recovered) return;
             if (IsResendComplete && isSessionStatusOnline)
 			{
@@ -434,13 +438,17 @@ namespace TickZoom.MBTFIX
         private volatile bool isSessionStatusOnline = false;
         private void SessionStatus(MessageFIX4_4 packetFIX)
         {
-            log.Debug("Found session status for " + packetFIX.TradingSessionId + " or " + packetFIX.TradingSessionSubId + ": " + packetFIX.TradingSessionStatus);
-            var subId = string.IsNullOrEmpty(packetFIX.TradingSessionSubId) ? packetFIX.TradingSessionId : packetFIX.TradingSessionSubId;
+            var newIsSessionStatusOnline = false;
+            log.Debug("Found session status for " + packetFIX.TradingSessionId + " or " + packetFIX.TradingSessionSubId +
+                      ": " + packetFIX.TradingSessionStatus);
+            var subId = string.IsNullOrEmpty(packetFIX.TradingSessionSubId)
+                            ? packetFIX.TradingSessionId
+                            : packetFIX.TradingSessionSubId;
             switch (packetFIX.TradingSessionStatus)
             {
                 case 2:
                     sessionStatusMap[subId] = true;
-                    isSessionStatusOnline = true;
+                    newIsSessionStatusOnline = true;
                     break;
                 case 3:
                     sessionStatusMap[subId] = false;
@@ -450,22 +458,48 @@ namespace TickZoom.MBTFIX
                     break;
             }
             var statusOnline = true;
-            foreach( var status in sessionStatusMap)
+            foreach (var status in sessionStatusMap)
             {
-                if( !status.Value)
+                if (!status.Value)
                 {
-                    isSessionStatusOnline = false;
+                    newIsSessionStatusOnline = false;
                 }
             }
-            if( isSessionStatusOnline)
+            if (newIsSessionStatusOnline != isSessionStatusOnline)
             {
-                TryEndRecovery();
+                isSessionStatusOnline = newIsSessionStatusOnline;
+                if (isSessionStatusOnline)
+                {
+                    TryEndRecovery();
+                }
+                else
+                {
+                    CancelRecovered();
+                    TrySendEndBroker();
+                }
             }
-            else
+	    }
+
+        private void PositionUpdate( MessageFIX4_4 packetFIX) {
+			if( packetFIX.MessageType == "AO") {
+				if(debug) log.Debug("PositionUpdate Complete.");
+			}
+            else 
             {
-                TrySendEndBroker();
+                var position = packetFIX.LongQuantity + packetFIX.ShortQuantity;
+                SymbolInfo symbolInfo;
+                try
+                {
+                    symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                }
+                catch (ApplicationException ex)
+                {
+                    log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
+                    return;
+                }
+                if (debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
             }
-        }
+		}
 
         private void TryConfirmActive(SymbolInfo symbol, MessageFIX4_4 packetFIX)
         {

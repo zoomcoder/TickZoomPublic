@@ -137,8 +137,14 @@ namespace TickZoom.MBTFIX
 		}
 		
 		private void FIXChangeOrder(MessageFIX4_4 packet) {
-			var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
+            var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
+            if (SimulateOrderServerOffline)
+            {
+                log.Warn(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
+                OnRejectOrder(order, true, symbol + ": Order Server Offline.");
+                return;
+            }
             CreateOrChangeOrder origOrder = null;
 			if( debug) log.Debug( "FIXChangeOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId + ". Original client id: " + packet.OriginalClientOrderId);
 			try {
@@ -173,7 +179,7 @@ namespace TickZoom.MBTFIX
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
         }
 
-        private Yield FIXRequestSessionStatus(MessageFIX4_4 packet)
+        private void FIXRequestSessionStatus(MessageFIX4_4 packet)
         {
             //625=DEMOORDS1  340=2  336=TSSTATE
             if (packet.TradingSessionId != "TSSTATE")
@@ -192,13 +198,19 @@ namespace TickZoom.MBTFIX
             mbtMsg.AddHeader("h");
             SendMessage(mbtMsg);
             if (debug) log.Debug("Sending session status report: " + mbtMsg);
-            return Yield.DidWork.Repeat;
+            SimulateOrderServerOffline = false;
         }
 
 
-        private Yield FIXCancelOrder(MessageFIX4_4 packet)
+        private void FIXCancelOrder(MessageFIX4_4 packet)
         {
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
+            if( SimulateOrderServerOffline)
+            {
+                if (debug) log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Order Server Offline.");
+                OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "Order Server Offline");
+                return;
+            }
             if (debug)
                 log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " +
                           packet.OriginalClientOrderId);
@@ -213,13 +225,13 @@ namespace TickZoom.MBTFIX
                     log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId +
                               ". Probably already filled or canceled.");
                 OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "No such order");
-                return Yield.DidWork.Return;
+                return;
             }
             var cancelOrder = ConstructCancelOrder(packet, packet.ClientOrderId);
             cancelOrder.OriginalOrder = origOrder;
             CancelOrder(cancelOrder);
             ProcessCancelOrder(cancelOrder);
-            return Yield.DidWork.Repeat;
+            return;
         }
 
         private void ProcessCancelOrder(CreateOrChangeOrder cancelOrder)
@@ -232,11 +244,18 @@ namespace TickZoom.MBTFIX
             SendPositionUpdate(cancelOrder.Symbol, GetPosition(cancelOrder.Symbol));
 		}
 
-        private Yield FIXCreateOrder(MessageFIX4_4 packet)
+        private void FIXCreateOrder(MessageFIX4_4 packet)
         {
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
+            var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if( packet.Symbol == "TestPending")
+            if (SimulateOrderServerOffline)
+            {
+                log.Warn(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
+                OnRejectOrder(order, true, symbol + ": Order Server Offline.");
+                return;
+            }
+            if (packet.Symbol == "TestPending")
             {
                 log.Info("Ignoring FIX order since symbol is " + packet.Symbol);
             }
@@ -249,7 +268,7 @@ namespace TickZoom.MBTFIX
                 CreateOrder(order);
                 ProcessCreateOrder(order);
             }
-            return Yield.DidWork.Repeat;
+            return;
         }
 
 	    private void ProcessCreateOrder(CreateOrChangeOrder order) {
@@ -369,6 +388,7 @@ namespace TickZoom.MBTFIX
 		}
 		
 		private void OnPhysicalFill( PhysicalFill fill) {
+            //if( SimulateOrderServerOffline) return;
             if( fill.Order.Symbol.FixSimulationType == FIXSimulationType.ForexPair &&
                 (fill.Order.Type == OrderType.BuyStop || fill.Order.Type == OrderType.SellStop))
             {
@@ -394,7 +414,8 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetOrderStatus("8");
 			mbtMsg.SetText(error);
             mbtMsg.SetSymbol(order.Symbol.Symbol);
-			mbtMsg.AddHeader("8");
+            mbtMsg.SetTransactTime(TimeStamp.UtcNow);
+            mbtMsg.AddHeader("8");
             if (trace) log.Trace("Sending reject order: " + mbtMsg);
             SendMessage(mbtMsg);
         }
@@ -408,6 +429,7 @@ namespace TickZoom.MBTFIX
             mbtMsg.SetOrderStatus("8");
             mbtMsg.SetText(error);
             mbtMsg.SetSymbol(symbol);
+            mbtMsg.SetTransactTime(TimeStamp.UtcNow);
             mbtMsg.AddHeader("9");
             if (trace) log.Trace("Sending reject cancel." + mbtMsg);
             SendMessage(mbtMsg);

@@ -218,8 +218,13 @@ namespace TickZoom.FIX
 			}
 		}
 
+        public virtual void CancelRecovered()
+        {
+            connectionStatus = Status.PendingRecovery;
+        }
+
 		public void StartRecovery() {
-			connectionStatus = Status.PendingRecovery;
+            CancelRecovered();
 			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 			OnStartRecovery();
 		}

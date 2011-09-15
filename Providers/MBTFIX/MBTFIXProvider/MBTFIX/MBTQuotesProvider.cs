@@ -130,8 +130,9 @@ namespace TickZoom.MBTQuotes
                     OptionChainUpdate( message);
                     break;
                 default:
-                    log.Info("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
-                    throw new ApplicationException("MBTQuotes message type '" + message.MessageType + "' was unknown: \n" + new string(message.DataIn.ReadChars(message.Remaining)));
+			        var messageInError = new string(message.DataIn.ReadChars(message.Remaining));
+                    log.Info("Received tick: " + messageInError);
+                    throw new ApplicationException("MBTQuotes message type '" + message.MessageType + "' was unknown: \n" + messageInError);
 			}
 		}
 		
