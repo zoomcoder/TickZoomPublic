@@ -872,7 +872,7 @@ namespace TickZoom.Charting
 					}
                     else
 					{
-                        log.Warn("yMax is NAN from MoveByPixels with yScale " + yScale + ", yScale.Max " + yScale.Max + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
+                        log.Info("yMax is NAN from MoveByPixels with yScale " + yScale + ", yScale.Max " + yScale.Max + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
                     }
                 }
 				reset = true;
@@ -898,7 +898,7 @@ namespace TickZoom.Charting
                     }
                     else
                     {
-                        log.Warn("yMin is NAN from MoveByPixels with yScale " + yScale + ", yScale.Min " + yScale.Min + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
+                        log.Info("yMin is NAN from MoveByPixels with yScale " + yScale + ", yScale.Min " + yScale.Min + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
                     }
                 }
 				reset = true;

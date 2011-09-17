@@ -34,7 +34,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Xml;
-
+using log4net.Appender;
 using log4net.Core;
 using log4net.Filter;
 using log4net.Repository;
@@ -50,13 +50,21 @@ namespace TickZoom.Logging
         private string currentExtension;
         Dictionary<string, LogImpl> map = new Dictionary<string, LogImpl>();
 
-		public void Configure(string repositoryName) {
-			this.repositoryName = repositoryName;
+		public void ConfigureSysLog() {
+			this.repositoryName = "SysLog";
 			this.repository = LoggerManager.CreateRepository(repositoryName);
-			Reconfigure(null,null);
+			Reconfigure(null,GetSysLogDefault());
 		}
-		
-		public void ResetConfiguration() {
+
+        public void ConfigureUserLog()
+        {
+            this.repositoryName = "Log";
+            this.repository = LoggerManager.CreateRepository(repositoryName);
+            Reconfigure(null, GetLogDefault());
+        }
+
+        public void ResetConfiguration()
+        {
 			Reconfigure(null,null);
 		}
 
@@ -129,7 +137,7 @@ namespace TickZoom.Logging
 
         private XmlElement GetConfigXML(string repositoryName, string extension, string defaultConfig)
         {
-			var configBase = VerifyConfigPath(repositoryName, GetSysLogDefault());
+			var configBase = VerifyConfigPath(repositoryName, defaultConfig);
 			var xmlbase = File.OpenText(configBase);
 			var doc1 = new XmlDocument();
 			doc1.LoadXml(xmlbase.ReadToEnd());
@@ -194,6 +202,18 @@ namespace TickZoom.Logging
 			var configFile = Path.Combine(configPath,repositoryName+".config");
 			return configFile;
 		}
+
+        public void Flush()
+        {
+            foreach( var appender in repository.GetAppenders())
+            {
+                var buffer = appender as BufferingAppenderSkeleton;
+                if( buffer != null)
+                {
+                    buffer.Flush();
+                }
+            }
+        }
 
         public List<string> GetConfigNames()
         {
@@ -265,7 +285,6 @@ namespace TickZoom.Logging
 	    <maximumFileSize value=""100MB"" />
 		<file value=""LogFolder\Stats.log"" />
 		<appendToFile value=""false"" />
-		<lockingModel type=""log4net.Appender.FileAppender+MinimalLock"" />
 		<layout type=""log4net.Layout.PatternLayout"">
 			<conversionPattern value=""%message%newline"" />
 		</layout>
@@ -276,7 +295,6 @@ namespace TickZoom.Logging
 	    <maximumFileSize value=""100MB"" />
 		<file value=""LogFolder\BarData.log"" />
 		<appendToFile value=""false"" />
-		<lockingModel type=""log4net.Appender.FileAppender+MinimalLock"" />
 		<layout type=""log4net.Layout.PatternLayout"">
 			<conversionPattern value=""%message%newline"" />
 		</layout>
@@ -287,7 +305,6 @@ namespace TickZoom.Logging
 	    <maximumFileSize value=""100MB"" />
 		<file value=""LogFolder\Trades.log"" />
 		<appendToFile value=""false"" />
-		<lockingModel type=""log4net.Appender.FileAppender+MinimalLock"" />
 		<layout type=""log4net.Layout.PatternLayout"">
 			<conversionPattern value=""%message%newline"" />
 		</layout>
@@ -298,8 +315,7 @@ namespace TickZoom.Logging
 	    <maximumFileSize value=""100MB"" />
 		<file value=""LogFolder\Transactions.log"" />
 		<appendToFile value=""false"" />
-		<lockingModel type=""log4net.Appender.FileAppender+MinimalLock"" />
-		<layout type=""log4net.Layout.PatternLayout"">
+    	<layout type=""log4net.Layout.PatternLayout"">
 			<conversionPattern value=""%message%newline"" />
 		</layout>
  	</appender>
@@ -315,7 +331,6 @@ namespace TickZoom.Logging
 	    <maximumFileSize value=""100MB"" />
 		<appendToFile value=""false"" />
 		<file value=""LogFolder\TickZoom.log"" />
-		<lockingModel type=""log4net.Appender.FileAppender+MinimalLock"" />
 		<layout type=""log4net.Layout.PatternLayout"">
 			<conversionPattern value=""%date %-5level %logger - %message%newline"" />
 		</layout>
@@ -334,10 +349,12 @@ namespace TickZoom.Logging
 			return @"<?xml version=""1.0"" encoding=""utf-8"" ?>
 <configuration>
  <log4net>
-	<appender name=""FileAppender"" type=""TickZoom.Logging.FileAppender"" >
-		<file value=""LogFolder\User.log"" />
+	<appender name=""FileAppender"" type=""TickZoom.Logging.RollingFileAppender"" >
+	    <rollingStyle value=""Size"" />
+	    <maxSizeRollBackups value=""100"" />
+	    <maximumFileSize value=""100MB"" />
 		<appendToFile value=""false"" />
-		<param name=""LockingModel"" type=""log4net.Appender.FileAppender+MinimalLock"" />
+		<file value=""LogFolder\User.log"" />
 		<layout type=""log4net.Layout.PatternLayout"">
 			<conversionPattern value=""%date %-5level %logger - %message%newline"" />
 		</layout>
@@ -346,9 +363,6 @@ namespace TickZoom.Logging
 		<level value=""INFO"" />
 		<appender-ref ref=""FileAppender"" />
 	</root>
-    <logger name=""TickZoom.GUI"">
-		<level value=""DEBUG"" />
-    </logger>
  </log4net>
 </configuration>
 ";

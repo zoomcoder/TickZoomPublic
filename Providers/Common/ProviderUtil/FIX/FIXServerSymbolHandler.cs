@@ -189,7 +189,7 @@ namespace TickZoom.FIX
                     {
                         sb.AppendLine(queueCounts[i].ToString());
                     }
-                    log.Warn("Simulator found empty read queue at tick " + tickCounter + ", initial count " + initialCount + ". Recent counts:");
+                    log.Info("Simulator found empty read queue at tick " + tickCounter + ", initial count " + initialCount + ". Recent counts:");
                     if( debug) log.Debug("Recent counts:\n"+sb);
                 }
                 queueCounts.Add(reader.ReadQueue.Count);

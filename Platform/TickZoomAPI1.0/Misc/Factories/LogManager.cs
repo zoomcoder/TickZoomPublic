@@ -33,7 +33,8 @@ namespace TickZoom.Api
 	/// Description of Log.
 	/// </summary>
 	public interface LogManager {
-		void Configure(string repository);
+		void ConfigureSysLog();
+	    void ConfigureUserLog();
 		void RegisterRealTime(string configName, string defaultConfig);
         void RegisterHistorical(string configName, string defaultConfig);
 	    void ReconfigureForHistorical();
@@ -45,5 +46,6 @@ namespace TickZoom.Api
 	    string ActiveConfigName { get; }
 	    List<string> GetConfigNames();
 	    void Reconfigure(string extension);
+	    void Flush();
 	}	
 }

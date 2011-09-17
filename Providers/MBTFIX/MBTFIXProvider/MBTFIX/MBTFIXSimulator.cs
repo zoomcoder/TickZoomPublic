@@ -194,7 +194,8 @@ namespace TickZoom.MBTFIX
             mbtMsg.SetAccount("33006566");
             mbtMsg.SetDestination("MBTX");
             mbtMsg.SetTradingSessionId("TSSTATE");
-            mbtMsg.SetTradingSessionStatus("2");
+            var status = SimulateOrderServerOffline ? "3" : "2";
+            mbtMsg.SetTradingSessionStatus(status);
             mbtMsg.AddHeader("h");
             SendMessage(mbtMsg);
             if (debug) log.Debug("Sending session status report: " + mbtMsg);

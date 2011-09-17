@@ -385,7 +385,9 @@ namespace Loaders
             goodReconciliationMap.Clear();
             testReconciliationMap.Clear();
             topModel = null;
-		}
+            Factory.Log.Flush();
+            Factory.SysLog.Flush();
+        }
 		
 		public class TransactionInfo {
 			public string Symbol;

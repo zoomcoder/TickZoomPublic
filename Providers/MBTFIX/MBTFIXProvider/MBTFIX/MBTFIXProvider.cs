@@ -86,7 +86,14 @@ namespace TickZoom.MBTFIX
             OrderStore.ForceSnapShot();
             if (IsRecovered)
             {
-      		    log.Error("MBTFIXProvider disconnected. Attempting to reconnected.");
+                var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
+                if( SyncTicks.Enabled)
+                {
+                    log.Notice(message);
+                } else
+                {
+                    log.Error(message);
+                }
                 log.Info("Logging out -- Sending EndBroker event.");
                 TrySendEndBroker();
             }
@@ -470,15 +477,34 @@ namespace TickZoom.MBTFIX
                 isSessionStatusOnline = newIsSessionStatusOnline;
                 if (isSessionStatusOnline)
                 {
+                    CancelRecovered();
                     TryEndRecovery();
                 }
                 else
                 {
+                    var message = "Order server went offline. Attempting to reconnect.";
+                    if( SyncTicks.Enabled)
+                    {
+                        log.Notice(message);
+                    } else
+                    {
+                        log.Error(message);
+                    }
                     CancelRecovered();
                     TrySendEndBroker();
                 }
             }
 	    }
+
+        public override void CancelRecovered()
+        {
+            base.CancelRecovered();
+            foreach( var kvp in orderAlgorithms)
+            {
+                var algorithm = kvp.Value;
+                algorithm.IsPositionSynced = false;
+            }
+        }
 
         private void PositionUpdate( MessageFIX4_4 packetFIX) {
 			if( packetFIX.MessageType == "AO") {
@@ -1215,7 +1241,7 @@ namespace TickZoom.MBTFIX
 		{
             if (!IsRecovered)
             {
-                log.Warn("PositionChange event received while FIX was offline or recovering. Ignoring. Current connection status is: " + ConnectionStatus);
+                if( debug) log.Debug("PositionChange event received while FIX was offline or recovering. Ignoring. Current connection status is: " + ConnectionStatus);
                 return;
             }
 			var count = inputOrders == null ? 0 : inputOrders.Count;

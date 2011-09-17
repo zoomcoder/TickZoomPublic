@@ -1055,7 +1055,7 @@ namespace TickZoom.Common
                 }
                 catch (ApplicationException ex)
                 {
-                    log.Warn("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
+                    log.Info("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
                     if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
                     if (debug) log.Debug("Performing extra compare.");
                     PerformCompareProtected();

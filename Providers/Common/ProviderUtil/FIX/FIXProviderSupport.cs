@@ -935,9 +935,9 @@ namespace TickZoom.FIX
         {
             if( connectionStatus == Status.Recovered)
             {
+                connectionStatus = Status.PendingLogOut;
                 while (socket != null && connectionStatus != Status.Disconnected)
                 {
-                    connectionStatus = Status.PendingLogOut;
                     OnLogout();
                     var end = Factory.TickCount + 1000;
                     while (socket != null && connectionStatus != Status.Disconnected && Factory.TickCount < end)
