@@ -629,9 +629,7 @@ namespace TickZoom.Common
 			// When flat, allow entry orders.
 			switch(logical.TradeDirection) {
 				case TradeDirection.Entry:
-					if( logical.StrategyPosition == 0) {
-						ProcessMissingPhysical(logical);
-					}
+    				ProcessMissingPhysical(logical);
 					break;
 				case TradeDirection.Exit:
 				case TradeDirection.ExitStrategy:
@@ -688,41 +686,50 @@ namespace TickZoom.Common
         }
 
         private void ProcessMissingPhysical(LogicalOrder logical, int position, double price) {
-			switch(logical.TradeDirection) {
+            var logicalPosition =
+                logical.Type == OrderType.BuyLimit ||
+                logical.Type == OrderType.BuyMarket ||
+                logical.Type == OrderType.BuyStop ?
+                position : -position;
+            var size = Math.Abs(logicalPosition - logical.StrategyPosition);
+            switch (logical.TradeDirection)
+            {
 				case TradeDirection.Entry:
 					if(debug) log.Debug("ProcessMissingPhysicalEntry("+logical+")");
-					var side = GetOrderSide(logical.Type);
-                    var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, position, price);
-					TryCreateBrokerOrder(physical);
+                    var side = GetOrderSide(logical.Type);
+                    if (logicalPosition < 0 && logical.StrategyPosition <= 0 && logical.StrategyPosition > logicalPosition)
+                    {
+                        var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                        TryCreateBrokerOrder(physical);
+                    }
+                    if (logicalPosition > 0 && logical.StrategyPosition >= 0 && logical.StrategyPosition < logicalPosition)
+                    {
+                        var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                        TryCreateBrokerOrder(physical);
+                    }
 					break;
 				case TradeDirection.Exit:
 				case TradeDirection.ExitStrategy:
-					var size = Math.Abs(logical.StrategyPosition);
+					size = Math.Abs(logical.StrategyPosition);
 					ProcessMissingExit( logical, size, price);
 					break;
 				case TradeDirection.Reverse:
-					var logicalPosition =
-						logical.Type == OrderType.BuyLimit ||
-						logical.Type == OrderType.BuyMarket ||
-						logical.Type == OrderType.BuyStop ?
-						position : - position;
-					size = Math.Abs(logicalPosition - logical.StrategyPosition);
-                    if( size != 0 && Math.Sign(logicalPosition) != Math.Sign(logical.StrategyPosition)) {
-						ProcessMissingReverse( logical, size, price);
+                    if (logicalPosition < 0 && logical.StrategyPosition > logicalPosition)
+                    {
+                        ProcessMissingReverse(logical, size, price);
                     }
-					break;
+                    if (logicalPosition > 0 && logical.StrategyPosition < logicalPosition)
+                    {
+                        ProcessMissingReverse(logical, size, price);
+                    }
+                    break;
 				case TradeDirection.Change:
-					logicalPosition = 
-						logical.Type == OrderType.BuyLimit ||
-						logical.Type == OrderType.BuyMarket ||
-						logical.Type == OrderType.BuyStop ?
-						position : - position;
 					logicalPosition += logical.StrategyPosition;
 					size = Math.Abs(logicalPosition - logical.StrategyPosition);
 					if( size != 0) {
 						if(debug) log.Debug("ProcessMissingPhysical("+logical+")");
 						side = GetOrderSide(logical.Type);
-                        physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                        var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
 						TryCreateBrokerOrder(physical);
 					}
 					break;

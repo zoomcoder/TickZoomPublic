@@ -641,8 +641,6 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= order server offline " + nextRecvOrderServerOfflineSequence+ " so making session status offline.");
                 nextRecvOrderServerOfflineSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
                 if (debug) log.Debug("Set next order server offline sequence = " + nextRecvOrderServerOfflineSequence);
-                // Ignore this message. Pretend we never received it AND disconnect.
-                // This will test the message recovery.)
                 SimulateOrderServerOffline = true;
                 SendSessionStatus("3"); //offline
             }
@@ -829,6 +827,14 @@ namespace TickZoom.FIX
                 }
             }
             IncreaseHeartbeat(Factory.Parallel.TickCount);
+            if (simulateOrderServerDisconnect && IsRecovered && fixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
+            {
+                if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline.");
+                nextSendOrderServerOfflineSequence = fixMessage.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                if (debug) log.Debug("Set next order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
+                SimulateOrderServerOffline = true;
+                SendSessionStatus("3");
+            }
         }
 
         protected virtual Yield OnHeartbeat()
