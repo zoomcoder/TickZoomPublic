@@ -14,7 +14,6 @@ namespace TickZoom.TZData
         // Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         SymbolInfo symbol;
         TickIO tickIO = Factory.TickUtil.TickIO();
-        string fromFile;
         TickReader reader = Factory.TickUtil.TickReader();
 
         private TimeStamp startTime = TimeStamp.MinValue;

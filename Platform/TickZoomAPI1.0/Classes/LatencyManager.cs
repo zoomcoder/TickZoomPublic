@@ -96,7 +96,7 @@ namespace TickZoom.Api
         private long lastSendCount;
         private volatile bool alreadyShowedLog = false;
         private volatile int logCount = 0;
-	    private volatile int tickCount = 0;
+	    private int tickCount = 0;
 	    private int lastId = 0;
 		public void Log( int id, long utcTickTime)
 		{
@@ -164,8 +164,6 @@ namespace TickZoom.Api
                 logCount++;
             }
         }
-
-	    private int x = 0;
 
         public class ExceededLatencyException : Exception { }
 		

@@ -61,7 +61,7 @@ namespace TickZoom.MBTFIX
 		private readonly object orderAlgorithmLocker = new object();
         private Dictionary<long,OrderAlgorithm> orderAlgorithms = new Dictionary<long,OrderAlgorithm>();
         long lastLoginTry = long.MinValue;
-		long loginRetryTime = 10000; //milliseconds = 10 seconds.
+
         public enum RecoverProgress
         {
             InProgress,
@@ -291,7 +291,6 @@ namespace TickZoom.MBTFIX
 
         private unsafe bool VerifyLoginAck(MessageFIXT1_1 message)
 		{
-		    var result = false;
 		    var packetFIX = message;
 		    if ("A" == packetFIX.MessageType &&
 		        "FIX.4.4" == packetFIX.Version &&
@@ -464,7 +463,6 @@ namespace TickZoom.MBTFIX
                     log.Warn("Received unknown server session status: " + packetFIX.TradingSessionStatus);
                     break;
             }
-            var statusOnline = true;
             foreach (var status in sessionStatusMap)
             {
                 if (!status.Value)

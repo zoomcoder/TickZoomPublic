@@ -36,7 +36,6 @@ namespace TickZoom.Api
 	public static class Diagnose
 	{
         private static Log log = Factory.Log.GetLogger("TickZoom.Api.Diagnose");
-        private static Dictionary<long, long> symbols;
 	    public static readonly bool TraceTicks = false;
         private static TaskLock metricsLocker = new TaskLock();
         private static DiagnoseTicksMetric[] metrics = new DiagnoseTicksMetric[8];

@@ -78,7 +78,6 @@ namespace TickZoom.Examples
 
         private readonly long commission = -0.0000195D.ToLong();
         private double lastMidPoint;
-        private int startSizingLots = 30;
         private int retraceErrorMarginInTicks = 25;
         private int sequentialIncreaseCount;
         private double lastMarketBid;
@@ -927,32 +926,32 @@ namespace TickZoom.Examples
                 SetupBidAsk(fill.Price);
                 return;
 
-                for (var current = fills.Last; current != null; current = current.Previous)
-                {
-                    prevFill = current.Value;
-                    if (change > prevFill.Size)
-                    {
-                        change -= prevFill.Size;
-                        fills.Remove(current);
-                        if (fills.Count > 0)
-                        {
-                            SetupBidAsk(fill.Price);
-                        }
-                    }
-                    else
-                    {
-                        prevFill.Size -= change;
-                        if (prevFill.Size == 0)
-                        {
-                            fills.Remove(current);
-                            if (fills.Count > 0)
-                            {
-                                SetupBidAsk(fill.Price);
-                            }
-                        }
-                        break;
-                    }
-                }
+                //for (var current = fills.Last; current != null; current = current.Previous)
+                //{
+                //    prevFill = current.Value;
+                //    if (change > prevFill.Size)
+                //    {
+                //        change -= prevFill.Size;
+                //        fills.Remove(current);
+                //        if (fills.Count > 0)
+                //        {
+                //            SetupBidAsk(fill.Price);
+                //        }
+                //    }
+                //    else
+                //    {
+                //        prevFill.Size -= change;
+                //        if (prevFill.Size == 0)
+                //        {
+                //            fills.Remove(current);
+                //            if (fills.Count > 0)
+                //            {
+                //                SetupBidAsk(fill.Price);
+                //            }
+                //        }
+                //        break;
+                //    }
+                //}
             }
             LogFills("OnChange");
         }

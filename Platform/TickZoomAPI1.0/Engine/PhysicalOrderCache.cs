@@ -27,7 +27,6 @@ namespace TickZoom.Api
         bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order);
         bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order);
         CreateOrChangeOrder GetOrderById(string brokerOrder);
-        CreateOrChangeOrder RemoveOrder(string clientOrderId);
         bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order);
         CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber);
         void UpdateLocalSequence(int localSequence);
@@ -35,7 +34,6 @@ namespace TickZoom.Api
         void SetSequences(int remoteSequence, int localSequence);
         List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
         string LogOrders();
-        void Dispose();
         int Count();
     }
 }

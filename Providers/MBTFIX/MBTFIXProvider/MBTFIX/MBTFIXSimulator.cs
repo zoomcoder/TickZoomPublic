@@ -141,7 +141,7 @@ namespace TickZoom.MBTFIX
             var order = ConstructOrder(packet, packet.ClientOrderId);
             if (SimulateOrderServerOffline)
             {
-                log.Warn(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
+                log.Info(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, true, symbol + ": Order Server Offline.");
                 return;
             }
@@ -581,8 +581,7 @@ namespace TickZoom.MBTFIX
 
         private Dictionary<long, StringBuilder> quoteBuilders = new Dictionary<long, StringBuilder>();
         private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
-        //private int entryCounter = 0;
-	    private string otherStackTrace;
+
 		private void OnTick( Message quoteMessage, SymbolInfo symbol, Tick tick)
 		{
             if (trace) log.Trace("Sending tick: " + tick);

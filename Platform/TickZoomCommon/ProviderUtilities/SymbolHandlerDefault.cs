@@ -254,7 +254,6 @@ namespace TickZoom.Common
                 if (trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
 			}
 		}
-		private long lastTime;
         
 		public OrderAlgorithm LogicalOrderHandler {
 			get { return logicalOrderHandler; }

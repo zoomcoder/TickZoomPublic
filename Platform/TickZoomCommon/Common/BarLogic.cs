@@ -75,7 +75,7 @@ namespace TickZoom.Common
 			}
 		}
 		
-		public int Seconds {
+		public new int Seconds {
 			get {
 				return 0;
 			}

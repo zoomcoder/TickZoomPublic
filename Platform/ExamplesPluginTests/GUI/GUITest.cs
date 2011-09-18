@@ -72,7 +72,6 @@ namespace Other
 	{
 		private static Log log = Factory.SysLog.GetLogger(typeof(GUITest));
 		private bool debug = log.IsDebugEnabled;
-		private ushort servicePort = 6490;
 		private Thread guiThread;
 		private Execute execute;
 		[SetUp]

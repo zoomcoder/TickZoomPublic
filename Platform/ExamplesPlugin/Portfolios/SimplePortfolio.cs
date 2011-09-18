@@ -6,8 +6,6 @@ namespace TickZoom.Examples
     {
         private SimpleStrategy shortSide;
         private SimpleStrategy longSide;
-        private int lotSize = 1000;
-        private int maxLots = int.MaxValue;
         public SimplePortfolio()
         {
         }
@@ -25,8 +23,6 @@ namespace TickZoom.Examples
             longSide.IsVisible = true;
             longSide.IsActive = false;
         }
-
-        private int IncreaseLotSize = 4;
 
         public override bool OnProcessTick(TickZoom.Api.Tick tick)
         {

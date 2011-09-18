@@ -190,7 +190,6 @@ namespace TickZoom.Api
 		private static long lastStopWatch;
 		private static long stopWatchFrequency = 1L;
 		private static long lastDateTime;
-		private static long tickFrequency = 10000000L;
 		
 		public static TimeStamp Parse(string value) {
 			return new TimeStamp(value);

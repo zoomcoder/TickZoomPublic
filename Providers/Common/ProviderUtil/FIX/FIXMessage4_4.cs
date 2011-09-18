@@ -98,15 +98,7 @@ namespace TickZoom.FIX
 		public void AccountType(int value) {
 			Append(581,value);
 		}
-		/// <summary>
-		/// 263		@SubReqTyp	charSubscription Request Type
-		///			0	=	Snapshot
-		///			1	=	SnapshotUpdate
-		///			2	=	Unsubscribe		
-		/// </summary>
-		public void SetSubscriptionRequestType(int value) {
-			Append(263,value);
-		}
+
 		/// <summary>
 		/// 584	String	Value assigned by issuer of Mass Status Request to uniquely identify the request
 		/// </summary>

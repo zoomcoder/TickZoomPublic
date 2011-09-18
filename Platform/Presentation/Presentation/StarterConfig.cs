@@ -66,7 +66,6 @@ namespace TickZoom.Presentation
         private string providerAssembly;
         private bool autoUpdate;
         private Starter starter;
-        private bool isInitialized = false;
 
         
 		public bool AutoUpdate {
@@ -657,7 +656,6 @@ namespace TickZoom.Presentation
                 enableAlarmSounds = true;
             }
             SetupStarter(starter);
-            isInitialized = true;
         }
 
         public void Start()

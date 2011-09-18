@@ -1203,7 +1203,6 @@ namespace TickZoom.Charting
             var bottom = dataGraph.GraphPane.YAxis.Scale.Transform(startPair.Low);
             using (Graphics g = this.CreateGraphics())
             {
-                int index = 0;
                 var list = dataGraph.GraphPane.GraphObjList;
                 var matches = new List<GraphObj>();
                 for( int i=0; i<list.Count; i++ )

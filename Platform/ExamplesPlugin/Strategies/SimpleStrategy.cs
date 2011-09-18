@@ -40,11 +40,8 @@ namespace TickZoom.Examples
         private int maxLots = 20;
         private int lastSize = 0;
         private ActiveList<LocalFill> fills = new ActiveList<LocalFill>();
-        private double mantissa = 1.15;
         private SMA sma;
         private IndicatorCommon displacedSMA;
-        private Bars seconds;
-        private int breaksThresholdLots = 3;
 
         public SimpleStrategy()
         {
@@ -55,8 +52,6 @@ namespace TickZoom.Examples
         {
             Performance.Equity.GraphEquity = false; // Graphed by portfolio.
             Performance.GraphTrades = isVisible;
-
-            seconds = Data.Get(Intervals.Second1);
 
             sma = Formula.SMA(Seconds.Close, 30);
             sma.Drawing.IsVisible = false;
@@ -487,9 +482,5 @@ namespace TickZoom.Examples
             set { isVisible = value; }
         }
 
-        public Bars Seconds
-        {
-            get { return seconds; }
-        }
     }
 }

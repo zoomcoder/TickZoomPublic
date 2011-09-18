@@ -393,7 +393,7 @@ namespace TickZoom.FIX
 					    {
                             sendUtcTime = new TimeStamp(timeStamp).Internal;
                         }
-                        catch( Exception ex)
+                        catch( Exception)
                         {
                             if( debug) log.Debug("Sending time accuracy problem: " + sendUtcTime + "  Ignoring by using current time instead.");
                             sendUtcTime = TickZoom.Api.TimeStamp.UtcNow.Internal;
@@ -411,7 +411,7 @@ namespace TickZoom.FIX
                         {
                             transactTime = new TimeStamp(timeStamp).Internal;
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             if (debug) log.Debug("Transaction time accuracy problem: " + TransactTime + "  Ignoring by using current time instead.");
                             transactTime = TickZoom.Api.TimeStamp.UtcNow.Internal;

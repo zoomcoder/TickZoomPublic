@@ -418,7 +418,6 @@ namespace TickZoom.Utilities
             }
             else
             {
-                var total = 0L;
                 for (var node = list.First; node != null; node = node.Next)
                 {
                     Interlocked.Increment(ref readCounter);

@@ -1798,6 +1798,8 @@ namespace ZedGraph
 
             if( dVal != cache_dVal || scaleMult != cache_scaleMult)
             {
+                cache_dVal = dVal;
+                cache_scaleMult = scaleMult;
                 cache_format = (dVal/scaleMult).ToString(_format);
             }
 	        return cache_format;
@@ -1805,7 +1807,7 @@ namespace ZedGraph
 
         private double cache_dVal;
         private double cache_scaleMult;
-	    private string cache_format;
+        private string cache_format;
 
         /// <summary>
 		/// Get the maximum width of the scale value text that is required to label this

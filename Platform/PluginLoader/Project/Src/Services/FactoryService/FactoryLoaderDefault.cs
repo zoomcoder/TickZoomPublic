@@ -43,7 +43,6 @@ namespace TickZoom.Update
 	{
 		private static int errorCount = 0;
 		private static object locker = new object();
-		private static bool IsResolverSetup = false;
 		private static readonly Version currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
 		private bool debugFlag = false;
 

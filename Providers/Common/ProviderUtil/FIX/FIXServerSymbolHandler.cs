@@ -321,7 +321,6 @@ namespace TickZoom.FIX
             {
 				return Yield.NoWork.Return;
 			}
-            TickBinary nextBinary;
 		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage,quoteMessage.SendUtcTime))
 		    {
 		        if( fixSimulatorSupport.QuotePacketQueue.IsFull)

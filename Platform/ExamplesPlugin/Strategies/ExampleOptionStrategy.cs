@@ -6,7 +6,7 @@ namespace TickZoom.Examples
 {
     public class ExampleOptionStrategy : Portfolio
     {
-        private TimeStamp expiration = new TimeStamp( );
+        //private TimeStamp expiration = new TimeStamp( );
         private IndicatorCommon optionBid;
         private IndicatorCommon optionAsk;
         public ExampleOptionStrategy()

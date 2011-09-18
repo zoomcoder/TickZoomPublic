@@ -76,7 +76,6 @@ namespace TickZoom.TZData
 			TickIO lastTick = Factory.TickUtil.TickIO();
 			TickIO prevTick = Factory.TickUtil.TickIO();
 			long count = 0;
-			long fast = 0;
 			long dups = 0;
 			TickIO tickIO = Factory.TickUtil.TickIO();
 			TickBinary tickBinary = new TickBinary();

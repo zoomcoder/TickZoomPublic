@@ -46,7 +46,6 @@ namespace TickZoom.Common
         private Dictionary<int, int> originalIds = new Dictionary<int, int>();
         private int uniqueId = 0;
         private long snapshotTimer;
-        private int snapshotSeconds = 60;
         private Action writeFileAction;
         private IAsyncResult writeFileResult;
         private long snapshotLength = 0;
@@ -435,14 +434,7 @@ namespace TickZoom.Common
                     var serial = kvp.Key;
                     var order = kvp.Value;
                     writer.Write(serial);
-                    try
-                    {
-                        writer.Write(unique[order]);
-                    }
-                    catch (KeyNotFoundException)
-                    {
-                        Int16 x = 0;
-                    }
+                    writer.Write(unique[order]);
                 }
             }
             memory.Position = 0;

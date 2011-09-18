@@ -137,7 +137,6 @@ namespace TickZoom.FIX
 			}
 		}
 
-	    private bool isInitialized = false;
 		protected void Initialize() {
         	try { 
 				if( debug) log.Debug("> Initialize.");
@@ -163,13 +162,12 @@ namespace TickZoom.FIX
         		try { 
 					socket.Connect("127.0.0.1",port);
 					if( debug) log.Debug("Requested Connect for " + socket);
-					return;
+                    return;
         		} catch( SocketErrorException ex) {
         			log.Error("Non fatal error while trying to connect: " + ex.Message);
         			RegenerateSocket();
         		}
         	}
-            isInitialized = true;
         }
 		
 		public enum Status {
@@ -424,7 +422,6 @@ namespace TickZoom.FIX
 							} else {
 								return Yield.NoWork.Repeat;
 							}
-					        break;
                         case Status.PendingLogin:
                         case Status.PendingLogOut:
                             Dispose();
@@ -590,7 +587,6 @@ namespace TickZoom.FIX
         private bool HandleResend(Message message)
         {
 			var messageFIX = (MessageFIXT1_1) message;
-			var result = false;
 			int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
 			if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
             if (messageFIX.BegSeqNum <= end)

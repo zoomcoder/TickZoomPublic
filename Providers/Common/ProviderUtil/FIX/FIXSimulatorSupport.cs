@@ -93,7 +93,7 @@ namespace TickZoom.FIX
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
-		    var randomSeed = 1234; //  new Random().Next(int.MaxValue);
+		    var randomSeed = new Random().Next(int.MaxValue);
             if( randomSeed != 1234)
             {
                 Console.WriteLine("Random seed for fix simulator:" + randomSeed);
@@ -351,7 +351,6 @@ namespace TickZoom.FIX
 
         private bool HandleResend(MessageFIXT1_1 messageFIX)
         {
-            var result = false;
             int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
             if (debug) log.Debug("Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
             for (int i = messageFIX.BegSeqNum; i <= end; i++)

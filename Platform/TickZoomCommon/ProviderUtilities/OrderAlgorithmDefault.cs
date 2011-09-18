@@ -97,7 +97,6 @@ namespace TickZoom.Common
 		
 		private List<CreateOrChangeOrder> TryMatchId( Iterable<CreateOrChangeOrder> list, LogicalOrder logical)
 		{
-		    var result = false;
             var physicalOrderMatches = new List<CreateOrChangeOrder>();
             for (var current = list.First; current != null; current = current.Next)
 		    {
@@ -115,7 +114,6 @@ namespace TickZoom.Common
                             if( physical.ReplacedBy == null)
                             {
                                 physicalOrderMatches.Add(physical);
-                                result = true;
                             }
                             break;
                     }
@@ -1060,7 +1058,7 @@ namespace TickZoom.Common
                     fill = new LogicalFillBinary(
                         position, strategyPosition.Recency + 1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
                 }
-                catch (ApplicationException ex)
+                catch (ApplicationException)
                 {
                     log.Info("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
                     if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
