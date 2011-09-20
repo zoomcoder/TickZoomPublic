@@ -160,7 +160,6 @@ namespace TickZoom.Api
                 log.Info("Latency exceed limit at " + latency + "ms.");
                 log.Info("Latency log:\n" + LatencyManager.GetInstance().WriteLog(1000));
                 log.Info(LatencyManager.GetInstance().GetStats() + "\n" + Factory.Parallel.GetStats());
-                System.Diagnostics.Debugger.Break();
                 logCount++;
             }
         }

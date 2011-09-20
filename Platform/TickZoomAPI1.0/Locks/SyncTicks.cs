@@ -31,18 +31,44 @@ using System.Threading;
 
 namespace TickZoom.Api
 {
-	/// <summary>
+	public struct SyncTicksState
+	{
+	    public bool enabled;
+	    public int pageCount;
+	}
+    
+    /// <summary>
 	/// This class is only used during unit tests for assisting
 	/// in simulating a live trading environment when sending limit,
 	/// stop, and other orders to the broker.
 	/// </summary>
+	/// 
+
 	[CLSCompliant(false)]
-	public static class SyncTicks {
+	public unsafe static class SyncTicks {
 		private static Log log = Factory.SysLog.GetLogger(typeof(SyncTicks));
-		private static bool enabled = false;
+        private static TickSyncDirectory directory;
 		private static Dictionary<long,TickSync> tickSyncs;
 		private static object locker = new object();
 		private static int mockTradeCount = 0;
+
+        private static TickSyncDirectory Directory
+        {
+            get
+            {
+                if (directory == null)
+                {
+                    lock (locker)
+                    {
+                        if (directory == null)
+                        {
+                            directory = new TickSyncDirectory();
+                        }
+                    }
+                }
+                return directory;
+            }
+        }
 		
 		public static Dictionary<long, TickSync> TickSyncs {
 			get { 
@@ -60,10 +86,12 @@ namespace TickZoom.Api
 		public static TickSync GetTickSync(long symbolBinaryId) {
 			TickSync tickSync;
 			lock( locker) {
-				if( TickSyncs.TryGetValue(symbolBinaryId,out tickSync)) {
+				if( TickSyncs.TryGetValue(symbolBinaryId, out tickSync)) {
 				   	return tickSync;
-				} else {
-					tickSync = new TickSync(symbolBinaryId);
+				} else
+				{
+				    var tickSyncPtr = Directory.GetTickSync(symbolBinaryId);
+					tickSync = new TickSync(symbolBinaryId, tickSyncPtr);
 					TickSyncs.Add(symbolBinaryId,tickSync);
 					return tickSync;
 				}
@@ -79,8 +107,8 @@ namespace TickZoom.Api
 		
 		
 		public static bool Enabled {
-			get { return enabled; }
-			set { enabled = value; }
+			get { return (*Directory.SyncTicksState).enabled; }
+            set { (*Directory.SyncTicksState).enabled = value; }
 		}
 		
 		public static int MockTradeCount {

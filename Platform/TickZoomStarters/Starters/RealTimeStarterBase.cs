@@ -39,57 +39,80 @@ namespace TickZoom.Starters
 
 		public override Provider[] SetupProviders(bool quietMode, bool singleLoad)
 		{
-			switch( Address) {
-				case "InProcess":
+			switch( Address.ToLower()) {
+				case "inprocess":
 					return base.SetupDataProviders("127.0.0.1",Port);
-				default:
+                case "subprocess":
+                    return base.SetupDataProviders("127.0.0.1",Port);
+                default:
 					return base.SetupDataProviders(Address,Port);
 			}
 		}
 		
 		public override void Run(ModelInterface model)
 		{
-            ServiceConnection service = null;
-			switch( Address) {
-				case "InProcess":
-					service = Factory.Provider.ProviderService();
-					foreach( var provider in ProviderPlugins) {
-						service.AddProvider(provider);
-					}
-					if( Config != null) {
-						service.SetConfig(Config);
-					}
-					service.SetAddress("127.0.0.1",Port);
-					break;
-				default:
+            runMode = RunMode.RealTime;
+
+            SetupProviderServiceConfig();
+
+            switch (Address.ToLower())
+            {
+				case "inprocess":
+			        {
+                        var service = Factory.Provider.ProviderService();
+                        if (Config != null)
+                        {
+                            service.SetConfig(Config);
+                        }
+                        try
+                        {
+                            service.OnStart();
+                            base.Run(model);
+                        }
+                        finally
+                        {
+                            service.OnStop();
+                            parallelMode = ParallelMode.Normal;
+                        }
+                    }
+                    break;
+                case "subprocess":
+			        {
+                        var service = Factory.Provider.Subprocess();
+                        service.ExecutableName = "TickZoomWarehouse.exe";
+                        service.AddArgument("--config WarehouseTest --run");
+                        service.TryStart();
+                        try
+                        {
+                            base.Run(model);
+                        }
+                        finally
+                        {
+                            service.TryKill();
+                            parallelMode = ParallelMode.Normal;
+                        }
+                    }
+                    break;
+                default:
 					break;
 			}
-			runMode = RunMode.RealTime;
-			try {
-				if( service != null) {
-					service.OnStart();
-				}
-				base.Run(model);
-			} finally {
-				if( service != null) {
-					service.OnStop();
-				}
-                parallelMode = ParallelMode.Normal;
-            }
 		}
-		public void SetupProviderServiceConfig(string providerAssembly, ushort servicePort)
+
+		public void SetupProviderServiceConfig()
 		{
-			try { 
-				string storageFolder = Factory.Settings["AppDataFolder"];
-				var providersFolder = Path.Combine(storageFolder,"Providers");
-				string configFolder = Path.Combine(providersFolder,"ProviderService");
-				string configFile = Path.Combine(configFolder,"WarehouseTest.config");
-				ConfigFile warehouseConfig = new ConfigFile(configFile);
-				warehouseConfig.SetValue("ServerCacheFolder","Test\\ServerCache");
-				warehouseConfig.SetValue("ServiceAddress","0.0.0.0");
-				warehouseConfig.SetValue("ServicePort",servicePort.ToString());
-				warehouseConfig.SetValue("ProviderAssembly",providerAssembly);
-	 			// Clear the history files
+			try {
+                var storageFolder = Factory.Settings["AppDataFolder"];
+                var providersPath = Path.Combine(storageFolder, "Providers");
+                var configPath = Path.Combine(providersPath, "ProviderService");
+                var configFile = Path.Combine(configPath, "WarehouseTest.config");
+                var warehouseConfig = new ConfigFile(configFile);
+                warehouseConfig.SetValue("ServerCacheFolder", "Test\\ServerCache");
+                warehouseConfig.SetValue("ServiceAddress", "0.0.0.0");
+                warehouseConfig.SetValue("ServicePort", Port.ToString());
+                var provider = ProviderPlugins[0];
+                warehouseConfig.SetValue("ProviderAssembly", provider);
+                warehouseConfig.SetValue("ProviderAddress", "inprocess");
+                warehouseConfig.SetValue("ProviderPort", "6491");
 			} catch( Exception ex) {
 				log.Error("Setup error.",ex);
 				throw ex;

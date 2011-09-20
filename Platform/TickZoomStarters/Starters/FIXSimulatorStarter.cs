@@ -32,7 +32,6 @@ using TickZoom.Common;
 namespace TickZoom.Starters
 {
 	public class FIXSimulatorStarter : RealTimeStarterBase {
-		private FIXSimulator fixServer;
 		public FIXSimulatorStarter() {
 			SyncTicks.Enabled = true;
 			ConfigurationManager.AppSettings.Set("ProviderAddress","InProcess");
@@ -45,17 +44,12 @@ namespace TickZoom.Starters
             Factory.SysLog.RegisterHistorical("FIXSimulator", GetDefaultLogConfig());
             Factory.SysLog.RegisterRealTime("FIXSimulator", GetDefaultLogConfig());
             Config = "WarehouseTest.config";
-			var provider = "MBTFIXProvider/Simulate";
-			AddProvider(provider);
-            SetupProviderServiceConfig(provider, (ushort)Port);
-            try
+		    Address = "inprocess";
+			AddProvider("MBTFIXProvider/Simulate");
+            SetupProviderServiceConfig();
+            using (var fixServer = (FIXSimulator)Factory.FactoryLoader.Load(typeof(FIXSimulator), "MBTFIXProvider", "Simulate"))
             { 
-				fixServer = (FIXSimulator) Factory.FactoryLoader.Load(typeof(FIXSimulator),"MBTFIXProvider","Simulate");
 				base.Run(loader);
-			} finally {
-            	if( fixServer != null) {
-					fixServer.Dispose();
-            	}
 			}
 		}
 		

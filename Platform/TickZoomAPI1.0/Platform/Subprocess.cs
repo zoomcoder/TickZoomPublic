@@ -24,32 +24,13 @@
  */
 #endregion
 
-using System;
-using System.Reflection;
-
 namespace TickZoom.Api
 {
-	public interface EventLog {
-		bool CheckEnabled( Log log);
-		int GetReceiverId( object component);
-		void Capture( int componentId, SymbolInfo symbol, int eventType, object eventDetail);
-	}
-	
-	[CLSCompliant(false)]
-	public interface ProviderFactory {
-		void Release();
-		Provider AsyncProvider( Provider provider);
-		AsyncReceiver AsyncReceiver( Receiver receiver);
-		Provider InProcessProvider(string providerAssembly);
-		Provider RemoteProvider(string address, ushort port);
-		Provider ProviderProcess(string address, ushort port, string executableFileName);
-		ServiceConnection ProviderService();
-		ServiceConnection ConnectionManager();
-		Serializers Serializers();
-		Socket Socket(string name);
-		Selector Manager { get; }
-		EventLog EventLog { get; }
-	    Subprocess Subprocess();
-	}
+    public interface Subprocess
+    {
+        bool TryStart();
+        void TryKill();
+        string ExecutableName { get; set; }
+        void AddArgument(string value);
+    }
 }
-	

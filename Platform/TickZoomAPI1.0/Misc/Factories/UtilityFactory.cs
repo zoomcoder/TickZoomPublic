@@ -40,7 +40,7 @@ namespace TickZoom.Api
 	    CreateOrChangeOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder);
         CreateOrChangeOrder PhysicalOrder(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime);
         SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver);
-		VerifyFeed VerifyFeed();
+		VerifyFeed VerifyFeed(SymbolInfo symbol);
 		FillHandler FillHandler();
 		FillHandler FillHandler(StrategyInterface strategy);
 		FillSimulator FillSimulator(string name, SymbolInfo symbol, bool createSimulatedFills);

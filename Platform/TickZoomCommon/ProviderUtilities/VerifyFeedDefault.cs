@@ -48,6 +48,7 @@ namespace TickZoom.Common
 		private bool keepReceived = false;
 		private List<TickBinary> received = new List<TickBinary>();
 		private int pauseSeconds = 3;
+	    private SymbolInfo symbol;
 		
 		public List<TickBinary> GetReceived() {
 			return received;
@@ -62,40 +63,39 @@ namespace TickZoom.Common
 			return receiverState;
 		}
 
-		public VerifyFeedDefault()
+		public VerifyFeedDefault(SymbolInfo symbol)
 		{
-			tickQueue.StartEnqueue = Start;
+		    this.symbol = symbol;
+            tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+            tickQueue.StartEnqueue = Start;
 		}
 
 		public void Start()
 		{
 		}
 		
-		public long VerifyEvent(Action<SymbolInfo,int,object> assertTick, SymbolInfo symbol, int timeout)
+		public long VerifyEvent(Action<SymbolInfo, int, object> assertTick, int timeout)
 		{
 			return VerifyEvent(1, assertTick, symbol, timeout);
 		}
 		
-		public long Verify(Action<TickIO, TickIO, long> assertTick, SymbolInfo symbol, int timeout)
+		public long Verify(Action<TickIO, TickIO, long> assertTick, int timeout)
 		{
-			return Verify(2, assertTick, symbol, timeout);
+			return Verify(2, assertTick, timeout);
 		}
 		TickIO lastTick = Factory.TickUtil.TickIO();
 		
 		int countLog = 0;
 		TickBinary tickBinary = new TickBinary();
 		TickIO tickIO = Factory.TickUtil.TickIO();
-		public long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, SymbolInfo symbol, int timeout) {
-			return Verify( expectedCount, assertTick, symbol, timeout, null);
+		public long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout) {
+			return Verify( expectedCount, assertTick, timeout, null);
 		}
 		private bool actionAlreadyRun = false;
-		public long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, SymbolInfo symbol, int timeout, Action action)
+		public long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout, Action action)
 		{
 			if (debug) log.Debug("Verify");
-			if( SyncTicks.Enabled) {
-				tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-			}
-			long endTime = Factory.Parallel.TickCount + timeout * 1000;
+            long endTime = Factory.Parallel.TickCount + timeout * 1000;
 			count = 0;
 			while (Factory.Parallel.TickCount < endTime) {
 				if( propagateException != null) {
@@ -135,12 +135,9 @@ namespace TickZoom.Common
 			return count;
 		}
 		
-		public long Wait(SymbolInfo symbol, int expectedTicks, int timeout)
+		public long Wait(int expectedTicks, int timeout)
 		{
 			if (debug) log.Debug("Wait");
-			if( SyncTicks.Enabled) {
-				tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-			}
 			long startTime = Factory.Parallel.TickCount;
 			count = 0;
 			while (Factory.Parallel.TickCount - startTime < timeout * 1000) {
@@ -173,14 +170,8 @@ namespace TickZoom.Common
 			return count;
 		}
 		
-		public bool VerifyState(BrokerState expectedBrokerState,
-		                                 ReceiverState expectedSymbolState,
-		                                 SymbolInfo symbol,
-		                                 int timeout) {
+		public bool VerifyState(BrokerState expectedBrokerState, ReceiverState expectedSymbolState, int timeout) {
 			if (debug) log.Debug("VerifyFeed");
-			if( SyncTicks.Enabled) {
-				tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-			}
 			long startTime = Factory.TickCount;
 			count = 0;
 			TickBinary binary = new TickBinary();
@@ -242,11 +233,11 @@ namespace TickZoom.Common
 			return count;
 		}
 		
-		public int VerifyPosition(int expectedPosition, SymbolInfo symbol, int timeout) {
-			return VerifyPosition( expectedPosition, symbol, timeout, null);
+		public int VerifyPosition(int expectedPosition, int timeout) {
+			return VerifyPosition( expectedPosition, timeout, null);
 		}
 		
-		public int VerifyPosition(int expectedPosition, SymbolInfo symbol, int timeout, Action action)
+		public int VerifyPosition(int expectedPosition, int timeout, Action action)
 		{
 			if (debug)
 				log.Debug("VerifyFeed");
@@ -331,7 +322,7 @@ namespace TickZoom.Common
 		long startTime;
 		public void StartTimeTheFeed()
 		{
-			startTime = Factory.TickCount;
+            startTime = Factory.TickCount;
 			count = 0;
 			countLog = 0;
 			task = Factory.Parallel.Loop(this, OnException, TimeTheFeedTask);
@@ -388,7 +379,10 @@ namespace TickZoom.Common
 					if (count % 1000000 == 0) {
 						log.Notice("Read " + count + " ticks");
 					}
-					if( SyncTicks.Enabled) tickSync.RemoveTick();
+					if( SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+					{
+					    tickSync.RemoveTick();
+					}
 					return Yield.DidWork.Repeat;
 				} catch (QueueException ex) {
 					HandleQueueException(ex);
@@ -396,6 +390,7 @@ namespace TickZoom.Common
 				return Yield.NoWork.Repeat;
 			}
 		}
+
 		public bool OnHistorical(SymbolInfo symbol)
 		{
 			try {

@@ -255,13 +255,16 @@ namespace Loaders
 						Assert.Ignore("LoaderName could not be loaded.");
 						return;
 					} else {
+                        log.Error("StrategyTest failed: ", ex);
 						throw;
 					}
 				}
                 finally
 				{
 				    config.Stop();
-				}
+                    Factory.Log.Flush();
+                    Factory.SysLog.Flush();
+                }
 
 				WriteHashes();
                 

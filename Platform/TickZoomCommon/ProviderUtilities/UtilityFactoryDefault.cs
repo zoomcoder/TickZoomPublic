@@ -60,8 +60,8 @@ namespace TickZoom.Common
 		public SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver) {
 			return new SymbolHandlerDefault(symbol,receiver);
 		}
-		public VerifyFeed VerifyFeed() {
-			return new VerifyFeedDefault();
+		public VerifyFeed VerifyFeed(SymbolInfo symbol) {
+			return new VerifyFeedDefault(symbol);
 		}
 		public FillSimulator FillSimulator(string name, SymbolInfo symbol, bool createSimulateFills) {
 			return new FillSimulatorPhysical(name, symbol, createSimulateFills);

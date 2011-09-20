@@ -104,7 +104,6 @@ namespace TickZoom.Common
 			        	return;
 					}
 		        	try {
-		        		connection.SetAddress("127.0.0.1",port);
 		        		connection.OnRun();
 		        	} catch( FormatException) {
 			        	Console.WriteLine("Unknown command line argument. Try --help.");

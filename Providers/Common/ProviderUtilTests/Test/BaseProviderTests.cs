@@ -122,7 +122,7 @@ namespace TickZoom.Test
 		public void VerifyConnected(VerifyFeed verify) {
 	  		var expectedBrokerState = BrokerState.Connected;
 	  		var expectedSymbolState = ReceiverState.RealTime;
-	  		var actualState = verify.VerifyState(expectedBrokerState, expectedSymbolState,symbol,600);
+	  		var actualState = verify.VerifyState(expectedBrokerState, expectedSymbolState,600);
 	  		Assert.IsTrue(actualState,"Expected " + expectedBrokerState + " and " + expectedSymbolState);
 		}
 	
@@ -132,8 +132,8 @@ namespace TickZoom.Test
 		
 		public void ClearPosition(Provider provider, VerifyFeed verify, int secondsDelay) {
 			var expectedPosition = 0;
-  			var actualPosition = verify.VerifyPosition(expectedPosition,symbol,secondsDelay, () => {
-			    ClearPositionInternal(provider,verify,expectedPosition);
+  			var actualPosition = verify.VerifyPosition(expectedPosition,secondsDelay, () => {
+  			                                                                                    ClearPositionInternal(provider,verify,expectedPosition);
   			});
   			Assert.AreEqual(expectedPosition, actualPosition, "Starting position.");
 		}

@@ -33,16 +33,14 @@ namespace TickZoom.Api
 		void Register(int eventType, Serializer serializer);
 		Serializer Get(int eventType);
 	}
-	
-	public interface ServiceConnection
+
+    public interface ServiceConnection
 	{
 		Func<Provider> OnCreateProvider {
 			get;
 			set; 
 		}
 		void SetConfig(string config);
-		void SetAddress(string address, int port);
-		void AddProvider(string provider);
 		void OnRun();
 		void OnStart();
 		void OnStop();

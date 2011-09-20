@@ -45,7 +45,6 @@ namespace TickZoom.Starters
 			Config = "WarehouseTest.config";
 			var provider = "TickZoomCombinedMock";
 			AddProvider(provider);
-            SetupProviderServiceConfig(provider, (ushort)Port);
             base.Run(loader);
         }
     }

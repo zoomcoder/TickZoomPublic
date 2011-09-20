@@ -131,11 +131,12 @@ namespace TickZoom.Starters
 		public Provider[] SetupDataProviders(string address, int port) {
 			try {
 				List<Provider> senderList = new List<Provider>();
-				SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
-				for(int i=0; i<symbols.Length; i++) {
-					Provider provider = Factory.Provider.RemoteProvider(address,(ushort)port);
-					senderList.Add(provider);
-				}
+                SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
+                for (int i = 0; i < symbols.Length; i++)
+                {
+                    Provider provider = Factory.Provider.RemoteProvider(address, (ushort)port);
+                    senderList.Add(provider);
+                }
 				return senderList.ToArray();
 			} catch( Exception ex) {
 				log.Error("Setup failed.", ex);

@@ -32,14 +32,14 @@ namespace TickZoom.Api
 	[CLSCompliant(false)]
 	public interface VerifyFeed : Receiver, IDisposable
 	{
-		long VerifyEvent(Action<SymbolInfo,int,object> assertEvent, SymbolInfo symbol, int timeout);
-		long Verify(Action<TickIO, TickIO, long> assertTick, SymbolInfo symbol, int timeout);
-		long Wait(SymbolInfo symbol, int expectedTicks, int timeout);
-		long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, SymbolInfo symbol, int timeout);
-		long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, SymbolInfo symbol, int timeout, Action action);
-		int VerifyPosition(int expectedPosition, SymbolInfo symbol, int timeout);
-		int VerifyPosition(int expectedPosition, SymbolInfo symbol, int timeout, Action action);
-		bool VerifyState(BrokerState expectedBrokerState, ReceiverState expectedSymbolState, SymbolInfo symbol, int timeout);
+		long VerifyEvent(Action<SymbolInfo, int, object> assertEvent, int timeout);
+		long Verify(Action<TickIO, TickIO, long> assertTick, int timeout);
+		long Wait(int expectedTicks, int timeout);
+		long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout);
+		long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout, Action action);
+		int VerifyPosition(int expectedPosition, int timeout);
+		int VerifyPosition(int expectedPosition, int timeout, Action action);
+		bool VerifyState(BrokerState expectedBrokerState, ReceiverState expectedSymbolState, int timeout);
 		void StartTimeTheFeed();
 		int EndTimeTheFeed(int expectedTickCount, int timeoutSeconds);
 		Yield TimeTheFeedTask();
