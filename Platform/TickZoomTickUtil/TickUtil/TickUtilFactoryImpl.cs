@@ -108,7 +108,7 @@ namespace TickZoom.TickUtil
 	    	return GetQueueStatsStatic();
 	    }
 
-	    private static readonly Log log = Factory.Log.GetLogger(typeof(TickUtilFactoryImpl));
+	    private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickUtilFactoryImpl));
 		public static string GetQueueStatsStatic() {
 	    	queueListLocker.Lock();
 	    	try {

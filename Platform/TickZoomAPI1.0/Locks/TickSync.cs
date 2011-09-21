@@ -33,6 +33,7 @@ namespace TickZoom.Api
     [StructLayout(LayoutKind.Sequential)]
     unsafe public struct TickSyncState
     {
+        public int isLocked;
         public long symbolBinaryId;
         public int ticks;
         public int positionChange;
@@ -49,7 +50,7 @@ namespace TickZoom.Api
         }
     }
 
-    public unsafe class TickSync : SimpleLock
+    public unsafe class TickSync
     {
         private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(TickSync));
         private readonly bool debug = staticLog.IsDebugEnabled;
@@ -123,6 +124,21 @@ namespace TickZoom.Api
             ForceClear();
         }
 
+        public bool TryLock()
+        {
+            return Interlocked.CompareExchange(ref (*state).isLocked, 1, 0) == 0;
+        }
+
+        public bool IsLocked
+        {
+            get { return (*state).isLocked == 1; }
+        }
+
+        public void Unlock()
+        {
+            Interlocked.Exchange(ref (*state).isLocked, 0);
+        }
+
         public void ForceClear()
         {
             var ticks = Interlocked.Exchange(ref (*state).ticks, 0);
@@ -157,8 +173,12 @@ namespace TickZoom.Api
 
         public void AddTick(Tick tick)
         {
-            Interlocked.Increment(ref (*state).ticks);
+            var value = Interlocked.Increment(ref (*state).ticks);
             if (trace) log.Trace("AddTick(" + tick + ") " + this);
+            if( value > 1)
+            {
+                throw new ApplicationException("Tick counter was allowed to go over 1.");
+            }
         }
         public void RemoveTick()
         {

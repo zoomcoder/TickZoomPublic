@@ -65,8 +65,9 @@ namespace TickZoom.MBTQuotes
 		private	string password;
 		public abstract void OnDisconnect();
 		public abstract void OnRetry();
-		public abstract Yield OnLogin();
-		private string providerName;
+		public abstract void SendLogin();
+        public abstract bool VerifyLogin();
+        private string providerName;
 		private long heartbeatTimeout;
 		private int heartbeatDelay;
 		private bool logRecovery = false;
@@ -283,11 +284,17 @@ namespace TickZoom.MBTQuotes
 					}
 					switch( connectionStatus) {
 						case Status.Connected:
+					        SendLogin();
 							connectionStatus = Status.PendingLogin;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 							IncreaseRetryTimeout();
-							Yield result = OnLogin();
-							return result;
+							return Yield.DidWork.Repeat;
+                        case Status.PendingLogin:
+                            if( VerifyLogin())
+                            {
+                                StartRecovery();
+                            }
+					        return Yield.DidWork.Repeat;
 						case Status.PendingRecovery:
 						case Status.Recovered:
 							if( retryDelay != retryStart) {
@@ -331,8 +338,16 @@ namespace TickZoom.MBTQuotes
                                     }
                                     else
                                     {
-
-                                        ReceiveMessage(message);
+                                        try
+                                        {
+                                            ReceiveMessage(message);
+                                            var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
+                                        }
+                                        catch( Exception ex)
+                                        {
+                                            var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
+                                            log.Error("Unable to process this message:\n" + loggingString, ex);
+                                        }
                                     }
                                     Socket.MessageFactory.Release(rawMessage);
                                 }
@@ -342,7 +357,6 @@ namespace TickZoom.MBTQuotes
                             }
 
 					        return Yield.DidWork.Repeat;
-						case Status.PendingLogin:
 						default:
 							return Yield.NoWork.Repeat;
 					}

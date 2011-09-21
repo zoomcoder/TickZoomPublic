@@ -90,8 +90,10 @@ namespace TickZoom.TickUtil
 	    int lowWaterMark;
 	    int highWaterMark;
 		Exception exception;
-		int backupLevel = 20;
-		long earliestUtcTime = long.MaxValue;
+        int backupIncrease = 20;
+        int backupLevel = 20;
+        int backupInitial = 20;
+        long earliestUtcTime = long.MaxValue;
 		private Task task;
 		private int count;
 		
@@ -112,7 +114,7 @@ namespace TickZoom.TickUtil
         	var nameString = name as string;
         	if( !string.IsNullOrEmpty(nameString)) {
         		if( nameString.Contains("-Receive")) {
-	        		backupLevel = 900;
+	        		backupLevel = backupInitial = 900;
         		}
         	}
 			instanceLog = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
@@ -169,22 +171,21 @@ namespace TickZoom.TickUtil
 	    {
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
-            if( queue.Count>=maxSize) {
-            	return false;
-            }
             if( !disableBackupLogging) {
 	            if( queue.Count >= backupLevel) {
-	            	if( !isBackingUp) {
-		            	isBackingUp = true;
-		            	if( debug) log.Debug( name + " queue is backing up. Now " + queue.Count);
-	            	} else {
-	            		if( queue.Count > maxLastBackup) {
-	            			maxLastBackup = queue.Count;
-	            		}
-	            	}
+	            	isBackingUp = true;
+	            	if( debug) log.Debug( name + " queue is backing up. Now " + queue.Count);
+            	    backupLevel += backupIncrease;
 	            }
+    		    if( queue.Count > maxLastBackup) {
+    			    maxLastBackup = queue.Count;
+    		    }
             }
-            if( !SpinLockNB()) return false;
+            if (queue.Count >= maxSize)
+            {
+                return false;
+            }
+            if (!SpinLockNB()) return false;
             try { 
 	            if( isDisposed) {
 		    		if( exception != null) {
@@ -329,6 +330,7 @@ namespace TickZoom.TickUtil
             	if( isBackingUp) {
             		isBackingUp = false;
             		if( debug) log.Debug( name + " queue now cleared after backup to " + maxLastBackup + " items.");
+            	    backupLevel = backupInitial;
             		maxLastBackup = 0;
             	}
 	    	}

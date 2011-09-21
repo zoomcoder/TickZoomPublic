@@ -35,7 +35,7 @@ namespace ZedGraph
 	[Serializable]
 	public class CurveList : List<CurveItem>, ICloneable
 	{
-	    private Log log = Factory.Log.GetLogger(typeof (CurveList));
+	    private Log log = Factory.SysLog.GetLogger(typeof (CurveList));
 	#region Properties
 		// internal temporary value that keeps
 		// the max number of points for any curve

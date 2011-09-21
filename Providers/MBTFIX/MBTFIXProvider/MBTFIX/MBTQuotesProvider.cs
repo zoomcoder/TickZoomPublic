@@ -78,33 +78,36 @@ namespace TickZoom.MBTQuotes
 		{
 		}
         
-		public override Yield OnLogin()
+		public override void SendLogin()
 		{
-			Socket.MessageFactory = new MessageFactoryMbtQuotes();
-
+		    Socket.MessageFactory = new MessageFactoryMbtQuotes();
 		    Message message = Socket.MessageFactory.Create();
-			string hashPassword = Hash(Password);
-			string login = "L|100="+UserName+";133="+hashPassword+"\n";
-			if( trace) log.Trace( "Sending: " + login);
-            if (debug) log.Debug("Sending: " + login);
-            message.DataOut.Write(login.ToCharArray());
-			while( !Socket.TrySendMessage(message)) {
-				if( IsInterrupted) return Yield.NoWork.Repeat;
-				Factory.Parallel.Yield();
-			}
-			while( !Socket.TryGetMessage(out message)) {
-				if( IsInterrupted) return Yield.NoWork.Repeat;
-				Factory.Parallel.Yield();
-			}
-			message.BeforeRead();
-			char firstChar = (char) message.Data.GetBuffer()[message.Data.Position];
-			if( firstChar != 'G') {
-				throw new ApplicationException("Invalid quotes login response: \n" + new string(message.DataIn.ReadChars(message.Remaining)));
-			}
-			if( trace) log.Trace( "Response: " + new string(message.DataIn.ReadChars(message.Remaining)));
-            Socket.MessageFactory.Release(message);
-            StartRecovery();
-			return Yield.DidWork.Repeat;
+		    string hashPassword = Hash(Password);
+		    string login = "L|100=" + UserName + ";133=" + hashPassword + "\n";
+		    if (trace) log.Trace("Sending: " + login);
+		    if (debug) log.Debug("Sending: " + login);
+		    message.DataOut.Write(login.ToCharArray());
+		    while (!Socket.TrySendMessage(message))
+		    {
+		        if (IsInterrupted) return;
+		        Factory.Parallel.Yield();
+		    }
+		}
+
+        public override bool VerifyLogin()
+        {
+            Message message;
+		    if( !Socket.TryGetMessage(out message)) return false;
+	        message.BeforeRead();
+            var loginResponse = new string(message.DataIn.ReadChars(message.Remaining));
+            var firstChar = loginResponse[0];
+	        if( firstChar == 'G')
+	        {
+	            log.Info("MBT Quotes API Login response: " + loginResponse);
+	            return true;
+	        }
+			if( debug) log.Debug( "Invalid quotes login response ignored: " + loginResponse);
+			return false;
         }
 		
 		protected override void OnStartRecovery()

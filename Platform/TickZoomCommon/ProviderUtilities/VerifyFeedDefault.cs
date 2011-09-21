@@ -49,6 +49,7 @@ namespace TickZoom.Common
 		private List<TickBinary> received = new List<TickBinary>();
 		private int pauseSeconds = 3;
 	    private SymbolInfo symbol;
+        private TickIO lastTick = Factory.TickUtil.TickIO();
 		
 		public List<TickBinary> GetReceived() {
 			return received;
@@ -83,7 +84,6 @@ namespace TickZoom.Common
 		{
 			return Verify(2, assertTick, timeout);
 		}
-		TickIO lastTick = Factory.TickUtil.TickIO();
 		
 		int countLog = 0;
 		TickBinary tickBinary = new TickBinary();
@@ -119,8 +119,12 @@ namespace TickZoom.Common
 							actionAlreadyRun = true;
 							action();
 						}
-						if( SyncTicks.Enabled) tickSync.RemoveTick();
-						if (count >= expectedCount) {
+                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        {
+                            tickSync.RemoveTick();
+                        }
+                        if (count >= expectedCount)
+                        {
 							break;
 						}
 					} else {
@@ -154,8 +158,12 @@ namespace TickZoom.Common
 						}
 						count++;
 						lastTick.Copy(tickIO);
-						if( SyncTicks.Enabled) tickSync.RemoveTick();
-						if( count >= expectedTicks) {
+                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        {
+                            tickSync.RemoveTick();
+                        }
+                        if (count >= expectedTicks)
+                        {
 							break;
 						}
 					} else {
@@ -184,8 +192,11 @@ namespace TickZoom.Common
 						Thread.Sleep(100);
 					} else {
 						tickQueue.RemoveStruct();
-						if( SyncTicks.Enabled) tickSync.RemoveTick();
-					}
+                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        {
+                            tickSync.RemoveTick();
+                        }
+                    }
 				} catch (QueueException ex) {
 					if( HandleQueueException(ex)) {
 						break;
@@ -217,8 +228,12 @@ namespace TickZoom.Common
 						} else {
 							Thread.Sleep(10);
 						}
-						if( SyncTicks.Enabled) tickSync.RemoveTick();
-						if (count >= expectedCount) {
+                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        {
+                            tickSync.RemoveTick();
+                        }
+                        if (count >= expectedCount)
+                        {
 							break;
 						}
 					} else {
@@ -261,8 +276,11 @@ namespace TickZoom.Common
 							actionAlreadyRun = true;
 							action();
 						}
-						if( SyncTicks.Enabled) tickSync.RemoveTick();
-					}
+                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        {
+                            tickSync.RemoveTick();
+                        }
+                    }
 				} catch (QueueException ex) {
 					if( HandleQueueException(ex)) {
 						break;

@@ -248,30 +248,23 @@ namespace TickZoom.MBTQuotes
             }
         }
 		
-        private int TryFindSplit() {
-            byte[] bytes = data.GetBuffer();
-            int length = (int) data.Length;
-            for( int i=0; i<length; i++) {
-                if( bytes[i] == '\n') {
+        public bool TrySplit(MemoryStream buffer)
+        {
+            var bytes = buffer.GetBuffer();
+            var length = (int)buffer.Length;
+            var position = (int)buffer.Position;
+            for (int i = position; i < length; i++)
+            {
+                if (bytes[i] == '\n')
+                {
+                    var size = i - position + 1;
+                    data.Write(bytes, (int)position, size);
+                    buffer.Position += size;
                     ParseData();
-                    return i+1;
+                    return true;
                 }
             }
-            return 0;
-        }
-		
-        public bool TrySplit(MemoryStream other) {
-            int splitAt = TryFindSplit();
-            if( splitAt == data.Length) {
-                data.Position = data.Length;
-                return false;
-            } else if( splitAt > 0) {
-                other.Write(data.GetBuffer(), splitAt, (int) (data.Length - splitAt));
-                data.SetLength( splitAt);
-                return true;
-            } else {
-                return false;
-            }
+            return false;
         }
 		
         private unsafe int GetKey( ref byte *ptr, byte *end) {

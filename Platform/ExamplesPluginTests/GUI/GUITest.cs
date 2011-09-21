@@ -107,6 +107,8 @@ namespace Other
             {
                 var config = CreateSimulateConfig();
                 config.SymbolList = "IBM,GBP/USD";
+                StarterConfigView form;
+                StartGUI(config, out form);
                 StrategyTest.CleanupFiles(config.SymbolList);
                 config.DefaultPeriod = 10;
                 config.DefaultBarUnit = BarUnit.Tick.ToString();

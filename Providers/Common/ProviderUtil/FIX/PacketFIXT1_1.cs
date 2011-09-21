@@ -156,30 +156,26 @@ namespace TickZoom.FIX
 		public unsafe void CreateHeader(int counter) {
 		}
 		
-		private int FindSplitAt() {
+		private int FindSplitAt(MemoryStream buffer) {
 		    if( trace) log.Trace("Processing Keys: " + this);
-	        data.Position = 0;
-		    var handle = GCHandle.Alloc(data.GetBuffer(), GCHandleType.Pinned);
-            var beg = ptr = (byte*)handle.AddrOfPinnedObject();
+		    var position = (int) buffer.Position;
+		    var handle = GCHandle.Alloc(buffer.GetBuffer(), GCHandleType.Pinned);
+		    var beg = ptr = (byte*) handle.AddrOfPinnedObject() + position;
+            end = (byte*)handle.AddrOfPinnedObject() + buffer.Length;
             try
             {
-			    end = ptr + data.Length;
 			    int key;
-			    while( NextKey( out key)) {
+			    while( ptr < end && GetKey( out key)) {
                     if (verbose) log.Verbose("HandleKey(" + key + ")");
 				    HandleKey(key);
 				    if( key == 10 ) {
 					    isComplete = true;
-					    if( data.Position == data.Length) {
-						    return 0;
-					    } else if( data.Position < data.Length) {
-						    if( trace) log.Trace("Splitting message at " + data.Position);
-						    return (int) data.Position;
-					    }
+				        position = (int) (ptr - beg);
+					    if( trace) log.Trace("Copying buffer at " + position);
+					    return position;
 				    }
 			    }
 			    // Never found a complete checksum tag so we need more bytes.
-			    data.Position = data.Length;
 			    isComplete = false;
 			    return 0;
             }
@@ -209,22 +205,16 @@ namespace TickZoom.FIX
 			}
 		}
 		
-		public bool TrySplit(MemoryStream other) {
-            bool result = false;
-            int splitAt = FindSplitAt();
-            if (splitAt > 0)
+		public bool TrySplit(MemoryStream buffer) {
+            int copyTo = FindSplitAt(buffer);
+            if (copyTo > 0)
             {
-                other.Write(data.GetBuffer(), splitAt, (int)data.Length - splitAt);
-                data.Position = splitAt;
-                data.SetLength(splitAt);
-                result = true;
+                data.Write(buffer.GetBuffer(), 0, (int)copyTo);
+                buffer.Position += copyTo;
+                return true;
             }
-            else
-            {
-                LogMessage();
-                result = false;
-            }
-            return result;
+            LogMessage();
+            return false;
 		}
 		
 		protected unsafe bool GetKey(out int val) {
@@ -235,7 +225,6 @@ namespace TickZoom.FIX
 	        	val = val * 10 + *ptr - ZeroChar;
 	        }
 	        ++ptr;
-	        Position += (int) (ptr - bptr);
 	        return true;
 		}
 	        
@@ -251,7 +240,6 @@ namespace TickZoom.FIX
 	        	val = val * 10 + *ptr - ZeroChar;
 	        }
 	        ++ptr;
-	        Position += (int) (ptr - bptr);
 	        if( negative) val *= -1;
             if (verbose) log.Verbose("int = " + val);
 	        return true;
@@ -268,7 +256,6 @@ namespace TickZoom.FIX
 	        }
 	        if( *(ptr) == EndOfField) {
 		        ++ptr;
-		        Position += (int) (ptr - bptr);
 				result = val;
 				if( trace) log.Trace("double = " + result);
 		        return true;
@@ -282,7 +269,6 @@ namespace TickZoom.FIX
 		        	divisor *= 10;
 		        }
 		        ++ptr;
-		        Position += (int) (ptr - bptr);
 		        result = val + (double) fract / divisor;
                 if (verbose) log.Verbose("double = " + result);
 				return true;
@@ -290,16 +276,15 @@ namespace TickZoom.FIX
 		}
 		
 		protected unsafe bool GetString(out string result) {
-			byte *sptr = ptr;
+			var sptr = (sbyte*) ptr;
 			result = null;
 			while (*ptr != EndOfField) {
                 ptr++;
 	        	if( ptr >= end) return false;
 			}
-	        int length = (int) (ptr - sptr);
+	        var length = (int) (ptr - (byte*) sptr);
 	        ++ptr;
-			result = new string(dataIn.ReadChars(length));
-			data.Position++;
+            result = new string(sptr, 0, length);
             if (verbose) log.Verbose("string = " + result);
 			return true;
 		}
@@ -311,20 +296,10 @@ namespace TickZoom.FIX
 			}
 	        ++ptr;
 	        int length = (int) (ptr - bptr);
-	        Position += length;
 			if( verbose) log.Verbose("skipping " + length + " bytes.");
 			return true;
 		}
 		
-		private bool NextKey(out int key) {
-			key = 0;
-			if( data.Position < data.Length) {
-				return GetKey(out key);
-			} else {
-				return false;
-			}
-		}
-
         private string ToHex()
         {
             var sb = new StringBuilder();

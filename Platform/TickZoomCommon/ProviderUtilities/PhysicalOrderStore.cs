@@ -167,14 +167,18 @@ namespace TickZoom.Common
 
         public void WaitForSnapshot()
         {
+          
             while (writeFileResult != null && !writeFileResult.IsCompleted)
             {
                 Thread.Sleep(100);
             }
-            if (writeFileResult != null && writeFileResult.IsCompleted)
+            lock(snapshotLocker.Using())
             {
-                writeFileAction.EndInvoke(writeFileResult);
-                writeFileResult = null;
+                if (writeFileResult != null && writeFileResult.IsCompleted)
+                {
+                    writeFileAction.EndInvoke(writeFileResult);
+                    writeFileResult = null;
+                }
             }
         }
 

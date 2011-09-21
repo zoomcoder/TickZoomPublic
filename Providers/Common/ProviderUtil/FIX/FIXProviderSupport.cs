@@ -60,8 +60,9 @@ namespace TickZoom.FIX
 		private long retryStart = 30; // seconds
 		private long retryIncrease = 5;
 		private long retryMaximum = 30;
-		private volatile Status connectionStatus = Status.New;
-		private string addrStr;
+		private volatile Status connectionStatus = Status.None;
+        private volatile Status bestConnectionStatus = Status.None;
+        private string addrStr;
 		private ushort port;
 		private string userName;
 		private	string password;
@@ -171,6 +172,7 @@ namespace TickZoom.FIX
         }
 		
 		public enum Status {
+            None,
 			New,
 			Connected,
 			PendingLogin,
@@ -229,6 +231,7 @@ namespace TickZoom.FIX
 		
 		public void EndRecovery() {
 			connectionStatus = Status.Recovered;
+		    bestConnectionStatus = Status.Recovered;
 			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
             OnFinishRecovery();
         }
@@ -376,6 +379,7 @@ namespace TickZoom.FIX
                                         case "5": // log off confirm
                                             if( debug) log.Debug("Log off confirmation received.");
                                             connectionStatus = Status.Disconnected;
+                                            Dispose();
                                             break;
                                         default:
                                             if( resetAtLogin && messageFIX.IsPossibleDuplicate)
@@ -929,23 +933,19 @@ namespace TickZoom.FIX
 
         public void LogOut()
         {
-            if( connectionStatus == Status.Recovered)
+            if( bestConnectionStatus != Status.Recovered)
             {
-                connectionStatus = Status.PendingLogOut;
-                while (socket != null && connectionStatus != Status.Disconnected)
-                {
-                    OnLogout();
-                    var end = Factory.TickCount + 1000;
-                    while (socket != null && connectionStatus != Status.Disconnected && Factory.TickCount < end)
-                    {
-                        Factory.Parallel.Yield();
-                    }
-                }
                 Dispose();
+                return;
             }
-            else
+            while (!isDisposed)
             {
-                Dispose();
+                if (connectionStatus == Status.Recovered)
+                {
+                    connectionStatus = Status.PendingLogOut;
+                    OnLogout();
+                }
+                Thread.Sleep(100);
             }
         }
 

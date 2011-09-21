@@ -812,6 +812,7 @@ namespace TickZoom.Logging
         public void Register(LogAware logAware)
         {
             log.Register(logAware);
+            logAware.RefreshLogLevel();
         }
 
         #endregion

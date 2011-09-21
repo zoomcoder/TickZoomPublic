@@ -50,7 +50,7 @@ namespace TickZoom.Api
 	public class LatencyManager : IDisposable
 	{
 	    public static long TryReadCounter = 0;
-		private static readonly Log log = Factory.Log.GetLogger(typeof(LatencyManager));
+		private static readonly Log log = Factory.SysLog.GetLogger(typeof(LatencyManager));
 		private static readonly bool debug = log.IsDebugEnabled;
 		private static int count;
 		private object listMapLocker = new object();

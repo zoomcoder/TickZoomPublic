@@ -44,7 +44,7 @@ namespace TickZoom.Properties
 	/// </summary>
 	public class StarterProperties : PropertiesBase, TickZoom.Api.StarterProperties
 	{
-		private readonly static Log log = Factory.Log.GetLogger(typeof(StarterProperties));
+		private readonly static Log log = Factory.SysLog.GetLogger(typeof(StarterProperties));
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
 		TickZoom.Api.TimeStamp startTime;

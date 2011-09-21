@@ -44,10 +44,12 @@ namespace TickZoom.FIX
 		private static Log log = Factory.SysLog.GetLogger(typeof(FIXSimulatorSupport));
         private volatile bool debug;
         private volatile bool trace;
+        private volatile bool verbose;
         public virtual void RefreshLogLevel()
         {
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
+            verbose = log.IsVerboseEnabled;
         }
         private SimpleLock symbolHandlersLocker = new SimpleLock();
 		private FIXTFactory1_1 fixFactory;
@@ -128,10 +130,10 @@ namespace TickZoom.FIX
 
         public void DumpHistory()
         {
-            for (var i = 0; i <= fixFactory.LastSequence; i++)
+            for (var i = 0; i <= FixFactory.LastSequence; i++)
             {
                 FIXTMessage1_1 message;
-                if( fixFactory.TryGetHistory(i, out message))
+                if( FixFactory.TryGetHistory(i, out message))
                 {
                     log.Info(message.ToString());
                 }
@@ -342,7 +344,7 @@ namespace TickZoom.FIX
 
         private FIXTMessage1_1 GapFillMessage(int currentSequence)
         {
-            var message = fixFactory.Create(currentSequence);
+            var message = FixFactory.Create(currentSequence);
             message.SetGapFill();
             message.SetNewSeqNum(currentSequence + 1);
             message.AddHeader("4");
@@ -351,13 +353,13 @@ namespace TickZoom.FIX
 
         private bool HandleResend(MessageFIXT1_1 messageFIX)
         {
-            int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
+            int end = messageFIX.EndSeqNum == 0 ? FixFactory.LastSequence : messageFIX.EndSeqNum;
             if (debug) log.Debug("Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
             for (int i = messageFIX.BegSeqNum; i <= end; i++)
             {
                 FIXTMessage1_1 textMessage;
                 var gapFill = false;
-                if (!fixFactory.TryGetHistory(i, out textMessage))
+                if (!FixFactory.TryGetHistory(i, out textMessage))
                 {
                     gapFill = true;
                     textMessage = GapFillMessage(i);
@@ -418,7 +420,7 @@ namespace TickZoom.FIX
 
         private bool SendSessionStatus(string status)
         {
-            var mbtMsg = fixFactory.Create();
+            var mbtMsg = FixFactory.Create();
             mbtMsg.AddHeader("h");
             mbtMsg.SetTradingSessionId("TSSTATE");
             mbtMsg.SetTradingSessionStatus(status);
@@ -429,7 +431,7 @@ namespace TickZoom.FIX
 
         private bool Resend(MessageFIXT1_1 messageFix)
 		{
-			var mbtMsg = fixFactory.Create();
+			var mbtMsg = FixFactory.Create();
 			mbtMsg.AddHeader("2");
 			mbtMsg.SetBeginSeqNum(remoteSequence);
 			mbtMsg.SetEndSeqNum(0);
@@ -457,7 +459,7 @@ namespace TickZoom.FIX
                                     throw new InvalidOperationException("Invalid FIX message type " +
                                                                         packetFIX.MessageType + ". Not yet logged in.");
                                 }
-                                if (packetFIX.Sequence < remoteSequence)
+                                if (!packetFIX.IsResetSeqNum && packetFIX.Sequence < remoteSequence)
                                 {
                                     throw new InvalidOperationException("Login sequence number was " + packetFIX.Sequence + " less than expected " + remoteSequence + ".");
                                 }
@@ -506,7 +508,7 @@ namespace TickZoom.FIX
                                         // Setup disconnect simulation.
                                         nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
                                         if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
-                                        nextSendDisconnectSequence = fixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                                        nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
                                         if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
                                     }
                                     switch (packetFIX.MessageType)
@@ -570,7 +572,7 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
                 FixFactory = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
                 remoteSequence = packet.Sequence;
-                nextSendDisconnectSequence = fixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
                 if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
                 nextRecvDisconnectSequence = packet.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
                 if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
@@ -618,7 +620,7 @@ namespace TickZoom.FIX
         private bool ProcessMessage(MessageFIXT1_1 packetFIX)
         {
             if( simulateConnectionLoss) return true;
-            if (simulateDisconnect && fixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
+            if (simulateDisconnect && FixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
             {
                 if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= receive disconnect sequence " + nextRecvDisconnectSequence + " so ignoring AND disconnecting.");
                 nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
@@ -628,14 +630,14 @@ namespace TickZoom.FIX
                 simulateConnectionLoss = true;
                 return true;
             }
-            if (simulateReceiveFailed && fixFactory != null && random.Next(50) == 1)
+            if (simulateReceiveFailed && FixFactory != null && random.Next(50) == 1)
             {
                 // Ignore this message. Pretend we never received it.
                 // This will test the message recovery.
                 if (debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
                 return Resend(packetFIX);
             }
-            if (simulateOrderServerDisconnect && IsRecovered && fixFactory != null && packetFIX.Sequence >= nextRecvOrderServerOfflineSequence)
+            if (simulateOrderServerDisconnect && IsRecovered && FixFactory != null && packetFIX.Sequence >= nextRecvOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= order server offline " + nextRecvOrderServerOfflineSequence+ " so making session status offline.");
                 nextRecvOrderServerOfflineSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
@@ -711,7 +713,7 @@ namespace TickZoom.FIX
 		{
 			if (isQuoteSimulationStarted) {
 				if (quoteSocket.TryGetMessage(out _quoteReadMessage)) {
-					if (trace)	log.Trace("Local Read: " + _quoteReadMessage);
+					if (verbose)	log.Verbose("Local Read: " + _quoteReadMessage);
 					ParseQuotesMessage(_quoteReadMessage);
                     quoteSocket.MessageFactory.Release(_quoteReadMessage);
 					return true;
@@ -826,7 +828,7 @@ namespace TickZoom.FIX
                 }
             }
             IncreaseHeartbeat(Factory.Parallel.TickCount);
-            if (simulateOrderServerDisconnect && IsRecovered && fixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
+            if (simulateOrderServerDisconnect && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline.");
                 nextSendOrderServerOfflineSequence = fixMessage.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
@@ -912,11 +914,6 @@ namespace TickZoom.FIX
 			get { return quotesPort; }
 		}
 		
-		public FIXTFactory1_1 FixFactory {
-			get { return fixFactory; }
-			set { fixFactory = value; }
-		}
-				
 		public long RealTimeOffset {
 			get { return realTimeOffset; }
 		}
@@ -938,6 +935,21 @@ namespace TickZoom.FIX
         {
             get { return simulateOrderServerOffline; }
             set { simulateOrderServerOffline = value; }
+        }
+
+        public FIXTFactory1_1 FixFactory
+        {
+            get { return fixFactory; }
+            set {
+                if( fixFactory != null && value == null)
+                {
+                    log.Warn("FixFactory set to null.\n" + Environment.StackTrace);
+                } else if( value == null)
+                {
+                    log.Info("FixFactory already null and set to null.\n" + Environment.StackTrace);
+                }
+                fixFactory = value;
+            }
         }
 	}
 }

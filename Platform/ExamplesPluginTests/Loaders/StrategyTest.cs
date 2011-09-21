@@ -326,7 +326,6 @@ namespace Loaders
                 {
                     var ex = errors[errors.Count - 1];
                     log.Error("Can't delete " + path, ex);
-                    Thread.Sleep(1000000);
                     throw new IOException("Can't delete " + path, ex);
                 }
             }

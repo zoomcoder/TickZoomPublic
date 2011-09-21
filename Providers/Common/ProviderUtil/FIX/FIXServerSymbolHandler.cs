@@ -222,7 +222,10 @@ namespace TickZoom.FIX
                     }
                     isFirstTick = false;
                     nextTick.Inject(binary);
-				   	tickSync.AddTick(nextTick);
+                    if( SyncTicks.Enabled)
+                    {
+                        tickSync.AddTick(nextTick);
+                    }
 				   	if( !isPlayBack) {
 				   		if( isFirstTick) {
 						   	FillSimulator.StartTick( nextTick);
@@ -362,14 +365,20 @@ namespace TickZoom.FIX
 	       		if( !isDisposed) {
 	            isDisposed = true;   
 	            if (disposing) {
-	            	if( debug) log.Debug("Dispose()");
+                    if (debug) log.Debug("Dispose()");
+                    if (queueTask != null)
+                    {
+                        queueTask.Stop();
+                        queueTask.Join();
+                    }
 	            	if( reader != null) {
 	            		reader.Dispose();
 	            	}
-	            	if( queueTask != null) {
-	            		queueTask.Stop();
-	            	}
-	            }
+                    if (SyncTicks.Enabled && tickSync != null)
+                    {
+                        tickSync.ForceClear();
+                    }
+                }
     		}
 	    }    
 	        
