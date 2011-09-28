@@ -82,6 +82,7 @@
     <Compile Include="TickUtil\TickImpl.cs" />
     <Compile Include="TickUtil\TickQueueImpl.cs" />
     <Compile Include="TickUtil\TickReaderDefault.cs" />
+    <Compile Include="TickUtil\TickSerializer.cs" />
     <Compile Include="TickUtil\TickUtilFactoryImpl.cs" />
     <Compile Include="TickUtil\TickWriterDefault.cs" />
     <Content Include="ProfilingSessions\Session20101119_180618.sdps" />

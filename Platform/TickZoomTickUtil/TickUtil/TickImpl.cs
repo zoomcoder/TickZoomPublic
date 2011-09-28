@@ -51,7 +51,8 @@ namespace TickZoom.TickUtil
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickImpl));
 		private static readonly bool trace = log.IsTraceEnabled;
 		private static readonly bool debug = log.IsDebugEnabled;
-		private bool isCompressStarted;
+        private static readonly bool verbose = log.IsVerboseEnabled;
+        private bool isCompressStarted;
 		private long pricePrecision;
 		private int priceDecimals;
 		private DaylightSavings dst;
@@ -66,6 +67,7 @@ namespace TickZoom.TickUtil
 		int lastSize;
 		TickBinary lastBinary;
 		TimeStamp localTime;
+	    private TickSerializer tickSerializer;
 
 		public void Initialize() {
 			binary = default(TickBinary);
@@ -160,38 +162,29 @@ namespace TickZoom.TickUtil
 		public void SetSymbol( long lSymbol) {
 			binary.Symbol = lSymbol;
 		}
-		
-		public void Copy(TickIO tick) {
-			if( tick is TickImpl) {
-				this = (TickImpl) tick;
-			} else {  
-				Copy( tick, tick.ContentMask);
-			}
-		}
-		
-		public void Copy(TickIO tick, byte contentMask) {
-			bool dom = (contentMask & ContentBit.DepthOfMarket) != 0;
-			bool simulateTicks = (contentMask & ContentBit.SimulateTicks) != 0;
-			bool quote = (contentMask & ContentBit.Quote) != 0;
-			bool trade = (contentMask & ContentBit.TimeAndSales) != 0;
-            bool option = (contentMask & ContentBit.Option) != 0;
-            bool callOrPut = (contentMask & ContentBit.CallOrPut) != 0;
+
+        public void Copy(TickIO tick)
+        {
+            Copy(tick, tick.Extract().contentMask);
+        }
+
+	    public void Copy(TickIO tick, byte contentMask) {
             Initialize();
 			SetSymbol(tick.lSymbol);
 			SetTime(tick.UtcTime);
-			IsSimulateTicks = simulateTicks;
-			if( quote) {
+		    binary.contentMask = contentMask;
+			if( binary.IsQuote) {
 				SetQuote(tick.lBid, tick.lAsk);
 			}
-			if( trade) {
+			if( binary.IsTrade) {
 				SetTrade(tick.Side, tick.lPrice, tick.Size);
 			}
-            if (option)
+            if (binary.IsOption)
             {
-                var type = callOrPut ? OptionType.Call : OptionType.Put;
+                var type = binary.OptionType;
                 SetOption(type, tick.Strike, tick.UtcOptionExpiration);
             }
-            if (dom)
+            if (binary.HasDepthOfMarket)
             {
 				fixed( ushort *b = binary.DepthBidLevels)
 				fixed( ushort *a = binary.DepthAskLevels)
@@ -200,12 +193,7 @@ namespace TickZoom.TickUtil
 					*(a+i) = (ushort) tick.AskLevel(i);
 				}
 			}
-			binary.ContentMask = contentMask;
 			dataVersion = tick.DataVersion;
-		}
-		
-		private void ClearContentMask() {
-			binary.ContentMask = 0;
 		}
 		
 		public int BidDepth {
@@ -252,741 +240,35 @@ namespace TickZoom.TickUtil
 			}
 			return output;
 		}
-		
-		public enum BinaryField {
-			Time=1,
-			Bid,
-			Ask,
-			Price,
-			Size,
-			BidSize,
-			AskSize,
-			ContentMask,
-			Precision,
-            Strike,
-            OptionExpiration,
-            Reset = 30,
-			Empty=31
-		}
-		public enum FieldSize {
-			Byte=1,
-			Short,
-			Int,
-			Long,
-		}
-		
-		private unsafe bool WriteField( BinaryField fieldEnum, byte** ptr, long diff) {
-			var field = (byte) ((byte) fieldEnum << 3);
-			if( diff == 0) {
-				return false;
-			} else if( diff >= byte.MinValue && diff <= byte.MaxValue) {
-				field |= (byte) FieldSize.Byte;
-				*(*ptr) = field; (*ptr)++;
-				*(*ptr) = (byte) diff; (*ptr)++;
-			} else if( diff >= short.MinValue && diff <= short.MaxValue) {
-				field |= (byte) FieldSize.Short;
-				*(*ptr) = field; (*ptr)++;
-				*(short*)(*ptr) = (short) diff; (*ptr)+=sizeof(short);
-			} else if( diff >= int.MinValue && diff <= int.MaxValue) {
-				field |= (byte) FieldSize.Int;
-				*(*ptr) = field; (*ptr)++;
-				*(int*)(*ptr) = (int) diff; (*ptr)+=sizeof(int);
-			} else {
-				field |= (byte) FieldSize.Long;
-				*(*ptr) = field; (*ptr)++;
-				*(long*)(*ptr) = diff; (*ptr)+=sizeof(long);
-			}
-			return true;
-		}
-		
-		private unsafe void WriteBidSize(byte field, int i, byte** ptr) {
-			fixed( ushort *lp = lastBinary.DepthBidLevels)
-			fixed( ushort *p = binary.DepthBidLevels) {
-				var diff = *(p + i) - *(lp + i);
-				if( diff != 0) {
-					*(*ptr) = (byte) (field | i); (*ptr)++;
-					*(short*)(*ptr) = (short) diff; (*ptr)+=sizeof(short);
-				}
-			}
-		}
-		
-		private unsafe void WriteAskSize(byte field, int i, byte** ptr) {
-			fixed( ushort *lp = lastBinary.DepthAskLevels)
-			fixed( ushort *p = binary.DepthAskLevels) {
-				var diff = *(p + i) - *(lp + i);
-				if( diff != 0) {
-					*(*ptr) = (byte) (field | i); (*ptr)++;
-					*(short*)(*ptr) = (short) diff; (*ptr)+=sizeof(short);
-				}
-			}
-		}
-		private void SetPricePrecision() {
-			var symbol = Factory.Symbol.LookupSymbol(binary.Symbol);
-			var minimumTick = symbol.MinimumTick;
-			priceDecimals=0;
-			while ((long)minimumTick != minimumTick)
-			{
-				minimumTick*=10;
-				priceDecimals++;
-			}
-			var temp = Math.Pow( 0.1, symbol.MinimumTickPrecision);
-			pricePrecision = temp.ToLong();
-		}
 
-		private unsafe void ToWriterVersion10(MemoryStream writer) {
-			dataVersion = 10;
-			writer.SetLength( writer.Position+minTickSize);
-			byte[] buffer = writer.GetBuffer();
-			fixed( byte *fptr = &buffer[writer.Position]) {
-				byte *ptr = fptr;
-				ptr++; // Save space for size header.
-				*(ptr) = dataVersion; ptr++;
-				ptr++; // Save space for checksum.
-				if( pricePrecision == 0L) {
-					SetPricePrecision();
-					if( debug) log.Debug("Writing decimal places use in price compression.");
-					WriteField( BinaryField.Precision, &ptr, pricePrecision);
-				}
-				if( !isCompressStarted) {
-					if( debug) log.Debug("Writing Reset token during tick compression.");
-					WriteField( BinaryField.Reset, &ptr, 1);
-					isCompressStarted = true;
-				}
-				WriteField( BinaryField.ContentMask, &ptr, binary.ContentMask - lastBinary.ContentMask);
-                var diff = (binary.UtcTime - lastBinary.UtcTime);
-				WriteField( BinaryField.Time, &ptr, diff);
-				if( IsQuote) {
-					WriteField( BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBid);
-					WriteField( BinaryField.Ask, &ptr, binary.Ask / pricePrecision - lastAsk);
-                    lastBid = binary.Bid / pricePrecision;
-                    lastAsk = binary.Ask / pricePrecision;
-				}
-				if( IsTrade) {
-					WriteField( BinaryField.Price, &ptr, binary.Price / pricePrecision - lastPrice);
-					WriteField( BinaryField.Size, &ptr, binary.Size - lastSize);
-					lastPrice = binary.Price / pricePrecision;
-					lastSize = binary.Size;
-				}
-                if( IsOption)
-                {
-                    WriteField(BinaryField.Strike, &ptr, binary.Strike / pricePrecision - lastStrike);
-                    lastStrike = binary.Strike/pricePrecision;
-                    diff = (binary.UtcOptionExpiration - lastOptionExpiration);
-                    WriteField(BinaryField.OptionExpiration, &ptr, diff);
-                    lastOptionExpiration = binary.UtcOptionExpiration;
-                }
-				if( HasDepthOfMarket) {
-					var field = (byte) ((byte) BinaryField.BidSize << 3);
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						WriteBidSize( field, i, &ptr);
-					}
-					field = (byte) ((byte) BinaryField.AskSize << 3);
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						WriteAskSize( field, i, &ptr);
-					}
-				}
-				writer.Position += ptr - fptr;
-				writer.SetLength(writer.Position);
-				*fptr = (byte) (ptr - fptr);
-				byte checksum = 0;
-				for( var p = fptr+3; p < ptr; p++) {
-					checksum ^= *p;	
-				}
-				*(fptr+2) = (byte) (checksum ^ lastChecksum);
-				lastChecksum = checksum;
-				lastBinary = binary;
-			}
-		}
-		
-		private unsafe void ToWriterVersion9(MemoryStream writer) {
-			dataVersion = 9;
-			writer.SetLength( writer.Position+minTickSize);
-			byte[] buffer = writer.GetBuffer();
-			fixed( byte *fptr = &buffer[writer.Position]) {
-				byte *ptr = fptr;
-				ptr++; // Save space for size header.
-				*(ptr) = dataVersion; ptr++;
-				ptr++; // Save space for checksum.
-				if( pricePrecision == 0L) {
-					SetPricePrecision();
-					if( debug) log.Debug("Writing decimal places use in price compression.");
-					WriteField( BinaryField.Precision, &ptr, pricePrecision);
-				}
-				if( !isCompressStarted) {
-					if( debug) log.Debug("Writing Reset token during tick compression.");
-					WriteField( BinaryField.Reset, &ptr, 1);
-					var ts = new TimeStamp( binary.UtcTime);
-					isCompressStarted = true;
-				}
-				WriteField( BinaryField.ContentMask, &ptr, binary.ContentMask - lastBinary.ContentMask);
-				var diff = (binary.UtcTime/1000 - lastBinary.UtcTime/1000);
-				WriteField( BinaryField.Time, &ptr, diff);
-				if( IsQuote) {
-					WriteField( BinaryField.Bid, &ptr, (binary.Bid - lastBinary.Bid) / pricePrecision);
-					WriteField( BinaryField.Ask, &ptr, (binary.Ask - lastBinary.Ask) / pricePrecision);
-				}
-				if( IsTrade) {
-					WriteField( BinaryField.Price, &ptr, (binary.Price - lastBinary.Price) / pricePrecision);
-					WriteField( BinaryField.Size, &ptr, binary.Size - lastBinary.Size);
-				}
-				if( HasDepthOfMarket) {
-					var field = (byte) ((byte) BinaryField.BidSize << 3);
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						WriteBidSize( field, i, &ptr);
-					}
-					field = (byte) ((byte) BinaryField.AskSize << 3);
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						WriteAskSize( field, i, &ptr);
-					}
-				}
-				writer.Position += ptr - fptr;
-				writer.SetLength(writer.Position);
-				*fptr = (byte) (ptr - fptr);
-				byte checksum = 0;
-				for( var p = fptr+3; p < ptr; p++) {
-					checksum ^= *p;	
-				}
-				*(fptr+2) = (byte) (checksum ^ lastChecksum);
-				lastChecksum = checksum;
-				lastBinary = binary;
-//				log.Info("Length = " + (ptr - fptr));
-			}
-		}
-		private byte lastChecksum;
-		
-		public unsafe void ToWriter(MemoryStream writer) {
-			ToWriterVersion10(writer);
-//			ToWriterVersion9(writer);
-//			ToWriterVersion8(writer);
-		}
-		
-		public unsafe void ToWriterVersion8(MemoryStream writer) {
-			dataVersion = 8;
-			writer.SetLength( writer.Position+minTickSize);
-			byte[] buffer = writer.GetBuffer();
-			fixed( byte *fptr = &buffer[writer.Position]) {
-				byte *ptr = fptr;
-				ptr++; // Save space for size header.
-				*(ptr) = dataVersion; ptr++;
-				*(long*)(ptr) = binary.UtcTime/1000; ptr+=sizeof(long);
-				*(ptr) = binary.ContentMask; ptr++;
-				if( IsQuote) {
-					*(long*)(ptr) = binary.Bid; ptr += sizeof(long);
-					*(long*)(ptr) = binary.Ask; ptr += sizeof(long);
-				}
-				if( IsTrade) {
-					*ptr = binary.Side; ptr ++;
-					*(long*)(ptr) = binary.Price; ptr += sizeof(long);
-					*(int*)(ptr) = binary.Size; ptr += sizeof(int);
-				}
-				if( HasDepthOfMarket ) {
-					fixed( ushort *p = binary.DepthBidLevels) {
-						for( int i=0; i<TickBinary.DomLevels; i++) {
-							*(ushort*)(ptr) = *(p + i); ptr+=sizeof(ushort);
-						}
-					}
-					fixed( ushort *p = binary.DepthAskLevels) {
-						for( int i=0; i<TickBinary.DomLevels; i++) {
-							*(ushort*)(ptr) = *(p + i); ptr+=sizeof(ushort);
-						}
-					}
-				}
-				writer.Position += ptr - fptr;
-				writer.SetLength(writer.Position);
-				*fptr = (byte) (ptr - fptr);
-			}
-		}
-		
-		private unsafe long ReadField(byte** ptr) {
-			long result = 0L;
-			var size = (FieldSize) (**ptr & 0x07);
-			(*ptr)++;
-			if( size == FieldSize.Byte) {
-				result = (**ptr); (*ptr)++;
-			} else if( size == FieldSize.Short) {
-				result = (*(short*)(*ptr)); (*ptr)+= sizeof(short);
-			} else if( size == FieldSize.Int) {
-				result = (*(int*)(*ptr)); (*ptr)+= sizeof(int);
-			} else if( size == FieldSize.Long) {
-				result = (*(long*)(*ptr)); (*ptr)+= sizeof(long);
-			}
-			return result;
-		}
-		
-		private unsafe void ReadBidSize(byte** ptr) {
-			fixed( ushort *p = binary.DepthBidLevels) {
-				var index = **ptr & 0x07;
-				(*ptr)++;
-				*(p+index) = (ushort) (*(p+index) + *(short*)(*ptr));
-				(*ptr)+= sizeof(short);
-			}
-		}
-		
-		private unsafe void ReadAskSize(byte** ptr) {
-			fixed( ushort *p = binary.DepthAskLevels) {
-				var index = **ptr & 0x07;
-				(*ptr)++;
-				*(p+index) = (ushort) (*(p+index) + *(short*)(*ptr));
-				(*ptr)+= sizeof(short);
-			}
-		}
-		
-		private unsafe int FromFileVersion10(byte *fptr, int length) {
-			// Backwards compatibility. The first iteration of version
-			// 9 never stored the price precision in the file.
-			if( pricePrecision == 0L) {
-				SetPricePrecision();
-			}
-			length --;
-			byte *ptr = fptr;
-			var checksum = *ptr; ptr++;
-//			var end = fptr + length;
-//			byte testchecksum = 0;
-//			for( var p = fptr+1; p<end; p++) {
-//				testchecksum ^= *p;	
-//			}
-			
-			while( (ptr - fptr) < length) {
-				var field = (BinaryField) (*ptr >> 3);
-				switch( field) {
-					case BinaryField.Precision:
-						if( debug) log.Debug("Processing decimal place precision during tick de-compression.");
-						pricePrecision = ReadField( &ptr);
-						break;
-					case BinaryField.Reset:
-						if( debug) log.Debug("Processing Reset during tick de-compression.");
-						ReadField( &ptr);
-						var symbol = binary.Symbol;
-						binary = default(TickBinary);
-						binary.Symbol = symbol;
-						lastChecksum = 0;
-						break;
-					case BinaryField.ContentMask:
-						binary.ContentMask += (byte) ReadField( &ptr);
-						break;
-					case BinaryField.Time:
-						binary.UtcTime += ReadField( &ptr);
-						break;
-                    case BinaryField.Strike:
-                        binary.Strike += ReadField(&ptr) * pricePrecision; 
-                        break;
-                    case BinaryField.OptionExpiration:
-                        var readField = ReadField(&ptr);
-				        var currentExpiration = binary.UtcOptionExpiration + readField;
-				        var time = new TimeStamp(currentExpiration);
-                        binary.UtcOptionExpiration = currentExpiration;
-                        break;
-                    case BinaryField.Bid:
-						binary.Bid += ReadField( &ptr) * pricePrecision;
-						break;
-					case BinaryField.Ask:
-						binary.Ask += ReadField( &ptr) * pricePrecision;
-						break;
-					case BinaryField.Price:
-						binary.Price += ReadField( &ptr) * pricePrecision;
-						break;
-					case BinaryField.Size:
-						binary.Size += (int) ReadField( &ptr);
-						break;
-					case BinaryField.BidSize:
-						ReadBidSize( &ptr);
-						break;
-					case BinaryField.AskSize:
-						ReadAskSize( &ptr);
-						break;
-					default:
-						throw new ApplicationException("Unknown tick field type: " + field);
-				}
-			}
-			
-//			if( (byte) (testchecksum ^ lastChecksum) != checksum) {
-//				 System.Diagnostics.Debugger.Break();
-//				throw new ApplicationException("Checksum mismatch " + checksum + " vs. " + (byte) (testchecksum ^ lastChecksum) + ". This means integrity checking of tick compression failed.");
-//			}
-//			lastChecksum = testchecksum;
+        public unsafe void ToWriter(MemoryStream writer)
+        {
+            if( tickSerializer == null)
+            {
+                tickSerializer = new TickSerializerDefault();
+            }
+            tickSerializer.ToWriter(ref binary, writer);
+        }
 
-			int len = (int) (ptr - fptr);
-			return len;
-		}
-		
-		private unsafe int FromFileVersion9(byte *fptr, int length) {
-			// Backwards compatibility. The first iteration of version
-			// 9 never stored the price precision in the file.
-			if( pricePrecision == 0L) {
-				SetPricePrecision();
-			}
-			length --;
-			byte *ptr = fptr;
-			var checksum = *ptr; ptr++;
-//			var end = fptr + length;
-//			byte testchecksum = 0;
-//			for( var p = fptr+1; p<end; p++) {
-//				testchecksum ^= *p;	
-//			}
-			
-			while( (ptr - fptr) < length) {
-				var field = (BinaryField) (*ptr >> 3);
-				switch( field) {
-					case BinaryField.Precision:
-						if( debug) log.Debug("Processing decimal place precision during tick de-compression.");
-						pricePrecision = ReadField( &ptr);
-						break;
-					case BinaryField.Reset:
-						if( debug) log.Debug("Processing Reset during tick de-compression.");
-						ReadField( &ptr);
-						var symbol = binary.Symbol;
-						binary = default(TickBinary);
-						binary.Symbol = symbol;
-						lastChecksum = 0;
-						break;
-					case BinaryField.ContentMask:
-						binary.ContentMask += (byte) ReadField( &ptr);
-						break;
-					case BinaryField.Time:
-						var diff = ReadField( &ptr);
-						binary.UtcTime += ( diff * 1000);
-						break;
-					case BinaryField.Bid:
-						binary.Bid += ReadField( &ptr) * pricePrecision;
-						break;
-					case BinaryField.Ask:
-						binary.Ask += ReadField( &ptr) * pricePrecision;
-						break;
-					case BinaryField.Price:
-						binary.Price += ReadField( &ptr) * pricePrecision;
-						break;
-					case BinaryField.Size:
-						binary.Size += (int) ReadField( &ptr);
-						break;
-					case BinaryField.BidSize:
-						ReadBidSize( &ptr);
-						break;
-					case BinaryField.AskSize:
-						ReadAskSize( &ptr);
-						break;
-					default:
-						throw new ApplicationException("Unknown tick field type: " + field);
-				}
-			}
-			
-//			if( (byte) (testchecksum ^ lastChecksum) != checksum) {
-//				 System.Diagnostics.Debugger.Break();
-//				throw new ApplicationException("Checksum mismatch " + checksum + " vs. " + (byte) (testchecksum ^ lastChecksum) + ". This means integrity checking of tick compression failed.");
-//			}
-//			lastChecksum = testchecksum;
-
-			int len = (int) (ptr - fptr);
-			return len;
-		}
-		
-		private unsafe int FromFileVersion8(byte *fptr) {
-			if( pricePrecision == 0L) {
-				SetPricePrecision();
-			}
-			byte *ptr = fptr;
-	    	binary.UtcTime = *(long*)ptr; ptr+=sizeof(long);
-	    	binary.UtcTime *= 1000;
-			binary.ContentMask = *ptr; ptr++;
-			if( IsQuote ) {
-				binary.Bid = * (long*) ptr; ptr+=sizeof(long);
-				binary.Bid = Math.Round(binary.Bid.ToDouble(),priceDecimals).ToLong();
-				binary.Ask = * (long*) ptr; ptr+=sizeof(long);
-				binary.Ask = Math.Round(binary.Ask.ToDouble(),priceDecimals).ToLong();
-			}
-			if( IsTrade) {
-				binary.Side = *ptr; ptr++;
-				binary.Price = * (long*) ptr; ptr+=sizeof(long);
-				binary.Price = Math.Round(binary.Price.ToDouble(),priceDecimals).ToLong();
-				binary.Size = * (int*) ptr; ptr+=sizeof(int);
-			}
-			if( HasDepthOfMarket) {
-				fixed( ushort *p = binary.DepthBidLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = * (ushort*) ptr; ptr += 2;
-					}
-				}
-				fixed( ushort *p = binary.DepthAskLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = * (ushort*) ptr; ptr += 2;
-					}
-				}
-			}
-			int len = (int) (ptr - fptr);
-			return len;
-		}
-
-		private int FromFileVersion7(BinaryReader reader) {
-			int position = 0;
-			double d = reader.ReadDouble(); position += 8;
-//			if( d < 0) {
-//				int x = 0;
-//			}
-			binary.UtcTime = new TimeStamp(d).Internal;
-			binary.ContentMask = reader.ReadByte(); position += 1;
-			if( IsQuote ) {
-				binary.Bid = reader.ReadInt64(); position += 8;
-				binary.Ask = reader.ReadInt64(); position += 8;
-				if( !IsTrade) {
-					binary.Price = (binary.Bid+binary.Ask)/2;
-				}
-			}
-			if( IsTrade) {
-				binary.Side = reader.ReadByte(); position += 1;
-				binary.Price = reader.ReadInt64(); position += 8;
-				binary.Size = reader.ReadInt32(); position += 4;
-				if( binary.Price == 0) {
-					binary.Price = (binary.Bid+binary.Ask)/2;
-				}
-				if( !IsQuote) {
-					binary.Bid = binary.Ask = binary.Price;
-				}
-			}
-			if( HasDepthOfMarket) {
-				fixed( ushort *p = binary.DepthBidLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-				fixed( ushort *p = binary.DepthAskLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-			}
-			return position;
-		}
-		
-		private int FromFileVersion6(BinaryReader reader) {
-			int position = 0;
-			binary.UtcTime = new TimeStamp(reader.ReadDouble()).Internal; position += 8;
-			binary.Bid = reader.ReadInt64(); position += 8;
-			binary.Ask = reader.ReadInt64(); position += 8;
-			ClearContentMask();
-			IsQuote = true;
-			bool dom = reader.ReadBoolean(); position += 1;
-			if( dom) {
-				IsTrade = true;
-				HasDepthOfMarket = true;
-				binary.Side = reader.ReadByte(); position += 1;
-				binary.Price = reader.ReadInt64(); position += 8;
-				if( binary.Price == 0) { binary.Price = (binary.Bid+binary.Ask)/2; }
-				binary.Size = reader.ReadInt32(); position += 4;
-				fixed( ushort *p = binary.DepthBidLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-				fixed( ushort *p = binary.DepthAskLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-			}
-			return position;
-		}
-
-		private int FromFileVersion5(BinaryReader reader) {
-			int position = 0;
-			binary.UtcTime = new TimeStamp(reader.ReadDouble()).Internal; position += 8;
-			binary.Bid = reader.ReadInt32(); position += 4;
-			sbyte spread = reader.ReadSByte();	position += 1;
-			binary.Ask = binary.Bid + spread;
-			binary.Bid*=OlderFormatConvertToLong;
-			binary.Ask*=OlderFormatConvertToLong;
-			ClearContentMask();
-			IsQuote = true;
-			bool hasDOM = reader.ReadBoolean(); position += 1;
-			if( hasDOM) {
-				IsTrade = true;
-				HasDepthOfMarket = true;
-				binary.Price = reader.ReadInt32(); position += 4;
-				binary.Price*=OlderFormatConvertToLong;
-				if( binary.Price == 0) { binary.Price = (binary.Bid+binary.Ask)/2; }
-				binary.Size = reader.ReadUInt16(); position += 2;
-				fixed( ushort *p = binary.DepthBidLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-				fixed( ushort *p = binary.DepthAskLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-			}
-			return position;
-		}
-
-		private int FromFileVersion4(BinaryReader reader) {
-			int position = 0;
-			reader.ReadByte(); position += 1;
- 			// throw away symbol
-			for( int i=0; i<TickBinary.SymbolSize; i++) {
-				reader.ReadChar(); position += 2;
-			}
- 			binary.UtcTime = new TimeStamp(reader.ReadDouble()).Internal; position += 8;
-			binary.Bid = reader.ReadInt32(); position += 4;
-			sbyte spread = reader.ReadSByte();	position += 1;
-			binary.Ask = binary.Bid + spread;
-			binary.Bid*=OlderFormatConvertToLong;
-			binary.Ask*=OlderFormatConvertToLong;
-			ClearContentMask();
-			IsQuote = true;
-			bool hasDOM = reader.ReadBoolean(); position += 1;
-			if( hasDOM) {
-				IsTrade = true;
-				HasDepthOfMarket = true;
-				binary.Side = reader.ReadByte(); position += 1;
-				binary.Price = reader.ReadInt32(); position += 4;
-				binary.Price*=OlderFormatConvertToLong;
-				if( binary.Price == 0) { binary.Price = (binary.Bid+binary.Ask)/2; }
-				binary.Size = reader.ReadUInt16(); position += 2;
-				fixed( ushort *p = binary.DepthBidLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-				fixed( ushort *p = binary.DepthAskLevels) {
-					for( int i=0; i<TickBinary.DomLevels; i++) {
-						*(p+i) = reader.ReadUInt16(); position += 2;
-					}
-				}
-			}
-			return position;
-		}
-
-		private int FromFileVersion3(BinaryReader reader) {
-			int position = 0;
-			DateTime tickTime = DateTime.FromBinary(reader.ReadInt64()); position += 8;
-			binary.UtcTime = new TimeStamp(tickTime.ToLocalTime()).Internal;
-			binary.Bid = reader.ReadInt32(); position += 4;
-			sbyte spread = reader.ReadSByte();	position += 1;
-			binary.Ask = binary.Bid+spread;
-			binary.Bid*=OlderFormatConvertToLong;
-			binary.Ask*=OlderFormatConvertToLong;
-			binary.Side = reader.ReadByte(); position += 1;
-			binary.Price = reader.ReadInt32(); position += 4;
-			binary.Price*=OlderFormatConvertToLong;
-			if( binary.Price == 0) { binary.Price = (binary.Bid+binary.Ask)/2; }
-			binary.Size = reader.ReadUInt16(); position += 2;
-			fixed( ushort *p = binary.DepthBidLevels) {
-				for( int i=0; i<TickBinary.DomLevels; i++) {
-					*(p+i) = reader.ReadUInt16(); position += 2;
-				}
-			}
-			fixed( ushort *p = binary.DepthAskLevels) {
-				for( int i=0; i<TickBinary.DomLevels; i++) {
-					*(p+i) = reader.ReadUInt16(); position += 2;
-				}
-			}
-			ClearContentMask();
-			IsQuote = true;
-			IsTrade = true;
-			HasDepthOfMarket = true;
-			return position;
-		}
-		
-		private int FromFileVersion2(BinaryReader reader) {
-			int position = 0;
-			DateTime tickTime = DateTime.FromBinary(reader.ReadInt64()); position += 8;
-			binary.UtcTime = new TimeStamp(tickTime.ToLocalTime()).Internal;
-			binary.Bid = reader.ReadInt32(); position += 4;
-			sbyte spread = reader.ReadSByte();	position += 1;
-			binary.Ask = binary.Bid+spread;
-			binary.Bid*=OlderFormatConvertToLong;
-			binary.Ask*=OlderFormatConvertToLong;
-			fixed( ushort *p = binary.DepthBidLevels) {
-				*p = (ushort) reader.ReadInt32(); position += 4;
-			}
-			fixed( ushort *p = binary.DepthAskLevels) {
-				*p = (ushort) reader.ReadInt32(); position += 4;
-			}
-			ClearContentMask();
-			IsQuote = true;
-			HasDepthOfMarket = true;
-			binary.Side = (byte) TradeSide.Unknown;
-			binary.Price = (binary.Bid+binary.Ask)/2;
-			binary.Size = 0;
-			return position;
-		}
-		
-		private int FromFileVersion1(BinaryReader reader) {
-			int position = 0;
-			
-			long int64 = reader.ReadInt64() ^ -9223372036854775808L;
-			DateTime tickTime = DateTime.FromBinary(int64); position += 8;
-			TimeStamp timeStamp = (TimeStamp) tickTime.AddHours(-4);
-			binary.UtcTime = timeStamp.Internal;
-			binary.Bid = reader.ReadInt32(); position += 4;
-			sbyte spread = reader.ReadSByte();	position += 1;
-			binary.Ask = binary.Bid+spread;
-			binary.Bid*=OlderFormatConvertToLong;
-			binary.Ask*=OlderFormatConvertToLong;
-			ClearContentMask();
-			IsQuote = true;
-			binary.Price = (binary.Bid+binary.Ask)/2;
-			return position;
-		}
-		
-		public void FromReader(MemoryStream reader) {
-			fixed( byte *fptr = reader.GetBuffer()) {
-				byte *sptr = fptr + reader.Position;
-				byte *ptr = sptr;
-				byte size = *ptr; ptr ++;
-				dataVersion = *ptr; ptr ++;
-				switch( dataVersion) {
-					case 8:
-						ptr += FromFileVersion8(ptr);
-						break;
-					case 9:
-						ptr += FromFileVersion9(ptr,(short)(size-1));
-						break;
-					case 10:
-						ptr += FromFileVersion10(ptr,(short)(size-1));
-						break;
-					default:
-						throw new ApplicationException("Unknown Tick Version Number " + dataVersion);
-				}
-				reader.Position += (int) (ptr - sptr);
-			}
-		}
+        public int FromReader(MemoryStream reader)
+        {
+            if (tickSerializer == null)
+            {
+                tickSerializer = new TickSerializerDefault();
+            }
+            return tickSerializer.FromReader(ref binary, reader);
+        }
 
 		/// <summary>
 		/// Old style FormatReader for legacy versions of TickZoom tck
 		/// data files.
 		/// </summary>
 		public int FromReader(byte dataVersion, BinaryReader reader) {
-			var symbol = binary.Symbol;
-			binary = default(TickBinary);
-			binary.Symbol = symbol;
-			this.dataVersion = dataVersion;
-			int position = 0;
-			switch( dataVersion) {
-				case 1:
-					position += FromFileVersion1(reader);
-					break;
-				case 2:
-					position += FromFileVersion2(reader);
-					break;
-				case 3:
-					position += FromFileVersion3(reader);
-					break;
-				case 4:
-					position += FromFileVersion4(reader);
-					break;
-				case 5:
-					position += FromFileVersion5(reader);
-					break;
-				case 6:
-					position += FromFileVersion6(reader);
-					break;
-				case 7:
-					position += FromFileVersion7(reader);
-					break;
-				default:
-					throw new ApplicationException("Unknown Tick Version Number " + dataVersion);
-			}
-			return position;
+            if (tickSerializer == null)
+            {
+                tickSerializer = new TickSerializerDefault();
+            }
+            return tickSerializer.FromReader(ref binary, dataVersion, reader);
 		}
 		
 		public bool memcmp(ushort* array1, ushort* array2) {
@@ -1002,7 +284,7 @@ namespace TickZoom.TickUtil
 			fixed( ushort*a2 = other.binary.DepthAskLevels) {
 			fixed( ushort*b1 = binary.DepthBidLevels) {
 			fixed( ushort*b2 = other.binary.DepthBidLevels) {
-				return binary.ContentMask == other.binary.ContentMask &&
+				return binary.contentMask == other.binary.contentMask &&
 					binary.UtcTime == other.binary.UtcTime &&
 					binary.Bid == other.binary.Bid &&
 					binary.Ask == other.binary.Ask &&
@@ -1103,13 +385,10 @@ namespace TickZoom.TickUtil
 			return CompareTo(ref other) == 0;
 		}
 		
-		public byte ContentMask {
-			get { return binary.ContentMask; }
-		}
-		
 		public long lBid {
 			get { return binary.Bid; }
 		}
+
 		public long lAsk {
 			get { return binary.Ask; }
 		}
@@ -1135,80 +414,36 @@ namespace TickZoom.TickUtil
 		}
 		
 		public bool IsQuote {
-			get { return (binary.ContentMask & ContentBit.Quote) > 0; }
-			set {
-				if( value ) {
-					binary.ContentMask |= ContentBit.Quote;
-				} else {
-					binary.ContentMask &= (0xFF & ~ContentBit.Quote);
-				}
-			}
+			get { return binary.IsQuote; }
+			set { binary.IsQuote = value; }
 		}
 		
 		public bool IsSimulateTicks {
-			get { return (binary.ContentMask & ContentBit.SimulateTicks) > 0; }
-			set {
-				if( value ) {
-					binary.ContentMask |= ContentBit.SimulateTicks;
-				} else {
-					binary.ContentMask &= (0xFF & ~ContentBit.SimulateTicks);
-				}
-			}
+            get { return binary.IsSimulateTicks; }
+		    set { binary.IsSimulateTicks = value; }
 		}
 		
 		public bool IsTrade {
-			get { return (binary.ContentMask & ContentBit.TimeAndSales) > 0; }
-			set {
-				if( value ) {
-					binary.ContentMask |= ContentBit.TimeAndSales;
-				} else {
-					binary.ContentMask &= (0xFF & ~ContentBit.TimeAndSales);
-				}
-			}
+			get { return binary.IsTrade; }
+            set { binary.IsTrade = value; }
 		}
 
         public bool IsOption
         {
-            get { return (binary.ContentMask & ContentBit.Option) > 0; }
-            set
-            {
-                if (value)
-                {
-                    binary.ContentMask |= ContentBit.Option;
-                }
-                else
-                {
-                    binary.ContentMask &= (0xFF & ~ContentBit.Option);
-                }
-            }
+            get { return binary.IsOption; }
+            set { binary.IsOption = value; }
         }
 
         public OptionType OptionType
         {
-            get { return (binary.ContentMask & ContentBit.CallOrPut) > 0 ? OptionType.Call : OptionType.Put; }
-            set
-            {
-                if (value == OptionType.Call)
-                {
-                    binary.ContentMask |= ContentBit.CallOrPut;
-                }
-                else
-                {
-                    binary.ContentMask &= (0xFF & ~ContentBit.CallOrPut);
-                }
-            }
+            get { return binary.OptionType; }
+            set { binary.OptionType = value; }
         }
 
         public bool HasDepthOfMarket
         {
-			get { return (binary.ContentMask & ContentBit.DepthOfMarket) > 0; }
-			set {
-				if( value ) {
-					binary.ContentMask |= ContentBit.DepthOfMarket;
-				} else {
-					binary.ContentMask &= (0xFF & ~ContentBit.DepthOfMarket);
-				}
-			}
+			get { return binary.HasDepthOfMarket; }
+			set { binary.HasDepthOfMarket = value; }
 		}
 		
 		public object ToPosition() {

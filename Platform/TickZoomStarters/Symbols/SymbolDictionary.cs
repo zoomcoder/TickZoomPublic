@@ -427,6 +427,7 @@ namespace TickZoom.Symbols
           <symbol name=""TST_VR8"" />
           <symbol name=""TST_VR9"" />
           <symbol name=""TST_VR10"" />
+          <symbol name=""TST_VR11"" />
         </category>
       </category>
       <symbol name=""CHF/JPY"" universal=""CHFJPY"" />

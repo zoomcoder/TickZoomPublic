@@ -41,7 +41,12 @@ namespace TickZoom.Api
 	}
 	
 	public interface Serializable {
-		void FromReader(MemoryStream reader);
+        /// <summary>
+        /// Deserialize.
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <returns>the version number of the serialized object.</returns>
+		int FromReader(MemoryStream reader);
 		void ToWriter(MemoryStream memory);
 	}
 	

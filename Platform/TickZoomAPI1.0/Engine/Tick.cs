@@ -130,10 +130,6 @@ namespace TickZoom.Api
 			get;
 		}
 		
-		byte ContentMask {
-			get;
-		}
-
         bool IsOption
         {
             get;

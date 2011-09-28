@@ -37,7 +37,8 @@ namespace TickZoom.Common
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(VerifyFeed));
 		private readonly bool debug = log.IsDebugEnabled;
-		private TickQueue tickQueue = Factory.TickUtil.TickQueue(typeof(VerifyFeed));
+        private readonly bool trace = log.IsTraceEnabled;
+        private TickQueue tickQueue = Factory.TickUtil.TickQueue(typeof(VerifyFeed));
 		private volatile bool isRealTime = false;
 		private TickSync tickSync;
 		private volatile ReceiverState receiverState = ReceiverState.Ready;
@@ -91,6 +92,7 @@ namespace TickZoom.Common
 		public long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout) {
 			return Verify( expectedCount, assertTick, timeout, null);
 		}
+
 		private bool actionAlreadyRun = false;
 		public long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout, Action action)
 		{
@@ -106,9 +108,12 @@ namespace TickZoom.Common
 						tickQueue.RemoveStruct();
 						tickIO.Inject(tickBinary);
 						if (debug && countLog < 5) {
-							log.Debug("Received a tick " + tickIO);
+							log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
 							countLog++;
-						}
+						} else if( trace)
+						{
+                            log.Trace("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+                        }
 						startTime = Factory.TickCount;
 						count++;
 						if (count > 0 && assertTick != null) {
@@ -152,11 +157,16 @@ namespace TickZoom.Common
 					if( tickQueue.TryDequeue(ref tickBinary)) {
 						tickQueue.RemoveStruct();
 						tickIO.Inject(tickBinary);
-						if (debug && countLog < 5) {
-							log.Debug("Received a tick " + tickIO);
-							countLog++;
-						}
-						count++;
+                        if (debug && count < 5)
+                        {
+                            log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+                            countLog++;
+                        }
+                        else if (trace)
+                        {
+                            log.Trace("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+                        }
+                        count++;
 						lastTick.Copy(tickIO);
                         if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
                         {
@@ -177,9 +187,52 @@ namespace TickZoom.Common
 			}
 			return count;
 		}
-		
-		public bool VerifyState(BrokerState expectedBrokerState, ReceiverState expectedSymbolState, int timeout) {
-			if (debug) log.Debug("VerifyFeed");
+
+        public bool VerifyState(ReceiverState expectedSymbolState, int timeout)
+        {
+            if (debug) log.Debug("VerifyState symbol " + expectedSymbolState + ", timeout " + timeout);
+            long startTime = Factory.TickCount;
+            count = 0;
+            TickBinary binary = new TickBinary();
+            while (Factory.TickCount - startTime < timeout * 1000)
+            {
+                if (propagateException != null)
+                {
+                    throw propagateException;
+                }
+                try
+                {
+                    if (!tickQueue.TryDequeue(ref binary))
+                    {
+                        Thread.Sleep(100);
+                    }
+                    else
+                    {
+                        tickQueue.RemoveStruct();
+                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        {
+                            tickSync.RemoveTick();
+                        }
+                    }
+                }
+                catch (QueueException ex)
+                {
+                    if (HandleQueueException(ex))
+                    {
+                        break;
+                    }
+                }
+                if (receiverState == expectedSymbolState)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public bool VerifyState(BrokerState expectedBrokerState, ReceiverState expectedSymbolState, int timeout)
+        {
+			if (debug) log.Debug("VerifyState broker " + expectedBrokerState + ", symbol " + expectedSymbolState + ", timeout " + timeout);
 			long startTime = Factory.TickCount;
 			count = 0;
 			TickBinary binary = new TickBinary();
@@ -387,9 +440,12 @@ namespace TickZoom.Common
 					startTime = Factory.TickCount;
 					tickIO.Inject(tickBinary);
 					if (debug && count < 5) {
-						log.Debug("Received a tick " + tickIO);
+                        log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
 						countLog++;
-					}
+					} else if( trace)
+					{
+                        log.Trace("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+                    }
 					if( count == 0) {
 						log.Notice("First tick received: " + tickIO.ToPosition());
 					}

@@ -324,9 +324,9 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-		byte dataVersion;
+		int dataVersion;
 
-		public byte DataVersion {
+		public int DataVersion {
 			get { return dataVersion; }
 		}
 
@@ -340,7 +340,7 @@ namespace TickZoom.TickUtil
                 // single byte version # was first.
                 if (dataVersion < 8 && size < 8)
                 {
-                    tickIO.FromReader((byte) size, dataIn);
+                    dataVersion = tickIO.FromReader((byte) size, dataIn);
                 }
                 else
                 {
@@ -361,11 +361,7 @@ namespace TickZoom.TickUtil
                         count += bytesRead;
                     }
                     memory.Position = 0;
-                    tickIO.FromReader(memory);
-                    if (dataVersion == 0)
-                    {
-                        dataVersion = tickIO.DataVersion;
-                    }
+                    dataVersion = tickIO.FromReader(memory);
                 }
                 var utcTime = new TimeStamp(tickIO.lUtcTime);
                 tickIO.SetTime(utcTime);
@@ -388,9 +384,6 @@ namespace TickZoom.TickUtil
 				try {
 					if (!CancelPending && TryReadTick()) {
 
-						if (dataVersion == 0) {
-							dataVersion = tickIO.DataVersion;
-						}
 						tick = tickIO.Extract();
 						isDataRead = true;
 

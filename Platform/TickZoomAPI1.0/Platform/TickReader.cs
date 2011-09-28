@@ -47,7 +47,7 @@ namespace TickZoom.Api
 		void Stop(Receiver receiver);
 		bool IsAtStart(TickBinary tick);
 		bool IsAtEnd(TickBinary tick);
-		byte DataVersion { get; }
+		int DataVersion { get; }
 		BackgroundWorker BackgroundWorker { get; set; }
 		Elapsed SessionStart { get; set; }
 		Elapsed SessionEnd { get; set; }

@@ -39,7 +39,7 @@ namespace TickZoom.Api
 		public const int minTickSize = 256;
 		
 		public long Symbol;
-		public byte ContentMask;
+		public byte contentMask;
 	    public long Id;
 		public long UtcTime;
         public long UtcOptionExpiration;
@@ -51,5 +51,217 @@ namespace TickZoom.Api
 		public int Size;
 		public fixed ushort DepthAskLevels[DomLevels];
 		public fixed ushort DepthBidLevels[DomLevels];
-	}
+
+        public bool IsQuote
+        {
+            get { return (contentMask & ContentBit.Quote) > 0; }
+            set
+            {
+                if (value)
+                {
+                    contentMask |= ContentBit.Quote;
+                }
+                else
+                {
+                    contentMask &= (0xFF & ~ContentBit.Quote);
+                }
+            }
+        }
+
+        public bool IsSimulateTicks
+        {
+            get { return (contentMask & ContentBit.SimulateTicks) > 0; }
+            set
+            {
+                if (value)
+                {
+                    contentMask |= ContentBit.SimulateTicks;
+                }
+                else
+                {
+                    contentMask &= (0xFF & ~ContentBit.SimulateTicks);
+                }
+            }
+        }
+
+        public bool IsTrade
+        {
+            get { return (contentMask & ContentBit.TimeAndSales) > 0; }
+            set
+            {
+                if (value)
+                {
+                    contentMask |= ContentBit.TimeAndSales;
+                }
+                else
+                {
+                    contentMask &= (0xFF & ~ContentBit.TimeAndSales);
+                }
+            }
+        }
+
+        public bool IsOption
+        {
+            get { return (contentMask & ContentBit.Option) > 0; }
+            set
+            {
+                if (value)
+                {
+                    contentMask |= ContentBit.Option;
+                }
+                else
+                {
+                    contentMask &= (0xFF & ~ContentBit.Option);
+                }
+            }
+        }
+
+        public OptionType OptionType
+        {
+            get { return (contentMask & ContentBit.CallOrPut) > 0 ? OptionType.Call : OptionType.Put; }
+            set
+            {
+                if (value == OptionType.Call)
+                {
+                    contentMask |= ContentBit.CallOrPut;
+                }
+                else
+                {
+                    contentMask &= (0xFF & ~ContentBit.CallOrPut);
+                }
+            }
+        }
+
+        public bool HasDepthOfMarket
+        {
+            get { return (contentMask & ContentBit.DepthOfMarket) > 0; }
+            set
+            {
+                if (value)
+                {
+                    contentMask |= ContentBit.DepthOfMarket;
+                }
+                else
+                {
+                    contentMask &= (0xFF & ~ContentBit.DepthOfMarket);
+                }
+            }
+        }
+
+        public void SetQuote(double dBid, double dAsk)
+        {
+            SetQuote(dBid.ToLong(), dAsk.ToLong());
+        }
+
+        public void SetQuote(double dBid, double dAsk, short bidSize, short askSize)
+        {
+            try
+            {
+                SetQuote(dBid.ToLong(), dAsk.ToLong(), bidSize, askSize);
+            }
+            catch (OverflowException)
+            {
+                throw new ApplicationException("Overflow exception occurred when converting either bid: " + dBid + " or ask: " + dAsk + " to long.");
+            }
+        }
+
+        public void SetQuote(long lBid, long lAsk)
+        {
+            IsQuote = true;
+            Bid = lBid;
+            Ask = lAsk;
+        }
+
+        public void SetQuote(long lBid, long lAsk, short bidSize, short askSize)
+        {
+            IsQuote = true;
+            HasDepthOfMarket = true;
+            Bid = lBid;
+            Ask = lAsk;
+            fixed (ushort* b = DepthBidLevels)
+            fixed (ushort* a = DepthAskLevels)
+            {
+                *b = (ushort)bidSize;
+                *a = (ushort)askSize;
+            }
+        }
+
+        public void SetTrade(double price, int size)
+        {
+            SetTrade(TradeSide.Unknown, price.ToLong(), size);
+        }
+
+        public void SetTrade(TradeSide side, double price, int size)
+        {
+            SetTrade(side, price.ToLong(), size);
+        }
+
+        public void SetTrade(TradeSide side, long lPrice, int size)
+        {
+            IsTrade = true;
+            Side = (byte)side;
+            Price = lPrice;
+            Size = size;
+        }
+
+        public void SetOption(OptionType optionType, double strikePrice, TimeStamp utcOptionExpiration)
+        {
+            this.IsOption = true;
+            Strike = strikePrice.ToLong();
+            UtcOptionExpiration = utcOptionExpiration.Internal;
+            this.OptionType = optionType;
+        }
+
+        public void SetDepth(short[] bidSize, short[] askSize)
+        {
+            HasDepthOfMarket = true;
+            fixed (ushort* b = DepthBidLevels)
+            fixed (ushort* a = DepthAskLevels)
+            {
+                for (int i = 0; i < TickBinary.DomLevels; i++)
+                {
+                    *(b + i) = (ushort)bidSize[i];
+                    *(a + i) = (ushort)askSize[i];
+                }
+            }
+        }
+
+        public void SetSymbol(long lSymbol)
+        {
+            Symbol = lSymbol;
+        }
+
+        public int BidDepth
+        {
+            get
+            {
+                int total = 0;
+                fixed (ushort* p = DepthBidLevels)
+                {
+                    for (int i = 0; i < TickBinary.DomLevels; i++)
+                    {
+                        total += *(p + i);
+                    }
+                }
+                return total;
+            }
+        }
+
+        public int AskDepth
+        {
+            get
+            {
+                int total = 0;
+                fixed (ushort* p = DepthAskLevels)
+                {
+                    for (int i = 0; i < TickBinary.DomLevels; i++)
+                    {
+                        total += *(p + i);
+                    }
+                }
+                return total;
+            }
+        }
+
+    }
 }
