@@ -203,7 +203,7 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
                 RemoteSequence = OrderStore.RemoteSequence;
-                SendLogin(OrderStore.LocalSequence+100);
+                SendLogin(OrderStore.LocalSequence+500);
                 OrderStore.ForceSnapShot();
             }
             else
