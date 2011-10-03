@@ -57,6 +57,7 @@ namespace TickZoom.Common
         private int remoteSequence = 0;
         private int localSequence = 0;
         private object fileLocker = new object();
+        private static int lockCounter = 0;
 
         public PhysicalOrderStoreDefault(string name)
         {
@@ -102,6 +103,24 @@ namespace TickZoom.Common
             return false;
         }
 
+        public PhysicalOrderLock Lock()
+        {
+            Monitor.Enter(snapshotLocker);
+            Interlocked.Increment(ref lockCounter);
+            return new PhysicalOrderLock(this);
+        }
+
+        public void Unlock()
+        {
+            Monitor.Exit(snapshotLocker);
+            Interlocked.Decrement(ref lockCounter);
+        }
+
+        public static bool IsLocked
+        {
+            get { return lockCounter > 0; }
+        }
+
         public string DatabasePath
         {
             get { return databasePath; }
@@ -111,6 +130,14 @@ namespace TickZoom.Common
         {
             get { return snapshotRolloverSize; }
             set { snapshotRolloverSize = value; }
+        }
+
+        private void AssertAtomic()
+        {
+            if (!PhysicalOrderStoreDefault.IsLocked)
+            {
+                log.Error("Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.\n" + Environment.StackTrace);
+            }
         }
 
         public int RemoteSequence
@@ -125,6 +152,7 @@ namespace TickZoom.Common
 
         private bool AddUniqueOrder(CreateOrChangeOrder order)
         {
+            AssertAtomic();
             int id;
             if( !unique.TryGetValue(order, out id))
             {
@@ -147,7 +175,6 @@ namespace TickZoom.Common
         {
             using( snapshotLocker.Using())
             {
-                if( isDisposed) return;
                 if (writeFileResult != null)
                 {
                     if (writeFileResult.IsCompleted)
@@ -270,7 +297,7 @@ namespace TickZoom.Common
             }
         }
 
-        public IEnumerable<CreateOrChangeOrder> OrderReferences(CreateOrChangeOrder order)
+        private IEnumerable<CreateOrChangeOrder> OrderReferences(CreateOrChangeOrder order)
         {
             if( order.ReplacedBy != null)
             {
@@ -304,6 +331,7 @@ namespace TickZoom.Common
 
         public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
         {
+            AssertAtomic();
             var result = new ActiveList<CreateOrChangeOrder>();
             var list = GetOrders((o) => o.Symbol == symbol);
             foreach (var order in list)
@@ -320,7 +348,10 @@ namespace TickZoom.Common
         {
             try
             {
-                SnapShot();
+               log.Info("SnapshotHandler()");
+                using( Lock()) {
+                    SnapShot();
+                }
             }
             catch (Exception ex)
             {
@@ -449,6 +480,10 @@ namespace TickZoom.Common
                 snapshotLength += memory.Length;
                 log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
                     ", Size = " + memory.Length + ". File Size = " + snapshotLength);
+            }
+            if (isDisposed)
+            {
+                TryClose();
             }
         }
 
@@ -650,7 +685,8 @@ namespace TickZoom.Common
 
         public bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order)
         {
-            if( brokerOrder == null)
+            AssertAtomic();
+            if (brokerOrder == null)
             {
                 order = null;
                 return false;
@@ -663,6 +699,7 @@ namespace TickZoom.Common
 
         public bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order)
         {
+            AssertAtomic();
             if (sequence == 0)
             {
                 order = null;
@@ -676,6 +713,7 @@ namespace TickZoom.Common
 
         public CreateOrChangeOrder GetOrderById(string brokerOrder)
         {
+            AssertAtomic();
             using (ordersLocker.Using())
             {
                 CreateOrChangeOrder order;
@@ -689,6 +727,7 @@ namespace TickZoom.Common
 
         public CreateOrChangeOrder RemoveOrder(string clientOrderId)
         {
+            AssertAtomic();
             if (string.IsNullOrEmpty(clientOrderId))
             {
                 return null;
@@ -717,6 +756,7 @@ namespace TickZoom.Common
 
         public bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order)
         {
+            AssertAtomic();
             using (ordersLocker.Using())
             {
                 return ordersBySerial.TryGetValue(logicalSerialNumber, out order);
@@ -725,6 +765,7 @@ namespace TickZoom.Common
 
         public CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber)
         {
+            AssertAtomic();
             using (ordersLocker.Using())
             {
                 CreateOrChangeOrder order;
@@ -738,6 +779,7 @@ namespace TickZoom.Common
 
         public void UpdateLocalSequence(int localSequence)
         {
+            AssertAtomic();
             using (ordersLocker.Using())
             {
                 this.localSequence = localSequence;
@@ -747,6 +789,7 @@ namespace TickZoom.Common
 
         public void UpdateRemoteSequence(int remoteSequence)
         {
+            AssertAtomic();
             using (ordersLocker.Using())
             {
                 this.remoteSequence = remoteSequence;
@@ -756,6 +799,7 @@ namespace TickZoom.Common
 
         public void SetSequences(int remoteSequence, int localSequence)
         {
+            AssertAtomic();
             this.remoteSequence = remoteSequence;
             this.localSequence = localSequence;
         }
@@ -792,6 +836,7 @@ namespace TickZoom.Common
 
         public void SetOrder(CreateOrChangeOrder order)
         {
+            AssertAtomic();
             using (ordersLocker.Using())
             {
                 if (trace) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
@@ -814,6 +859,7 @@ namespace TickZoom.Common
 
         public List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder,bool> select)
         {
+            AssertAtomic();
             var list = new List<CreateOrChangeOrder>();
             var remove = new List<CreateOrChangeOrder>();
             var now = TimeStamp.UtcNow;
@@ -855,16 +901,14 @@ namespace TickZoom.Common
         {
             if (!isDisposed)
             {
-                if( anySnapShotWritten)
-                {
-                    ForceSnapShot();
-                    WaitForSnapshot();
-                }
-                isDisposed = true;
+                log.Info("Dispose()");
                 if (disposing)
                 {
-                    if (debug) log.Debug("Dispose()");
-                    TryClose();
+                    isDisposed = true;
+                    if (anySnapShotWritten)
+                    {
+                        ForceSnapShot();
+                    }
                 }
             }
         }

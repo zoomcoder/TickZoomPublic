@@ -3,6 +3,18 @@ using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
+    public struct PhysicalOrderLock : IDisposable
+    {
+        private PhysicalOrderCache lockedCache;
+        public PhysicalOrderLock(PhysicalOrderCache cache)
+        {
+            lockedCache = cache;
+        }
+        public void Dispose()
+        {
+            lockedCache.Unlock();
+        }
+    }
     public interface PhysicalOrderCache : IDisposable
     {
         void SetOrder(CreateOrChangeOrder order);
@@ -10,6 +22,8 @@ namespace TickZoom.Api
         Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
         bool HasCancelOrder(PhysicalOrder order);
         bool HasCreateOrder(CreateOrChangeOrder order);
+        PhysicalOrderLock Lock();
+        void Unlock();
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache
@@ -21,7 +35,6 @@ namespace TickZoom.Api
         void TrySnapshot();
         void ForceSnapShot();
         void WaitForSnapshot();
-        IEnumerable<CreateOrChangeOrder> OrderReferences(CreateOrChangeOrder order);
         bool Recover();
         void Clear();
         bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order);

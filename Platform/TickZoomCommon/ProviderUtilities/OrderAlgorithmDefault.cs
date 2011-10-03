@@ -157,9 +157,12 @@ namespace TickZoom.Common
                 physical.Type != OrderType.BuyMarket &&
                 physical.Type != OrderType.SellMarket)
             {
-                physical.OrderState = OrderState.Pending;
                 var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
-                physical.ReplacedBy = cancelOrder;
+                using (physicalOrderCache.Lock())
+                {
+                    physical.OrderState = OrderState.Pending;
+                    physical.ReplacedBy = cancelOrder;
+                }
                 if (physicalOrderCache.HasCancelOrder(cancelOrder))
                 {
                     if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has a cancel or replace already.");
@@ -250,7 +253,6 @@ namespace TickZoom.Common
 			if( difference == 0) {
 				TryCancelBrokerOrder(physical);
 			} else if( difference != physical.Size) {
-				var origBrokerOrder = physical.BrokerOrder;
 				if( strategyPosition == 0) {
 					physicalOrders.Remove(physical);
 					var side = GetOrderSide(logical.Type);
@@ -351,20 +353,6 @@ namespace TickZoom.Common
 			}
 		}
 		
-		private void ProcessMatchPhysicalReversePriceAndSide(LogicalOrder logical, CreateOrChangeOrder createOrChange, int delta, double price) {
-			if( logical.Price.ToLong() != createOrChange.Price.ToLong()) {
-				var origBrokerOrder = createOrChange.BrokerOrder;
-				physicalOrders.Remove(createOrChange);
-				var side = GetOrderSide(logical.Type);
-                var changeOrder = new CreateOrChangeOrderDefault(OrderAction.Change, symbol, logical, side, Math.Abs(delta), price);
-                TryChangeBrokerOrder(changeOrder, createOrChange);
-            }
-            else
-            {
-				VerifySide( logical, createOrChange, price);
-			}
-		}
-
         private void MatchLogicalToPhysicals(LogicalOrder logical, List<CreateOrChangeOrder> matches, Action<LogicalOrder, CreateOrChangeOrder, int, double> onMatchCallback)
         {
             var price = logical.Price.ToLong();
@@ -946,14 +934,11 @@ namespace TickZoom.Common
                 return;
             }
             logicalOrderCache.SetActiveOrders(inputLogicals);
-            using (bufferedLogicalsLocker.Using())
-            {
-				bufferedLogicals.Clear();
-				bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
-			    canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
-			    bufferedLogicalsChanged = true;
-                if( debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ", strategy positions " + strategyPositions.Count);
-			}
+			bufferedLogicals.Clear();
+			bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
+		    canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
+		    bufferedLogicalsChanged = true;
+            if( debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ", strategy positions " + strategyPositions.Count);
 		}
 		
 		public void SetDesiredPosition(	int position) {
@@ -1028,7 +1013,7 @@ namespace TickZoom.Common
                     physicalOrders.Remove(physical.Order.ReplacedBy);
                     physicalOrderCache.RemoveOrder(physical.Order.ReplacedBy.BrokerOrder);
                 }
-			    physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
+                physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
 			}
             else
             {
@@ -1362,15 +1347,12 @@ namespace TickZoom.Common
                 else
                 {
                     if (debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
-                    using (bufferedLogicalsLocker.Using())
+                    originalLogicals.Clear();
+                    if (bufferedLogicals != null)
                     {
-                        originalLogicals.Clear();
-                        if (bufferedLogicals != null)
-                        {
-                            originalLogicals.AddLast(bufferedLogicals);
-                        }
-                        bufferedLogicalsChanged = false;
+                        originalLogicals.AddLast(bufferedLogicals);
                     }
+                    bufferedLogicalsChanged = false;
                 }
             }
 
@@ -1516,10 +1498,13 @@ namespace TickZoom.Common
         {
             if (debug) log.Debug("ConfirmChange(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.SetOrder(order);
-            if( order.OriginalOrder != null)
+            if (order.OriginalOrder != null)
             {
                 physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
-                order.OriginalOrder = null;
+                using (physicalOrderCache.Lock())
+                {
+                    order.OriginalOrder = null;
+                }
             }
             if (isRealTime)
             {
@@ -1573,15 +1558,15 @@ namespace TickZoom.Common
             if (debug) log.Debug("RejectOrder(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
             var origOrder = order.OriginalOrder;
-            if( origOrder != null)
+            if (origOrder != null)
             {
                 origOrder.ReplacedBy = null;
             }
-            if( removeOriginal)
+            if (removeOriginal)
             {
                 physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
             }
-            else if( order.OriginalOrder.OrderState == OrderState.Pending)
+            else if (order.OriginalOrder.OrderState == OrderState.Pending)
             {
                 order.OriginalOrder.OrderState = OrderState.Active;
             }
@@ -1595,9 +1580,9 @@ namespace TickZoom.Common
 		{
             if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
-            if( order.ReplacedBy == null)
+            if (order.ReplacedBy == null)
             {
-                if( debug) log.Debug("CancelOrder w/o any replaced order specified happens normally: " + order + " ");
+                if (debug) log.Debug("CancelOrder w/o any replaced order specified happens normally: " + order + " ");
             }
             else
             {

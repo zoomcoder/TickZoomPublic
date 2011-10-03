@@ -439,17 +439,18 @@ namespace TickZoom.Common
 					}
 					startTime = Factory.TickCount;
 					tickIO.Inject(tickBinary);
-					if (debug && count < 5) {
-                        log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+                    count++;
+                    if (debug && count <= 5)
+                    {
+                        log.Debug("Received tick #" + count + " " + tickIO + " UTC " + tickIO.UtcTime);
 						countLog++;
 					} else if( trace)
 					{
-                        log.Trace("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+                        log.Trace("Received tick #" + count + " " + tickIO + " UTC " + tickIO.UtcTime);
                     }
 					if( count == 0) {
 						log.Notice("First tick received: " + tickIO.ToPosition());
 					}
-					count++;
 					if (count % 1000000 == 0) {
 						log.Notice("Read " + count + " ticks");
 					}

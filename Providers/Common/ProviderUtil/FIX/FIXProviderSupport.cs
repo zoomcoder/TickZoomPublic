@@ -297,15 +297,18 @@ namespace TickZoom.FIX
                             }
                             isResendComplete = true;
                             if (debug) log.Debug("Set resend complete: " + IsResendComplete);
-                            if (OnLogin())
+                            using( orderStore.Lock())
                             {
-                                connectionStatus = Status.PendingLogin;
-                                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-                                IncreaseRetryTimeout();
-                            }
-                            else
-                            {
-                                RegenerateSocket();
+                                if (OnLogin())
+                                {
+                                    connectionStatus = Status.PendingLogin;
+                                    if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+                                    IncreaseRetryTimeout();
+                                }
+                                else
+                                {
+                                    RegenerateSocket();
+                                }
                             }
                             return Yield.DidWork.Repeat;
                         case Status.PendingLogin:
@@ -357,44 +360,50 @@ namespace TickZoom.FIX
                                 switch( messageFIX.MessageType)
                                 {
                                     case "2":
-                                        HandleResend(messageFIX);
+                                        using( orderStore.Lock())
+                                        {
+                                            HandleResend(messageFIX);
+                                        }
                                         break;
                                 }
-                                if (!CheckForMissingMessages(message))
-							    {
-                                    switch( messageFIX.MessageType)
-                                    {
-                                        case "A": //logon
-                                            // Already handled and sequence incremented.
-                                            break; 
-                                        case "2": // resend
-                                            // Already handled and sequence incremented.
-                                            break;
-                                        case "4": // gap fill
-                                            HandleGapFill(messageFIX);
-                                            break;
-                                        case "3": // reject
-                                            HandleReject(messageFIX);
-                                            break;
-                                        case "5": // log off confirm
-                                            if( debug) log.Debug("Log off confirmation received.");
-                                            connectionStatus = Status.Disconnected;
-                                            Dispose();
-                                            break;
-                                        default:
-                                            if( resetAtLogin && messageFIX.IsPossibleDuplicate)
-                                            {
-                                                var transactTime = new TimeStamp(messageFIX.TransactTime);
-                                                var timeSinceLogon = transactTime - utcLogonTime;
-                                                if (timeSinceLogon.TotalMinutes < 0)
+                                using (orderStore.Lock())
+                                {
+                                    if (!CheckForMissingMessages(message))
+							        {
+                                        switch (messageFIX.MessageType)
+                                        {
+                                            case "A": //logon
+                                                // Already handled and sequence incremented.
+                                                break;
+                                            case "2": // resend
+                                                // Already handled and sequence incremented.
+                                                break;
+                                            case "4": // gap fill
+                                                HandleGapFill(messageFIX);
+                                                break;
+                                            case "3": // reject
+                                                HandleReject(messageFIX);
+                                                break;
+                                            case "5": // log off confirm
+                                                if (debug) log.Debug("Log off confirmation received.");
+                                                connectionStatus = Status.Disconnected;
+                                                Dispose();
+                                                break;
+                                            default:
+                                                if (resetAtLogin && messageFIX.IsPossibleDuplicate)
                                                 {
-                                                    throw new ApplicationException("Transact time (field 60) was less than last reset logon time, " + utcLogonTime + " for:\n" + messageFIX);
+                                                    var transactTime = new TimeStamp(messageFIX.TransactTime);
+                                                    var timeSinceLogon = transactTime - utcLogonTime;
+                                                    if (timeSinceLogon.TotalMinutes < 0)
+                                                    {
+                                                        throw new ApplicationException("Transact time (field 60) was less than last reset logon time, " + utcLogonTime + " for:\n" + messageFIX);
+                                                    }
                                                 }
-                                            }
-                                            ReceiveMessage(messageFIX);
-                                            break;
+                                                ReceiveMessage(messageFIX);
+                                                break;
+                                        }
+                                        orderStore.UpdateRemoteSequence(remoteSequence);
                                     }
-                                    orderStore.UpdateRemoteSequence(remoteSequence);
                                 }
                                 Socket.MessageFactory.Release(message);
                                 IncreaseRetryTimeout();
@@ -882,7 +891,10 @@ namespace TickZoom.FIX
                         break;
                     case EventType.PositionChange:
                         PositionChangeDetail positionChange = (PositionChangeDetail)eventDetail;
-                        PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders, positionChange.StrategyPositions);
+                        using( orderStore.Lock())
+                        {
+                            PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders, positionChange.StrategyPositions);
+                        }
                         break;
                     case EventType.Terminate:
                         Dispose();
@@ -943,7 +955,10 @@ namespace TickZoom.FIX
                 if (connectionStatus == Status.Recovered)
                 {
                     connectionStatus = Status.PendingLogOut;
-                    OnLogout();
+                    using( orderStore.Lock())
+                    {
+                        OnLogout();
+                    }
                 }
                 Thread.Sleep(100);
             }

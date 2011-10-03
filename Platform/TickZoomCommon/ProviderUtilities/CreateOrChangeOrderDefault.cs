@@ -60,6 +60,7 @@ namespace TickZoom.Common
 
 	public class CreateOrChangeOrderDefault : CreateOrChangeOrder
 	{
+	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (CreateOrChangeOrderDefault));
 	    private PhysicalOrderBinary binary;
 		
         public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
@@ -226,16 +227,29 @@ namespace TickZoom.Common
 		public double Price {
             get { return binary.price; }
 		}
+
+        private void AssertAtomic()
+        {
+            //if (!PhysicalOrderStoreDefault.IsLocked)
+            //{
+            //    log.Error("Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.\n" + Environment.StackTrace);
+            //}
+        }
 		
 		public int Size {
             get { return binary.size; }
-            set { binary.size = value; }
+            set
+            {
+                AssertAtomic();
+                binary.size = value;
+            }
 		}
 		
 		public string BrokerOrder {
             get { return binary.brokerOrder; }
 			set
 			{
+                AssertAtomic();
                 binary.brokerOrder = value;
 			}
 		}
@@ -257,6 +271,7 @@ namespace TickZoom.Common
             get { return binary.orderState; }
             set
             {
+                AssertAtomic();
                 if (value != binary.orderState)
                 {
                     binary.orderState = value;
@@ -275,12 +290,20 @@ namespace TickZoom.Common
 		
 		public object Reference {
             get { return binary.reference; }
-            set { binary.reference = value; }
+            set
+            {
+                AssertAtomic();
+                binary.reference = value;
+            }
 		}
 
 		public CreateOrChangeOrder ReplacedBy {
             get { return binary.replacedBy; }
-            set { binary.replacedBy = value; }
+            set
+            {
+                AssertAtomic();
+                binary.replacedBy = value;
+            }
 		}
 
         public override bool Equals(object obj)
@@ -291,23 +314,11 @@ namespace TickZoom.Common
             }
             var other = (CreateOrChangeOrder) obj;
             return binary.brokerOrder == other.BrokerOrder;
-            //return logicalOrderId == other.LogicalOrderId && logicalSerialNumber == other.LogicalSerialNumber &&
-            //       action == other.Action && orderState == other.OrderState &&
-            //       lastStateChange == other.LastStateChange && symbol == other.Symbol &&
-            //       type == other.Type && price == other.Price &&
-            //       size == other.Size && side == other.Side &&
-            //       brokerOrder == other.BrokerOrder && utcCreateTime == other.UtcCreateTime;
         }
 
         public override int GetHashCode()
         {
             return binary.brokerOrder.GetHashCode();
-            //return action.GetHashCode() ^ orderState.GetHashCode() ^
-            //       lastStateChange.GetHashCode() ^ symbol.GetHashCode() ^
-            //       type.GetHashCode() ^ price.GetHashCode() ^
-            //       size.GetHashCode() ^ side.GetHashCode() ^
-            //       logicalOrderId.GetHashCode() ^ logicalSerialNumber.GetHashCode() ^
-            //       brokerOrder.GetHashCode() ^ utcCreateTime.GetHashCode();
         }
 
 	    public TimeStamp LastStateChange
@@ -328,13 +339,21 @@ namespace TickZoom.Common
         public CreateOrChangeOrder OriginalOrder
 	    {
             get { return binary.originalOrder; }
-            set { binary.originalOrder = value; }
+            set
+            {
+                AssertAtomic();
+                binary.originalOrder = value;
+            }
 	    }
 
         public int Sequence
         {
             get { return binary.sequence; }
-            set { binary.sequence = value; }
+            set
+            {
+                AssertAtomic();
+                binary.sequence = value;
+            }
         }
 
         #region PhysicalOrder Members
@@ -347,9 +366,7 @@ namespace TickZoom.Common
 
         public OrderFlags OrderFlags
         {
-            get
-            {
-                return binary.orderFlags;}
+            get { return binary.orderFlags; }
         }
         #endregion
     }

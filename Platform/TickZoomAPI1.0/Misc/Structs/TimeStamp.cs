@@ -196,8 +196,10 @@ namespace TickZoom.Api
 		}
 
         private static object originalTimeStampLocker = new object();
-	    private static long originalMicroCounter;
+	    private static long originalSystemClock;
         private static TimeStamp originalTimeStamp;
+	    private static long lastTimeStamp;
+	    private static long adjustedFrequency;
 		
 		public static TimeStamp UtcNow {
 			get {
@@ -205,16 +207,26 @@ namespace TickZoom.Api
                 {
                     lock (originalTimeStampLocker)
                     {
-                        originalTimeStamp = new TimeStamp(DateTime.UtcNow);
+                        var dtUtcNow = DateTime.UtcNow;
+                        originalTimeStamp = new TimeStamp(dtUtcNow);
                         stopWatchFrequency = Stopwatch.Frequency;
-                        var stopwatch = Stopwatch.GetTimestamp();
-                        stopwatch *= 1000000L;
-                        originalMicroCounter = stopwatch / stopWatchFrequency;
+                        adjustedFrequency = (stopWatchFrequency << 20) / 1000000L;
+                        originalSystemClock = Stopwatch.GetTimestamp();
                     }
                 }
                 var result = originalTimeStamp;
-                var change = Stopwatch.GetTimestamp() * 1000000L / stopWatchFrequency - originalMicroCounter;
+			    var clock = Stopwatch.GetTimestamp();
+			    var clockChange = clock - originalSystemClock;
+                var change = (clockChange << 20) / adjustedFrequency;
                 result.AddMicroseconds(change);
+                if( result.Internal < lastTimeStamp - 1800000000) // 30 minutes sanity check.
+                {
+                    throw new InvalidOperationException("timestamp " + result + " was less that last utc now time stamp " + new TimeStamp(lastTimeStamp));
+                }
+                else
+                {
+                    Interlocked.Exchange(ref lastTimeStamp, result.Internal);
+                }
                 return result;
             }
 		}

@@ -43,6 +43,7 @@ namespace Orders
 		ActiveList<LogicalOrder> orders = new ActiveList<LogicalOrder>();
 		TestOrderAlgorithm handler;
 		Strategy strategy;
+        private PhysicalOrderCache physicalCache;
 		
 		public OrderAlgorithmTest() {
 		}
@@ -51,7 +52,8 @@ namespace Orders
 		public void Setup() {
             strategy = new Strategy();
             strategy.Context = new MockContext();
-            handler = new TestOrderAlgorithm(symbol, strategy, ProcessFill);
+            physicalCache = Factory.Utility.PhyscalOrderStore("TestProvider");
+            handler = new TestOrderAlgorithm(symbol, strategy, ProcessFill, physicalCache);
             orders.Clear();
 		}
           
@@ -320,18 +322,22 @@ namespace Orders
 
         private void SetActualSize( int size)
         {
-            if( size > 0)
+            using( physicalCache.Lock())
             {
-                CreateLogicalEntry(OrderType.BuyMarket, 234.12, size);
-            } else
-            {
-               CreateLogicalEntry(OrderType.SellMarket, 234.12, Math.Abs(size));
+                if (size > 0)
+                {
+                    CreateLogicalEntry(OrderType.BuyMarket, 234.12, size);
+                }
+                else
+                {
+                    CreateLogicalEntry(OrderType.SellMarket, 234.12, Math.Abs(size));
+                }
+                handler.SetLogicalOrders(orders);
+                handler.PerformCompare();
+                handler.FillCreatedOrders();
+                orders.Clear();
+                handler.ClearPhysicalOrders();
             }
-            handler.SetLogicalOrders(orders);
-            handler.PerformCompare();
-            handler.FillCreatedOrders();
-            orders.Clear();
-            handler.ClearPhysicalOrders();
         }
             
 		
@@ -1439,10 +1445,12 @@ namespace Orders
 			public List<CreateOrChangeOrder> CreatedOrders = new List<CreateOrChangeOrder>();
 			public List<CreateOrChangeOrder> inputOrders = new List<CreateOrChangeOrder>();
             private PhysicalOrderConfirm confirmOrders;
+		    private PhysicalOrderCache physicalCache;
 			
 			private SymbolInfo symbol;
-			public MockPhysicalOrderHandler(SymbolInfo symbol) {
+			public MockPhysicalOrderHandler(SymbolInfo symbol, PhysicalOrderCache physicalOrderCache) {
 				this.symbol = symbol;
+			    this.physicalCache = physicalOrderCache;
 			}
 
             public bool HasBrokerOrder( CreateOrChangeOrder order)
@@ -1510,16 +1518,24 @@ namespace Orders
 			
 			public void AddPhysicalOrder(OrderState orderState, OrderSide side, OrderType type, double price, int size, int logicalOrderId, string brokerOrder)
 			{
-                var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price, size, logicalOrderId, 0, brokerOrder, null, TimeStamp.UtcNow);
-				inputOrders.Add(order);
-                confirmOrders.ConfirmCreate(order, false);
+                using (physicalCache.Lock())
+                {
+                    var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price,
+                                                              size, logicalOrderId, 0, brokerOrder, null,
+                                                              TimeStamp.UtcNow);
+                    inputOrders.Add(order);
+                    confirmOrders.ConfirmCreate(order, false);
+                }
 			}
 
             public void AddPhysicalOrder(OrderState orderState, OrderSide side, OrderType type, double price, int size, LogicalOrder logicalOrder, string brokerOrder)
             {
-                var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price, size, logicalOrder.Id, logicalOrder.SerialNumber, brokerOrder, null, TimeStamp.UtcNow);
-                inputOrders.Add(order);
-                confirmOrders.ConfirmCreate(order, false);
+                using (physicalCache.Lock())
+                {
+                    var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price, size, logicalOrder.Id, logicalOrder.SerialNumber, brokerOrder, null, TimeStamp.UtcNow);
+                    inputOrders.Add(order);
+                    confirmOrders.ConfirmCreate(order, false);
+                }
             }
 
             public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
@@ -1545,15 +1561,19 @@ namespace Orders
 		    private Iterable<StrategyPosition> strategyPositions = new ActiveList<StrategyPosition>();
 			private SymbolInfo symbol;
 			private Strategy strategy;
-			public TestOrderAlgorithm(SymbolInfo symbol, Strategy strategy, Action<SymbolInfo, LogicalFillBinary> onProcessFill) {
+		    private PhysicalOrderCache physicalCache;
+			public TestOrderAlgorithm(SymbolInfo symbol, Strategy strategy, Action<SymbolInfo, LogicalFillBinary> onProcessFill, PhysicalOrderCache physicalOrderCache) {
                 this.symbol = symbol;
                 this.strategy = strategy;
-                orders = new MockPhysicalOrderHandler(symbol);
+			    this.physicalCache = physicalOrderCache;
+                orders = new MockPhysicalOrderHandler(symbol, physicalCache);
                 var logicalCache = Factory.Engine.LogicalOrderCache(symbol, false);
-                var physicalCache = Factory.Utility.PhyscalOrderStore("TestProvider");
                 orderAlgorithm = Factory.Utility.OrderAlgorithm("test", symbol, orders, logicalCache, physicalCache);
                 orderAlgorithm.OnProcessFill = onProcessFill;
-                orderAlgorithm.TrySyncPosition(new ActiveList<StrategyPosition>());
+                using (physicalOrderCache.Lock())
+                {
+                    orderAlgorithm.TrySyncPosition(new ActiveList<StrategyPosition>());
+                }
                 orders.ConfirmOrders = orderAlgorithm;
 			}
 			public void ClearPhysicalOrders() {
@@ -1577,14 +1597,20 @@ namespace Orders
 
             public void TrySyncPosition()
             {
-                ClearSyncPosition();
-                orderAlgorithm.TrySyncPosition(strategyPositions);
-                FillCreatedOrders();
-                orderAlgorithm.TrySyncPosition(strategyPositions);
+                using( physicalCache.Lock())
+                {
+                    ClearSyncPosition();
+                    orderAlgorithm.TrySyncPosition(strategyPositions);
+                    FillCreatedOrders();
+                    orderAlgorithm.TrySyncPosition(strategyPositions);
+                }
             }
 			public void PerformCompare()
 			{
-				orderAlgorithm.ProcessOrders();
+                using( physicalCache.Lock())
+                {
+                    orderAlgorithm.ProcessOrders();
+                }
 			}
 			
 			public double ActualPosition {
@@ -1602,18 +1628,21 @@ namespace Orders
 
             public void FillCreatedOrders()
             {
-                var ordersCopy = orders.CreatedOrders.ToArray();
-                for(int i = 0; i<ordersCopy.Length; i++)
+                using( physicalCache.Lock())
                 {
-                    var physical = ordersCopy[i];
-                    var price = physical.Price == 0 ? 1234.12 : physical.Price;
-                    var size = physical.Type == OrderType.BuyLimit || physical.Type == OrderType.BuyStop ||
-                               physical.Type == OrderType.BuyMarket
-                                   ? physical.Size
-                                   : -physical.Size;
-                    var fill = Factory.Utility.PhysicalFill(size, physical.Price, TimeStamp.UtcNow, TimeStamp.UtcNow, physical, false, size, size, 0, true);
-                    orders.inputOrders.Remove(physical);
-                    orderAlgorithm.ProcessFill(fill);
+                    var ordersCopy = orders.CreatedOrders.ToArray();
+                    for (int i = 0; i < ordersCopy.Length; i++)
+                    {
+                        var physical = ordersCopy[i];
+                        var price = physical.Price == 0 ? 1234.12 : physical.Price;
+                        var size = physical.Type == OrderType.BuyLimit || physical.Type == OrderType.BuyStop ||
+                                   physical.Type == OrderType.BuyMarket
+                                       ? physical.Size
+                                       : -physical.Size;
+                        var fill = Factory.Utility.PhysicalFill(size, physical.Price, TimeStamp.UtcNow, TimeStamp.UtcNow, physical, false, size, size, 0, true);
+                        orders.inputOrders.Remove(physical);
+                        orderAlgorithm.ProcessFill(fill);
+                    }
                 }
             }
 		}
