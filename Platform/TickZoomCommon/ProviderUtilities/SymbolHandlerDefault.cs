@@ -26,6 +26,7 @@
 
 using System;
 using System.Text;
+using System.Threading;
 using TickZoom.Api;
 
 namespace TickZoom.Common
@@ -56,6 +57,8 @@ namespace TickZoom.Common
         private Pool<TickBinaryBox> tickPool = Factory.TickUtil.TickPool();
         private TimeStamp time;
 	    private int diagnoseMetric = Diagnose.RegisterMetric("Symbol Handler");
+        private long tickCount = 0L;
+        
         
 		public void Start()
 		{
@@ -83,9 +86,9 @@ namespace TickZoom.Common
 		public void SendQuote() {
 			if( isQuoteInitialized || VerifyQuote()) {
 				if( isRunning) {
-					if( symbol.QuoteType != QuoteType.Level1) {
+					if( Symbol.QuoteType != QuoteType.Level1) {
 						if( !errorWrongLevel1Type) {
-							log.Error( "Received " + QuoteType.Level1 + " quote but " + symbol + " is configured for QuoteType = " + symbol.QuoteType + " in the symbol dictionary.");
+							log.Error( "Received " + QuoteType.Level1 + " quote but " + Symbol + " is configured for QuoteType = " + Symbol.QuoteType + " in the symbol dictionary.");
 							errorWrongLevel1Type = true;
 						}
 					} else if( Bid == 0D ) {
@@ -96,7 +99,7 @@ namespace TickZoom.Common
 						return;
 					} else {
 						tickIO.Initialize();
-						tickIO.SetSymbol(symbol.BinaryIdentifier);
+						tickIO.SetSymbol(Symbol.BinaryIdentifier);
 						tickIO.SetTime(Time);
 						tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
 						var box = tickPool.Create();
@@ -104,17 +107,18 @@ namespace TickZoom.Common
 						box.TickBinary = tickIO.Extract();
 					    box.TickBinary.Id = tickId;
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-						while( !receiver.OnEvent(symbol,(int)EventType.Tick,box))
+						while( !receiver.OnEvent(Symbol,(int)EventType.Tick,box))
 						{
 						    Factory.Parallel.Yield();
 						}
+					    Interlocked.Increment(ref tickCount);
                         if( Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
-						if( trace) log.Trace("Sent quote for " + symbol + ": " + tickIO);
+						if( trace) log.Trace("Sent quote for " + Symbol + ": " + tickIO);
 					}
 				}
 			}
 		}
-        
+
         public void AddPosition( double position) {
         	this.position += position;
         }
@@ -147,11 +151,11 @@ namespace TickZoom.Common
             {
                 return;
             }
-            if (symbol.OptionChain != OptionChain.Complete)
+            if (Symbol.OptionChain != OptionChain.Complete)
             {
                 if (!errorOptionChainType)
                 {
-                    log.Error("Received option price but " + symbol + " is configured for TimeAndSales = " + symbol.OptionChain + " in the symbol dictionary.");
+                    log.Error("Received option price but " + Symbol + " is configured for TimeAndSales = " + Symbol.OptionChain + " in the symbol dictionary.");
                     errorOptionChainType = true;
                 }
                 return;
@@ -171,7 +175,7 @@ namespace TickZoom.Common
                 return;
             }
             tickIO.Initialize();
-            tickIO.SetSymbol(symbol.BinaryIdentifier);
+            tickIO.SetSymbol(Symbol.BinaryIdentifier);
             tickIO.SetTime(Time);
             tickIO.SetOption(optionType,strikePrice,utcOptionExpiration);
             if( Last != 0D)
@@ -191,12 +195,13 @@ namespace TickZoom.Common
                 log.Warn("Found trade tick with zero price: " + tickIO);
             }
             salesLatency.TryUpdate(box.TickBinary.Symbol, box.TickBinary.UtcTime);
-            while (!receiver.OnEvent(symbol, (int)EventType.Tick, box))
+            while (!receiver.OnEvent(Symbol, (int)EventType.Tick, box))
             {
                 Factory.Parallel.Yield();
             }
+            Interlocked.Increment(ref tickCount);
             if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
-            if (trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
+            if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);
         }
 
         bool errorWrongTimeAndSalesType = false;
@@ -205,9 +210,9 @@ namespace TickZoom.Common
 			if( !isRunning ) {
 				return;
 			}
-			if( symbol.TimeAndSales != TimeAndSales.ActualTrades) {
+			if( Symbol.TimeAndSales != TimeAndSales.ActualTrades) {
 				if( !errorWrongTimeAndSalesType) {
-					log.Error( "Received " + TimeAndSales.ActualTrades + " trade but " + symbol + " is configured for TimeAndSales = " + symbol.TimeAndSales + " in the symbol dictionary.");
+					log.Error( "Received " + TimeAndSales.ActualTrades + " trade but " + Symbol + " is configured for TimeAndSales = " + Symbol.TimeAndSales + " in the symbol dictionary.");
 					errorWrongTimeAndSalesType = true;
 				}
 				return;
@@ -215,10 +220,10 @@ namespace TickZoom.Common
 			if( !isTradeInitialized && !VerifyTrade()) {
 				return;
 			}
-			if( symbol.QuoteType == QuoteType.Level1) {
+			if( Symbol.QuoteType == QuoteType.Level1) {
 				if( !isQuoteInitialized && !VerifyQuote()) {
 					if( !errorNeverAnyLevel1Tick) {
-						log.Warn( "Found a Trade tick w/o any " + QuoteType.Level1 + " quote yet but " + symbol + " is configured for QuoteType = " + symbol.QuoteType + " in the symbol dictionary.");
+						log.Warn( "Found a Trade tick w/o any " + QuoteType.Level1 + " quote yet but " + Symbol + " is configured for QuoteType = " + Symbol.QuoteType + " in the symbol dictionary.");
 						errorNeverAnyLevel1Tick = true;
 					}
 				} else if( errorNeverAnyLevel1Tick) {
@@ -230,12 +235,12 @@ namespace TickZoom.Common
 				log.Error("Found last trade price was set to " + Last + " so skipping this tick.");
 				return;
 			}
-			if( symbol.TimeAndSales == TimeAndSales.ActualTrades) {
+			if( Symbol.TimeAndSales == TimeAndSales.ActualTrades) {
 				tickIO.Initialize();
-				tickIO.SetSymbol(symbol.BinaryIdentifier);
+				tickIO.SetSymbol(Symbol.BinaryIdentifier);
 				tickIO.SetTime(Time);
 				tickIO.SetTrade(Last,LastSize);
-				if( symbol.QuoteType == QuoteType.Level1 && isQuoteInitialized && VerifyQuote()) {
+				if( Symbol.QuoteType == QuoteType.Level1 && isQuoteInitialized && VerifyQuote()) {
 					tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
 				}
 				var box = tickPool.Create();
@@ -246,12 +251,13 @@ namespace TickZoom.Common
 					log.Warn("Found trade tick with zero price: " + tickIO);
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-				while( !receiver.OnEvent(symbol,(int)EventType.Tick,box))
+				while( !receiver.OnEvent(Symbol,(int)EventType.Tick,box))
 				{
 				    Factory.Parallel.Yield();
 				}
+                Interlocked.Increment(ref tickCount);
                 if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
-                if (trace) log.Trace("Sent trade tick for " + symbol + ": " + tickIO);
+                if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);
 			}
 		}
         
@@ -332,6 +338,16 @@ namespace TickZoom.Common
 	    {
 	        get { return optionType; }
 	        set { optionType = value; }
+	    }
+
+	    public long TickCount
+	    {
+	        get { return Interlocked.Read(ref tickCount); }
+	    }
+
+	    public SymbolInfo Symbol
+	    {
+	        get { return symbol; }
 	    }
 	}
 }

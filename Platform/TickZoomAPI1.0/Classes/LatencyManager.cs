@@ -115,7 +115,7 @@ namespace TickZoom.Api
             {
                 alreadyShowedLog = false;
             }
-		    var showLog = tickCount > 100 && latency > 20000;
+            var showLog = tickCount > 100 && latency > 20000;
             var selectCount = Factory.Provider.Manager.SelectCount;
 		    var roundRobinCounter = Factory.Parallel.RoundRobinCounter;
 		    var earliestCounter = Factory.Parallel.EarliestCounter;

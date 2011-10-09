@@ -418,7 +418,11 @@ namespace TickZoom.FIX
                     }
 				case SocketState.Disconnected:
 					switch( connectionStatus) {
+                        case Status.Connected:
                         case Status.Disconnected:
+                        case Status.New:
+                        case Status.PendingRecovery:
+                        case Status.Recovered:
 							retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 							connectionStatus = Status.PendingRetry;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
@@ -608,14 +612,40 @@ namespace TickZoom.FIX
                 for( var i = previous; i<=end; i++)
                 {
                     CreateOrChangeOrder order;
+                    FIXTMessage1_1 gapMessage;
+                    var sentFlag = false;
                     if( orderStore.TryGetOrderBySequence( i, out order))
                     {
                         if( previous < i)
                         {
-                            var gapMessage = GapFillMessage(previous, i);
+                            gapMessage = GapFillMessage(previous, i);
                             SendMessageInternal(gapMessage);
                         }
                         ResendOrder(order);
+                        sentFlag = true;
+                    }
+                    else if( fixFactory.TryGetHistory( i, out gapMessage))
+                    {
+                        gapMessage.SetDuplicate(true);
+                        switch (gapMessage.Type)
+                        {
+                            case "5": // Logoff
+                                SendMessageInternal(gapMessage);
+                                sentFlag = true;
+                                break;
+                            case "A":
+                            case "2":
+                            case "g":
+                            case "0":
+                            case "AN":
+                                break;
+                            default:
+                                log.Warn("Message type " + gapMessage.Type + " skipped during resend: " + gapMessage);
+                                break;
+                        }
+                    }
+                    if( sentFlag)
+                    {
                         previous = i + 1;
                     }
                 }

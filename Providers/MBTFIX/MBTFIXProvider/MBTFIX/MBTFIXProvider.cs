@@ -406,20 +406,33 @@ namespace TickZoom.MBTFIX
 				throw new ApplicationException( message);
 			}
 		}
-		
-		protected override void TryEndRecovery() {
-            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " + isSessionStatusOnline + ", Resend Complete " + IsResendComplete);
-            if( ConnectionStatus == Status.Recovered) return;
-            if (IsResendComplete && isSessionStatusOnline)
-			{
-                OrderStore.ForceSnapShot();
-                EndRecovery();
-                RequestPositions();
-                StartPositionSync();
-                return;
-			}
-		}
-		
+
+        protected override void TryEndRecovery()
+        {
+            if (debug)
+                log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " +
+                          isSessionStatusOnline + ", Resend Complete " + IsResendComplete);
+            switch (ConnectionStatus)
+            {
+                case Status.Recovered:
+                case Status.PendingLogOut:
+                case Status.PendingLogin:
+                    return;
+                case Status.PendingRecovery:
+                    if (IsResendComplete && isSessionStatusOnline)
+                    {
+                        OrderStore.ForceSnapShot();
+                        EndRecovery();
+                        RequestPositions();
+                        StartPositionSync();
+                        return;
+                    }
+                    break;
+                default:
+                    throw new ApplicationException("Unexpected connection status for TryEndRecovery: " + ConnectionStatus);
+            }
+        }
+
         private string GetOpenOrders()
         {
             var sb = new StringBuilder();

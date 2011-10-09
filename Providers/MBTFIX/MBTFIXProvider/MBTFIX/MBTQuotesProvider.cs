@@ -438,6 +438,17 @@ namespace TickZoom.MBTQuotes
 			string hashString = BitConverter.ToString(hashBytes);
 			return hashString.Replace("-","");
 		}
-		
+
+        protected override void Dispose(bool disposing)
+        {
+            if( debug)
+            {
+                foreach (var handler in symbolHandlers)
+                {
+                    log.Debug(handler.Value.Symbol + " received " + handler.Value.TickCount + " ticks.");
+                }
+            }
+            base.Dispose(disposing);
+        }
 	}
 }

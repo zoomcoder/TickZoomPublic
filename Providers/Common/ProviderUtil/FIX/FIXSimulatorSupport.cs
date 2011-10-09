@@ -206,6 +206,7 @@ namespace TickZoom.FIX
 		{
 			if (this.quoteSocket == socket) {
 				log.Info("Quotes socket disconnect: " + socket);
+			    ShutdownHandlers();
 				CloseQuoteSocket();
 			}
 		}
@@ -863,32 +864,29 @@ namespace TickZoom.FIX
 			GC.SuppressFinalize(this);
 		}
 
+        private void ShutdownHandlers()
+        {
+            if (symbolHandlers != null)
+            {
+                using( symbolHandlersLocker.Using()) {
+                    foreach (var kvp in symbolHandlers)
+                    {
+                        var handler = kvp.Value;
+                        handler.Dispose();
+                    }
+                    symbolHandlers.Clear();
+                }
+            }
+        }
+
 		protected virtual void Dispose(bool disposing)
 		{
 			if (!isDisposed) {
 				isDisposed = true;
 				if (disposing) {
 					if (debug) log.Debug("Dispose()");
+                    ShutdownHandlers();
                     CloseSockets();
-                    if (symbolHandlers != null)
-                    {
-                        if (symbolHandlersLocker.TryLock())
-                        {
-                            try
-                            {
-                                foreach (var kvp in symbolHandlers)
-                                {
-                                    var handler = kvp.Value;
-                                    handler.Dispose();
-                                }
-                                symbolHandlers.Clear();
-                            }
-                            finally
-                            {
-                                symbolHandlersLocker.Unlock();
-                            }
-                        }
-                    }
                     if (fixListener != null)
                     {
                         fixListener.Dispose();

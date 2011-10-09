@@ -438,7 +438,7 @@ namespace TickZoom.Api
             if (node.list == null)
             {
                 locker.Unlock();
-                return true;
+                return false;
             }
             if (node.list != this)
             {

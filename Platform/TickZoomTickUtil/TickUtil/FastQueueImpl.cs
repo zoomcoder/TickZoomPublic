@@ -118,7 +118,7 @@ namespace TickZoom.TickUtil
         		}
         	}
 			instanceLog = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
-			if( debug) log.Debug("Created with capacity " + maxSize);
+			if( trace) log.Trace("Created with capacity " + maxSize);
             if( name is string)
             {
                 this.name = (string) name;
@@ -338,7 +338,7 @@ namespace TickZoom.TickUtil
 	    }
 	    
 	    public void Clear() {
-	    	if( debug) log.Debug("Clear called");
+	    	if( trace) log.Trace("Clear called");
     		while( !SpinLockNB()) ;
 	    	if( !isDisposed) {
 		        queue.Clear();
@@ -415,11 +415,11 @@ namespace TickZoom.TickUtil
 	
 		private bool StartDequeue()
 		{
-			if( debug) log.Debug("StartDequeue called");
+			if( trace) log.Trace("StartDequeue called");
 			if( !SpinLockNB()) return false;
 			isStarted = true;
 			if( StartEnqueue != null) {
-		    	if( debug) log.Debug("Calling StartEnqueue");
+		    	if( trace) log.Trace("Calling StartEnqueue");
 				StartEnqueue();
 			}
 	        SpinUnLock();			

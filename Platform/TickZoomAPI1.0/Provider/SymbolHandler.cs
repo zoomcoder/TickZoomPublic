@@ -78,5 +78,7 @@ namespace TickZoom.Api
 	    double StrikePrice { get; set; }
 	    TimeStamp UtcOptionExpiration { get; set; }
 	    OptionType OptionType { get; set; }
+	    long TickCount { get; }
+	    SymbolInfo Symbol { get; }
 	}
 }

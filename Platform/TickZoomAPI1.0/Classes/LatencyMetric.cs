@@ -62,7 +62,7 @@ namespace TickZoom.Api
 				this.manager = LatencyManager.Register(this, out id, out metricCount, out previous);
 				if( trace) log.Trace( "Registered " + name + " metric (" + id + ") on tick " + new TimeStamp( timeStamp) + ")");
 			}
-            if (debug)
+            if (trace)
             {
                 manager.Log(id, timeStamp);
                 Update(timeStamp);

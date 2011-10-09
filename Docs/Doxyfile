@@ -1383,7 +1383,7 @@ CLASS_DIAGRAMS         = YES
 # the mscgen tool resides. If left empty the tool is assumed to be found in the 
 # default search path.
 
-MSCGEN_PATH            = C:\TickZoom\EngineTools\1.0\Doxygen
+MSCGEN_PATH            = C:\TickZoomHome\ProjectEngine\Tools\1.0\Doxygen
 
 # If set to YES, the inheritance and collaboration graphs will hide 
 # inheritance and usage relations if the target is undocumented 

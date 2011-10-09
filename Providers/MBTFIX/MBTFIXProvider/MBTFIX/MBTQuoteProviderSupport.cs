@@ -387,7 +387,7 @@ namespace TickZoom.MBTQuotes
                             log.Warn("Forces connection state to be: " + connectionStatus);
                             return Yield.NoWork.Repeat;
 					}
-                case SocketState.Disposed:
+                case SocketState.Closed:
                     return Yield.DidWork.Repeat;
                 default:
 					string errorMessage = "Unknown socket state: " + socket.State;
@@ -596,7 +596,16 @@ namespace TickZoom.MBTQuotes
                 if (debug) log.Debug("Dispose()");
 	            isDisposed = true;   
 	            if (disposing) {
-	            	if( socketTask != null) {
+                    if (socket != null)
+                    {
+                        //while (socket.ReceiveQueueCount > 0)
+                        //{
+                        //    Factory.Parallel.Yield();
+                        //}
+                        socket.Dispose();
+                    }
+                    if (socketTask != null)
+                    {
 		            	socketTask.Stop();
                         if( debug) log.Debug("Stopped socket task.");
 	            	}
@@ -605,10 +614,6 @@ namespace TickZoom.MBTQuotes
                         taskTimer.Cancel();
                         if (debug) log.Debug("Stopped task timer.");
                     }
-                    if (socket != null)
-                    {
-		            	socket.Dispose();
-	            	}
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	            }
     		}

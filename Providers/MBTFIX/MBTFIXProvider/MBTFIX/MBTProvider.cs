@@ -36,6 +36,8 @@ namespace TickZoom.MBTFIX
 {
 	public class MBTProvider : TestableProvider
 	{
+	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (MBTProvider));
+	    private static readonly bool debug = log.IsDebugEnabled;
 		private MBTFIXProvider fixProvider;
 		private MBTQuotesProvider quotesProvider;
 		
@@ -85,13 +87,16 @@ namespace TickZoom.MBTFIX
        		if( !isDisposed) {
 	            isDisposed = true;   
 	            if (disposing) {
+                    if( debug) log.Debug("Disposing()");
                     if (quotesProvider != null)
                     {
+                        if (debug) log.Debug("Disposing quotes provider");
                         quotesProvider.Dispose();
                     }
                     if (fixProvider != null)
                     {
-	            		fixProvider.LogOut();
+                        if (debug) log.Debug("Disposing FIX provider");
+                        fixProvider.LogOut();
 	            	}
 	            }
     		}

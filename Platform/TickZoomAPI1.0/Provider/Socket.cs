@@ -32,9 +32,10 @@ namespace TickZoom.Api
 		New,
 		PendingConnect,
 		Connected,
+        Listening,
         Closing,
-		Disconnected,
-		Disposed
+        Disconnected,
+		Closed
 	}
 	
 	[CLSCompliant(false)]

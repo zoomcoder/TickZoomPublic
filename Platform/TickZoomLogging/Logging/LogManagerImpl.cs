@@ -247,8 +247,12 @@ namespace TickZoom.Logging
 		public string LogFolder {
 			get {
                 // get the log directory
-                string logDirectory = Factory.Settings["AppDataFolder"];
-				logDirectory = Path.Combine( logDirectory, "Logs");
+			    var logDirectory = Environment.GetEnvironmentVariable("AppLogFolder");
+                if (logDirectory == null)
+                {
+                    logDirectory = Factory.Settings["AppDataFolder"];
+                    logDirectory = Path.Combine(logDirectory, "Logs");
+                }
 				return logDirectory;
 			}
 		}

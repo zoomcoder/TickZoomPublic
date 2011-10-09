@@ -38,6 +38,7 @@ namespace TickZoom.Common
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(VerifyFeed));
 		private readonly bool debug = log.IsDebugEnabled;
         private readonly bool trace = log.IsTraceEnabled;
+        private readonly bool verbose = log.IsVerboseEnabled;
         private TickQueue tickQueue = Factory.TickUtil.TickQueue(typeof(VerifyFeed));
 		private volatile bool isRealTime = false;
 		private TickSync tickSync;
@@ -99,6 +100,7 @@ namespace TickZoom.Common
 			if (debug) log.Debug("Verify");
             long endTime = Factory.Parallel.TickCount + timeout * 1000;
 			count = 0;
+		    lastTick = Factory.TickUtil.TickIO();
 			while (Factory.Parallel.TickCount < endTime) {
 				if( propagateException != null) {
 					throw propagateException;
@@ -119,7 +121,11 @@ namespace TickZoom.Common
 						if (count > 0 && assertTick != null) {
 							assertTick(tickIO, lastTick, symbol.BinaryIdentifier);
 						}
-						lastTick.Copy(tickIO);
+                        if (count % 5000 == 0)
+                        {
+                            log.Notice("Read " + count + " ticks");
+                        }
+                        lastTick.Copy(tickIO);
 						if( !actionAlreadyRun && action != null) {
 							actionAlreadyRun = true;
 							action();
@@ -148,6 +154,7 @@ namespace TickZoom.Common
 		{
 			if (debug) log.Debug("Wait");
 			long startTime = Factory.Parallel.TickCount;
+		    lastTick = Factory.TickUtil.TickIO();
 			count = 0;
 			while (Factory.Parallel.TickCount - startTime < timeout * 1000) {
 				if( propagateException != null) {
@@ -353,7 +360,7 @@ namespace TickZoom.Common
 		}
 
 		private bool HandleQueueException( QueueException ex) {
-			log.Notice("QueueException: " + ex.EntryType);
+			log.Notice("QueueException: " + ex.EntryType + " with " + count + " ticks so far.");
 			switch (ex.EntryType) {
 				case EventType.StartHistorical:
 					receiverState = ReceiverState.Historical;
@@ -414,9 +421,14 @@ namespace TickZoom.Common
 				}
 				Thread.Sleep(100);
 			}
-			log.Notice("Expected " + expectedTickCount + " and received " + count + " ticks.");
+    		log.Notice("Expected " + expectedTickCount + " and received " + count + " ticks.");
 			log.Notice("Last tick received at : " + tickIO.ToPosition());
-			Dispose();
+            if (count < expectedTickCount)
+            {
+                var queueStats = Factory.TickUtil.GetQueueStats();
+                log.Info(queueStats);
+            }
+            Dispose();
 			if( propagateException != null) {
 				throw propagateException;
 			}
@@ -426,9 +438,6 @@ namespace TickZoom.Common
 		public Yield TimeTheFeedTask()
 		{
 			lock(taskLocker) {
-				if( isDisposed) {
-					return Yield.Terminate;
-				}
 				try {
 					if (!tickQueue.TryDequeue(ref tickBinary)) {
 						return Yield.NoWork.Repeat;
@@ -451,7 +460,7 @@ namespace TickZoom.Common
 					if( count == 0) {
 						log.Notice("First tick received: " + tickIO.ToPosition());
 					}
-					if (count % 1000000 == 0) {
+					if (count % 5000 == 0) {
 						log.Notice("Read " + count + " ticks");
 					}
 					if( SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
@@ -476,13 +485,19 @@ namespace TickZoom.Common
 			return true;
 		}
 
+	    private TickIO debugTick = Factory.TickUtil.TickIO();
 		public bool OnSend(TickBinaryBox o)
 		{
 			bool result = false;
 			try {
 				result = tickQueue.TryEnqueue(ref o.TickBinary);
 				if( result) {
-					tickPool.Free(o);
+                    if (verbose)
+                    {
+                        debugTick.Inject(o.TickBinary);
+                        log.Verbose("Enqueued tick: " + debugTick);
+                    }
+                    tickPool.Free(o);
 				}
 			} catch (QueueException) {
 				// Queue already terminated.
@@ -612,7 +627,6 @@ namespace TickZoom.Common
 		}
 		
 		public bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail) {
-			if( isDisposed) return false;
 			bool result = false;
 			try {
 				switch( (EventType) eventType) {
