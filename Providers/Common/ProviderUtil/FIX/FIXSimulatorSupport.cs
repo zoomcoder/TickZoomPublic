@@ -56,7 +56,7 @@ namespace TickZoom.FIX
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
-	    private int heartbeatDelay = 100; 
+	    private int heartbeatDelay = 1; 
         private ServerState fixState = ServerState.Startup;
         private bool simulateDisconnect = true;
         protected bool simulateSendOrderServerOffline = true;
@@ -99,7 +99,7 @@ namespace TickZoom.FIX
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
-		    var randomSeed = 1234; // new Random().Next(int.MaxValue);
+		    var randomSeed = new Random().Next(int.MaxValue);
             if( randomSeed != 1234)
             {
                 Console.WriteLine("Random seed for fix simulator:" + randomSeed);
@@ -482,7 +482,7 @@ namespace TickZoom.FIX
                                 else
                                 {
                                     remoteSequence = packetFIX.Sequence + 1;
-                                    SendSessionStatus();
+                                    SendSessionStatusOnline();
                                     fixState = ServerState.Recovered;
                                     // Setup disconnect simulation.
                                 }
@@ -513,7 +513,7 @@ namespace TickZoom.FIX
                                     {
                                         // Sequences are synchronized now. Send TradeSessionStatus.
                                         fixState = ServerState.Recovered;
-                                        SendSessionStatus();
+                                        SendSessionStatusOnline();
                                         // Setup disconnect simulation.
                                         nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
                                         if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
@@ -545,24 +545,10 @@ namespace TickZoom.FIX
 			return false;
 		}
 
-        public void SendSessionStatus()
+        private void SendSessionStatusOnline()
         {
-            if (!IsOrderServerOnline)
-            {
-//                var value = random.Next(5);
-//                if (value == 3)
-//                {
-                    SetOrderServerOnline();
-//                }
-            }
-            if( IsOrderServerOnline)
-            {
-                SendSessionStatus("2");
-            }
-            else
-            {
-                SendSessionStatus("3");
-            }
+            SendSessionStatus("2");
+            SetOrderServerOnline();
             log.Info("Current FIX Simulator orders.");
             using( symbolHandlersLocker.Using())
             {
@@ -613,8 +599,7 @@ namespace TickZoom.FIX
 
             var mbtMsg = (FIXMessage4_4)FixFactory.Create();
             mbtMsg.SetEncryption(0);
-            var delayInSeconds = HeartbeatDelay/1000 + 1;
-            mbtMsg.SetHeartBeatInterval(delayInSeconds);
+            mbtMsg.SetHeartBeatInterval(HeartbeatDelay);
             mbtMsg.AddHeader("A");
             if (debug) log.Debug("Sending login response: " + mbtMsg);
             SendMessage(mbtMsg);
@@ -663,11 +648,12 @@ namespace TickZoom.FIX
             }
             if (simulateRecvOrderServerOffline && IsRecovered && FixFactory != null && packetFIX.Sequence >= nextRecvOrderServerOfflineSequence)
             {
-                if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= recv order server offline " + nextRecvOrderServerOfflineSequence+ " so making session status offline.");
+                if (debug) log.Debug("Skipping sequence " + packetFIX.Sequence + " because >= recv order server offline " + nextRecvOrderServerOfflineSequence + " so making session status offline. " + packetFIX);
                 nextRecvOrderServerOfflineSequence = packetFIX.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency) + simulateRecvOrderServerOfflineFrequency;
-                if (debug) log.Debug("Set next order server offline sequence = " + nextRecvOrderServerOfflineSequence);
+                if (debug) log.Debug("Set next recv order server offline sequence = " + nextRecvOrderServerOfflineSequence);
                 SetOrderServerOffline();
                 SendSessionStatus("3"); //offline
+                return true;
             }
             remoteSequence = packetFIX.Sequence + 1;
             if (debug) log.Debug("Received FIX message: " + _fixReadMessage);
@@ -706,21 +692,21 @@ namespace TickZoom.FIX
 
         public void SetOrderServerOnline()
         {
-            foreach( var kvp in symbolHandlers)
-            {
-                var handler = kvp.Value;
-                handler.IsOnline = true;
-            }
+            //foreach (var kvp in symbolHandlers)
+            //{
+            //    var handler = kvp.Value;
+            //    handler.IsOnline = true;
+            //}
             isOrderServerOnline = true;
         }
 
         public void SetOrderServerOffline()
         {
-            foreach (var kvp in symbolHandlers)
-            {
-                var handler = kvp.Value;
-                handler.IsOnline = false;
-            }
+            //foreach (var kvp in symbolHandlers)
+            //{
+            //    var handler = kvp.Value;
+            //    handler.IsOnline = false;
+            //}
             isOrderServerOnline = false;
         }
 
@@ -832,7 +818,7 @@ namespace TickZoom.FIX
         private long heartbeatTimer = long.MaxValue;
 		private void IncreaseHeartbeat(long currentTime) {
 			heartbeatTimer = currentTime;
-		    heartbeatTimer += heartbeatDelay; // 30 seconds.
+		    heartbeatTimer += heartbeatDelay*1000; // 30 seconds.
 		}		
 
 		private void TryRequestHeartbeat(long currentTime) {
@@ -848,7 +834,7 @@ namespace TickZoom.FIX
             if (isConnectionLost) return;
             if (simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)
             {
-                if (debug) log.Debug("Skipping sequence " + fixMessage.Sequence + " because >= send disconnect sequence " + nextSendDisconnectSequence + " and disconnecting. " + fixMessage);
+                if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= send disconnect sequence " + nextSendDisconnectSequence + " so ignoring AND disconnecting.");
                 nextSendDisconnectSequence = fixMessage.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
                 if (trace) log.Trace("Set next disconnect sequence for send = " + nextSendDisconnectSequence);
                 isConnectionLost = true;
@@ -876,10 +862,9 @@ namespace TickZoom.FIX
             {
                 if (debug) log.Debug("Skipping sequence " + fixMessage.Sequence + " because >= send order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline. " + fixMessage);
                 nextSendOrderServerOfflineSequence = fixMessage.Sequence + random.Next(simulateSendOrderServerOfflineFrequency) + simulateSendOrderServerOfflineFrequency;
-                if (trace) log.Trace("Set next order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
+                if (trace) log.Trace("Set next send order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
                 SetOrderServerOffline();
                 SendSessionStatus("3");
-                return;
             }
         }
 

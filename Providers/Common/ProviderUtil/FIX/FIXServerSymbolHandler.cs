@@ -106,13 +106,13 @@ namespace TickZoom.FIX
             }
             else if (tickSync.OnlyReprocessPhysicalOrders)
             {
-                if (debug) log.Debug("Reprocess physical orders - " + tickSync);
+                if (trace) log.Trace("Reprocess physical orders - " + tickSync);
                 FillSimulator.ProcessOrders();
                 tickSync.RemoveReprocessPhysicalOrders();
             }
             else if (tickSync.OnlyProcessPhysicalOrders)
             {
-                if (debug) log.Debug("Process physical orders - " + tickSync);
+                if (trace) log.Trace("Process physical orders - " + tickSync);
                 FillSimulator.StartTick(nextTick);
                 FillSimulator.ProcessOrders();
                 tickSync.RemoveProcessPhysicalOrders();

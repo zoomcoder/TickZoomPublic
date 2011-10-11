@@ -309,6 +309,7 @@ namespace TickZoom.Interceptors
                 while (isOnline && fillQueue.Count > 0)
                 {
                     var fill = fillQueue.Dequeue();
+                    if (debug) log.Debug("Dequeuing fill: " + fill);
                     onPhysicalFill(fill);
                 }
             }
@@ -717,10 +718,10 @@ namespace TickZoom.Interceptors
             //    onPositionChange( actualPosition);
             //}
 			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills, totalSize, cumulativeSize, remainingSize, false);
-			if( debug) log.Debug("Fill: " + fill );
-			if( SyncTicks.Enabled) tickSync.AddPhysicalFill(fill);
-		    fillQueue.Enqueue( fill);
-		}
+			if( debug) log.Debug("Enqueuing fill: " + fill );
+            if (SyncTicks.Enabled) tickSync.AddPhysicalFill(fill);
+            fillQueue.Enqueue(fill);
+        }
 		
 		public bool UseSyntheticLimits {
 			get { return useSyntheticLimits; }

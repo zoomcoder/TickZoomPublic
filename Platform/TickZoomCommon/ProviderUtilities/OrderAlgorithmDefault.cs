@@ -123,32 +123,6 @@ namespace TickZoom.Common
 			return physicalOrderMatches;
 		}
 		
-		private bool TryMatchTypeOnly( LogicalOrder logical, out CreateOrChangeOrder createOrChangeOrder) {
-			double difference = logical.Position - Math.Abs(actualPosition);
-		    var next = originalPhysicals.First;
-		    for (var current = next; current != null; current = next)
-		    {
-		        next = current.Next;
-		        var physical = current.Value;
-				if( logical.Type == physical.Type) {
-					if( logical.TradeDirection == TradeDirection.Entry) {
-						if( difference != 0) {
-							createOrChangeOrder = physical;
-							return true;
-						}
-					}
-					if( logical.TradeDirection == TradeDirection.Exit) {
-						if( actualPosition != 0) {
-							createOrChangeOrder = physical;
-							return true;
-						}
-					}
-				}
-			}
-			createOrChangeOrder = default(CreateOrChangeOrder);
-			return false;
-		}
-
         private bool TryCancelBrokerOrder(CreateOrChangeOrder physical)
         {
 			bool result = false;
@@ -285,7 +259,6 @@ namespace TickZoom.Common
 					}
 				}
 			} else if( price.ToLong() != physical.Price.ToLong()) {
-				var origBrokerOrder = physical.BrokerOrder;
 				physicalOrders.Remove(physical);
 				var side = GetOrderSide(logical.Type);
                 var changeOrder = new CreateOrChangeOrderDefault(OrderAction.Change, symbol, logical, side, difference, price);
@@ -1017,7 +990,8 @@ namespace TickZoom.Common
 
 			if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
-				originalPhysicals.Remove(physical.Order);
+                physical.Order.OrderState = OrderState.Filled;
+                originalPhysicals.Remove(physical.Order);
                 physicalOrders.Remove(physical.Order);
                 if (physical.Order.ReplacedBy != null)
                 {
@@ -1344,9 +1318,10 @@ namespace TickZoom.Common
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
 
-            if (CheckForPending())
+		    var hasPendingOrders = CheckForPending();
+            if (hasPendingOrders)
             {
-                if (debug) log.Debug("Found pending physical orders. Skipping compare.");
+                if (debug) log.Debug("Found pending physical orders. So only allow cancel orders.");
                 return;
             }
 
@@ -1425,12 +1400,13 @@ namespace TickZoom.Common
 				return;
 			}
 
-			if( trace) log.Trace("Found " + extraLogicals.Count + " extra logicals.");
-			while( extraLogicals.Count > 0) {
-				var logical = extraLogicals[0];
-				ProcessExtraLogical(logical);
-				extraLogicals.Remove(logical);
-			}
+            if (trace) log.Trace("Found " + extraLogicals.Count + " extra logicals.");
+            while (extraLogicals.Count > 0)
+            {
+                var logical = extraLogicals[0];
+                ProcessExtraLogical(logical);
+                extraLogicals.Remove(logical);
+            }
 		}
 
         private void LogOrders( Iterable<CreateOrChangeOrder> orders, string name)

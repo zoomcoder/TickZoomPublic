@@ -217,7 +217,11 @@ namespace TickZoom.MBTFIX
 
         public override void OnLogout()
         {
-            if (isDisposed) return;
+            if (isDisposed)
+            {
+                if( debug) log.Debug("OnLogOut() already disposed.");
+                return;
+            }
             var mbtMsg = FixFactory.Create();
             mbtMsg.AddHeader("5");
             SendMessage(mbtMsg);
@@ -282,12 +286,9 @@ namespace TickZoom.MBTFIX
                 var sb = new StringBuilder();
                 foreach( var order in list)
                 {
-//                    var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
-//                    algorithm.IsPositionSynced = false;
-//                    algorithm.RemovePending(order, IsRecovered);
                     sb.AppendLine(order.ToString());
                 }
-                log.Error("Removed these orders that were still pending since " + expiryLimit + "\n" + sb);
+                log.Error("Found these orders that were still pending since " + expiryLimit + "\n" + sb);
                 var message = "Found orders still pending since " + expiryLimit + " seconds. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
                 log.Error(message);
                 Dispose();
@@ -611,7 +612,7 @@ namespace TickZoom.MBTFIX
                             log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity + ". This is a workaround for a MBT FIX server which sends an extra invalid fill message on occasion.");
                             break;
                         }
-                        order = UpdateOrder(packetFIX, OrderState.Filled, null);
+                        order = UpdateOrder(packetFIX, OrderState.Active, null);
                         if( order != null && order.ReplacedBy != null)
                         {
                             OrderStore.RemoveOrder(order.ReplacedBy.BrokerOrder);
@@ -876,10 +877,6 @@ namespace TickZoom.MBTFIX
 				    var configTime = executionTime;
 				    configTime.AddSeconds( timeZone.UtcOffset(executionTime));
                     var fill = Factory.Utility.PhysicalFill(fillPosition, packetFIX.LastPrice, configTime, executionTime, order, false, packetFIX.OrderQuantity, packetFIX.CumulativeQuantity, packetFIX.LeavesQuantity, IsRecovered);
-                    if( packetFIX.LeavesQuantity == 0)
-                    {
-                        order.OrderState = OrderState.Filled;
-                    }
 				    if( debug) log.Debug( "Sending physical fill: " + fill);
 	                algorithm.ProcessFill( fill);
                 }

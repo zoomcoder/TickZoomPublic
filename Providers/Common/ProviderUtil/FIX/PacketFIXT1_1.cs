@@ -234,11 +234,12 @@ namespace TickZoom.FIX
 			if( negative) {
 				++ptr;
 			}
-	        val = *ptr - ZeroChar;
-	        while (*(++ptr) != EndOfField) {
-	        	if( ptr >= end) return false;
+		    val = 0;
+	        while (*(ptr) != EndOfField) {
 	        	val = val * 10 + *ptr - ZeroChar;
-	        }
+	            ptr++;
+                if (ptr >= end) return false;
+            }
 	        ++ptr;
 	        if( negative) val *= -1;
             if (verbose) log.Verbose("int = " + val);

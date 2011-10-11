@@ -985,6 +985,7 @@ namespace TickZoom.FIX
             }
             while (!isDisposed)
             {
+                if( debug) log.Debug("LogOut() status " + connectionStatus);
                 switch( connectionStatus)
                 {
                     case Status.Connected:
@@ -992,14 +993,17 @@ namespace TickZoom.FIX
                     case Status.New:
                     case Status.None:
                     case Status.PendingLogin:
-                    case Status.PendingLogOut:
                     case Status.PendingRetry:
+                        Dispose();
+                        break;
+                    case Status.PendingLogOut:
                         break;
                     case Status.Recovered:
                     case Status.PendingRecovery:
                         connectionStatus = Status.PendingLogOut;
                         using( orderStore.Lock())
                         {
+                            if (debug) log.Debug("Calling OnLogOut()");
                             OnLogout();
                         }
                         break;
