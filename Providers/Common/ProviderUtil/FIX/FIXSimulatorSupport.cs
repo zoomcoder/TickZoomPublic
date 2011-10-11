@@ -692,21 +692,21 @@ namespace TickZoom.FIX
 
         public void SetOrderServerOnline()
         {
-            //foreach (var kvp in symbolHandlers)
-            //{
-            //    var handler = kvp.Value;
-            //    handler.IsOnline = true;
-            //}
+            foreach (var kvp in symbolHandlers)
+            {
+                var handler = kvp.Value;
+                handler.IsOnline = true;
+            }
             isOrderServerOnline = true;
         }
 
         public void SetOrderServerOffline()
         {
-            //foreach (var kvp in symbolHandlers)
-            //{
-            //    var handler = kvp.Value;
-            //    handler.IsOnline = false;
-            //}
+            foreach (var kvp in symbolHandlers)
+            {
+                var handler = kvp.Value;
+                handler.IsOnline = false;
+            }
             isOrderServerOnline = false;
         }
 

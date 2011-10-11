@@ -949,15 +949,21 @@ namespace TickZoom.Common
 			}
 			return result;
 		}
-		
-		private LogicalOrder FindLogicalOrder(long serialNumber) {
-		    for (var current = originalLogicals.First; current != null; current = current.Next)
-		    {
-		        var order = current.Value;
-				if( order.SerialNumber == serialNumber) {
-					return order;
-				}
-			}
+
+        private LogicalOrder FindActiveLogicalOrder(long serialNumber)
+        {
+            for (var current = originalLogicals.First; current != null; current = current.Next)
+            {
+                var order = current.Value;
+                if (order.SerialNumber == serialNumber)
+                {
+                    return order;
+                }
+            }
+            return null;
+        }
+
+        private LogicalOrder FindHistoricalLogicalOrder(long serialNumber) {
             for (var current = canceledLogicals.Last; current != null; current = current.Previous)
             {
                 var order = current.Value;
@@ -969,7 +975,7 @@ namespace TickZoom.Common
             {
                 canceledLogicals.RemoveFirst();
             }
-            throw new ApplicationException("LogicalOrder was not found for order serial number: " + serialNumber);
+		    return null;
 		}
 
         private void TryCleanCanceledLogicals()
@@ -986,10 +992,19 @@ namespace TickZoom.Common
             actualPosition += physical.Size;
             if( debug) log.Debug("Updating actual position from " + beforePosition + " to " + actualPosition + " from fill size " + physical.Size);
 			var isCompletePhysicalFill = physical.RemainingSize == 0;
-            var isFilledAfterCancel = physical.Order.ReplacedBy != null &&
-                                      physical.Order.ReplacedBy.Action == OrderAction.Cancel;
+            var isFilledAfterCancel = false;
+            TryFlushBufferedLogicals();
+            var logical = FindActiveLogicalOrder(physical.Order.LogicalSerialNumber);
+            if( logical == null)
+            {
+                logical = FindHistoricalLogicalOrder(physical.Order.LogicalSerialNumber);
+                if( logical != null)
+                {
+                    isFilledAfterCancel = true;
+                }
+            }
 
-			if( isCompletePhysicalFill) {
+		    if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
                 physical.Order.OrderState = OrderState.Filled;
                 originalPhysicals.Remove(physical.Order);
@@ -1021,18 +1036,20 @@ namespace TickZoom.Common
                 return;
             } else {
     		    LogicalFillBinary fill;
-                try
-                {
-                    var logical = FindLogicalOrder(physical.Order.LogicalSerialNumber);
+                if( logical != null) {
                     desiredPosition += physical.Size;
                     if (debug) log.Debug("Adjusting symbol position to desired " + desiredPosition + ", physical fill was " + physical.Size);
                     var position = logical.StrategyPosition + physical.Size;
                     if (debug) log.Debug("Creating logical fill with position " + position + " from strategy position " + logical.StrategyPosition);
+                    if( position != logical.Position)
+                    {
+                        if( debug) log.Debug("strategy position " + position + " differs from logical order position " + logical.Position + " for " + logical);
+                    }
                     var strategyPosition = (StrategyPositionDefault)logical.Strategy;
                     fill = new LogicalFillBinary(
                         position, strategyPosition.Recency + 1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
                 }
-                catch (ApplicationException)
+                else
                 {
                     log.Info("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
                     if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
@@ -1042,7 +1059,7 @@ namespace TickZoom.Common
                     return;
                 }
                 if (debug) log.Debug("Fill price: " + fill);
-                ProcessFill(fill, isCompletePhysicalFill, physical.IsRealTime);
+                ProcessFill(fill, logical, isCompletePhysicalFill, physical.IsRealTime);
             }
 		}		
 
@@ -1116,7 +1133,7 @@ namespace TickZoom.Common
 			if( SyncTicks.Enabled) tickSync.RemovePhysicalFill(fill);
 		}
 		
-		private void ProcessFill( LogicalFillBinary fill, bool isCompletePhysicalFill, bool isRealTime) {
+		private void ProcessFill( LogicalFillBinary fill, LogicalOrder filledOrder, bool isCompletePhysicalFill, bool isRealTime) {
 			if( debug) log.Debug( "ProcessFill() logical: " + fill + (!isRealTime ? " NOTE: This is NOT a real time fill." : ""));
 			int orderId = fill.OrderId;
 			if( orderId == 0) {
@@ -1124,8 +1141,7 @@ namespace TickZoom.Common
 				// Position gets set via SetPosition instead.
 				return;
 			}
-			
-			var filledOrder = FindLogicalOrder( fill.OrderSerialNumber);
+
 			if( debug) log.Debug( "Matched fill with order: " + filledOrder);
 
             var strategyPosition = filledOrder.StrategyPosition;
@@ -1213,7 +1229,6 @@ namespace TickZoom.Common
             originalLogicals.Remove(order);
         }
 
-
 		private void CleanupAfterFill(LogicalOrder filledOrder) {
 			bool clean = false;
 			bool cancelAllEntries = false;
@@ -1248,10 +1263,8 @@ namespace TickZoom.Common
 			}
 			if( clean) {
                 TryCleanCanceledLogicals();
-			    var next = logicalOrders.First;
-			    for (var current = next; current != null; current = next)
+			    for (var current = originalLogicals.First; current != null; current = current.Next)
 			    {
-			        next = current.Next;
 			        var order = current.Value;
 					if( order.StrategyId == filledOrder.StrategyId) {
 						switch( order.TradeDirection) {
@@ -1327,24 +1340,7 @@ namespace TickZoom.Common
                 return;
             }
 
-            if( bufferedLogicalsChanged)
-            {
-                if (CheckForFilledOrders(bufferedLogicals))
-                {
-                    if (debug) log.Debug("Found already filled orders in position change event. Ignoring until recent fills get posted.");
-                    bufferedLogicalsChanged = false;
-                }
-                else
-                {
-                    if (debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
-                    originalLogicals.Clear();
-                    if (bufferedLogicals != null)
-                    {
-                        originalLogicals.AddLast(bufferedLogicals);
-                    }
-                    bufferedLogicalsChanged = false;
-                }
-            }
+		    TryFlushBufferedLogicals();
 
             if (debug)
             {
@@ -1353,15 +1349,10 @@ namespace TickZoom.Common
 
             if (debug)
             {
-                var next = originalLogicals.First;
-                for (var node = next; node != null; node = node.Next)
-                {
-                    var order = node.Value;
-                    log.Debug("Logical Order: " + order);
-                }
+                LogOrders(originalLogicals, "Original Logical");
+                LogOrders(originalPhysicals, "Original Physical");
             }
 
-            LogOrders(originalPhysicals,"Original Physical");
             logicalOrders.Clear();
 			logicalOrders.AddLast(originalLogicals);
 			
@@ -1410,6 +1401,37 @@ namespace TickZoom.Common
                 extraLogicals.Remove(logical);
             }
 		}
+
+        private void TryFlushBufferedLogicals()
+        {
+            if (bufferedLogicalsChanged)
+            {
+                if (CheckForFilledOrders(bufferedLogicals))
+                {
+                    if (debug) log.Debug("Found already filled orders in position change event. Ignoring until recent fills get posted.");
+                    bufferedLogicalsChanged = false;
+                }
+                else
+                {
+                    if (debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
+                    originalLogicals.Clear();
+                    if (bufferedLogicals != null)
+                    {
+                        originalLogicals.AddLast(bufferedLogicals);
+                    }
+                    bufferedLogicalsChanged = false;
+                }
+            }
+        }
+
+        private void LogOrders( Iterable<LogicalOrder> orders, string name)
+        {
+            for (var node = orders.First; node != null; node = node.Next)
+            {
+                var order = node.Value;
+                log.Debug("Logical Order: " + order);
+            }
+        }
 
         private void LogOrders( Iterable<CreateOrChangeOrder> orders, string name)
         {
@@ -1552,14 +1574,14 @@ namespace TickZoom.Common
             if (origOrder != null)
             {
                 origOrder.ReplacedBy = null;
-            }
-            if (removeOriginal)
-            {
-                physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
-            }
-            else if (order.OriginalOrder.OrderState == OrderState.Pending)
-            {
-                order.OriginalOrder.OrderState = OrderState.Active;
+                if (removeOriginal)
+                {
+                    physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
+                }
+                else if (origOrder.OrderState == OrderState.Pending)
+                {
+                    origOrder.OrderState = OrderState.Active;
+                }
             }
             if (SyncTicks.Enabled)
             {
