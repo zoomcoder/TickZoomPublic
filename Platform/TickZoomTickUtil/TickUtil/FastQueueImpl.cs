@@ -112,11 +112,11 @@ namespace TickZoom.TickUtil
         		disableBackupLogging = true;
         	}
         	var nameString = name as string;
-        	if( !string.IsNullOrEmpty(nameString)) {
-        		if( nameString.Contains("-Receive")) {
+            //if( !string.IsNullOrEmpty(nameString)) {
+            //    if( nameString.Contains("-Receive")) {
 	        		backupLevel = backupInitial = 900;
-        		}
-        	}
+            //    }
+            //}
 			instanceLog = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
 			if( trace) log.Trace("Created with capacity " + maxSize);
             if( name is string)

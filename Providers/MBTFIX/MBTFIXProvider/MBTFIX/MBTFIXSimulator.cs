@@ -158,13 +158,13 @@ namespace TickZoom.MBTFIX
 			if( order.Side != origOrder.Side) {
 				var message = "Cannot change " + origOrder.Side + " to " + order.Side;
 				log.Error( message);
-				OnRejectOrder(origOrder,false,message);
+				OnRejectOrder(order,false,message);
 				return;     
 			}
 			if( order.Type != origOrder.Type) {
 				var message = "Cannot change " + origOrder.Type + " to " + order.Type;
 				log.Error( message);
-				OnRejectOrder(origOrder,false,message);
+				OnRejectOrder(order,false,message);
 				return;     
 			}
 			ChangeOrder(order);

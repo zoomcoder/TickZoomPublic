@@ -71,26 +71,26 @@ namespace TickZoom.Interceptors
 		}
 	
 		public void ProcessFill(StrategyInterface strategyInterface, LogicalFill fill) {
-			if( debug) log.Debug( "ProcessFill: " + fill + " for strategy " + strategyInterface);
+			if( trace) log.Trace( "ProcessFill: " + fill + " for strategy " + strategyInterface);
 			var strategy = (Strategy) strategyInterface;
 			int orderId = fill.OrderId;
 			LogicalOrder filledOrder = null;
 			if( strategyInterface.TryGetOrderById( fill.OrderId, out filledOrder)) {
-				if( debug) log.Debug( "Matched fill with orderId: " + orderId);
+				if( trace) log.Trace( "Matched fill with orderId: " + orderId);
 				if( !doStrategyOrders && filledOrder.TradeDirection != TradeDirection.ExitStrategy ) {
-					if( debug) log.Debug( "Skipping fill, strategy order fills disabled.");
+                    if (trace) log.Trace("Skipping fill, strategy order fills disabled.");
 					return;
 				}
 				if( !doExitStrategyOrders && filledOrder.TradeDirection == TradeDirection.ExitStrategy) {
-					if( debug) log.Debug( "Skipping fill, exit strategy orders fills disabled.");
+                    if (trace) log.Trace("Skipping fill, exit strategy orders fills disabled.");
 					return;
 				}
 				TryDrawTrade(filledOrder, fill);
-				if( debug) log.Debug( "Changed strategy position to " + fill.Position + " because of fill.");
+                if (trace) log.Trace("Changed strategy position to " + fill.Position + " because of fill.");
 				changePosition(strategy.Data.SymbolInfo,fill);
                 if( fill.Recency > strategy.Recency)
                 {
-                    if( debug) log.Debug("strategy recency now " + fill.Recency);
+                    if (trace) log.Trace("strategy recency now " + fill.Recency);
                     strategy.Recency = fill.Recency+1;
                 }
 			} else {
