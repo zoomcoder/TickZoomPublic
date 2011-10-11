@@ -24,6 +24,7 @@ namespace TickZoom.Api
         bool HasCreateOrder(CreateOrChangeOrder order);
         PhysicalOrderLock Lock();
         void Unlock();
+        void ResetLastChange();
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

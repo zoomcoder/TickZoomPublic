@@ -825,6 +825,19 @@ namespace TickZoom.Common
 				   order.Type != OrderType.SellMarket) {
 					continue;
 				}
+			    switch (order.OrderState) 
+			    {
+                    case OrderState.Filled:
+                    case OrderState.Lost:
+			            continue;
+                    case OrderState.Active:
+                    case OrderState.Pending:
+                    case OrderState.PendingNew:
+                    case OrderState.Suspended:
+			            break;
+                    default:
+                        throw new ApplicationException("Unknown order state: " + order.OrderState);
+			    }
 				if( order.LogicalOrderId == 0) {
 					if( order.Type == OrderType.BuyMarket) {
 						pendingAdjustments += order.Size;
@@ -1575,8 +1588,22 @@ namespace TickZoom.Common
                 tickSync.RemovePhysicalOrder(order);
             }
         }
-		
-		public void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime)
+
+        public void RemovePending(CreateOrChangeOrder order, bool isRealTime)
+        {
+            if (debug) log.Debug("RemovePending(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            order.OrderState = OrderState.Lost;
+            if (isRealTime)
+            {
+                PerformCompareProtected();
+            }
+            if (SyncTicks.Enabled)
+            {
+                tickSync.RemovePhysicalOrder(order);
+            }
+        }
+
+        public void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime)
 		{
             if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);

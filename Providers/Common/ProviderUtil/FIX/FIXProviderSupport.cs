@@ -73,7 +73,7 @@ namespace TickZoom.FIX
         public abstract void OnLogout();
         private string providerName;
 		private long heartbeatTimeout;
-		private int heartbeatDelay;
+		private long heartbeatDelay;
 		private bool logRecovery = true;
         private string configFilePath;
         private string configSection;
@@ -233,6 +233,7 @@ namespace TickZoom.FIX
 			connectionStatus = Status.Recovered;
 		    bestConnectionStatus = Status.Recovered;
 			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            OrderStore.ResetLastChange();
             OnFinishRecovery();
         }
 		
@@ -417,7 +418,9 @@ namespace TickZoom.FIX
                             throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
                     }
 				case SocketState.Disconnected:
-					switch( connectionStatus) {
+                case SocketState.Closed:
+                    switch (connectionStatus)
+                    {
                         case Status.Connected:
                         case Status.Disconnected:
                         case Status.New:
@@ -982,13 +985,26 @@ namespace TickZoom.FIX
             }
             while (!isDisposed)
             {
-                if (connectionStatus == Status.Recovered)
+                switch( connectionStatus)
                 {
-                    connectionStatus = Status.PendingLogOut;
-                    using( orderStore.Lock())
-                    {
-                        OnLogout();
-                    }
+                    case Status.Connected:
+                    case Status.Disconnected:
+                    case Status.New:
+                    case Status.None:
+                    case Status.PendingLogin:
+                    case Status.PendingLogOut:
+                    case Status.PendingRetry:
+                        break;
+                    case Status.Recovered:
+                    case Status.PendingRecovery:
+                        connectionStatus = Status.PendingLogOut;
+                        using( orderStore.Lock())
+                        {
+                            OnLogout();
+                        }
+                        break;
+                    default:
+                        throw new ApplicationException("Unexpected connection status for log out: " + connectionStatus);
                 }
                 Thread.Sleep(100);
             }
@@ -1039,7 +1055,7 @@ namespace TickZoom.FIX
 			set { retryMaximum = value; }
 		}
 		
-		public int HeartbeatDelay {
+		public long HeartbeatDelay {
 	    	get { return heartbeatDelay; }
 			set { heartbeatDelay = value;
 				IncreaseRetryTimeout();

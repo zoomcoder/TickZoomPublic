@@ -861,8 +861,6 @@ namespace TickZoom.Common
         {
             AssertAtomic();
             var list = new List<CreateOrChangeOrder>();
-            var remove = new List<CreateOrChangeOrder>();
-            var now = TimeStamp.UtcNow;
             using (ordersLocker.Using())
             {
                 foreach (var kvp in ordersByBrokerId)
@@ -875,6 +873,20 @@ namespace TickZoom.Common
                 }
             }
             return list;
+        }
+
+        public void ResetLastChange()
+        {
+            AssertAtomic();
+            if( debug) log.Debug("Resetting last change time for all physical orders.");
+            using (ordersLocker.Using())
+            {
+                foreach (var kvp in ordersByBrokerId)
+                {
+                    var order = kvp.Value;
+                    order.ResetLastChange();
+                }
+            }
         }
 
         public string LogOrders()

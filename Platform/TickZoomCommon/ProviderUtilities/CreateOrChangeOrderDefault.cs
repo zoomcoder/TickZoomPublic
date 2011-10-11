@@ -316,6 +316,11 @@ namespace TickZoom.Common
             return binary.brokerOrder == other.BrokerOrder;
         }
 
+        public void ResetLastChange()
+        {
+            binary.lastStateChange = TimeStamp.UtcNow;
+        }
+
         public override int GetHashCode()
         {
             return binary.brokerOrder.GetHashCode();

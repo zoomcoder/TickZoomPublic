@@ -41,5 +41,6 @@ namespace TickZoom.Api
 	    Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
 		bool IsBarData { get; set; }
 	    TimeStamp CurrentTick { get; }
-    }
+	    bool IsOnline { get; set; }
+	}
 }

@@ -34,7 +34,8 @@ namespace TickZoom.Api
         PendingNew,
 		Active,
 		Suspended,
-		Filled
+		Filled,
+		Lost,
 	}
 
     public enum OrderAction
@@ -83,6 +84,8 @@ namespace TickZoom.Api
         }
 
         TimeStamp LastStateChange { get; }
+
+        void ResetLastChange();
 
         TimeStamp UtcCreateTime { get; }
 

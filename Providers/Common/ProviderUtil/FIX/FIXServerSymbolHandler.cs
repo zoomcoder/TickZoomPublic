@@ -87,6 +87,12 @@ namespace TickZoom.FIX
 		    diagnoseMetric = Diagnose.RegisterMetric("Simulator");
 		}
 
+        public bool IsOnline 
+        {
+            get { return FillSimulator.IsOnline; }
+            set { fillSimulator.IsOnline = value; }
+        }
+
 	    private int initialCount;
 		
 		private void HasItem( object source) {

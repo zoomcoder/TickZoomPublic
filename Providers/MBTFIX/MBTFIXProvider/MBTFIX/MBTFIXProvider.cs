@@ -259,30 +259,36 @@ namespace TickZoom.MBTFIX
 			SendMessage(fixMsg);
 		}
 
-		private void SendHeartbeat() {
+        private TimeStamp previousHeartbeatTime = default(TimeStamp);
+        private TimeStamp recentHeartbeatTime = default(TimeStamp);
+        private void SendHeartbeat()
+        {
             if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
-		    CheckForPending();
+		    if( isSessionStatusOnline) CheckForPending(previousHeartbeatTime);
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			fixMsg.AddHeader("0");
 			SendMessage( fixMsg);
-		}
+            previousHeartbeatTime = recentHeartbeatTime;
+            recentHeartbeatTime = TimeStamp.UtcNow;
+        }
 
-        private void CheckForPending()
+        private void CheckForPending(TimeStamp expiryLimit)
         {
-            var seconds = 30;
-            var expiryLimit = TimeStamp.UtcNow;
-            expiryLimit.AddSeconds(-seconds);
+            if( debug) log.Debug("Checking for orders pending since: " + expiryLimit);
             var list = OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending && x.LastStateChange < expiryLimit);
             if( list.Count > 0)
             {
                 var sb = new StringBuilder();
                 foreach( var order in list)
                 {
+//                    var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
+//                    algorithm.IsPositionSynced = false;
+//                    algorithm.RemovePending(order, IsRecovered);
                     sb.AppendLine(order.ToString());
                 }
-                log.Error("Found these orders still pending after " + seconds + " or since " + expiryLimit + ": \n" + sb);
-                var message = "Found orders still pending after " + seconds + " seconds. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
+                log.Error("Removed these orders that were still pending since " + expiryLimit + "\n" + sb);
+                var message = "Found orders still pending since " + expiryLimit + " seconds. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
                 log.Error(message);
                 Dispose();
                 throw new ApplicationException( message);
@@ -409,9 +415,7 @@ namespace TickZoom.MBTFIX
 
         protected override void TryEndRecovery()
         {
-            if (debug)
-                log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " +
-                          isSessionStatusOnline + ", Resend Complete " + IsResendComplete);
+            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " + isSessionStatusOnline + ", Resend Complete " + IsResendComplete);
             switch (ConnectionStatus)
             {
                 case Status.Recovered:

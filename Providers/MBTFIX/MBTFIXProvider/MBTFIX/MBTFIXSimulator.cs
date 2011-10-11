@@ -139,7 +139,7 @@ namespace TickZoom.MBTFIX
 		private void FIXChangeOrder(MessageFIX4_4 packet) {
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if (SimulateOrderServerOffline)
+            if (!IsOrderServerOnline)
             {
                 log.Info(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, true, symbol + ": Order Server Offline.");
@@ -190,23 +190,14 @@ namespace TickZoom.MBTFIX
             {
                 throw new ApplicationException("Expected unique trading session request id but was:" + packet.TradingSessionRequestId);
             }
-            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
-            mbtMsg.SetAccount("33006566");
-            mbtMsg.SetDestination("MBTX");
-            mbtMsg.SetTradingSessionId("TSSTATE");
-            var status = SimulateOrderServerOffline ? "3" : "2";
-            mbtMsg.SetTradingSessionStatus(status);
-            mbtMsg.AddHeader("h");
-            SendMessage(mbtMsg);
-            if (debug) log.Debug("Sending session status report: " + mbtMsg);
-            SimulateOrderServerOffline = false;
+            SendSessionStatus();
         }
 
 
         private void FIXCancelOrder(MessageFIX4_4 packet)
         {
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-            if( SimulateOrderServerOffline)
+            if( !IsOrderServerOnline)
             {
                 if (debug) log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Order Server Offline.");
                 OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "Order Server Offline");
@@ -250,7 +241,7 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if (SimulateOrderServerOffline)
+            if (!IsOrderServerOnline)
             {
                 log.Warn(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, true, symbol + ": Order Server Offline.");
@@ -273,7 +264,16 @@ namespace TickZoom.MBTFIX
         }
 
 	    private void ProcessCreateOrder(CreateOrChangeOrder order) {
-			SendExecutionReport( order, "A", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
+//            if (simulateSendOrderServerOffline && IsRecovered && FixFactory != null && FixFactory.LastSequence >= nextSendOrderServerOfflineSequence)
+//            {
+//                if (debug) log.Debug("Skipping order because last sequence " + FixFactory.LastSequence + " >= send order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline. " + order);
+//                nextSendOrderServerOfflineSequence = FixFactory.LastSequence + random.Next(simulateSendOrderServerOfflineFrequency) + simulateSendOrderServerOfflineFrequency;
+//                if (trace) log.Trace("Set next order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
+//                SetOrderServerOffline();
+//                SendSessionStatus();
+//                return;
+//            }
+            SendExecutionReport(order, "A", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
             if( order.Symbol.FixSimulationType == FIXSimulationType.ForexPair &&
                 (order.Type == OrderType.BuyStop || order.Type == OrderType.StopLoss))
@@ -389,7 +389,6 @@ namespace TickZoom.MBTFIX
 		}
 		
 		private void OnPhysicalFill( PhysicalFill fill) {
-            //if( SimulateOrderServerOffline) return;
             if( fill.Order.Symbol.FixSimulationType == FIXSimulationType.ForexPair &&
                 (fill.Order.Type == OrderType.BuyStop || fill.Order.Type == OrderType.SellStop))
             {
@@ -509,7 +508,6 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetLeavesQuantity( Math.Abs(leavesQty));
 			mbtMsg.AddHeader("8");
             SendMessage(mbtMsg);
-			if(trace) log.Trace("Sending execution report: " + mbtMsg);
 		}
 
         protected override void ResendMessage(FIXTMessage1_1 textMessage)

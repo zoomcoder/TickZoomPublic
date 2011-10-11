@@ -80,6 +80,7 @@ namespace TickZoom.Interceptors
 		private Random random = new Random(1234);
 		private long minimumTick;
         private static int maxPartialFillsPerOrder = 1;
+	    private bool isOnline = true;
 
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
 		{
@@ -305,7 +306,7 @@ namespace TickZoom.Interceptors
             }
             else
             {
-                while (fillQueue.Count > 0)
+                while (isOnline && fillQueue.Count > 0)
                 {
                     var fill = fillQueue.Dequeue();
                     onPhysicalFill(fill);
@@ -791,5 +792,11 @@ namespace TickZoom.Interceptors
             get { return maxPartialFillsPerOrder; }
             set { maxPartialFillsPerOrder = value; }
         }
-    }
+
+	    public bool IsOnline
+	    {
+	        get { return isOnline; }
+	        set { isOnline = value; }
+	    }
+	}
 }
