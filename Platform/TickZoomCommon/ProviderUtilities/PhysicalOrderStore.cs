@@ -411,6 +411,7 @@ namespace TickZoom.Common
                     writer.Write(order.LogicalSerialNumber);
                     writer.Write((int)order.OrderState);
                     writer.Write(order.Price);
+                    writer.Write((int)order.OrderFlags);
                     if (order.ReplacedBy != null)
                     {
                         try
@@ -599,6 +600,7 @@ namespace TickZoom.Common
                     var logicalSerialNumber = reader.ReadInt64();
                     var orderState = (OrderState)reader.ReadInt32();
                     var price = reader.ReadDouble();
+                    var flags = (OrderFlags) reader.ReadInt32();
                     var replaceId = reader.ReadInt32();
                     var originalId = reader.ReadInt32();
                     var side = (OrderSide)reader.ReadInt32();
@@ -610,7 +612,7 @@ namespace TickZoom.Common
                     var utcCreateTime= new TimeStamp(reader.ReadInt64());
                     var sequence = reader.ReadInt32();
                     var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-                    var order = Factory.Utility.PhysicalOrder(action, orderState, symbolInfo, side, type, price, size,
+                    var order = Factory.Utility.PhysicalOrder(action, orderState, symbolInfo, side, type, flags, price, size,
                                                               logicalOrderId, logicalSerialNumber, brokerOrder, tag, utcCreateTime);
                     order.Sequence = sequence;
                     uniqueIds.Add(id, order);

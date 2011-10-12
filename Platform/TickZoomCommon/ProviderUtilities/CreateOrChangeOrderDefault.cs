@@ -127,7 +127,7 @@ namespace TickZoom.Common
 		    binary.orderFlags = logical.OrderFlags;
 		}
 
-	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
+	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, OrderFlags flags, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
 	    {
             binary.action = action;
 			OrderState = orderState;
@@ -144,6 +144,7 @@ namespace TickZoom.Common
 			binary.reference = null;
 			binary.replacedBy = null;
 	        binary.originalOrder = null;
+	        binary.orderFlags = flags;
 			if( binary.brokerOrder == null) {
                 binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
 			}

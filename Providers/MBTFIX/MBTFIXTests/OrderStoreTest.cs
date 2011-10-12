@@ -30,7 +30,7 @@ namespace Test
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
                 var clientId = "TestString";
-                var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
+                var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit, OrderFlags.None,
                                                           124.34, 1234, 14, 100000334, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
                 store.SetSequences(1,1);
@@ -48,7 +48,7 @@ namespace Test
                 var clientId = "TestString";
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
-                                                          OrderType.BuyLimit,
+                                                          OrderType.BuyLimit, OrderFlags.None,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
                 store.SetSequences(1, 1);
@@ -66,10 +66,10 @@ namespace Test
                 var clientId = "TestString";
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
-                                                          OrderType.BuyLimit,
+                                                          OrderType.BuyLimit, OrderFlags.None,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
-                order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
+                order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit, OrderFlags.None,
                                                       124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
                 var result = store.GetOrderBySerial(logicalSerial);
@@ -99,11 +99,11 @@ namespace Test
                 var clientId = "TestString";
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
-                                                          OrderType.BuyLimit,
+                                                          OrderType.BuyLimit, OrderFlags.None,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
                 clientId = "TestString2";
-                order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
+                order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit, OrderFlags.None,
                                                       124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
                 var result = store.GetOrderBySerial(logicalSerial);
@@ -120,10 +120,10 @@ namespace Test
                 var clientId = "TestString";
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
-                                                          OrderType.BuyLimit,
+                                                          OrderType.BuyLimit, OrderFlags.None,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
-                order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit,
+                order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit, OrderFlags.None,
                                                       124.34, 1234, 14, logicalSerial + 1, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
                 var list = store.GetOrders((o) => o.Symbol.Symbol == "EUR/USD");
@@ -165,7 +165,7 @@ namespace Test
             var side = OrderSide.Sell;
             var type = OrderType.BuyLimit;
             var order1 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side,
-                                                      type,
+                                                      type, OrderFlags.None,
                                                       price, size, logicalId, logicalSerial, clientId1, null, TimeStamp.UtcNow);
             var clientId2 = "TestString2";
             logicalSerial = 100000336;
@@ -175,7 +175,7 @@ namespace Test
             state = OrderState.Active;
             side = OrderSide.Sell;
             type = OrderType.BuyLimit;
-            var order2 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side, type,
+            var order2 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side, type, OrderFlags.None,
                                                       price, size, logicalId, logicalSerial, clientId2, null, TimeStamp.UtcNow);
             order1.ReplacedBy = order2;
 
@@ -244,7 +244,7 @@ namespace Test
             var side = OrderSide.Sell;
             var type = OrderType.BuyLimit;
             var order1 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side,
-                                                      type,
+                                                      type, OrderFlags.None,
                                                       price, size, logicalId, logicalSerial, clientId1, null, TimeStamp.UtcNow);
             var clientId2 = "TestString2";
             logicalSerial = 100000336;
@@ -254,7 +254,7 @@ namespace Test
             state = OrderState.Active;
             side = OrderSide.Sell;
             type = OrderType.BuyLimit;
-            var order2 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side, type,
+            var order2 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side, type, OrderFlags.None,
                                                       price, size, logicalId, logicalSerial, clientId2, null, TimeStamp.UtcNow);
             order1.ReplacedBy = order2;
 

@@ -875,8 +875,9 @@ namespace TickZoom.Common
                 IsPositionSynced = true;
                 log.Notice("SyncPositionInternal() found position currently synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
             }
-			if( delta > 0) {
-				createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol,OrderSide.Buy,OrderType.BuyMarket,0,delta,0,0,null,null,default(TimeStamp));
+			if( delta > 0)
+			{
+                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, delta, 0, 0, null, null, default(TimeStamp));
                 log.Info("Sending adjustment order to position: " + createOrChange);
                 if( TryCreateBrokerOrder(createOrChange))
                 {
@@ -896,7 +897,7 @@ namespace TickZoom.Common
 					side = OrderSide.SellShort;
 				}
 				side = actualPosition >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
-                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, side, OrderType.SellMarket, 0, Math.Abs(delta), 0, 0, null, null,default(TimeStamp));
+                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
                 log.Info("Sending adjustment order to correct position: " + createOrChange);
                 if( TryCreateBrokerOrder(createOrChange))
                 {
@@ -1007,7 +1008,8 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
 			}
 
-            if( isFilledAfterCancel && physical.Order.OffsetTooLateToCancel)
+            if (debug) log.Debug("isFilledAfterCancel " + isFilledAfterCancel + ", OffsetTooLateToCancel " + physical.Order.OffsetTooLateToCancel);
+            if (isFilledAfterCancel && physical.Order.OffsetTooLateToCancel)
             {
                 if (debug) log.Debug("Will sync positions because fill from order already canceled: " + physical.Order.ReplacedBy);
                 SyncPosition();

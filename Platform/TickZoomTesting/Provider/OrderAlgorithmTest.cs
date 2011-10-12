@@ -1520,7 +1520,7 @@ namespace Orders
 			{
                 using (physicalCache.Lock())
                 {
-                    var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price,
+                    var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, OrderFlags.None, price,
                                                               size, logicalOrderId, 0, brokerOrder, null,
                                                               TimeStamp.UtcNow);
                     inputOrders.Add(order);
@@ -1532,7 +1532,7 @@ namespace Orders
             {
                 using (physicalCache.Lock())
                 {
-                    var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, price, size, logicalOrder.Id, logicalOrder.SerialNumber, brokerOrder, null, TimeStamp.UtcNow);
+                    var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, OrderFlags.None, price, size, logicalOrder.Id, logicalOrder.SerialNumber, brokerOrder, null, TimeStamp.UtcNow);
                     inputOrders.Add(order);
                     confirmOrders.ConfirmCreate(order, false);
                 }

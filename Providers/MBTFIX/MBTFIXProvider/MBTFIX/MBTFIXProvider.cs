@@ -1132,7 +1132,8 @@ namespace TickZoom.MBTFIX
             }
 			var side = GetOrderSide( packetFIX);
 			var logicalId = GetLogicalOrderId( packetFIX);
-            order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbolInfo, side, type, packetFIX.Price, packetFIX.LeavesQuantity, logicalId, logicalSerialNumber, newClientOrderId, null, TimeStamp.UtcNow);
+		    var flags = order.OrderFlags;
+            order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbolInfo, side, type, flags, packetFIX.Price, packetFIX.LeavesQuantity, logicalId, logicalSerialNumber, newClientOrderId, null, TimeStamp.UtcNow);
             order.ReplacedBy = replacedBy;
             order.OriginalOrder = oldOrder;
             if( oldOrder != null)

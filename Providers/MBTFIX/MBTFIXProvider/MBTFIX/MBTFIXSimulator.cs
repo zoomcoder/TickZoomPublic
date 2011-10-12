@@ -335,7 +335,7 @@ namespace TickZoom.MBTFIX
 			var logicalId = int.Parse(clientId[0]);
 		    var utcCreateTime = new TimeStamp(packet.TransactionTime);
 			var physicalOrder = Factory.Utility.PhysicalOrder(
-				OrderAction.Create, OrderState.Active, symbol, side, type,
+				OrderAction.Create, OrderState.Active, symbol, side, type, OrderFlags.None, 
 				packet.Price, packet.OrderQuantity, logicalId, 0, clientOrderId, null, utcCreateTime);
 			if( debug) log.Debug("Received physical Order: " + physicalOrder);
 			return physicalOrder;
@@ -356,7 +356,7 @@ namespace TickZoom.MBTFIX
             var logicalId = int.Parse(clientId[0]);
             var utcCreateTime = new TimeStamp(packet.TransactionTime);
             var physicalOrder = Factory.Utility.PhysicalOrder(
-                OrderAction.Cancel, OrderState.Active, symbol, side, type,
+                OrderAction.Cancel, OrderState.Active, symbol, side, type, OrderFlags.None,
                 0D, 0, logicalId, 0, clientOrderId, null, utcCreateTime);
             if (debug) log.Debug("Received physical Order: " + physicalOrder);
             return physicalOrder;
@@ -394,7 +394,7 @@ namespace TickZoom.MBTFIX
             {
                 var orderType = fill.Order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
                 var marketOrder = Factory.Utility.PhysicalOrder(fill.Order.Action, fill.Order.OrderState,
-                                                                fill.Order.Symbol, fill.Order.Side, orderType, 0,
+                                                                fill.Order.Symbol, fill.Order.Side, orderType, OrderFlags.None, 0,
                                                                 fill.Order.Size, fill.Order.LogicalOrderId,
                                                                 fill.Order.LogicalSerialNumber,
                                                                 fill.Order.BrokerOrder, null, TimeStamp.UtcNow);

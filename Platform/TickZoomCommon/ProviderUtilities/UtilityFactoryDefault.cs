@@ -41,9 +41,9 @@ namespace TickZoom.Common
         {
             return new CreateOrChangeOrderDefault(orderState, symbol, origOrder);
         }
-        public CreateOrChangeOrder PhysicalOrder(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime)
+        public CreateOrChangeOrder PhysicalOrder(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, OrderFlags flags, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime)
         {
-            return new CreateOrChangeOrderDefault(action, orderState, symbol, side, type, price, size, logicalOrderId, logicalSerialNumber, (string)brokerOrder, (string)tag, utcCreateTime);
+            return new CreateOrChangeOrderDefault(action, orderState, symbol, side, type, flags, price, size, logicalOrderId, logicalSerialNumber, (string)brokerOrder, (string)tag, utcCreateTime);
         }
 
         public ProviderService CommandLineProcess()
