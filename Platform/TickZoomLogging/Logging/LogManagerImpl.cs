@@ -263,7 +263,7 @@ namespace TickZoom.Logging
 				return log;
 			} else {
 				ILogger logger = repository.GetLogger(type.FullName);
-				log = new LogImpl(logger);
+				log = new LogImpl(this,logger);
 				map[type.FullName] = log;
 			}
 			return log;
@@ -274,7 +274,7 @@ namespace TickZoom.Logging
 				return log;
 			} else {
 				ILogger logger = repository.GetLogger(name);
-				log = new LogImpl(logger);
+				log = new LogImpl(this,logger);
 				map[name] = log;
 			}
 			return log;

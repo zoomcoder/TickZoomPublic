@@ -1463,7 +1463,7 @@ namespace Orders
                 return 1;
             }
 
-			public void OnCancelBrokerOrder(CreateOrChangeOrder order)
+			public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
 			{
 				CanceledOrders.Add(order.OriginalOrder.BrokerOrder);
 				RemoveByBrokerOrder(order.OriginalOrder.BrokerOrder);
@@ -1472,7 +1472,8 @@ namespace Orders
 				    order.OriginalOrder.ReplacedBy = order;
 					confirmOrders.ConfirmCancel(order.OriginalOrder,true);
 				}
-			}
+                return true;
+            }
 			private void RemoveByBrokerOrder(string brokerOrder) {
 				for( int i=0; i<inputOrders.Count; i++) {
 					var order = inputOrders[i];
@@ -1481,7 +1482,7 @@ namespace Orders
 					}
 				}
 			}
-			public void OnChangeBrokerOrder(CreateOrChangeOrder order)
+			public bool OnChangeBrokerOrder(CreateOrChangeOrder order)
 			{
 				ChangedOrders.Add(new Change( order, order.OriginalOrder.BrokerOrder));
                 RemoveByBrokerOrder(order.OriginalOrder.BrokerOrder);
@@ -1489,15 +1490,17 @@ namespace Orders
 				if( confirmOrders != null) {
 					confirmOrders.ConfirmChange(order,true);
 				}
+			    return true;
 			}
-			public void OnCreateBrokerOrder(CreateOrChangeOrder order)
+			public bool OnCreateBrokerOrder(CreateOrChangeOrder order)
 			{
 				CreatedOrders.Add(order);
 				inputOrders.Add(order);
 				if( confirmOrders != null) {
 					confirmOrders.ConfirmCreate(order,true);
 				}
-			}
+                return true;
+            }
 			public void ClearPhysicalOrders()
 			{
 				CanceledOrders.Clear();

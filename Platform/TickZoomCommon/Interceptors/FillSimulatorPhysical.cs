@@ -114,7 +114,7 @@ namespace TickZoom.Interceptors
 			return activeOrders;
 		}
 	
-		public void OnChangeBrokerOrder(CreateOrChangeOrder other)
+		public bool OnChangeBrokerOrder(CreateOrChangeOrder other)
 		{
 		    var order = other.Clone();
 			if( debug) log.Debug("OnChangeBrokerOrder( " + order + ")");
@@ -131,10 +131,11 @@ namespace TickZoom.Interceptors
                 {
                     throw new ApplicationException(message + " while handling order: " + order);
                 }
-                return;
+                return true;
             }
             CreateBrokerOrder( order);
             if (confirmOrders != null) confirmOrders.ConfirmChange(order,true);
+		    return true;
 		}
 
         public bool TryGetOrderById(string orderId, out CreateOrChangeOrder createOrChangeOrder)
@@ -223,7 +224,7 @@ namespace TickZoom.Interceptors
             return false;
         }
 
-		public void OnCreateBrokerOrder(CreateOrChangeOrder other)
+		public bool OnCreateBrokerOrder(CreateOrChangeOrder other)
 		{
 		    var order = other.Clone();
 			if( debug) log.Debug("OnCreateBrokerOrder( " + order + ")");
@@ -232,9 +233,10 @@ namespace TickZoom.Interceptors
 			}
             CreateBrokerOrder(order);
             if (confirmOrders != null) confirmOrders.ConfirmCreate(order, true);
+		    return true;
 		}
 		
-		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
+		public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
             if (debug) log.Debug("OnCancelBrokerOrder( " + order.OriginalOrder.BrokerOrder + ")");
             var origOrder = CancelBrokerOrder((string)order.OriginalOrder.BrokerOrder);
@@ -250,11 +252,12 @@ namespace TickZoom.Interceptors
                 {
                     throw new ApplicationException(message + " while handling order: " + order);
                 }
-                return;
+                return true;
             }
 		    origOrder.ReplacedBy = order;
             if (confirmOrders != null) confirmOrders.ConfirmCancel(origOrder, true);
-        }
+		    return true;
+		}
 
 		public int ProcessOrders() {
 			if( hasCurrentTick) {

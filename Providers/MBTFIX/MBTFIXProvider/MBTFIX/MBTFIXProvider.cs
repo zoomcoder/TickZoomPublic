@@ -707,6 +707,12 @@ namespace TickZoom.MBTFIX
                         break;
                     case "8": // Rejected
                         RejectOrder(packetFIX);
+//                        if (packetFIX.Symbol != null)
+//                        {
+//                            symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+//                            var algo = orderAlgorithms[symbol.BinaryIdentifier];
+//                            algo.ProcessOrders();
+//                        }
                         break;
                     case "9": // Suspended
                         UpdateOrder(packetFIX, OrderState.Suspended, packetFIX);
@@ -1321,15 +1327,17 @@ namespace TickZoom.MBTFIX
 		}
 		Dictionary<int,int> physicalToLogicalOrderMap = new Dictionary<int, int>();
 	        
-		public void OnCreateBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
+		public bool OnCreateBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
+            if( !isSessionStatusOnline) return false;
             createOrChangeOrder.OrderState = OrderState.Pending;
 			if( debug) log.Debug( "OnCreateBrokerOrder " + createOrChangeOrder);
             if( createOrChangeOrder.Action != OrderAction.Create)
             {
                 throw new InvalidOperationException("Expected action Create but was " + createOrChangeOrder.Action);
             }
-			OnCreateOrChangeBrokerOrder(createOrChangeOrder, false);
+            OnCreateOrChangeBrokerOrder(createOrChangeOrder, false);
+		    return true;
 		}
 	        
 		private void OnCreateOrChangeBrokerOrder(CreateOrChangeOrder order, bool resend)
@@ -1474,9 +1482,10 @@ namespace TickZoom.MBTFIX
             }
         }
 
-		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
+		public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
-			if( debug) log.Debug( "OnCancelBrokerOrder " + order);
+            if (!isSessionStatusOnline) return false;
+            if (debug) log.Debug("OnCancelBrokerOrder " + order);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
             CreateOrChangeOrder createOrChangeOrder;
 			try {
@@ -1490,7 +1499,7 @@ namespace TickZoom.MBTFIX
 					var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
 					tickSync.RemovePhysicalOrder();
 				}
-				return;
+				return true;
 			}
             using (OrderStore.Lock())
             {
@@ -1502,8 +1511,9 @@ namespace TickZoom.MBTFIX
                 throw new ApplicationException("Different objects!");
             }
 
-            SendCancelOrder( order, false);
-			
+            SendCancelOrder(order, false);
+            return true;
+
 		}
 
         private void TryAddPhysicalOrder( CreateOrChangeOrder order)
@@ -1532,8 +1542,9 @@ namespace TickZoom.MBTFIX
             SendMessage(fixMsg);
         }
 		
-		public void OnChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
+		public bool OnChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
+            if (!isSessionStatusOnline) return false;
             using (OrderStore.Lock())
             {
                 createOrChangeOrder.OrderState = OrderState.Pending;
@@ -1544,6 +1555,7 @@ namespace TickZoom.MBTFIX
                 throw new InvalidOperationException("Expected action Change but was " + createOrChangeOrder.Action);
             }
             OnCreateOrChangeBrokerOrder(createOrChangeOrder, false);
+            return true;
 		}
 
 	    public bool HasBrokerOrder(CreateOrChangeOrder order)

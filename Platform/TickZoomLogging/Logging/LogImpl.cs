@@ -230,8 +230,11 @@ namespace TickZoom.Logging
         private static LoggingQueue messageQueue = null; 
         private static object locker = new object();
         private string fileName;
+	    private LogManagerImpl logManager;
 		
-        public LogImpl(ILogger logger) {
+        public LogImpl(LogManagerImpl manager, ILogger logger)
+        {
+            logManager = manager;
 			log = new LogImplWrapper(logger);
         	Connect();
 			if( symbolMap == null) {
@@ -649,6 +652,7 @@ namespace TickZoom.Logging
 				SetProperties(loggingEvent);
 	        	WriteScreen(loggingEvent);
 				log.Logger.Log(loggingEvent);
+                logManager.Flush();
 			}
 		}
 		
@@ -664,7 +668,8 @@ namespace TickZoom.Logging
 				SetProperties(loggingEvent);
 	        	WriteScreen(loggingEvent);
 				log.Logger.Log(loggingEvent);
-			}
+                logManager.Flush();
+            }
 		}
 		
 		private FilterDecision SymbolDecide()

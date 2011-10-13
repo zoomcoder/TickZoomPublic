@@ -102,14 +102,14 @@ namespace TickZoom.MBTFIX
     		}
 	    }
 		
-		public void OnChangeBrokerOrder(CreateOrChangeOrder order)
+		public bool OnChangeBrokerOrder(CreateOrChangeOrder order)
 		{
-			fixProvider.OnChangeBrokerOrder(order);
+			return fixProvider.OnChangeBrokerOrder(order);
 		}
 		
-		public void OnCreateBrokerOrder(CreateOrChangeOrder order)
+		public bool OnCreateBrokerOrder(CreateOrChangeOrder order)
 		{
-			fixProvider.OnCreateBrokerOrder(order);
+			return fixProvider.OnCreateBrokerOrder(order);
 		}
 
         public int ProcessOrders()
@@ -117,9 +117,9 @@ namespace TickZoom.MBTFIX
             return 0;
         }
 		
-		public void OnCancelBrokerOrder(CreateOrChangeOrder order)
+		public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
-			fixProvider.OnCancelBrokerOrder(order);
+			return fixProvider.OnCancelBrokerOrder(order);
 		}
 		
 	}

@@ -145,10 +145,12 @@ namespace TickZoom.Common
                 else
                 {
                     if (debug) log.Debug("Cancel Broker Order: " + physical);
-                    physicalOrderCache.SetOrder(cancelOrder);
-                    sentPhysicalOrders++;
-                    TryAddPhysicalOrder(cancelOrder);
-                    physicalOrderHandler.OnCancelBrokerOrder(cancelOrder);
+                    if( physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
+                    {
+                        physicalOrderCache.SetOrder(cancelOrder);
+                        sentPhysicalOrders++;
+                        TryAddPhysicalOrder(cancelOrder);
+                    }
                     result = true;
                 }
             }
@@ -166,10 +168,12 @@ namespace TickZoom.Common
                     return;
                 }
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
-				sentPhysicalOrders++;
-                physicalOrderCache.SetOrder(createOrChange);
-				TryAddPhysicalOrder(createOrChange);
-                physicalOrderHandler.OnChangeBrokerOrder(createOrChange);
+                if( physicalOrderHandler.OnChangeBrokerOrder(createOrChange))
+                {
+                    sentPhysicalOrders++;
+                    physicalOrderCache.SetOrder(createOrChange);
+                    TryAddPhysicalOrder(createOrChange);
+                }
 			}
 		}
 		
@@ -189,11 +193,12 @@ namespace TickZoom.Common
                 if( debug) log.Debug("Ignoring broker order as physical order cache has a create order already.");
                 return false;
             }
-            physicalOrderCache.SetOrder(physical);
-
-            sentPhysicalOrders++;
-            TryAddPhysicalOrder(physical);
-            physicalOrderHandler.OnCreateBrokerOrder(physical);
+            if( physicalOrderHandler.OnCreateBrokerOrder(physical))
+            {
+                physicalOrderCache.SetOrder(physical);
+                sentPhysicalOrders++;
+                TryAddPhysicalOrder(physical);
+            }
             return true;
         }
 
