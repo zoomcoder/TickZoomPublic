@@ -549,9 +549,15 @@ namespace TickZoom.FIX
         {
             SendSessionStatus("2");
             SetOrderServerOnline();
-            log.Info("Current FIX Simulator orders.");
             using( symbolHandlersLocker.Using())
             {
+                if( debug) log.Debug("Flushing all fill queues.");
+                foreach( var kvp in symbolHandlers)
+                {
+                    var handler = kvp.Value;
+                    handler.FillSimulator.FlushFillQueue();
+                }
+                if( debug) log.Debug("Current FIX Simulator orders.");
                 foreach( var kvp in symbolHandlers)
                 {
                     var handler = kvp.Value;
@@ -559,7 +565,7 @@ namespace TickZoom.FIX
                     for( var current = orders.First; current != null; current = current.Next)
                     {
                         var order = current.Value;
-                        log.Info(order.ToString());
+                        if(debug) log.Debug(order.ToString());
                     }
                 }
             }
@@ -696,11 +702,6 @@ namespace TickZoom.FIX
             {
                 var handler = kvp.Value;
                 handler.IsOnline = true;
-                if( SyncTicks.Enabled)
-                {
-                    var tickSync = SyncTicks.GetTickSync(handler.Symbol.BinaryIdentifier);
-                    tickSync.SetReprocessPhysicalOrders();
-                }
             }
             isOrderServerOnline = true;
         }

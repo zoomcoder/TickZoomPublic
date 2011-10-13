@@ -42,5 +42,6 @@ namespace TickZoom.Api
 		bool IsBarData { get; set; }
 	    TimeStamp CurrentTick { get; }
 	    bool IsOnline { get; set; }
+	    void FlushFillQueue();
 	}
 }

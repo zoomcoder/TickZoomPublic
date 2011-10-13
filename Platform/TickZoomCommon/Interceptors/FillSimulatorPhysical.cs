@@ -306,14 +306,22 @@ namespace TickZoom.Interceptors
             }
             else
             {
-                while (isOnline && fillQueue.Count > 0)
+                if( isOnline)
                 {
-                    var fill = fillQueue.Dequeue();
-                    if (debug) log.Debug("Dequeuing fill: " + fill);
-                    onPhysicalFill(fill);
+                    FlushFillQueue();
                 }
             }
 		}
+
+        public void FlushFillQueue()
+        {
+            while (fillQueue.Count > 0)
+            {
+                var fill = fillQueue.Dequeue();
+                if (debug) log.Debug("Dequeuing fill: " + fill);
+                onPhysicalFill(fill);
+            }
+        }
 		
 		private void LogOpenOrders() {
 			if( trace) {
