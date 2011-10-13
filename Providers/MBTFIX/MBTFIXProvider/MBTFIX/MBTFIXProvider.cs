@@ -132,14 +132,23 @@ namespace TickZoom.MBTFIX
             {
 				foreach(var kvp in symbolsRequested) {
 					SymbolInfo symbol = kvp.Value;
-					long end = Factory.Parallel.TickCount + 2000;
+				    var waitIncrease = 10;
+				    var waitSeconds = waitIncrease;
+				    var errorFlag = false;
+					long end = Factory.Parallel.TickCount + waitSeconds * 1000;
 					while( !receiver.OnEvent(symbol,(int)EventType.EndBroker,symbol)) {
 						if( isDisposed) return;
 						if( Factory.Parallel.TickCount > end) {
-							throw new ApplicationException("Timeout while sending end broker.");
+							log.Error( "Waiting over " + waitSeconds + " to send " + EventType.EndBroker + " will keep trying.");
+						    waitSeconds += waitIncrease;
+						    errorFlag = true;
 						}
 						Factory.Parallel.Yield();
 					}
+                    if( errorFlag)
+                    {
+                        log.Notice(EventType.EndBroker + " successfully sent so error was resolved.");
+                    }
 				}
 			}
 		    isBrokerStarted = false;
