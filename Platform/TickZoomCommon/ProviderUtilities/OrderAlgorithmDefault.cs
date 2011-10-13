@@ -1003,6 +1003,13 @@ namespace TickZoom.Common
                     isFilledAfterCancel = true;
                 }
             }
+            else
+            {
+                if( logical.Price != physical.Order.Price)
+                {
+                    isFilledAfterCancel = true;
+                }
+            }
 
 		    if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);

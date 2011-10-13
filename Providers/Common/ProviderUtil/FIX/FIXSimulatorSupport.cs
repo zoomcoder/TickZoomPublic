@@ -696,11 +696,6 @@ namespace TickZoom.FIX
             {
                 var handler = kvp.Value;
                 handler.IsOnline = true;
-                if( SyncTicks.Enabled)
-                {
-                    var tickSync = SyncTicks.GetTickSync(handler.Symbol.BinaryIdentifier);
-                    tickSync.SetReprocessPhysicalOrders();
-                }
             }
             isOrderServerOnline = true;
         }
