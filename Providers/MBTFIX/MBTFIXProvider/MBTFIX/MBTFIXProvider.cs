@@ -519,6 +519,11 @@ namespace TickZoom.MBTFIX
                     TrySendEndBroker();
                 }
             }
+            else
+            {
+                var message = "Order server continues offline. Attempting to reconnect.";
+                log.Notice(message);
+            }
 	    }
 
         public override void CancelRecovered()

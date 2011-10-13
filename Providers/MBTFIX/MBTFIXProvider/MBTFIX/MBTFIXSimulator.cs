@@ -190,6 +190,7 @@ namespace TickZoom.MBTFIX
             {
                 throw new ApplicationException("Expected unique trading session request id but was:" + packet.TradingSessionRequestId);
             }
+            SetOrderServerOnline();
             var mbtMsg = (FIXMessage4_4)FixFactory.Create();
             mbtMsg.SetAccount("33006566");
             mbtMsg.SetDestination("MBTX");
@@ -199,7 +200,6 @@ namespace TickZoom.MBTFIX
             mbtMsg.AddHeader("h");
             SendMessage(mbtMsg);
             if (debug) log.Debug("Sending session status report: " + mbtMsg);
-            SetOrderServerOnline();
         }
 
 

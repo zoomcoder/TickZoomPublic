@@ -875,7 +875,7 @@ namespace TickZoom.Common
                 log.Notice("SyncPositionInternal() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
                 if (debug) log.Debug("TrySyncPosition - " + tickSync);
             }
-            else
+            else if( positionDelta == 0)
             {
                 IsPositionSynced = true;
                 log.Notice("SyncPositionInternal() found position currently synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
@@ -1348,7 +1348,7 @@ namespace TickZoom.Common
 		    var hasPendingOrders = CheckForPending();
             if (hasPendingOrders)
             {
-                if (debug) log.Debug("Found pending physical orders. So only allow cancel orders.");
+                if (debug) log.Debug("Found pending physical orders. So ending order comparison.");
                 return;
             }
 
