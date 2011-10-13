@@ -729,65 +729,63 @@ namespace TickZoom.FIX
 
         public int GetPosition(SymbolInfo symbol)
 		{
-            using (symbolHandlersLocker.Using())
+            // Don't lock. This call always wrapped in a locked using clause.
+            FIXServerSymbolHandler symbolHandler;
+            if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolHandler))
             {
-                FIXServerSymbolHandler symbolHandler;
-                if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolHandler))
-                {
-                    return symbolHandler.ActualPosition;
-                }
-                return 0;
+                return symbolHandler.ActualPosition;
             }
+            return 0;
 		}
 
         public void CreateOrder(CreateOrChangeOrder order)
         {
+            FIXServerSymbolHandler symbolHandler;
             using (symbolHandlersLocker.Using())
             {
-                FIXServerSymbolHandler symbolHandler;
-                if (symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler))
-                {
-                    symbolHandler.CreateOrder(order);
-                }
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+            }
+            if( symbolHandler != null) {
+                symbolHandler.CreateOrder(order);
             }
         }
 
         public void ChangeOrder(CreateOrChangeOrder order)
         {
+            FIXServerSymbolHandler symbolHandler;
             using (symbolHandlersLocker.Using())
             {
-                FIXServerSymbolHandler symbolHandler;
-                if (symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler))
-                {
-                    symbolHandler.ChangeOrder(order);
-                }
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+            }
+            if( symbolHandler != null) {
+                symbolHandler.ChangeOrder(order);
             }
         }
 
         public void CancelOrder(CreateOrChangeOrder order)
         {
+            FIXServerSymbolHandler symbolHandler;
             using (symbolHandlersLocker.Using())
             {
-                FIXServerSymbolHandler symbolHandler;
-                if (symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler))
-                {
-                    symbolHandler.CancelOrder(order);
-                }
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+            }
+            if( symbolHandler != null) {
+                symbolHandler.CancelOrder(order);
             }
         }
 
         public CreateOrChangeOrder GetOrderById(SymbolInfo symbol, string clientOrderId) {
+            FIXServerSymbolHandler symbolHandler;
             using (symbolHandlersLocker.Using())
             {
-                FIXServerSymbolHandler symbolHandler;
-                if (symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolHandler))
-                {
-                    return symbolHandler.GetOrderById(clientOrderId);
-                }
-                else
-                {
-                    throw new ApplicationException("StartSymbol was never called for " + symbol + " so now symbol handler was found.");
-                }
+                symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolHandler);
+            }
+            if( symbolHandler != null) {
+                return symbolHandler.GetOrderById(clientOrderId);
+            }
+            else
+            {
+                throw new ApplicationException("StartSymbol was never called for " + symbol + " so now symbol handler was found.");
             }
        }
 

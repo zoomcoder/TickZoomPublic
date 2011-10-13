@@ -144,12 +144,16 @@ namespace TickZoom.Common
                 }
                 else
                 {
-                    if (debug) log.Debug("Cancel Broker Order: " + physical);
-                    if( physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
+                    if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
+                    TryAddPhysicalOrder(cancelOrder);
+                    if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
                     {
                         physicalOrderCache.SetOrder(cancelOrder);
                         sentPhysicalOrders++;
-                        TryAddPhysicalOrder(cancelOrder);
+                    }
+                    else
+                    {
+                        TryRemovePhysicalOrder(cancelOrder);
                     }
                     result = true;
                 }
@@ -168,11 +172,15 @@ namespace TickZoom.Common
                     return;
                 }
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
-                if( physicalOrderHandler.OnChangeBrokerOrder(createOrChange))
+                TryAddPhysicalOrder(createOrChange);
+                if (physicalOrderHandler.OnChangeBrokerOrder(createOrChange))
                 {
                     sentPhysicalOrders++;
                     physicalOrderCache.SetOrder(createOrChange);
-                    TryAddPhysicalOrder(createOrChange);
+                }
+                else
+                {
+                    TryRemovePhysicalOrder(createOrChange);
                 }
 			}
 		}
@@ -180,6 +188,11 @@ namespace TickZoom.Common
 		private void TryAddPhysicalOrder(CreateOrChangeOrder createOrChange) {
 			if( SyncTicks.Enabled) tickSync.AddPhysicalOrder(createOrChange);
 		}
+
+        private void TryRemovePhysicalOrder(CreateOrChangeOrder createOrChange)
+        {
+            if (SyncTicks.Enabled) tickSync.RemovePhysicalOrder(createOrChange);
+        }
 
         private bool TryCreateBrokerOrder(CreateOrChangeOrder physical)
         {
@@ -193,11 +206,15 @@ namespace TickZoom.Common
                 if( debug) log.Debug("Ignoring broker order as physical order cache has a create order already.");
                 return false;
             }
-            if( physicalOrderHandler.OnCreateBrokerOrder(physical))
+            TryAddPhysicalOrder(physical);
+            if (physicalOrderHandler.OnCreateBrokerOrder(physical))
             {
                 physicalOrderCache.SetOrder(physical);
                 sentPhysicalOrders++;
-                TryAddPhysicalOrder(physical);
+            }
+            else
+            {
+                TryRemovePhysicalOrder(physical);
             }
             return true;
         }
@@ -1594,6 +1611,10 @@ namespace TickZoom.Common
                 {
                     origOrder.OrderState = OrderState.Active;
                 }
+            }
+            if (isRealTime)
+            {
+                PerformCompareProtected();
             }
             if (SyncTicks.Enabled)
             {

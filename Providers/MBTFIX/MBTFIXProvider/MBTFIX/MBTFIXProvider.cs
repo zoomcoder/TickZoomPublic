@@ -712,12 +712,6 @@ namespace TickZoom.MBTFIX
                         break;
                     case "8": // Rejected
                         RejectOrder(packetFIX);
-//                        if (packetFIX.Symbol != null)
-//                        {
-//                            symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-//                            var algo = orderAlgorithms[symbol.BinaryIdentifier];
-//                            algo.ProcessOrders();
-//                        }
                         break;
                     case "9": // Suspended
                         UpdateOrder(packetFIX, OrderState.Suspended, packetFIX);
@@ -945,7 +939,9 @@ namespace TickZoom.MBTFIX
                 rejectReason = true;
                 TrySendEndBroker();
             }
-			OrderStore.RemoveOrder( packetFIX.ClientOrderId);
+            CreateOrChangeOrder order;
+            bool removeOriginal = false;
+            OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 		    if( IsRecovered && !rejectReason ) {
 			    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
 			    var ignore = "The reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
@@ -955,7 +951,12 @@ namespace TickZoom.MBTFIX
 		    } else if( LogRecovery || IsRecovered) {
 			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + packetFIX.ClientOrderId);
 		    }
-            if (SyncTicks.Enabled)
+            if( order != null)
+            {
+                var algo = orderAlgorithms[order.Symbol.BinaryIdentifier];
+                algo.RejectOrder(order,removeOriginal,IsRecovered);
+            }
+            else if( SyncTicks.Enabled )
             {
                 var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
                 var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
