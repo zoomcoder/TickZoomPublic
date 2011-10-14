@@ -797,7 +797,8 @@ namespace TickZoom.MBTFIX
                             rejectReason = true;
                             removeOriginal = true;
                             break;
-                        case "USD/JPY: Cannot cancel order. Probably already filled or canceled.":
+                        case "Cannot cancel order. Probably already filled or canceled.":
+                        case "Cannot change order. Probably already filled or canceled.":
                         case "Order pending remote":
                         case "Cancel request already pending":
                         case "ORDER in pending state":
