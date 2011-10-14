@@ -107,8 +107,12 @@ namespace TickZoom.Logging
                         }
                         else
                         {
-                            var logAware = (LogAware)reference.Target;
-                            logAware.RefreshLogLevel();
+                            var hardReference = reference.Target;
+                            if( hardReference != null)
+                            {
+                                var logAware = (LogAware)reference.Target;
+                                logAware.RefreshLogLevel();
+                            }
                         }
                     }
                 }
