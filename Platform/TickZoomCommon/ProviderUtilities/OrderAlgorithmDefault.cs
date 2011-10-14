@@ -912,20 +912,29 @@ namespace TickZoom.Common
             else if (delta < 0)
             {
                 OrderSide side;
-				if( actualPosition > 0 && desiredPosition < 0) {
+                var pendingDelta = actualPosition + pendingAdjustments;
+                var sendAdjustment = false;
+				if( pendingDelta > 0) {
 					side = OrderSide.Sell;
-					delta = actualPosition;
-				} else {
-					side = OrderSide.SellShort;
+				    delta = Math.Min(pendingDelta, -delta);
+				    sendAdjustment = true;
 				}
-				side = actualPosition >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
-                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
-                log.Info("Sending adjustment order to correct position: " + createOrChange);
-                if( TryCreateBrokerOrder(createOrChange))
+                else if (pendingAdjustments == 0)
                 {
-                    if (SyncTicks.Enabled)
+                    side = OrderSide.SellShort;
+                    sendAdjustment = true;
+                }
+                if( sendAdjustment)
+                {
+                    side = actualPosition >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
+                    createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
+                    log.Info("Sending adjustment order to correct position: " + createOrChange);
+                    if (TryCreateBrokerOrder(createOrChange))
                     {
-                        tickSync.RemoveProcessPhysicalOrders();
+                        if (SyncTicks.Enabled)
+                        {
+                            tickSync.RemoveProcessPhysicalOrders();
+                        }
                     }
                 }
             }
@@ -1490,7 +1499,7 @@ namespace TickZoom.Common
 		public void SetActualPosition( int position)
 		{
 		    var value = Interlocked.Exchange(ref actualPosition, position);
-            if (debug) log.Debug("SetActualPosition(" + value + ")");
+            if (debug) log.Debug("SetActualPosition(" + actualPosition + ")");
         }
 
         public void IncreaseActualPosition( int position)
