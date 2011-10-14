@@ -278,7 +278,7 @@ namespace TickZoom.MBTFIX
         {
             if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
-		    if( isSessionStatusOnline) CheckForPending(previousHeartbeatTime);
+		    if( isOrderServerOnline) CheckForPending(previousHeartbeatTime);
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
 			fixMsg.AddHeader("0");
 			SendMessage( fixMsg);
@@ -425,7 +425,7 @@ namespace TickZoom.MBTFIX
 
         protected override void TryEndRecovery()
         {
-            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " + isSessionStatusOnline + ", Resend Complete " + IsResendComplete);
+            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " + isOrderServerOnline + ", Resend Complete " + IsResendComplete);
             switch (ConnectionStatus)
             {
                 case Status.Recovered:
@@ -433,7 +433,7 @@ namespace TickZoom.MBTFIX
                 case Status.PendingLogin:
                     return;
                 case Status.PendingRecovery:
-                    if (IsResendComplete && isSessionStatusOnline)
+                    if (IsResendComplete && isOrderServerOnline)
                     {
                         OrderStore.ForceSnapShot();
                         EndRecovery();
@@ -468,7 +468,7 @@ namespace TickZoom.MBTFIX
 		}
 
         private Dictionary<string,bool> sessionStatusMap = new Dictionary<string, bool>();
-        private volatile bool isSessionStatusOnline = false;
+        private volatile bool isOrderServerOnline = false;
         private void SessionStatus(MessageFIX4_4 packetFIX)
         {
             var newIsSessionStatusOnline = false;
@@ -497,10 +497,10 @@ namespace TickZoom.MBTFIX
                     newIsSessionStatusOnline = false;
                 }
             }
-            if (newIsSessionStatusOnline != isSessionStatusOnline)
+            if (newIsSessionStatusOnline != isOrderServerOnline)
             {
-                isSessionStatusOnline = newIsSessionStatusOnline;
-                if (isSessionStatusOnline)
+                isOrderServerOnline = newIsSessionStatusOnline;
+                if (isOrderServerOnline)
                 {
                     CancelRecovered();
                     TryEndRecovery();
@@ -1335,9 +1335,9 @@ namespace TickZoom.MBTFIX
 	        
 		public bool OnCreateBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
-            if( !isSessionStatusOnline) return false;
+            if (!IsRecovered) return false;
             createOrChangeOrder.OrderState = OrderState.Pending;
-			if( debug) log.Debug( "OnCreateBrokerOrder " + createOrChangeOrder);
+			if( debug) log.Debug( "OnCreateBrokerOrder " + createOrChangeOrder + ". Connection " + ConnectionStatus + ", IsOrderServerOnline " + isOrderServerOnline);
             if( createOrChangeOrder.Action != OrderAction.Create)
             {
                 throw new InvalidOperationException("Expected action Create but was " + createOrChangeOrder.Action);
@@ -1490,8 +1490,8 @@ namespace TickZoom.MBTFIX
 
 		public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
 		{
-            if (!isSessionStatusOnline) return false;
-            if (debug) log.Debug("OnCancelBrokerOrder " + order);
+            if (!IsRecovered) return false;
+            if (debug) log.Debug("OnCancelBrokerOrder " + order + ". Connection " + ConnectionStatus + ", IsOrderServerOnline " + isOrderServerOnline);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
             CreateOrChangeOrder createOrChangeOrder;
 			try {
@@ -1550,12 +1550,12 @@ namespace TickZoom.MBTFIX
 		
 		public bool OnChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
-            if (!isSessionStatusOnline) return false;
+            if (!IsRecovered) return false;
             using (OrderStore.Lock())
             {
                 createOrChangeOrder.OrderState = OrderState.Pending;
             }
-			if( debug) log.Debug( "OnChangeBrokerOrder( " + createOrChangeOrder + ")");
+            if (debug) log.Debug("OnChangeBrokerOrder( " + createOrChangeOrder + ". Connection " + ConnectionStatus + ", IsOrderServerOnline " + isOrderServerOnline);
             if (createOrChangeOrder.Action != OrderAction.Change)
             {
                 throw new InvalidOperationException("Expected action Change but was " + createOrChangeOrder.Action);
