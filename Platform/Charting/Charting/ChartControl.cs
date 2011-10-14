@@ -872,7 +872,7 @@ namespace TickZoom.Charting
 					}
                     else
 					{
-                        log.Info("yMax is NAN from MoveByPixels with yScale " + yScale + ", yScale.Max " + yScale.Max + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
+                        if (trace) log.Trace("yMax is NAN from MoveByPixels with yScale " + yScale + ", yScale.Max " + yScale.Max + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
                     }
                 }
 				reset = true;
@@ -898,7 +898,7 @@ namespace TickZoom.Charting
                     }
                     else
                     {
-                        log.Info("yMin is NAN from MoveByPixels with yScale " + yScale + ", yScale.Min " + yScale.Min + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
+                        if (trace) log.Trace("yMin is NAN from MoveByPixels with yScale " + yScale + ", yScale.Min " + yScale.Min + ", resetYScaleSpeed " + resetYScaleSpeed + ", resetYScale " + resetYScale);
                     }
                 }
 				reset = true;
@@ -934,7 +934,7 @@ namespace TickZoom.Charting
                         }
                         else
                         {
-                            if( debug) log.Debug("_min is NAN from MoveByPixels with xScale " + xScale + ", xScale.Min " +
+                            if (trace) log.Trace("_min is NAN from MoveByPixels with xScale " + xScale + ", xScale.Min " +
                                      xScale.Min + ", resetXScaleSpeed " + resetXScaleSpeed);
                         }
                     }
@@ -951,7 +951,7 @@ namespace TickZoom.Charting
                         }
                         else
                         {
-                            if( debug) log.Debug("_max is NAN from MoveByPixels with xScale " + xScale + ", xScale.Max " +
+                            if (trace) log.Trace("_max is NAN from MoveByPixels with xScale " + xScale + ", xScale.Max " +
                                      xScale.Max + ", resetXScaleSpeed " + resetXScaleSpeed);
                         }
                     }
