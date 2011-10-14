@@ -427,7 +427,7 @@ namespace TickZoom.FIX
 			}
 		}
 
-        private bool SendSessionStatus(string status)
+        public bool SendSessionStatus(string status)
         {
             var mbtMsg = FixFactory.Create();
             mbtMsg.AddHeader("h");
@@ -545,7 +545,7 @@ namespace TickZoom.FIX
 			return false;
 		}
 
-        private void SendSessionStatusOnline()
+        public void SendSessionStatusOnline()
         {
             SendSessionStatus("2");
             SetOrderServerOnline();
