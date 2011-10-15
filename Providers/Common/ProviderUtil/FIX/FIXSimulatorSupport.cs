@@ -206,11 +206,17 @@ namespace TickZoom.FIX
 		{
 			if (this.fixSocket == socket) {
 				log.Info("FIX socket disconnect: " + socket);
-				CloseFIXSocket();
+                StopFIXSimulation();
+                CloseFIXSocket();
 			}
 		}
 
-		private void OnDisconnectQuotes(Socket socket)
+        protected virtual void StopFIXSimulation()
+        {
+            isFIXSimulationStarted = false;
+        }
+
+        private void OnDisconnectQuotes(Socket socket)
 		{
 			if (this.quoteSocket == socket) {
 				log.Info("Quotes socket disconnect: " + socket);
@@ -872,10 +878,14 @@ namespace TickZoom.FIX
 		}		
 
 		private void TryRequestHeartbeat(long currentTime) {
-			if( currentTime > heartbeatTimer) {
-				IncreaseHeartbeat(currentTime);
-				OnHeartbeat();
-			}
+            if( isFIXSimulationStarted)
+            {
+                if (currentTime > heartbeatTimer)
+                {
+                    IncreaseHeartbeat(currentTime);
+                    OnHeartbeat();
+                }
+            }
 		}
 
         public void SendMessage(FIXTMessage1_1 fixMessage)
