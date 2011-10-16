@@ -380,6 +380,10 @@ namespace TickZoom.FIX
 	            	if( reader != null) {
 	            		reader.Dispose();
 	            	}
+                    if( fillSimulator != null)
+                    {
+                        fillSimulator.IsOnline = false;
+                    }
                     if (SyncTicks.Enabled && tickSync != null)
                     {
                         tickSync.ForceClear();

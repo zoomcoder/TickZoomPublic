@@ -199,8 +199,6 @@ namespace TickZoom.MBTFIX
             {
                 SendSessionStatus("3");
             }
-
-            SetOrderServerOnline();
         }
 
 

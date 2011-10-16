@@ -435,6 +435,17 @@ namespace TickZoom.FIX
 
         public bool SendSessionStatus(string status)
         {
+            switch( status)
+            {
+                case "2":
+                    SetOrderServerOnline();
+                    break;
+                case "3":
+                    SetOrderServerOffline();
+                    break;
+                default:
+                    throw new ApplicationException("Unknown session status:" + status);
+            }
             var mbtMsg = FixFactory.Create();
             mbtMsg.AddHeader("h");
             mbtMsg.SetTradingSessionId("TSSTATE");
@@ -554,7 +565,6 @@ namespace TickZoom.FIX
         public void SendSessionStatusOnline()
         {
             SendSessionStatus("2");
-            SetOrderServerOnline();
             using( symbolHandlersLocker.Using())
             {
                 if( debug) log.Debug("Flushing all fill queues.");
@@ -705,9 +715,13 @@ namespace TickZoom.FIX
                     symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                 }
             }
-		}
+            if (IsOrderServerOnline)
+            {
+                SetOrderServerOnline();
+            }
+        }
 
-        public void SetOrderServerOnline()
+        private void SetOrderServerOnline()
         {
             using (symbolHandlersLocker.Using())
             {

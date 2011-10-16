@@ -80,11 +80,13 @@ namespace TickZoom.Interceptors
 		private Random random = new Random(1234);
 		private long minimumTick;
         private static int maxPartialFillsPerOrder = 1;
-	    private bool isOnline = true;
+	    private bool isOnline = false;
+	    private string name;
 
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
 		{
 			this.symbol = symbol;
+            this.name = name;
 		    limitOrderQuoteSimulation = symbol.LimitOrderQuoteSimulation;
 		    limitOrderTradeSimulation = symbol.LimitOrderTradeSimulation;
 			this.minimumTick = symbol.MinimumTick.ToLong();
@@ -309,10 +311,7 @@ namespace TickZoom.Interceptors
             }
             else
             {
-                if( isOnline)
-                {
-                    FlushFillQueue();
-                }
+                FlushFillQueue();
             }
 		}
 
@@ -321,6 +320,7 @@ namespace TickZoom.Interceptors
             while (fillQueue.Count > 0)
             {
                 var fill = fillQueue.Dequeue();
+                if (SyncTicks.Enabled && !isOnline) tickSync.AddPhysicalFill(fill);
                 if (debug) log.Debug("Dequeuing fill: " + fill);
                 onPhysicalFill(fill);
             }
@@ -730,7 +730,7 @@ namespace TickZoom.Interceptors
             //}
 			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills, totalSize, cumulativeSize, remainingSize, false);
 			if( debug) log.Debug("Enqueuing fill: " + fill );
-            if (SyncTicks.Enabled) tickSync.AddPhysicalFill(fill);
+            if (SyncTicks.Enabled && isOnline) tickSync.AddPhysicalFill(fill);
             fillQueue.Enqueue(fill);
         }
 		
@@ -808,7 +808,24 @@ namespace TickZoom.Interceptors
 	    public bool IsOnline
 	    {
 	        get { return isOnline; }
-	        set { isOnline = value; }
+	        set
+	        {
+	            if( isOnline != value)
+	            {
+	                isOnline = value;
+                    if( SyncTicks.Enabled && !createSimulatedFills)
+                    {
+                        if( isOnline)
+                        {
+                            tickSync.AddPhysicalFillSimulator(name);
+                        }
+                        else
+                        {
+                            tickSync.RemovePhysicalFillSimulator(name);
+                        }
+                    }
+	            }
+	        }
 	    }
 	}
 }

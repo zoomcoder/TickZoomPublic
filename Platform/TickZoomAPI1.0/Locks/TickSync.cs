@@ -41,11 +41,13 @@ namespace TickZoom.Api
         public int reprocessPhysical;
         public int physicalFills;
         public int physicalOrders;
+        public int physicalFillSimulators;
         public bool Compare(TickSyncState other)
         {
             return ticks == other.ticks && positionChange == other.positionChange &&
                    processPhysical == other.processPhysical && physicalFills == other.physicalFills &&
-                   reprocessPhysical == other.reprocessPhysical && physicalOrders == other.physicalOrders;
+                   reprocessPhysical == other.reprocessPhysical && physicalOrders == other.physicalOrders &&
+                   physicalFillSimulators == other.physicalFillSimulators;
 
         }
     }
@@ -86,18 +88,21 @@ namespace TickZoom.Api
         {
             return (*state).ticks == 0 && (*state).positionChange == 0 &&
                    (*state).physicalOrders == 0 && (*state).physicalFills == 0 &&
-                   (*state).processPhysical == 0 && (*state).reprocessPhysical == 0;
+                   (*state).processPhysical == 0 && (*state).reprocessPhysical == 0 &&
+                   (*state).physicalFillSimulators == 1;
         }
         private bool CheckOnlyProcessingOrders()
         {
             return (*state).positionChange == 0 && (*state).physicalOrders == 0 &&
-                (*state).physicalFills == 0 && (*state).processPhysical > 0;
+                (*state).physicalFills == 0 && (*state).processPhysical > 0 &&
+                   (*state).physicalFillSimulators == 1;
         }
 
         private bool CheckOnlyReprocessOrders()
         {
             return (*state).positionChange == 0 && (*state).physicalOrders == 0 &&
-                (*state).physicalFills == 0 && (*state).reprocessPhysical > 0;
+                (*state).physicalFills == 0 && (*state).reprocessPhysical > 0 &&
+                   (*state).physicalFillSimulators == 1;
         }
 
         private bool CheckProcessingOrders()
@@ -168,7 +173,7 @@ namespace TickZoom.Api
 
         private string ToString(TickSyncState temp)
         {
-            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills " + temp.physicalFills + ")";
+            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills " + temp.physicalFills + ", Simulators " + temp.physicalFillSimulators;
         }
 
         public void AddTick(Tick tick)
@@ -222,6 +227,23 @@ namespace TickZoom.Api
             {
                 var temp = Interlocked.Increment(ref (*state).physicalFills);
                 if (debug) log.Debug("PhysicalFills counter was " + value + ". Incremented to " + temp);
+            }
+        }
+
+        public void AddPhysicalFillSimulator(string name)
+        {
+            var value = Interlocked.Increment(ref (*state).physicalFillSimulators);
+            if (trace) log.Trace("AddPhysicalFillSimulator( " + name + ") " + this);
+        }
+
+        public void RemovePhysicalFillSimulator(string name)
+        {
+            var value = Interlocked.Decrement(ref (*state).physicalFillSimulators);
+            if (trace) log.Trace("RemovePhysicalFillSimulator( " + name + " ) " + this);
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref (*state).physicalFillSimulators);
+                if (debug) log.Debug("PhysicalFillSimulators counter was " + value + ". Incremented to " + temp);
             }
         }
 
