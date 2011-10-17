@@ -417,7 +417,7 @@ namespace TickZoom.Common
 		{
 			while( count < expectedTickCount && Factory.TickCount < startTime + timeoutSeconds * 1000) {
 				if( propagateException != null) {
-					throw propagateException;
+					throw new ApplicationException("EndTimeTheFeed found exception thrown in back end: " + propagateException.Message, propagateException);
 				}
 				Thread.Sleep(100);
 			}
