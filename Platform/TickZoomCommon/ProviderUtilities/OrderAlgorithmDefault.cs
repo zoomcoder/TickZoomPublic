@@ -122,7 +122,7 @@ namespace TickZoom.Common
 
 			return physicalOrderMatches;
 		}
-		
+
         private bool TryCancelBrokerOrder(CreateOrChangeOrder physical)
         {
 			bool result = false;
@@ -131,32 +131,38 @@ namespace TickZoom.Common
                 physical.Type != OrderType.BuyMarket &&
                 physical.Type != OrderType.SellMarket)
             {
-                var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
-                using (physicalOrderCache.Lock())
+                result = Cancel(physical);
+            }
+            return result;
+        }
+		
+        public bool Cancel(CreateOrChangeOrder physical)
+        {
+			var result = false;
+            var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
+            using (physicalOrderCache.Lock())
+            {
+                physical.OrderState = OrderState.Pending;
+                physical.ReplacedBy = cancelOrder;
+            }
+            if (physicalOrderCache.HasCancelOrder(cancelOrder))
+            {
+                if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has a cancel or replace already.");
+            }
+            else
+            {
+                if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
+                TryAddPhysicalOrder(cancelOrder);
+                if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
                 {
-                    physical.OrderState = OrderState.Pending;
-                    physical.ReplacedBy = cancelOrder;
-                }
-                if (physicalOrderCache.HasCancelOrder(cancelOrder))
-                {
-                    if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has a cancel or replace already.");
-                    result = false;
+                    physicalOrderCache.SetOrder(cancelOrder);
+                    sentPhysicalOrders++;
                 }
                 else
                 {
-                    if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
-                    TryAddPhysicalOrder(cancelOrder);
-                    if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
-                    {
-                        physicalOrderCache.SetOrder(cancelOrder);
-                        sentPhysicalOrders++;
-                    }
-                    else
-                    {
-                        TryRemovePhysicalOrder(cancelOrder);
-                    }
-                    result = true;
+                    TryRemovePhysicalOrder(cancelOrder);
                 }
+                result = true;
             }
 		    return result;
 		}
@@ -1614,6 +1620,10 @@ namespace TickZoom.Common
                 origOrder.ReplacedBy = null;
                 if (removeOriginal)
                 {
+                    if( origOrder.OriginalOrder != null)
+                    {
+                        origOrder.OriginalOrder.ReplacedBy = null;
+                    }
                     physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
                 }
                 else if (origOrder.OrderState == OrderState.Pending)

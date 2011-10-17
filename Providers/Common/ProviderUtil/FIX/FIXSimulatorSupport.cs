@@ -61,8 +61,10 @@ namespace TickZoom.FIX
         private bool simulateDisconnect = true;
         protected bool simulateSendOrderServerOffline = true;
         protected bool simulateRecvOrderServerOffline = true;
+        private bool simulateOrderBlackHole = true;
         private bool simulateReceiveFailed = true;
         private bool simulateSendFailed = true;
+        private int simulateOrderBlackHoleFrequency = 20;
         private int simulateDisconnectFrequency = 50;
         private int simulateRecvOrderServerOfflineFrequency = 50;
         protected int simulateSendOrderServerOfflineFrequency = 50;
@@ -129,6 +131,10 @@ namespace TickZoom.FIX
             if (!simulateReceiveFailed)
             {
                 log.Error("SimulateReceiveFailed is disabled.");
+            }
+            if (!simulateOrderBlackHole)
+            {
+                log.Error("SimulateOrderBlackHole is disabled.");
             }
             if (!simulateSendFailed)
             {
@@ -679,6 +685,18 @@ namespace TickZoom.FIX
             }
             remoteSequence = packetFIX.Sequence + 1;
             if (debug) log.Debug("Received FIX message: " + _fixReadMessage);
+            switch (packetFIX.MessageType)
+            {
+                case "G":
+                case "D":
+                case "F":
+                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency) == 1)
+                    {
+                        if (debug) log.Debug("Simulating order 'black hole' by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        return true;
+                    }
+                    break;
+            }
             ParseFIXMessage(_fixReadMessage);
             return true;
         }
@@ -904,6 +922,16 @@ namespace TickZoom.FIX
 
         public void SendMessage(FIXTMessage1_1 fixMessage)
         {
+            switch (fixMessage.Type)
+            {
+                case "8":
+                    if (simulateOrderBlackHole && random.Next(simulateOrderBlackHoleFrequency) == 1)
+                    {
+                        if (debug) log.Debug("Simulating order 'black hole' never sending execution report with sequence " + fixMessage.Sequence);
+                        return;
+                    }
+                    break;
+            }
             FixFactory.AddHistory(fixMessage);
             if (isConnectionLost) return;
             if (simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)

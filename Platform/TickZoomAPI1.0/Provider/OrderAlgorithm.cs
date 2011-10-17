@@ -53,5 +53,6 @@ namespace TickZoom.Api
         bool IsPositionSynced { get; set; }
 	    int ProcessOrders();
 	    void RemovePending(CreateOrChangeOrder order, bool isRealTime);
+	    bool Cancel(CreateOrChangeOrder physical);
 	}
 }

@@ -58,7 +58,7 @@ namespace TickZoom.MBTFIX
             }
         }
         private static long nextConnectTime = 0L;
-		private readonly object orderAlgorithmLocker = new object();
+		private readonly object orderAlgorithmsLocker = new object();
         private Dictionary<long,OrderAlgorithm> orderAlgorithms = new Dictionary<long,OrderAlgorithm>();
         long lastLoginTry = long.MinValue;
 
@@ -292,17 +292,26 @@ namespace TickZoom.MBTFIX
             var list = OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending && x.LastStateChange < expiryLimit);
             if( list.Count > 0)
             {
-                var sb = new StringBuilder();
-                foreach( var order in list)
+                foreach (var order in list)
                 {
-                    sb.AppendLine(order.ToString());
+                    var algo = orderAlgorithms[order.Symbol.BinaryIdentifier];
+                    algo.Cancel(order);
                 }
-                log.Error("Found these orders that were still pending since " + expiryLimit + "\n" + sb);
-                var message = "Found orders still pending since " + expiryLimit + " seconds. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
-                log.Error(message);
-                Dispose();
-                throw new ApplicationException( message);
+                OrderStore.ResetLastChange();
             }
+            //if( list.Count > 0)
+            //{
+            //    var sb = new StringBuilder();
+            //    foreach( var order in list)
+            //    {
+            //        sb.AppendLine(order.ToString());
+            //    }
+            //    log.Error("Found these orders that were still pending since " + expiryLimit + "\n" + sb);
+            //    var message = "Found orders still pending since " + expiryLimit + " seconds. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
+            //    log.Error(message);
+            //    Dispose();
+            //    throw new ApplicationException( message);
+            //}
         }
 
         private unsafe bool VerifyLoginAck(MessageFIXT1_1 message)
@@ -1282,7 +1291,7 @@ namespace TickZoom.MBTFIX
 		
 		private OrderAlgorithm GetAlgorithm(long symbol) {
 			OrderAlgorithm algorithm;
-			lock( orderAlgorithmLocker) {
+			lock( orderAlgorithmsLocker) {
 				if( !orderAlgorithms.TryGetValue(symbol, out algorithm)) {
 					var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
 				    var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
@@ -1295,7 +1304,7 @@ namespace TickZoom.MBTFIX
 		}
 		
 		private bool RemoveOrderHandler(long symbol) {
-			lock( orderAlgorithmLocker) {
+			lock( orderAlgorithmsLocker) {
 				if( orderAlgorithms.ContainsKey(symbol)) {
 					orderAlgorithms.Remove(symbol);
 					return true;
@@ -1318,16 +1327,12 @@ namespace TickZoom.MBTFIX
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             algorithm.SetDesiredPosition(desiredPosition);
             algorithm.SetLogicalOrders(inputOrders, strategyPositions);
-            lock (orderAlgorithmLocker)
+            if( !algorithm.IsPositionSynced)
             {
-                if( !algorithm.IsPositionSynced)
-                {
-                    algorithm.TrySyncPosition(strategyPositions);
-                }
-
-                algorithm.ProcessOrders();
-
+                algorithm.TrySyncPosition(strategyPositions);
             }
+
+            algorithm.ProcessOrders();
 		}
 		
 		
