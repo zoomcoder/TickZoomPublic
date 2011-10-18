@@ -683,7 +683,6 @@ namespace TickZoom.FIX
                 SendSessionStatus("3"); //offline
                 return true;
             }
-            remoteSequence = packetFIX.Sequence + 1;
             if (debug) log.Debug("Received FIX message: " + _fixReadMessage);
             switch (packetFIX.MessageType)
             {
@@ -697,6 +696,7 @@ namespace TickZoom.FIX
                     }
                     break;
             }
+            remoteSequence = packetFIX.Sequence + 1;
             ParseFIXMessage(_fixReadMessage);
             return true;
         }
@@ -739,7 +739,7 @@ namespace TickZoom.FIX
             }
         }
 
-        private void SetOrderServerOnline()
+        public void SetOrderServerOnline()
         {
             using (symbolHandlersLocker.Using())
             {
@@ -922,16 +922,16 @@ namespace TickZoom.FIX
 
         public void SendMessage(FIXTMessage1_1 fixMessage)
         {
-            switch (fixMessage.Type)
-            {
-                case "8":
-                    if (simulateOrderBlackHole && random.Next(simulateOrderBlackHoleFrequency) == 1)
-                    {
-                        if (debug) log.Debug("Simulating order 'black hole' never sending execution report with sequence " + fixMessage.Sequence);
-                        return;
-                    }
-                    break;
-            }
+            //switch (fixMessage.Type)
+            //{
+            //    case "8":
+            //        if (simulateOrderBlackHole && random.Next(simulateOrderBlackHoleFrequency) == 1)
+            //        {
+            //            if (debug) log.Debug("Simulating order 'black hole' never sending execution report with sequence " + fixMessage.Sequence);
+            //            return;
+            //        }
+            //        break;
+            //}
             FixFactory.AddHistory(fixMessage);
             if (isConnectionLost) return;
             if (simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)

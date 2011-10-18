@@ -227,6 +227,7 @@ namespace TickZoom.FIX
 						}
                     }
                     isFirstTick = false;
+                    FillSimulator.StartTick(currentTick);
                     nextTick.Inject(binary);
                     if( SyncTicks.Enabled)
                     {

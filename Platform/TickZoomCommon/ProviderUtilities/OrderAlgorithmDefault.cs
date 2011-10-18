@@ -1638,6 +1638,10 @@ namespace TickZoom.Common
             if (SyncTicks.Enabled)
             {
                 tickSync.RemovePhysicalOrder(order);
+                if( removeOriginal && origOrder != null)
+                {
+                    tickSync.RemovePhysicalOrder(origOrder);
+                }
             }
         }
 
@@ -1673,6 +1677,10 @@ namespace TickZoom.Common
             }
             if (SyncTicks.Enabled)
             {
+                if (order.ReplacedBy == null)
+                {
+                    tickSync.RemovePhysicalOrder(order.ReplacedBy);
+                }
                 tickSync.RemovePhysicalOrder(order);
             }
         }
