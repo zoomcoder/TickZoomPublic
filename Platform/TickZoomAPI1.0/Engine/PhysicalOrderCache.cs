@@ -20,6 +20,7 @@ namespace TickZoom.Api
         void SetOrder(CreateOrChangeOrder order);
         CreateOrChangeOrder RemoveOrder(string clientOrderId);
         Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
+        List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
         bool HasCancelOrder(PhysicalOrder order);
         bool HasCreateOrder(CreateOrChangeOrder order);
         PhysicalOrderLock Lock();
@@ -46,7 +47,6 @@ namespace TickZoom.Api
         void UpdateLocalSequence(int localSequence);
         void UpdateRemoteSequence(int remoteSequence);
         void SetSequences(int remoteSequence, int localSequence);
-        List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
         string LogOrders();
         int Count();
     }

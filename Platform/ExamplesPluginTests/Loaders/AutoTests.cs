@@ -110,7 +110,7 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Historical  | AutoTestMode.SimulateFIX,
+                Mode = AutoTestMode.Historical,
                 Name = "DualStrategyLimitOrder",
 			    Loader = new TestDualStrategyLoader(),
 				Symbols = primarySymbol + ",EUR/USD",

@@ -278,40 +278,22 @@ namespace TickZoom.MBTFIX
         {
             if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
-		    if( isOrderServerOnline) CheckForPending(previousHeartbeatTime);
-			var fixMsg = (FIXMessage4_4) FixFactory.Create();
+            if( isOrderServerOnline)
+            {
+                lock( orderAlgorithmsLocker)
+                {
+                    foreach( var kvp in orderAlgorithms)
+                    {
+                        var algo = kvp.Value;
+                        algo.CheckForPending();
+                    }
+                }
+            }
+            var fixMsg = (FIXMessage4_4)FixFactory.Create();
 			fixMsg.AddHeader("0");
 			SendMessage( fixMsg);
             previousHeartbeatTime = recentHeartbeatTime;
             recentHeartbeatTime = TimeStamp.UtcNow;
-        }
-
-        private void CheckForPending(TimeStamp expiryLimit)
-        {
-            if( debug) log.Debug("Checking for orders pending since: " + expiryLimit);
-            var list = OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending && x.LastStateChange < expiryLimit);
-            if( list.Count > 0)
-            {
-                foreach (var order in list)
-                {
-                    var algo = orderAlgorithms[order.Symbol.BinaryIdentifier];
-                    algo.Cancel(order);
-                }
-                OrderStore.ResetLastChange();
-            }
-            //if( list.Count > 0)
-            //{
-            //    var sb = new StringBuilder();
-            //    foreach( var order in list)
-            //    {
-            //        sb.AppendLine(order.ToString());
-            //    }
-            //    log.Error("Found these orders that were still pending since " + expiryLimit + "\n" + sb);
-            //    var message = "Found orders still pending since " + expiryLimit + " seconds. This means that TickZoom has become out of sync with the provider. Please erase your snapshot database, flatten all positions, cancel all orders and then restart to continue."; 
-            //    log.Error(message);
-            //    Dispose();
-            //    throw new ApplicationException( message);
-            //}
         }
 
         private unsafe bool VerifyLoginAck(MessageFIXT1_1 message)

@@ -729,6 +729,7 @@ namespace TickZoom.Common
 
         public CreateOrChangeOrder RemoveOrder(string clientOrderId)
         {
+            if (trace) log.Trace("RemoveOrder( " + clientOrderId + ")");
             AssertAtomic();
             if (string.IsNullOrEmpty(clientOrderId))
             {
@@ -741,18 +742,22 @@ namespace TickZoom.Common
                 if (ordersByBrokerId.TryGetValue(clientOrderId, out order))
                 {
                     var result = ordersByBrokerId.Remove(clientOrderId);
-                    if( trace) log.Trace("Removed " + clientOrderId);
+                    if( result && trace) log.Trace("Removed order by broker id " + clientOrderId + ": " + order);
                     CreateOrChangeOrder orderBySerial;
                     if( ordersBySerial.TryGetValue(order.LogicalSerialNumber, out orderBySerial))
                     {
                         if( orderBySerial.BrokerOrder.Equals(clientOrderId))
                         {
-                            ordersBySerial.Remove(order.LogicalSerialNumber);
-                            if( trace) log.Trace("Removed " + order.LogicalSerialNumber);
+                            var result2 = ordersBySerial.Remove(order.LogicalSerialNumber);
+                            if( result2 && trace) log.Trace("Removed order by logical id " + order.LogicalSerialNumber + ": " + orderBySerial);
                         }
                     }
+                    return order;
                 }
-                return order;
+                else
+                {
+                    return null;
+                }
             }
         }
 

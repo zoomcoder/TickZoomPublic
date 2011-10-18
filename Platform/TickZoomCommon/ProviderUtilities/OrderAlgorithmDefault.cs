@@ -142,7 +142,6 @@ namespace TickZoom.Common
             var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
             using (physicalOrderCache.Lock())
             {
-                physical.OrderState = OrderState.Pending;
                 physical.ReplacedBy = cancelOrder;
             }
             if (physicalOrderCache.HasCancelOrder(cancelOrder))
@@ -152,15 +151,16 @@ namespace TickZoom.Common
             else
             {
                 if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
+                physicalOrderCache.SetOrder(cancelOrder);
                 TryAddPhysicalOrder(cancelOrder);
                 if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
                 {
-                    physicalOrderCache.SetOrder(cancelOrder);
                     sentPhysicalOrders++;
                 }
                 else
                 {
                     TryRemovePhysicalOrder(cancelOrder);
+                    physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
                 }
                 result = true;
             }
@@ -969,7 +969,7 @@ namespace TickZoom.Common
 			this.desiredPosition = position;
 		}
 		
-		private bool CheckForPending() {
+		private bool CheckForPendingInternal() {
 			var result = false;
 		    var next = originalPhysicals.First;
 		    for (var current = next; current != null; current = next)
@@ -986,6 +986,32 @@ namespace TickZoom.Common
 			}
 			return result;
 		}
+
+        public void CheckForPending()
+        {
+            var expiryLimit = TimeStamp.UtcNow;
+            if( SyncTicks.Enabled)
+            {
+                expiryLimit.AddSeconds(-1);
+            }
+            else
+            {
+                expiryLimit.AddSeconds(-5);
+            }
+            if (debug) log.Debug("Checking for orders pending since: " + expiryLimit);
+            var list = physicalOrderCache.GetOrders((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew));
+            foreach( var order in list)
+            {
+                if( debug) log.Debug("Pending order: " + order);
+                if( order.LastStateChange < expiryLimit)
+                {
+                    if( Cancel(order))
+                    {
+                        order.ResetLastChange();
+                    }
+                }
+            }
+        }
 
         private LogicalOrder FindActiveLogicalOrder(long serialNumber)
         {
@@ -1111,9 +1137,11 @@ namespace TickZoom.Common
 		private void PerformCompareProtected() {
 			var count = Interlocked.Increment(ref recursiveCounter);
 		    if( count == 1)
-			{
+		    {
+		        var hasPendingOrders = false;
                 //var whileCounter = 0;
-				while( recursiveCounter > 0) {
+				while( recursiveCounter > 0)
+				{
                     for (var i = 0; i < recursiveCounter-1; i++ )
                     {
                         Interlocked.Decrement(ref recursiveCounter);
@@ -1127,7 +1155,7 @@ namespace TickZoom.Common
                         // Is it still not synced?
                         if (isPositionSynced)
                         {
-                            PerformCompareInternal();
+                            PerformCompareInternal(out hasPendingOrders);
                             physicalOrderHandler.ProcessOrders();
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
                         }
@@ -1152,7 +1180,7 @@ namespace TickZoom.Common
 				}
                 if (SyncTicks.Enabled)
                 {
-                    if( tickSync.SentPositionChange)
+                    if( !hasPendingOrders && tickSync.SentPositionChange)
                     {
                         tickSync.RemovePositionChange();
                     }
@@ -1366,7 +1394,8 @@ namespace TickZoom.Common
 		}
 		
 		private int recursiveCounter;
-		private void PerformCompareInternal() {
+		private void PerformCompareInternal(out bool hasPendingOrders)
+		{
 			if( debug)
 			{
 			    log.Debug("PerformCompare for " + symbol + " with " +
@@ -1377,7 +1406,8 @@ namespace TickZoom.Common
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
 
-		    var hasPendingOrders = CheckForPending();
+		    CheckForPending();
+		    hasPendingOrders = CheckForPendingInternal();
             if (hasPendingOrders)
             {
                 if (debug) log.Debug("Found pending physical orders. So ending order comparison.");
@@ -1444,6 +1474,7 @@ namespace TickZoom.Common
                 ProcessExtraLogical(logical);
                 extraLogicals.Remove(logical);
             }
+		    return;
 		}
 
         private void TryFlushBufferedLogicals()
@@ -1638,7 +1669,7 @@ namespace TickZoom.Common
             if (SyncTicks.Enabled)
             {
                 tickSync.RemovePhysicalOrder(order);
-                if( removeOriginal && origOrder != null)
+                if (removeOriginal && origOrder != null && (origOrder.OrderState == OrderState.Pending || origOrder.OrderState == OrderState.PendingNew))
                 {
                     tickSync.RemovePhysicalOrder(origOrder);
                 }
@@ -1669,6 +1700,7 @@ namespace TickZoom.Common
             }
             else
             {
+                if( debug) log.Debug("Removing 'replaced by' order: " + order.ReplacedBy);
                 physicalOrderCache.RemoveOrder(order.ReplacedBy.BrokerOrder);
             }
             if (isRealTime)
@@ -1677,11 +1709,14 @@ namespace TickZoom.Common
             }
             if (SyncTicks.Enabled)
             {
-                if (order.ReplacedBy == null)
+                if (order.ReplacedBy != null)
                 {
                     tickSync.RemovePhysicalOrder(order.ReplacedBy);
                 }
-                tickSync.RemovePhysicalOrder(order);
+                else
+                {
+                    tickSync.RemovePhysicalOrder(order);
+                }
             }
         }
 		

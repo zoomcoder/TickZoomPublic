@@ -684,6 +684,7 @@ namespace TickZoom.FIX
                 return true;
             }
             if (debug) log.Debug("Received FIX message: " + _fixReadMessage);
+            remoteSequence = packetFIX.Sequence + 1;
             switch (packetFIX.MessageType)
             {
                 case "G":
@@ -696,7 +697,6 @@ namespace TickZoom.FIX
                     }
                     break;
             }
-            remoteSequence = packetFIX.Sequence + 1;
             ParseFIXMessage(_fixReadMessage);
             return true;
         }
