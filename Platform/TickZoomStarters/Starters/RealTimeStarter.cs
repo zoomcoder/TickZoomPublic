@@ -56,68 +56,29 @@ namespace TickZoom.Starters
 <configuration>
  <log4net>
     <root>
-	<level value=""INFO"" />
+	<level value=""DEBUG"" />
 	<appender-ref ref=""FileAppender"" />
 	<appender-ref ref=""ConsoleAppender"" />
     </root>
     <logger name=""StatsLog"">
-        <level value=""DEBUG"" />
+        <level value=""INFO"" />
     	<additivity value=""false"" />
-	<appender-ref ref=""StatsLogAppender"" />
+	    <appender-ref ref=""StatsLogAppender"" />
     </logger>
     <logger name=""TradeLog"">
-        <level value=""DEBUG"" />
+        <level value=""INFO"" />
     	<additivity value=""false"" />
-	<appender-ref ref=""TradeLogAppender"" />
+	    <appender-ref ref=""TradeLogAppender"" />
     </logger>
     <logger name=""TransactionLog.Performance"">
-        <level value=""DEBUG"" />
+        <level value=""INFO"" />
     	<additivity value=""false"" />
-	<appender-ref ref=""TransactionLogAppender"" />
+	    <appender-ref ref=""TransactionLogAppender"" />
     </logger>
     <logger name=""BarDataLog"">
-        <level value=""DEBUG"" />
+        <level value=""INFO"" />
     	<additivity value=""false"" />
-	<appender-ref ref=""BarDataLogAppender"" />
-    </logger>
-    <logger name=""TickZoom.Common"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.FIX"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.MBTFIX"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.MBTQuotes"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.Engine.SymbolReceiver"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.ProviderService"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Engine.EngineKernel"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Internals.OrderGroup"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Internals.OrderManager"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Engine.SymbolController"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.Interceptors.FillSimulatorPhysical"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.Interceptors.FillHandlerDefault"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.Common.OrderAlgorithmDefault"">
-        <level value=""DEBUG"" />
+	    <appender-ref ref=""BarDataLogAppender"" />
     </logger>
  </log4net>
 </configuration>

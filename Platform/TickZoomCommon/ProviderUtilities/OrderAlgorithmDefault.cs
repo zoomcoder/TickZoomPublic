@@ -156,13 +156,13 @@ namespace TickZoom.Common
                 if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
                 {
                     sentPhysicalOrders++;
+                    result = true;
                 }
                 else
                 {
                     TryRemovePhysicalOrder(cancelOrder);
                     physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
                 }
-                result = true;
             }
 		    return result;
 		}
@@ -1694,6 +1694,11 @@ namespace TickZoom.Common
 		{
             if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
+            var origOrder = order.OriginalOrder;
+            if( origOrder != null)
+            {
+                origOrder.ReplacedBy = null;
+            }
             if (order.ReplacedBy == null)
             {
                 if (debug) log.Debug("CancelOrder w/o any replaced order specified happens normally: " + order + " ");

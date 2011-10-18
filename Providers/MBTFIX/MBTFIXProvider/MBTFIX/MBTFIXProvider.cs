@@ -371,12 +371,6 @@ namespace TickZoom.MBTFIX
 					break;
 				case "9":
 					CancelRejected( packetFIX);
-                    if( packetFIX.Symbol != null)
-                    {
-                        var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                        var algo = orderAlgorithms[symbol.BinaryIdentifier];
-                        algo.ProcessOrders();
-                    }
 					break;
 				case "1":
 					SendHeartbeat();
@@ -543,7 +537,9 @@ namespace TickZoom.MBTFIX
                     log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
                     return;
                 }
-                if (debug) log.Debug("PositionUpdate: " + symbolInfo + "=" + position);
+                var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+                if (debug) log.Debug("PositionUpdate for " + symbolInfo + ": MBT actual =" + position + ", TZ actual=" + algorithm.ActualPosition);
             }
 		}
 
@@ -777,26 +773,25 @@ namespace TickZoom.MBTFIX
 			switch( orderStatus) {
 				case "8": // Rejected
 					var rejectReason = false;
-                    switch( packetFIX.Text)
+                    if( packetFIX.Text.Contains("Order Server Not Available"))
                     {
-                        case "Order Server Not Available":
-                            rejectReason = true;
-                            TrySendEndBroker();
-                            break;
-                        case "Cannot cancel order. Probably already filled or canceled.":
-                        case "No such order":
-                            rejectReason = true;
-                            removeOriginal = true;
-                            break;
-                        case "Order pending remote":
-                        case "Cancel request already pending":
-                        case "ORDER in pending state":
-                        case "General Order Replace Error":
-                            rejectReason = true;
-                            break;
-                        default:
-                            break;
+                        rejectReason = true;
+                        TrySendEndBroker();
                     }
+                    else if( packetFIX.Text.Contains("Cannot cancel order. Probably already filled or canceled.") ||
+                        packetFIX.Text.Contains("No such order"))
+                    {
+                        rejectReason = true;
+                        removeOriginal = true;
+                    }
+                    else if( packetFIX.Text.Contains("Order pending remote") ||
+                        packetFIX.Text.Contains("Cancel request already pending") ||
+                        packetFIX.Text.Contains("ORDER in pending state") ||
+                        packetFIX.Text.Contains("General Order Replace Error"))
+                    {
+                        rejectReason = true;
+                    }
+
 			        using (OrderStore.Lock())
 			        {
                         OrderStore.RemoveOrder(packetFIX.ClientOrderId);
@@ -919,28 +914,26 @@ namespace TickZoom.MBTFIX
 		public void RejectOrder( MessageFIX4_4 packetFIX)
 		{
 		    var rejectReason = false;
-            bool removeOriginal = false;
-            switch (packetFIX.Text)
+		    bool removeOriginal = false;
+		    if (packetFIX.Text.Contains("Cannot change order. Probably already filled or canceled.") ||
+		        packetFIX.Text.Contains("No such order"))
+		    {
+		        rejectReason = true;
+		        removeOriginal = true;
+		    }
+		    else if (packetFIX.Text.Contains("Outside trading hours") ||
+		             packetFIX.Text.Contains("not accepted this session") ||
+		             packetFIX.Text.Contains("Pending live orders") ||
+		             packetFIX.Text.Contains("Trading temporarily unavailable") ||
+		             packetFIX.Text.Contains("improper setting") ||
+		             packetFIX.Text.Contains("No position to close"))
+		    {
+		        rejectReason = true;
+		    }
+            else if (packetFIX.Text.Contains("Order Server Not Available"))
             {
-                case "Cannot change order. Probably already filled or canceled.":
-                case "No such order":
-                    rejectReason = true;
-                    removeOriginal = true;
-                    break;
-                case "Outside trading hours":
-                case "not accepted this session":
-                case "Pending live orders":
-                case "Trading temporarily unavailable":
-                case "improper setting":
-                case "No position to close":
-                    rejectReason = true;
-                    break;
-		        case "Order Server Not Available":
-                    rejectReason = true;
-                    TrySendEndBroker();
-                    break;
-                default:
-                    break;
+                rejectReason = true;
+                TrySendEndBroker();
             }
 
 		    if( IsRecovered && !rejectReason ) {

@@ -115,5 +115,6 @@ namespace TickZoom.Api
 	    long LogicalSerialNumber { get; }
 
 	    CreateOrChangeOrder Clone();
+	    void ResetLastChange(TimeStamp lastChange);
 	}
 }

@@ -322,6 +322,11 @@ namespace TickZoom.Common
             binary.lastStateChange = TimeStamp.UtcNow;
         }
 
+        public void ResetLastChange(TimeStamp lastChange)
+        {
+            binary.lastStateChange = lastChange;
+        }
+
         public override int GetHashCode()
         {
             return binary.brokerOrder.GetHashCode();

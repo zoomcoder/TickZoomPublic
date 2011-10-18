@@ -31,8 +31,9 @@ namespace TickZoom.Api
 	public class StrategyPositionDefault : StrategyPosition
 	{
 	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (StrategyPositionDefault));
-	    private bool debug = log.IsDebugEnabled;
-	    private int _id;
+        private static readonly bool debug = log.IsDebugEnabled;
+        private static readonly bool trace = log.IsTraceEnabled;
+        private int _id;
 	    private SymbolInfo _symbol;
         private int actualPosition;
         private int expectedPosition;
@@ -42,7 +43,7 @@ namespace TickZoom.Api
         {
             this._id = id;
             this._symbol = symbol;
-            if( debug) log.Debug("New StrategyPosition");
+            if( trace) log.Trace("New StrategyPosition");
         }
 
 	    public int ActualPosition
@@ -72,13 +73,13 @@ namespace TickZoom.Api
 
 	    public void SetExpectedPosition(int position)
         {
-            if (debug) log.Debug("SetExpectedPositions() strategy " + Id + " for " + Symbol + " position change from " + expectedPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
+            if (trace) log.Trace("SetExpectedPositions() strategy " + Id + " for " + Symbol + " position change from " + expectedPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
             expectedPosition = position;
         }
 
         public void SetActualPosition(int position)
         {
-            if (debug) log.Debug("SetActualPosition() strategy " + Id + " for " + Symbol + " position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
+            if (trace) log.Trace("SetActualPosition() strategy " + Id + " for " + Symbol + " position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
             actualPosition = position;
         }
 

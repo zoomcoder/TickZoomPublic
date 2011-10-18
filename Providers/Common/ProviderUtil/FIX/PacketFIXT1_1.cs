@@ -213,7 +213,7 @@ namespace TickZoom.FIX
             {
                 data.Write(buffer.GetBuffer(), position, (int)copyTo);
                 buffer.Position += copyTo;
-                if( debug) log.Debug("Copied buffer: " + this);
+                if( verbose) log.Verbose("Copied buffer: " + this);
                 return true;
             }
             LogMessage();

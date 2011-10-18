@@ -922,16 +922,7 @@ namespace TickZoom.FIX
 
         public void SendMessage(FIXTMessage1_1 fixMessage)
         {
-            //switch (fixMessage.Type)
-            //{
-            //    case "8":
-            //        if (simulateOrderBlackHole && random.Next(simulateOrderBlackHoleFrequency) == 1)
-            //        {
-            //            if (debug) log.Debug("Simulating order 'black hole' never sending execution report with sequence " + fixMessage.Sequence);
-            //            return;
-            //        }
-            //        break;
-            //}
+
             FixFactory.AddHistory(fixMessage);
             if (isConnectionLost) return;
             if (simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)

@@ -156,13 +156,13 @@ namespace TickZoom.MBTFIX
 			}
 		    order.OriginalOrder = origOrder;
 			if( order.Side != origOrder.Side) {
-				var message = "Cannot change " + origOrder.Side + " to " + order.Side;
+				var message = symbol + ": Cannot change " + origOrder.Side + " to " + order.Side;
 				log.Error( message);
 				OnRejectOrder(order,false,message);
 				return;     
 			}
 			if( order.Type != origOrder.Type) {
-				var message = "Cannot change " + origOrder.Type + " to " + order.Type;
+				var message = symbol + ": Cannot change " + origOrder.Type + " to " + order.Type;
 				log.Error( message);
 				OnRejectOrder(order,false,message);
 				return;     
@@ -209,7 +209,7 @@ namespace TickZoom.MBTFIX
             if( !IsOrderServerOnline)
             {
                 if (debug) log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Order Server Offline.");
-                OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "Order Server Offline");
+                OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, symbol + ": Order Server Offline");
                 return;
             }
             if (debug)
