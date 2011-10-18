@@ -263,11 +263,10 @@ namespace TickZoom.MBTFIX
 	
 		private void RequestPositions() {
 			var fixMsg = (FIXMessage4_4) FixFactory.Create();
-			fixMsg.SetSubscriptionRequestType(0);
-			fixMsg.SetAccount(AccountNumber);
+            fixMsg.SetSubscriptionRequestType(1);
+            fixMsg.SetAccount(AccountNumber);
 			fixMsg.SetPositionRequestId(1);
 			fixMsg.SetPositionRequestType(0);
-            fixMsg.SetSubscriptionRequestType(1);
 			fixMsg.AddHeader("AN");
 			SendMessage(fixMsg);
 		}
@@ -510,10 +509,10 @@ namespace TickZoom.MBTFIX
                     TrySendEndBroker();
                 }
             }
-            else
+            else if( trace)
             {
                 var message = "Order server continues offline. Attempting to reconnect.";
-                log.Notice(message);
+                log.Trace(message);
             }
 	    }
 
@@ -769,7 +768,7 @@ namespace TickZoom.MBTFIX
 		
 		private void CancelRejected( MessageFIX4_4 packetFIX) {
 			if( debug && (LogRecovery || !IsRecovery) ) {
-				log.Debug("ExecutionReport: " + packetFIX);
+				log.Debug("CancelRejected: " + packetFIX);
 			}
 			string orderStatus = packetFIX.OrderStatus;
             CreateOrChangeOrder order;

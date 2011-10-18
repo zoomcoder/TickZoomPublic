@@ -80,7 +80,7 @@ namespace TickZoom.Interceptors
 		private Random random = new Random(1234);
 		private long minimumTick;
         private static int maxPartialFillsPerOrder = 1;
-	    private bool isOnline = false;
+	    private volatile bool isOnline = false;
 	    private string name;
 
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
@@ -320,8 +320,8 @@ namespace TickZoom.Interceptors
             while (fillQueue.Count > 0)
             {
                 var fill = fillQueue.Dequeue();
+                if (debug) log.Debug("Dequeuing fill (" + isOnline + "): " + fill);
                 if (SyncTicks.Enabled && !isOnline) tickSync.AddPhysicalFill(fill);
-                if (debug) log.Debug("Dequeuing fill: " + fill);
                 onPhysicalFill(fill);
             }
         }
@@ -729,7 +729,7 @@ namespace TickZoom.Interceptors
             //    onPositionChange( actualPosition);
             //}
 			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills, totalSize, cumulativeSize, remainingSize, false);
-			if( debug) log.Debug("Enqueuing fill: " + fill );
+            if (debug) log.Debug("Enqueuing fill (online: " + isOnline + "): " + fill);
             if (SyncTicks.Enabled && isOnline) tickSync.AddPhysicalFill(fill);
             fillQueue.Enqueue(fill);
         }

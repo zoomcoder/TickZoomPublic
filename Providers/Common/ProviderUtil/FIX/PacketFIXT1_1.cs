@@ -114,8 +114,8 @@ namespace TickZoom.FIX
 
         public void SetReadableBytes(int bytes)
         {
-			if( trace) log.Trace("SetReadableBytes(" + bytes + ")");
-			data.SetLength( data.Position + bytes);
+            //if( trace) log.Trace("SetReadableBytes(" + bytes + ")");
+            //data.SetLength( data.Position + bytes);
 		}
 	
 		public void Verify() {
@@ -205,12 +205,15 @@ namespace TickZoom.FIX
 			}
 		}
 		
-		public bool TrySplit(MemoryStream buffer) {
+		public bool TrySplit(MemoryStream buffer)
+		{
+		    var position = (int) buffer.Position;
             int copyTo = FindSplitAt(buffer);
             if (copyTo > 0)
             {
-                data.Write(buffer.GetBuffer(), 0, (int)copyTo);
+                data.Write(buffer.GetBuffer(), position, (int)copyTo);
                 buffer.Position += copyTo;
+                if( debug) log.Debug("Copied buffer: " + this);
                 return true;
             }
             LogMessage();

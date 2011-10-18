@@ -643,9 +643,10 @@ namespace TickZoom.TickUtil
                 }
             }
             if (verbose) log.Verbose("Decompressed tick: " + this);
-            var expectedChecksum = CalcChecksum(ref binary, "Dx"); if (expectedChecksum != checksum)
+            var expectedChecksum = CalcChecksum(ref binary, "Dx");
+            if (expectedChecksum != checksum)
             {
-                throw new ApplicationException("Checksum mismatch " + checksum + " vs. " + (byte)(expectedChecksum ^ lastChecksum) + ". This means integrity checking of tick compression failed.");
+                throw new ApplicationException("Checksum mismatch " + checksum + " vs. " + expectedChecksum + ". This means integrity checking of tick compression failed. The tick which failed checksum: " + this);
             }
 
             var len = (int)(ptr - fptr);

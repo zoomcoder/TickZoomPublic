@@ -7,6 +7,7 @@ namespace TickZoom.Api
         private static readonly Log log = Factory.SysLog.GetLogger(typeof(TransactionPairBinary));
         private static readonly bool debug = log.IsDebugEnabled;
         private static readonly bool trace = log.IsTraceEnabled;
+        private static readonly bool verbose = log.IsVerboseEnabled;
         public static readonly string TIMEFORMAT = "yyyy-MM-dd HH:mm:ss.fff";
         private int entryOrderId;
         private long entrySerialNumber;
@@ -97,11 +98,11 @@ namespace TickZoom.Api
                 if( currentPosition > 0)
                 {
                     var price = tick.IsQuote ? tick.Bid : tick.Price;
-                    if( trace) log.Trace("Setting using " + price + " of " + tick);
+                    if( verbose) log.Verbose("Setting using " + price + " of " + tick);
                     UpdatePrice(price);
                 } else {
                     var price = tick.IsQuote ? tick.Ask : tick.Price;
-                    if( trace) log.Trace("Setting using " + price + " of " + tick);
+                    if( verbose) log.Verbose("Setting using " + price + " of " + tick);
                     UpdatePrice(price);
                 }
                 exitTime = tick.Time.Internal;
@@ -112,11 +113,11 @@ namespace TickZoom.Api
         public void UpdatePrice(double price) {
             if (price > maxPrice)
             {
-                if( trace) log.Trace("UpdatePrice( max = " + price + ")");
+                if( verbose) log.Verbose("UpdatePrice( max = " + price + ")");
                 maxPrice = price;
             }
             if( price < minPrice) {
-                if( trace) log.Trace("UpdatePrice( min = " + price + ")");
+                if( verbose) log.Verbose("UpdatePrice( min = " + price + ")");
                 minPrice = price;
             }
             exitPrice = price;

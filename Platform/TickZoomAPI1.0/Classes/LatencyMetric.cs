@@ -34,7 +34,8 @@ namespace TickZoom.Api
 		private Log log;
 		private bool debug;
 		private bool trace;
-		private int id = int.MinValue;
+        private bool verbose;
+        private int id = int.MinValue;
 		private long symbol;
 		private const int averageLength = 10;
 		private Longs latencies = Factory.Engine.Longs(100);
@@ -53,6 +54,7 @@ namespace TickZoom.Api
 			this.log = Factory.SysLog.GetLogger(typeof(LatencyMetric).FullName + "." + name);
 			this.debug = log.IsDebugEnabled;
 			this.trace = log.IsTraceEnabled;
+		    this.verbose = log.IsVerboseEnabled;
 		}
 		
 		public void TryUpdate( long symbol, long timeStamp) {
@@ -62,7 +64,7 @@ namespace TickZoom.Api
 				this.manager = LatencyManager.Register(this, out id, out metricCount, out previous);
 				if( trace) log.Trace( "Registered " + name + " metric (" + id + ") on tick " + new TimeStamp( timeStamp) + ")");
 			}
-            if (trace)
+            if (verbose)
             {
                 manager.Log(id, timeStamp);
                 Update(timeStamp);
