@@ -194,7 +194,8 @@ namespace TickZoom.MBTFIX
             }
             else
             {
-                HeartbeatDelay = 40;
+                HeartbeatDelay = int.MaxValue;
+                //HeartbeatDelay = 40;
             }
         }
 
