@@ -109,10 +109,11 @@ namespace TickZoom.Common
 					if( tickQueue.TryDequeue(ref tickBinary)) {
                         tickQueue.RemoveStruct();
 						tickIO.Inject(tickBinary);
-						if (debug && countLog < 5) {
+						if (debug ) { // }&& countLog < 5) {
 							log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
 							countLog++;
-						} else if( trace)
+						}
+                        else if( trace)
 						{
                             log.Trace("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
                         }
