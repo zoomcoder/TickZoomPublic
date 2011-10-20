@@ -1005,8 +1005,27 @@ namespace TickZoom.Common
                 if( debug) log.Debug("Pending order: " + order);
                 if( order.LastStateChange < expiryLimit)
                 {
-                    if( Cancel(order))
+                    if( order.Action == OrderAction.Cancel)
                     {
+                        if (debug) log.Debug("Removing pending and stale Cancel order: " + order);
+                        physicalOrderCache.RemoveOrder(order.BrokerOrder);
+                        var origOrder = order.OriginalOrder;
+                        if (origOrder != null)
+                        {
+                            origOrder.ReplacedBy = null;
+                        }
+                        if (SyncTicks.Enabled)
+                        {
+                            tickSync.RemovePhysicalOrder(order);
+                        }
+                    }
+                    else if( Cancel(order))
+                    {
+                        var diff = expiryLimit - order.LastStateChange;
+                        if( !SyncTicks.Enabled)
+                        {
+                            log.Warn( "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " + diff.TotalSeconds + " seconds.");
+                        }
                         order.ResetLastChange();
                     }
                 }

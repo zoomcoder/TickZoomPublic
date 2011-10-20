@@ -687,11 +687,23 @@ namespace TickZoom.FIX
             switch (packetFIX.MessageType)
             {
                 case "G":
-                case "D":
-                case "F":
                     if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency) == 1)
                     {
-                        if (debug) log.Debug("Simulating order 'black hole' by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        return true;
+                    }
+                    break;
+                case "D":
+                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency) == 1)
+                    {
+                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        return true;
+                    }
+                    break;
+                case "F":
+                    if (simulateOrderBlackHole && FixFactory != null && random.Next(3) == 1)
+                    {
+                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         return true;
                     }
                     break;
