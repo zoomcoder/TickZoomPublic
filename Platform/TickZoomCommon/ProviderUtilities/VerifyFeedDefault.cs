@@ -118,12 +118,15 @@ namespace TickZoom.Common
                         }
 						startTime = Factory.TickCount;
 						count++;
-						if (count > 0 && assertTick != null) {
-							assertTick(tickIO, lastTick, symbol.BinaryIdentifier);
-						}
-                        if (count % 5000 == 0)
-                        {
-                            log.Notice("Read " + count + " ticks");
+						if (count > 0)
+						{
+						    if( assertTick != null) {
+    							assertTick(tickIO, lastTick, symbol.BinaryIdentifier);
+						    }
+                            if (count % 5000 == 0)
+                            {
+                                log.Notice("Read " + count + " ticks");
+                            }
                         }
                         lastTick.Copy(tickIO);
 						if( !actionAlreadyRun && action != null) {

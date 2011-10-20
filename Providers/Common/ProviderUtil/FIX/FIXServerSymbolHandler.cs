@@ -369,7 +369,7 @@ namespace TickZoom.FIX
 	
 	    protected virtual void Dispose(bool disposing)
 	    {
-	       		if( !isDisposed) {
+       		if( !isDisposed) {
 	            isDisposed = true;   
 	            if (disposing) {
                     if (debug) log.Debug("Dispose()");
@@ -383,7 +383,12 @@ namespace TickZoom.FIX
 	            	}
                     if( fillSimulator != null)
                     {
+                        if (debug) log.Debug("Setting fillSimulator.IsOnline false");
                         fillSimulator.IsOnline = false;
+                    }
+                    else
+                    {
+                        if (debug) log.Debug("fillSimulator is null.");
                     }
                     if (SyncTicks.Enabled && tickSync != null)
                     {
@@ -391,6 +396,10 @@ namespace TickZoom.FIX
                     }
                 }
     		}
+            else
+       		{
+                if (debug) log.Debug("isDisposed " + isDisposed);
+            }
 	    }    
 	        
 		public bool IsPlayBack {

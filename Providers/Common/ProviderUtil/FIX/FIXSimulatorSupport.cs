@@ -987,16 +987,23 @@ namespace TickZoom.FIX
 
         private void ShutdownHandlers()
         {
+            if( debug) log.Debug("ShutdownHandlers()");
             if (symbolHandlers != null)
             {
                 using( symbolHandlersLocker.Using()) {
+                    if (debug) log.Debug("There are " + symbolHandlers.Count + " symbolHandlers.");
                     foreach (var kvp in symbolHandlers)
                     {
                         var handler = kvp.Value;
+                        if (debug) log.Debug("Disposing symbol handler " + handler);
                         handler.Dispose();
                     }
                     symbolHandlers.Clear();
                 }
+            }
+            else
+            {
+                if (debug) log.Debug("symbolHandlers is null.");
             }
         }
 
