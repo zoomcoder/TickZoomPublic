@@ -269,7 +269,8 @@ namespace TickZoom.FIX
 		public virtual void StartFIXSimulation()
 		{
 			isFIXSimulationStarted = true;
-		}
+            isConnectionLost = false;
+        }
 
 		public virtual void StartQuoteSimulation()
 		{
@@ -283,7 +284,6 @@ namespace TickZoom.FIX
 		private Yield MainLoop() {
             if( isConnectionLost)
             {
-                isConnectionLost = false;
                 CloseFIXSocket();
                 return Yield.NoWork.Repeat;
             }
@@ -390,7 +390,6 @@ namespace TickZoom.FIX
                     switch (textMessage.Type)
                     {
                         case "A": // Logon
-                        case "5": // Logoff
                         case "0": // Heartbeat
                         case "1": // Heartbeat
                         case "2": // Resend request.

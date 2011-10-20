@@ -107,7 +107,7 @@ namespace TickZoom.Common
 				}
 				try { 
 					if( tickQueue.TryDequeue(ref tickBinary)) {
-						tickQueue.RemoveStruct();
+                        tickQueue.RemoveStruct();
 						tickIO.Inject(tickBinary);
 						if (debug && countLog < 5) {
 							log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
@@ -139,7 +139,11 @@ namespace TickZoom.Common
 							break;
 						}
 					} else {
-						Thread.Sleep(100);
+                        Thread.Sleep(100);
+                        if( tickQueue.Count == 0 && SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        {
+                            tickSync.RemoveTick();
+                        }
 					}
 				} catch (QueueException ex) {
 					if( HandleQueueException(ex)) {
