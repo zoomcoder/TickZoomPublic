@@ -292,10 +292,7 @@ namespace TickZoom.FIX
 				case State.Start:
 					if( FIXReadLoop())
 					{
-					    IncreaseHeartbeat(Factory.Parallel.TickCount);
 						result = true;
-					} else {
-						TryRequestHeartbeat( Factory.Parallel.TickCount);
 					}
 				ProcessFIX:
 					hasFIXPacket = ProcessFIXPackets();
@@ -477,92 +474,97 @@ namespace TickZoom.FIX
 		private bool FIXReadLoop()
 		{
 			if (isFIXSimulationStarted) {
-				if (fixSocket.TryGetMessage(out _fixReadMessage))
+				if (!fixSocket.TryGetMessage(out _fixReadMessage))
 				{
-                    var packetFIX = (MessageFIXT1_1)_fixReadMessage;
-                    try
+                    if( fixState != ServerState.Startup)
                     {
-                        switch( fixState)
-                        {
-                            case ServerState.Startup:
-                                if (packetFIX.MessageType != "A")
+                        TryRequestHeartbeat(Factory.Parallel.TickCount);
+                    }
+				    return false;
+				}
+                var packetFIX = (MessageFIXT1_1)_fixReadMessage;
+                try
+                {
+                    switch( fixState)
+                    {
+                        case ServerState.Startup:
+                            if (packetFIX.MessageType != "A")
+                            {
+                                throw new InvalidOperationException("Invalid FIX message type " +
+                                                                    packetFIX.MessageType + ". Not yet logged in.");
+                            }
+                            if (!packetFIX.IsResetSeqNum && packetFIX.Sequence < remoteSequence)
+                            {
+                                throw new InvalidOperationException("Login sequence number was " + packetFIX.Sequence + " less than expected " + remoteSequence + ".");
+                            }
+                            HandleFIXLogin(packetFIX);
+                            if (packetFIX.Sequence > remoteSequence)
+                            {
+                                if (debug) log.Debug("Login packet sequence " + packetFIX.Sequence + " was greater than expected " + remoteSequence);
+                                recoveryRemoteSequence = packetFIX.Sequence;
+                                return Resend(packetFIX);
+                            }
+                            else
+                            {
+                                remoteSequence = packetFIX.Sequence + 1;
+                                SendSessionStatusOnline();
+                                fixState = ServerState.Recovered;
+                                // Setup disconnect simulation.
+                            }
+                            break;
+                        case ServerState.LoggedIn:
+                        case ServerState.Recovered:
+                            switch (packetFIX.MessageType)
+                            {
+                                case "A":
+                                    throw new InvalidOperationException("Invalid FIX message type " + packetFIX.MessageType + ". Already logged in.");
+                                case "2":
+                                    HandleResend(packetFIX);
+                                    break;
+                            }
+                            if (packetFIX.Sequence > remoteSequence)
+                            {
+                                if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " greater than expected " + remoteSequence);
+                                return Resend(packetFIX);
+                            }
+                            if (packetFIX.Sequence < remoteSequence)
+                            {
+                                if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
+                                return true;
+                            }
+                            else
+                            {
+                                if (fixState == ServerState.LoggedIn && packetFIX.Sequence >= recoveryRemoteSequence)
                                 {
-                                    throw new InvalidOperationException("Invalid FIX message type " +
-                                                                        packetFIX.MessageType + ". Not yet logged in.");
-                                }
-                                if (!packetFIX.IsResetSeqNum && packetFIX.Sequence < remoteSequence)
-                                {
-                                    throw new InvalidOperationException("Login sequence number was " + packetFIX.Sequence + " less than expected " + remoteSequence + ".");
-                                }
-                                HandleFIXLogin(packetFIX);
-                                if (packetFIX.Sequence > remoteSequence)
-                                {
-                                    if (debug) log.Debug("Login packet sequence " + packetFIX.Sequence + " was greater than expected " + remoteSequence);
-                                    recoveryRemoteSequence = packetFIX.Sequence;
-                                    return Resend(packetFIX);
-                                }
-                                else
-                                {
-                                    remoteSequence = packetFIX.Sequence + 1;
-                                    SendSessionStatusOnline();
+                                    // Sequences are synchronized now. Send TradeSessionStatus.
                                     fixState = ServerState.Recovered;
+                                    SendSessionStatusOnline();
                                     // Setup disconnect simulation.
+                                    nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                                    if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
+                                    nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                                    if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
                                 }
-                                break;
-                            case ServerState.LoggedIn:
-                            case ServerState.Recovered:
                                 switch (packetFIX.MessageType)
                                 {
-                                    case "A":
-                                        throw new InvalidOperationException("Invalid FIX message type " + packetFIX.MessageType + ". Already logged in.");
-                                    case "2":
-                                        HandleResend(packetFIX);
+                                    case "2": // resend request
+                                        // already handled prior to sequence checking.
+                                        remoteSequence = packetFIX.Sequence + 1;
                                         break;
+                                    case "4":
+                                        return HandleGapFill(packetFIX);
+                                    default:
+                                        return ProcessMessage(packetFIX);
                                 }
-                                if (packetFIX.Sequence > remoteSequence)
-                                {
-                                    if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " greater than expected " + remoteSequence);
-                                    return Resend(packetFIX);
-                                }
-                                if (packetFIX.Sequence < remoteSequence)
-                                {
-                                    if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
-                                    return true;
-                                }
-                                else
-                                {
-                                    if (fixState == ServerState.LoggedIn && packetFIX.Sequence >= recoveryRemoteSequence)
-                                    {
-                                        // Sequences are synchronized now. Send TradeSessionStatus.
-                                        fixState = ServerState.Recovered;
-                                        SendSessionStatusOnline();
-                                        // Setup disconnect simulation.
-                                        nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
-                                        if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
-                                        nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
-                                        if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
-                                    }
-                                    switch (packetFIX.MessageType)
-                                    {
-                                        case "2": // resend request
-                                            // already handled prior to sequence checking.
-                                            remoteSequence = packetFIX.Sequence + 1;
-                                            break;
-                                        case "4":
-                                            return HandleGapFill(packetFIX);
-                                        default:
-                                            return ProcessMessage(packetFIX);
-                                    }
-                                }
-                                break;
-                        }
+                            }
+                            break;
                     }
-                    finally
-                    {
-                        //packetFIX.sequenceLocker.Unlock();
-                        fixSocket.MessageFactory.Release(_fixReadMessage);
-                    }
-				}
+                }
+                finally
+                {
+                    //packetFIX.sequenceLocker.Unlock();
+                    fixSocket.MessageFactory.Release(_fixReadMessage);
+                }
 			}
 			return false;
 		}
@@ -921,13 +923,10 @@ namespace TickZoom.FIX
 		}		
 
 		private void TryRequestHeartbeat(long currentTime) {
-            if( isFIXSimulationStarted)
+            if (currentTime > heartbeatTimer)
             {
-                if (currentTime > heartbeatTimer)
-                {
-                    IncreaseHeartbeat(currentTime);
-                    OnHeartbeat();
-                }
+                IncreaseHeartbeat(currentTime);
+                OnHeartbeat();
             }
 		}
 
