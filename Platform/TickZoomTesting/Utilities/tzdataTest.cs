@@ -89,7 +89,7 @@ namespace TickZoom.Utilities
 	       	var sb = new StringBuilder();
 	       	filter.Output = sb.WriteLine;
 	       	filter.Run(args);
-			string expectedOutput = "USD_JPY: 10113 ticks.\r\nFrom 2005-05-05 07:01:17.187 to 2005-05-10 07:00:07.355\r\n0 duplicates elimated.\r\n";
+		    string expectedOutput = "USD_JPY: 10113 ticks.\r\nFrom 2005-05-05 07:01:17.187.000 to 2005-05-10 07:00:07.355.000\r\n0 duplicates elimated.\r\n";
 			string output = sb.ToString();
 			Assert.AreEqual(expectedOutput,output);			
 		}
@@ -190,10 +190,11 @@ namespace TickZoom.Utilities
             var actual = sb.ToString();
             actual = actual.Replace("\r\n", "\n");
 
-            var expectedOutput = @"2010-02-16 16:49:28.769 1063,10, 0/0 0,0,0,0,0|0,0,0,0,0
-2010-02-16 16:49:28.791 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
-2010-02-16 16:49:28.792 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
-2010-02-16 16:49:28.793 1062.75,2, 0/0 0,0,0,0,0|0,0,0,0,0
+            var expectedOutput =
+                @"2010-02-16 16:49:28.769.000 1063,10, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.791.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.792.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793.000 1062.75,2, 0/0 0,0,0,0,0|0,0,0,0,0
 ";
             expectedOutput = expectedOutput.Replace("\r\n", "\n");
             Assert.AreEqual(expectedOutput,actual);
@@ -233,15 +234,14 @@ namespace TickZoom.Utilities
 			string[] args = { appData + @"\Test\\DataCache\ESH0.tck" };
 			Query query = new Query();
 			query.Run(args);
-			string expectedOutput = "Symbol: /ESH0" + Environment.NewLine +
-"Version: 8" + Environment.NewLine +
-"Ticks: 15683" + Environment.NewLine +
-"Trade Only: 15683" + Environment.NewLine +
-"From: 2010-02-16 16:49:28.769.0 (local), 2010-02-16 21:49:28.769.0 (UTC)" + Environment.NewLine +
-"  To: 2010-02-16 16:59:56.140.0 (local), 2010-02-16 21:59:56.140.0 (UTC)" + Environment.NewLine +
-"Prices duplicates: 14489" + Environment.NewLine +
-"";
-			string output = query.ToString();
+		    string expectedOutput =
+		        "Symbol: /ESH0\r\nVersion: 8" + Environment.NewLine +
+		        "Ticks: 15683" + Environment.NewLine +
+		        "Trade Only: 15683" + Environment.NewLine +
+		        "From: 2010-02-16 16:49:28.769.000 (local), 2010-02-16 21:49:28.769.000 (UTC)" + Environment.NewLine +
+		        "  To: 2010-02-16 16:59:56.140.000 (local), 2010-02-16 21:59:56.140.000 (UTC)" + Environment.NewLine +
+		        "Prices duplicates: 14489" + Environment.NewLine;
+            string output = query.ToString();
 			Assert.AreEqual(expectedOutput,output);			
 		}
 		

@@ -44,7 +44,7 @@ namespace TickZoom.TickUtil
 		public static long ToLong( double value) { return value.ToLong(); }
 		public static double ToDouble( long value) { return value.ToDouble(); }
 		public static double Round( double value) { return value.Round() ; }
-		private static string TIMEFORMAT = "yyyy-MM-dd HH:mm:ss.fff";
+		private static string TIMEFORMAT = "yyyy-MM-dd HH:mm:ss.fff.uuu";
 		
 		// Older formats were already multiplied by 1000.
 		public const long OlderFormatConvertToLong = 1000000;

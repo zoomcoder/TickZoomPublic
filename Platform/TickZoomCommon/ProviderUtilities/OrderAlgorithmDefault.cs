@@ -1000,6 +1000,7 @@ namespace TickZoom.Common
             }
             if (debug) log.Debug("Checking for orders pending since: " + expiryLimit);
             var list = physicalOrderCache.GetOrders((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew));
+            var cancelOrders = new List<CreateOrChangeOrder>();
             foreach( var order in list)
             {
                 if( debug) log.Debug("Pending order: " + order);
@@ -1014,10 +1015,7 @@ namespace TickZoom.Common
                         {
                             origOrder.ReplacedBy = null;
                         }
-                        if (SyncTicks.Enabled)
-                        {
-                            tickSync.RemovePhysicalOrder(order);
-                        }
+                        cancelOrders.Add(order);
                     }
                     else if( Cancel(order))
                     {
@@ -1027,6 +1025,18 @@ namespace TickZoom.Common
                             log.Warn( "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " + diff.TotalSeconds + " seconds.");
                         }
                         order.ResetLastChange();
+                    }
+                }
+            }
+            if( cancelOrders.Count > 0)
+            {
+                var hasPendingOrders = false;
+                PerformCompareInternal(out hasPendingOrders);
+                foreach( var order in cancelOrders)
+                {
+                    if (SyncTicks.Enabled)
+                    {
+                        tickSync.RemovePhysicalOrder(order);
                     }
                 }
             }

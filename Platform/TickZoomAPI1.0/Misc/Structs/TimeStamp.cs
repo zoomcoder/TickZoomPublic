@@ -66,7 +66,7 @@ namespace TickZoom.Api
 		public const long MicrosecondsPerDay = 86400000000L;
 		public const long MillisecondsPerDay = 86400000L;
 		public const long DateTimeToTimeStampAdjust = 59926435200000750L;
-		public const string DefaultFormatStr = "yyyy-MM-dd HH:mm:ss.fff";
+		public const string DefaultFormatStr = "yyyy-MM-dd HH:mm:ss.fff.uuu";
 		
 		public void Assign( int year, int month, int day, int hour, int minute, int second, int millis) {
 			Interlocked.Exchange(ref _timeStamp, CalendarDateTotimeStamp( year, month, day, hour, minute, second, millis, 0));

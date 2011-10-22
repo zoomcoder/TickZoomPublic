@@ -124,11 +124,11 @@ namespace TickZoom.TZData
 			if( quotesAndTrades > 0) {
 				stringBuilder.AppendLine("Quote and Trade: " + quotesAndTrades);
 			}
-			var time = firstTick.Time + "." + firstTick.Time.Microsecond;
-			var utcTime = firstTick.UtcTime + "." + firstTick.UtcTime.Microsecond;
+			var time = firstTick.Time.ToString();
+			var utcTime = firstTick.UtcTime.ToString();
 			stringBuilder.AppendLine("From: " + time + " (local), " + utcTime + " (UTC)");
-			time = lastTick.Time + "." + lastTick.Time.Microsecond;
-			utcTime = lastTick.UtcTime + "." + lastTick.UtcTime.Microsecond;
+			time = lastTick.Time.ToString();
+			utcTime = lastTick.UtcTime.ToString();
 			stringBuilder.AppendLine("  To: " + time + " (local), " + utcTime + " (UTC)");
 			if( dups > 0) {
 				stringBuilder.AppendLine("Prices duplicates: " + dups);
