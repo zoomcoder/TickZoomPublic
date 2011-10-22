@@ -18,7 +18,7 @@ namespace TickZoom.TickUtil
 
         // Older formats were already multiplied by 1000.
         public const long OlderFormatConvertToLong = 1000000;
-        private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickSerializer));
+        private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickSerializerDefault));
         private static readonly bool trace = log.IsTraceEnabled;
         private static readonly bool debug = log.IsDebugEnabled;
         private static readonly bool verbose = log.IsVerboseEnabled;
@@ -137,6 +137,7 @@ namespace TickZoom.TickUtil
                 {
                     *(*ptr) = (byte)(field | i); (*ptr)++;
                     *(short*)(*ptr) = (short)diff; (*ptr) += sizeof(short);
+                    *(lp + i) = *(p + i);
                 }
             }
         }
@@ -151,6 +152,7 @@ namespace TickZoom.TickUtil
                 {
                     *(*ptr) = (byte)(field | i); (*ptr)++;
                     *(short*)(*ptr) = (short)diff; (*ptr) += sizeof(short);
+                    *(lp + i) = *(p + i);
                 }
             }
         }
@@ -168,9 +170,11 @@ namespace TickZoom.TickUtil
             pricePrecision = temp.ToLong();
         }
 
+        private TickIO toWriterTickIO = Factory.TickUtil.TickIO();
         private unsafe void ToWriterVersion11(ref TickBinary binary, MemoryStream writer)
         {
-            var dataVersion = (byte) 11;
+            if (verbose) log.Verbose("Before Cx " + lastBinary);
+            var dataVersion = (byte)11;
             writer.SetLength(writer.Position + minTickSize);
             byte[] buffer = writer.GetBuffer();
             fixed (byte* fptr = &buffer[writer.Position])
@@ -190,10 +194,15 @@ namespace TickZoom.TickUtil
                     if (debug) log.Debug("Writing Reset token during tick compression.");
                     WriteField2(BinaryField.Reset, &ptr, 1);
                     isCompressStarted = true;
+                    if (verbose) log.Verbose("Reset Dx " + lastBinary);
                 }
                 WriteField2(BinaryField.ContentMask, &ptr, binary.contentMask - lastBinary.contentMask);
+                lastBinary.contentMask = binary.contentMask;
+
                 var diff = (binary.UtcTime - lastBinary.UtcTime);
                 WriteField2(BinaryField.Time, &ptr, diff);
+                lastBinary.UtcTime = binary.UtcTime;
+
                 if (binary.IsQuote)
                 {
                     WriteField2(BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBid);
@@ -222,14 +231,12 @@ namespace TickZoom.TickUtil
                     fixed (ushort* usptr = binary.DepthBidLevels)
                         for (int i = 0; i < TickBinary.DomLevels; i++)
                         {
-                            var size = *(usptr + i);
                             WriteBidSize(ref binary, field, i, &ptr);
                         }
                     field = (byte)((byte)BinaryField.AskSize << 3);
                     fixed (ushort* usptr = binary.DepthAskLevels)
                         for (int i = 0; i < TickBinary.DomLevels; i++)
                         {
-                            var size = *(usptr + i);
                             WriteAskSize(ref binary, field, i, &ptr);
                         }
                 }
@@ -237,8 +244,12 @@ namespace TickZoom.TickUtil
                 writer.SetLength(writer.Position);
                 *fptr = (byte)(ptr - fptr);
                 *(fptr + 2) = CalcChecksum(ref binary, "Cx");
-                lastBinary = binary;
-                if (verbose) log.Verbose("Compressed tick: " + this);
+                //lastBinary = binary;
+                if (verbose)
+                {
+                    toWriterTickIO.Inject(binary);
+                    log.Verbose("Cx tick: " + toWriterTickIO);
+                }
             }
         }
 
@@ -388,51 +399,34 @@ namespace TickZoom.TickUtil
             var runningChecksum = 0L;
             runningChecksum ^= binary.UtcTime;
             runningChecksum ^= binary.contentMask;
-            var sb = verbose ? new StringBuilder() : null;
-            if (verbose) sb.Append(direction + " UtcTime " + binary.UtcTime + ", ContentMask " + binary.contentMask);
             if (binary.IsQuote)
             {
                 runningChecksum ^= binary.Bid/pricePrecision;
                 runningChecksum ^= binary.Ask/pricePrecision;
-                if (verbose) sb.Append(", Bid " + binary.Bid + ", Ask " + binary.Ask);
             }
             if (binary.IsTrade)
             {
                 runningChecksum ^= binary.Price/pricePrecision;
                 runningChecksum ^= binary.Size;
-                if (verbose) sb.Append(", Price " + binary.Price + ", Size " + binary.Size);
             }
             if (binary.IsOption)
             {
                 runningChecksum ^= binary.Strike/pricePrecision;
                 runningChecksum ^= binary.UtcOptionExpiration;
-                if (verbose) sb.Append(", Strike " + binary.Strike + ", UtcOptionExpiration " + binary.UtcOptionExpiration);
             }
             if (binary.HasDepthOfMarket)
             {
-                if (verbose) sb.Append(", BidSizes ");
                 fixed (ushort* usptr = binary.DepthBidLevels)
                     for (int i = 0; i < TickBinary.DomLevels; i++)
                     {
                         var size = *(usptr + i);
                         runningChecksum ^= size;
-                        if (verbose)
-                        {
-                            if (i != 0) sb.Append(",");
-                            sb.Append(size);
-                        }
                     }
-                if (verbose) sb.Append(", AskSizes ");
                 fixed (ushort* usptr = binary.DepthAskLevels)
                     for (int i = 0; i < TickBinary.DomLevels; i++)
                     {
                         var size = *(usptr + i);
                         runningChecksum ^= size;
-                        if (verbose)
-                        {
-                            if (i != 0) sb.Append(",");
-                            sb.Append(size);
-                        }
                     }
             }
             byte checksum = 0;
@@ -442,8 +436,7 @@ namespace TickZoom.TickUtil
                 checksum ^= next;
                 runningChecksum >>= 8;
             }
-            if (verbose) sb.Append(", CheckSum " + checksum);
-            if (verbose) log.Verbose(sb.ToString());
+            if (verbose) log.Verbose(direction + " " + binary + ", CheckSum " + checksum);
             return checksum;
         }
 
@@ -568,10 +561,10 @@ namespace TickZoom.TickUtil
             }
         }
 
+        private TickIO fromFileVerboseTickIO = Factory.TickUtil.TickIO();
         private unsafe int FromFileVersion11(ref TickBinary binary, byte* fptr, int length)
         {
-            // Backwards compatibility. The first iteration of version
-            // 9 never stored the price precision in the file.
+            if( verbose) log.Verbose("Before Dx " + binary);
             if (pricePrecision == 0L)
             {
                 SetPricePrecision(ref binary);
@@ -594,7 +587,7 @@ namespace TickZoom.TickUtil
                         var symbol = binary.Symbol;
                         binary = default(TickBinary);
                         binary.Symbol = symbol;
-                        lastChecksum = 0;
+                        if (verbose) log.Verbose("Reset Dx " + binary);
                         break;
                     case BinaryField.ContentMask:
                         binary.contentMask += (byte)ReadField2(&ptr);
@@ -624,29 +617,34 @@ namespace TickZoom.TickUtil
                         break;
                     case BinaryField.BidSize:
                         ReadBidSize(ref binary, &ptr);
-                        fixed (ushort* usptr = binary.DepthBidLevels)
-                            for (int i = 0; i < TickBinary.DomLevels; i++)
-                            {
-                                var size = *(usptr + i);
-                            }
+                        //fixed (ushort* usptr = binary.DepthBidLevels)
+                        //    for (int i = 0; i < TickBinary.DomLevels; i++)
+                        //    {
+                        //        var size = *(usptr + i);
+                        //    }
                         break;
                     case BinaryField.AskSize:
                         ReadAskSize(ref binary, &ptr);
-                        fixed (ushort* usptr = binary.DepthAskLevels)
-                            for (int i = 0; i < TickBinary.DomLevels; i++)
-                            {
-                                var size = *(usptr + i);
-                            }
+                        //fixed (ushort* usptr = binary.DepthAskLevels)
+                        //    for (int i = 0; i < TickBinary.DomLevels; i++)
+                        //    {
+                        //        var size = *(usptr + i);
+                        //    }
                         break;
                     default:
                         throw new ApplicationException("Unknown tick field type: " + field);
                 }
             }
-            if (verbose) log.Verbose("Decompressed tick: " + this);
+            if (verbose)
+            {
+                fromFileVerboseTickIO.Inject(binary);
+                log.Verbose("Dx tick: " + fromFileVerboseTickIO);
+            }
             var expectedChecksum = CalcChecksum(ref binary, "Dx");
             if (expectedChecksum != checksum)
             {
-                throw new ApplicationException("Checksum mismatch " + checksum + " vs. " + expectedChecksum + ". This means integrity checking of tick compression failed. The tick which failed checksum: " + this);
+                fromFileVerboseTickIO.Inject(binary);
+                throw new ApplicationException("Checksum mismatch " + checksum + " vs. " + expectedChecksum + ". This means integrity checking of tick compression failed. The tick which failed checksum: " + fromFileVerboseTickIO);
             }
 
             var len = (int)(ptr - fptr);

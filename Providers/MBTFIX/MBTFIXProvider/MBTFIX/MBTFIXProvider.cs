@@ -210,6 +210,14 @@ namespace TickZoom.MBTFIX
 
             if (OrderStore.Recover())
             {
+                if( SyncTicks.Enabled)
+                {
+                    foreach (var order in OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew))
+                    {
+                        var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
+                        tickSync.AddPhysicalOrder(order);
+                    }
+                }
                 if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
                 RemoteSequence = OrderStore.RemoteSequence;

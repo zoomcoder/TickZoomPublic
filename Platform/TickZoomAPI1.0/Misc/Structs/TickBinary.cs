@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using System.Text;
 
 namespace TickZoom.Api
 {
@@ -263,5 +264,30 @@ namespace TickZoom.Api
             }
         }
 
+        public override string ToString()
+        {
+            var sb = new StringBuilder();
+            sb.Append("UtcTime " + UtcTime + ", ContentMask " + contentMask);
+            sb.Append(", Bid " + Bid + ", Ask " + Ask);
+            sb.Append(", Price " + Price + ", Size " + Size);
+            sb.Append(", Strike " + Strike + ", UtcOptionExpiration " + UtcOptionExpiration);
+            sb.Append(", BidSizes ");
+            fixed (ushort* usptr = DepthBidLevels)
+                for (int i = 0; i < TickBinary.DomLevels; i++)
+                {
+                    var size = *(usptr + i);
+                    if (i != 0) sb.Append(",");
+                    sb.Append(size);
+                }
+            sb.Append(", AskSizes ");
+            fixed (ushort* usptr = DepthAskLevels)
+                for (int i = 0; i < TickBinary.DomLevels; i++)
+                {
+                    var size = *(usptr + i);
+                    if (i != 0) sb.Append(",");
+                    sb.Append(size);
+                }
+            return sb.ToString();
+        }
     }
 }
