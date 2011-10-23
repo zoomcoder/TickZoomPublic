@@ -268,7 +268,8 @@ namespace TickZoom.Test
 	public class MockContext : Context {
 		int modelId = 0;
 		int logicalOrderId = 0;
-		long logicalOrderSerialNumber = 1000000000;
+        static readonly long startingLogicalSerialNumber = 1000000000;
+		long logicalOrderSerialNumber = startingLogicalSerialNumber;
 		public BinaryStore TradeData {
 			get { throw new NotImplementedException(); }
 		}
@@ -277,8 +278,9 @@ namespace TickZoom.Test
 		public int IncrementOrderId() {
 			return Interlocked.Increment(ref logicalOrderId);
 		}
-		public long IncrementOrderSerialNumber() {
-			return Interlocked.Increment(ref logicalOrderSerialNumber);
+		public long IncrementOrderSerialNumber(long symbolBinary)
+		{
+		    return Interlocked.Increment(ref logicalOrderSerialNumber) + startingLogicalSerialNumber*symbolBinary;
 		}
 		public int IncrementModelId() {
 			return Interlocked.Increment(ref modelId);

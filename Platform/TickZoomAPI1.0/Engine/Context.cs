@@ -41,6 +41,6 @@ namespace TickZoom.Api
 		}
 		int IncrementModelId();
 		int IncrementOrderId();
-		long IncrementOrderSerialNumber();
+		long IncrementOrderSerialNumber(long symbolBinary);
 	}
 }

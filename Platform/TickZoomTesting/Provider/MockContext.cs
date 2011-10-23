@@ -39,7 +39,8 @@ namespace Orders
 	public class MockContext : Context {
 		int modelId = 0;
 		int logicalOrderId = 0;
-		long logicalOrderSerialNumber = 0;
+        static readonly long startingSerialNumber = 100000000L;
+		long logicalOrderSerialNumber = startingSerialNumber;
 		public BinaryStore TradeData {
 			get { throw new NotImplementedException(); }
 		}
@@ -48,8 +49,9 @@ namespace Orders
 		public int IncrementOrderId() {
 			return Interlocked.Increment(ref logicalOrderId);
 		}
-		public long IncrementOrderSerialNumber() {
-			return Interlocked.Increment(ref logicalOrderSerialNumber);
+		public long IncrementOrderSerialNumber(long symbolBinary)
+		{
+		    return Interlocked.Increment(ref logicalOrderSerialNumber) + startingSerialNumber*symbolBinary;
 		}
 		public int IncrementModelId() {
 			return Interlocked.Increment(ref modelId);
