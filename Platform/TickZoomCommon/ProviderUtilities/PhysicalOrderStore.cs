@@ -336,7 +336,7 @@ namespace TickZoom.Common
             var list = GetOrders((o) => o.Symbol == symbol);
             foreach (var order in list)
             {
-                if (order.OrderState != OrderState.Filled && order.Action != OrderAction.Cancel)
+                if (order.OrderState != OrderState.Filled)
                 {
                     result.AddLast(order);
                 }

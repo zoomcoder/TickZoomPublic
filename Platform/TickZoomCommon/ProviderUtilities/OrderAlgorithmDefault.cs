@@ -1030,8 +1030,7 @@ namespace TickZoom.Common
             }
             if( cancelOrders.Count > 0)
             {
-                var hasPendingOrders = false;
-                PerformCompareInternal(out hasPendingOrders);
+                PerformCompareInternal();
                 foreach( var order in cancelOrders)
                 {
                     if (SyncTicks.Enabled)
@@ -1167,7 +1166,7 @@ namespace TickZoom.Common
 			var count = Interlocked.Increment(ref recursiveCounter);
 		    if( count == 1)
 		    {
-		        var hasPendingOrders = false;
+		        var isCompareSuccess = false;
                 //var whileCounter = 0;
 				while( recursiveCounter > 0)
 				{
@@ -1184,7 +1183,7 @@ namespace TickZoom.Common
                         // Is it still not synced?
                         if (isPositionSynced)
                         {
-                            PerformCompareInternal(out hasPendingOrders);
+                            isCompareSuccess = PerformCompareInternal();
                             physicalOrderHandler.ProcessOrders();
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
                         }
@@ -1209,7 +1208,7 @@ namespace TickZoom.Common
 				}
                 if (SyncTicks.Enabled)
                 {
-                    if( !hasPendingOrders && tickSync.SentPositionChange)
+                    if( isCompareSuccess && tickSync.SentPositionChange)
                     {
                         tickSync.RemovePositionChange();
                     }
@@ -1423,7 +1422,7 @@ namespace TickZoom.Common
 		}
 		
 		private int recursiveCounter;
-		private void PerformCompareInternal(out bool hasPendingOrders)
+		private bool PerformCompareInternal()
 		{
 			if( debug)
 			{
@@ -1436,11 +1435,11 @@ namespace TickZoom.Common
             originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
 
 		    CheckForPending();
-		    hasPendingOrders = CheckForPendingInternal();
+		    var hasPendingOrders = CheckForPendingInternal();
             if (hasPendingOrders)
             {
                 if (debug) log.Debug("Found pending physical orders. So ending order comparison.");
-                return;
+                return false;
             }
 
 		    TryFlushBufferedLogicals();
@@ -1493,7 +1492,7 @@ namespace TickZoom.Common
 			
 			if( cancelCount > 0) {
 				// Wait for cancels to complete before creating any orders.
-				return;
+				return false;
 			}
 
             if (trace) log.Trace("Found " + extraLogicals.Count + " extra logicals.");
@@ -1503,7 +1502,7 @@ namespace TickZoom.Common
                 ProcessExtraLogical(logical);
                 extraLogicals.Remove(logical);
             }
-		    return;
+		    return true;
 		}
 
         private void TryFlushBufferedLogicals()
