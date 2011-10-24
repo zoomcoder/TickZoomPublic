@@ -1004,7 +1004,8 @@ namespace TickZoom.Common
             foreach( var order in list)
             {
                 if( debug) log.Debug("Pending order: " + order);
-                if( order.LastStateChange < expiryLimit)
+                var lastChange = order.LastStateChange;
+                if( lastChange < expiryLimit)
                 {
                     if( order.Action == OrderAction.Cancel)
                     {
@@ -1019,7 +1020,7 @@ namespace TickZoom.Common
                     }
                     else if( Cancel(order))
                     {
-                        var diff = expiryLimit - order.LastStateChange;
+                        var diff = TimeStamp.UtcNow - lastChange;
                         if( !SyncTicks.Enabled)
                         {
                             log.Warn( "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " + diff.TotalSeconds + " seconds.");

@@ -194,7 +194,7 @@ namespace Loaders
 			});
 			
 			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.Historical,
+			    Mode = AutoTestMode.Default,
 			    Name = "ExampleMixedTest",
 			    Loader = new ExampleMixedLoader(),
 				Symbols = primarySymbol + ",EUR/USD,USD/CHF",
@@ -205,8 +205,23 @@ namespace Loaders
 				IntervalDefault = Intervals.Minute1,
 				Categories = { "Failed" },
 			});
-			
-			list.Add( new AutoTestSettings {
+
+            list.Add(new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
+                Name = "ExampleLimitOrder",
+                Loader = new ExampleLimitOrderLoader(),
+                Symbols = "USD/CHF",
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                StartTime = new TimeStamp(1800, 1, 1),
+                EndTime = new TimeStamp(2009, 6, 10),
+                IntervalDefault = Intervals.Minute1,
+                Categories = { "Failed" },
+            });
+
+            list.Add(new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Default,
 			    Name = "ExampleReversalTest",
 			    Loader = new ExampleReversalLoader(),
@@ -312,7 +327,7 @@ namespace Loaders
 			list.Add( spyQuoteDataOnly);
 			
 			var multiSymbolOrders = new AutoTestSettings {
-			    Mode = AutoTestMode.None, 
+			    Mode = AutoTestMode.Historical, 
 			    Name = "MultiSymbolOrders",
 			    Loader = new ExampleOrdersLoader(),
 				Symbols = @"AD.1month, BO.1month, BP.1month, CC.1month, CD.1month, CL.1month,

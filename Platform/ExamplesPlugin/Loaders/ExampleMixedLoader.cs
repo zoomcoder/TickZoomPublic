@@ -31,7 +31,8 @@ using TickZoom.Common;
 
 namespace TickZoom.Examples
 {
-	/// <summary>
+
+    /// <summary>
 	/// Description of Starter.
 	/// </summary>
 	public class ExampleMixedLoader : ModelLoaderCommon

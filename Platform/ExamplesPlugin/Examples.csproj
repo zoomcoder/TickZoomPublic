@@ -87,6 +87,7 @@
     <Compile Include="Loaders\ExampleBreakoutStopsLoader.cs" />
     <Compile Include="Loaders\ExampleChartIndicator.cs" />
     <Compile Include="Loaders\ExampleCustomBarsLoader.cs" />
+    <Compile Include="Loaders\ExampleLimitOrderLoader.cs" />
     <Compile Include="Loaders\ExampleMixedLoader.cs" />
     <Compile Include="Loaders\ExampleMultiSymbolLoader.cs" />
     <Compile Include="Loaders\ExampleOptionLoader.cs" />
@@ -94,7 +95,6 @@
     <Compile Include="Loaders\ExampleMultiStrategyLoader.cs" />
     <Compile Include="Loaders\ExampleScannerLoader.cs" />
     <Compile Include="Loaders\ExampleReversalLoader.cs" />
-    <Compile Include="Loaders\ExampleSimulatedLoader.cs" />
     <Compile Include="Loaders\ExampleDualSymbolLoader.cs" />
     <Compile Include="Loaders\LimitBracketLoader.cs" />
     <Compile Include="Loaders\LimitChangeLoader.cs" />
