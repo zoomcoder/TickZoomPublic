@@ -37,45 +37,45 @@ namespace TickZoom.Logging
 
     public class FileAppender : log4net.Appender.FileAppender
     {
-		private LoggingEventQueue actionQueue = new LoggingEventQueue();
-		private Task actionTask;
-		private Exception actionException;
+        //private LoggingEventQueue actionQueue = new LoggingEventQueue();
+        //private Task actionTask;
+        //private Exception actionException;
 		public FileAppender() {
-			actionTask = Factory.Parallel.IOLoop("FileAppender", OnException, ActionLoop);
-			actionTask.Start();
+            //actionTask = Factory.Parallel.IOLoop("FileAppender", OnException, ActionLoop);
+            //actionTask.Start();
 		}
 
-        protected override void Reset()
-        {
-            while( actionQueue.Count > 0)
-            {
-                Thread.Sleep(1);
-            }
-            base.Reset();
-        }
+        //protected override void Reset()
+        //{
+        //    while( actionQueue.Count > 0)
+        //    {
+        //        Thread.Sleep(1);
+        //    }
+        //    base.Reset();
+        //}
 		
-		private Yield ActionLoop() {
-			var result = Yield.NoWork.Repeat;
-			LoggingEvent loggingEvent;
-			if( actionQueue.Count > 1) {
-				var loggingEvents = new LoggingEvent[actionQueue.Count];
-				for( var i=0; i<loggingEvents.Length; i++) {
-					if( !actionQueue.TryDequeue( out loggingEvents[i])) {
-						throw new ApplicationException("LoggingEvent not found at item #" + i);
-					}
-				}
-				AppendBase(loggingEvents);
-				result = Yield.DidWork.Repeat;
-			} else if( actionQueue.TryDequeue( out loggingEvent)) {
-				AppendBase(loggingEvent);
-				result = Yield.DidWork.Repeat;
-			}
-			return result;
-		}
+        //private Yield ActionLoop() {
+        //    var result = Yield.NoWork.Repeat;
+        //    LoggingEvent loggingEvent;
+        //    if( actionQueue.Count > 1) {
+        //        var loggingEvents = new LoggingEvent[actionQueue.Count];
+        //        for( var i=0; i<loggingEvents.Length; i++) {
+        //            if( !actionQueue.TryDequeue( out loggingEvents[i])) {
+        //                throw new ApplicationException("LoggingEvent not found at item #" + i);
+        //            }
+        //        }
+        //        AppendBase(loggingEvents);
+        //        result = Yield.DidWork.Repeat;
+        //    } else if( actionQueue.TryDequeue( out loggingEvent)) {
+        //        AppendBase(loggingEvent);
+        //        result = Yield.DidWork.Repeat;
+        //    }
+        //    return result;
+        //}
 		
-		private void OnException( Exception ex) {
-			actionException = ex;
-		}
+        //private void OnException( Exception ex) {
+        //    actionException = ex;
+        //}
 		
         public override string File
         {
@@ -100,28 +100,28 @@ namespace TickZoom.Logging
             }
         }
         
-		protected override void Append(log4net.Core.LoggingEvent loggingEvent)
-		{
-			if( actionException != null) {
-				throw new ApplicationException("Asynchronous logging exception: " + actionException.Message, actionException);
-			}
-			actionQueue.EnQueue( loggingEvent);
-		}
+        //protected override void Append(log4net.Core.LoggingEvent loggingEvent)
+        //{
+        //    if( actionException != null) {
+        //        throw new ApplicationException("Asynchronous logging exception: " + actionException.Message, actionException);
+        //    }
+        //    actionQueue.EnQueue( loggingEvent);
+        //}
 		
-		private void AppendBase(log4net.Core.LoggingEvent loggingEvent)
-		{
-			base.Append(loggingEvent);
-		}
+        //private void AppendBase(log4net.Core.LoggingEvent loggingEvent)
+        //{
+        //    base.Append(loggingEvent);
+        //}
 		
-		protected override void Append(log4net.Core.LoggingEvent[] loggingEvents)
-		{
-			if( actionException != null) {
-				throw new ApplicationException("Asynchronous logging exception: " + actionException.Message, actionException);
-			}
-			foreach( var loggingEvent in loggingEvents) {
-				actionQueue.EnQueue( loggingEvent);
-			}
-		}
+        //protected override void Append(log4net.Core.LoggingEvent[] loggingEvents)
+        //{
+        //    if( actionException != null) {
+        //        throw new ApplicationException("Asynchronous logging exception: " + actionException.Message, actionException);
+        //    }
+        //    foreach( var loggingEvent in loggingEvents) {
+        //        actionQueue.EnQueue( loggingEvent);
+        //    }
+        //}
 		
 		private void AppendBase(log4net.Core.LoggingEvent[] loggingEvents)
 		{

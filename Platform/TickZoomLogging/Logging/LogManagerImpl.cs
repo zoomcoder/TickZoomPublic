@@ -45,6 +45,7 @@ namespace TickZoom.Logging
 	public class LogManagerImpl : LogManager {
 		private static Log exceptionLog;
 		private static object locker = new object();
+	    private object repositoryLocker = new object();
 		private ILoggerRepository repository;
 		private string repositoryName;
         private string currentExtension;
@@ -52,7 +53,10 @@ namespace TickZoom.Logging
 
 		public void ConfigureSysLog() {
 			this.repositoryName = "SysLog";
-			this.repository = LoggerManager.CreateRepository(repositoryName);
+            lock( repositoryLocker)
+            {
+                this.repository = LoggerManager.CreateRepository(repositoryName);
+            }
 			Reconfigure(null,GetSysLogDefault());
 		}
 
@@ -60,7 +64,10 @@ namespace TickZoom.Logging
         {
             Console.Out.Write("UserLog from\n" + Environment.StackTrace);
             this.repositoryName = "Log";
-            this.repository = LoggerManager.CreateRepository(repositoryName);
+            lock (repositoryLocker)
+            {
+                this.repository = LoggerManager.CreateRepository(repositoryName);
+            }
             Reconfigure(null, GetLogDefault());
         }
 
@@ -122,14 +129,20 @@ namespace TickZoom.Logging
 	    private void Reconfigure(string extension, string defaultConfig)
         {
             this.currentExtension = extension;
-			if( repositoryName == "SysLog" && ConfigurationManager.GetSection("log4net") != null) {
-				log4net.Config.XmlConfigurator.Configure(repository);
-			} else {
-				var xml = GetConfigXML(repositoryName,extension,defaultConfig);
-				repository.ResetConfiguration();
-				log4net.Config.XmlConfigurator.Configure(repository,xml);
-			}
-			lock( locker) {
+            lock (repositoryLocker)
+            {
+                if (repositoryName == "SysLog" && ConfigurationManager.GetSection("log4net") != null)
+                {
+                    log4net.Config.XmlConfigurator.Configure(repository);
+                }
+                else
+                {
+                    var xml = GetConfigXML(repositoryName, extension, defaultConfig);
+                    repository.ResetConfiguration();
+                    log4net.Config.XmlConfigurator.Configure(repository, xml);
+                }
+            }
+	        lock( locker) {
 				if( exceptionLog == null) {
 					exceptionLog = GetLogger("TickZoom.AppDomain");
 				}
@@ -206,12 +219,15 @@ namespace TickZoom.Logging
 
         public void Flush()
         {
-            foreach( var appender in repository.GetAppenders())
+            lock (repositoryLocker)
             {
-                var buffer = appender as BufferingAppenderSkeleton;
-                if( buffer != null)
+                foreach (var appender in repository.GetAppenders())
                 {
-                    buffer.Flush();
+                    var buffer = appender as BufferingAppenderSkeleton;
+                    if (buffer != null)
+                    {
+                        buffer.Flush();
+                    }
                 }
             }
         }
@@ -262,9 +278,12 @@ namespace TickZoom.Logging
 			if( map.TryGetValue(type.FullName, out log)) {
 				return log;
 			} else {
-				ILogger logger = repository.GetLogger(type.FullName);
-				log = new LogImpl(this,logger);
-				map[type.FullName] = log;
+                lock (repositoryLocker)
+                {
+                    ILogger logger = repository.GetLogger(type.FullName);
+			        log = new LogImpl(this,logger);
+                }
+                map[type.FullName] = log;
 			}
 			return log;
 		}
@@ -273,8 +292,11 @@ namespace TickZoom.Logging
 			if( map.TryGetValue(name, out log)) {
 				return log;
 			} else {
-				ILogger logger = repository.GetLogger(name);
-				log = new LogImpl(this,logger);
+                lock (repositoryLocker)
+                {
+                    ILogger logger = repository.GetLogger(name);
+                    log = new LogImpl(this, logger);
+                }
 				map[name] = log;
 			}
 			return log;
