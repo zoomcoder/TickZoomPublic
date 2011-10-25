@@ -325,10 +325,17 @@ namespace TickZoom.Api
 
         public void RollbackProcessPhysicalOrders()
         {
-            while ((*rollback).processPhysical > 0 && (*state).processPhysical >= 0)
+            while ((*rollback).processPhysical > 0)
             {
-                Interlocked.Decrement(ref (*state).processPhysical);
-                Interlocked.Decrement(ref (*rollback).processPhysical);
+                if( (*state).processPhysical > 0)
+                {
+                    var temp = Interlocked.Decrement(ref (*state).processPhysical);
+                    if (trace) log.Trace("PositionChange actual state rolled back to " + temp + " " + this);
+                }
+                {
+                    var temp = Interlocked.Decrement(ref (*rollback).processPhysical);
+                    if (trace) log.Trace("PositionChange rollback state rolled back to " + temp + " " + this);
+                }
             }
         }
 
@@ -361,9 +368,12 @@ namespace TickZoom.Api
 
         public void RollbackReprocessPhysicalOrders()
         {
-            while ((*rollback).reprocessPhysical > 0 && (*state).reprocessPhysical >= 0)
+            while ((*rollback).reprocessPhysical > 0)
             {
-                Interlocked.Decrement(ref (*state).reprocessPhysical);
+                if( (*state).reprocessPhysical > 0)
+                {
+                    Interlocked.Decrement(ref (*state).reprocessPhysical);
+                }
                 Interlocked.Decrement(ref (*rollback).reprocessPhysical);
             }
         }
@@ -400,6 +410,11 @@ namespace TickZoom.Api
         public bool OnlyReprocessPhysicalOrders
         {
             get { return CheckOnlyReprocessOrders(); }
+        }
+
+        public bool IsSinglePhysicalFillSimulator
+        {
+            get { return (*state).physicalFillSimulators == 1;  }
         }
 
         public bool OnlyProcessPhysicalOrders

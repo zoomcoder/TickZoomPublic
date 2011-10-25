@@ -1209,7 +1209,7 @@ namespace TickZoom.Common
 				}
                 if (SyncTicks.Enabled)
                 {
-                    if( isCompareSuccess && tickSync.SentPositionChange)
+                    if( isCompareSuccess && tickSync.SentPositionChange && tickSync.IsSinglePhysicalFillSimulator)
                     {
                         tickSync.RemovePositionChange();
                     }
@@ -1697,7 +1697,10 @@ namespace TickZoom.Common
             }
             if (SyncTicks.Enabled)
             {
-                tickSync.RemovePhysicalOrder(order);
+                if( order.Action == OrderAction.Cancel)
+                {
+                    tickSync.RemovePhysicalOrder(order);
+                }
                 if (removeOriginal && origOrder != null && (origOrder.OrderState == OrderState.Pending || origOrder.OrderState == OrderState.PendingNew))
                 {
                     tickSync.RemovePhysicalOrder(origOrder);
