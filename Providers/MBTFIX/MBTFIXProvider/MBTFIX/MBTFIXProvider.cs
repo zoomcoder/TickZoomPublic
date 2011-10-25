@@ -83,7 +83,10 @@ namespace TickZoom.MBTFIX
 		
 		public override void OnDisconnect() {
             HeartbeatDelay = int.MaxValue;
-            OrderStore.ForceSnapShot();
+            if( OrderStore != null)
+            {
+                OrderStore.ForceSnapShot();
+            }
             if (IsRecovered)
             {
                 var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
@@ -286,7 +289,7 @@ namespace TickZoom.MBTFIX
         {
             if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
-            if( isOrderServerOnline)
+            if( IsRecovered)
             {
                 lock( orderAlgorithmsLocker)
                 {
@@ -1511,7 +1514,6 @@ namespace TickZoom.MBTFIX
 			}
             using (OrderStore.Lock())
             {
-                createOrChangeOrder.OrderState = OrderState.Pending;
                 createOrChangeOrder.ReplacedBy = order;
             }
 		    if( !object.ReferenceEquals(order.OriginalOrder,createOrChangeOrder))
