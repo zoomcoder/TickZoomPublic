@@ -63,6 +63,7 @@ namespace TickZoom.Charting
             this.logTextBox = new System.Windows.Forms.TextBox();
             this.dataGraph = new ZedGraph.ZedGraphControl();
             this.indicatorValues = new System.Windows.Forms.Label();
+            this.audioCheckBox = new System.Windows.Forms.CheckBox();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -74,7 +75,7 @@ namespace TickZoom.Charting
             // toolStripStatusXY
             // 
             this.toolStripStatusXY.Name = "toolStripStatusXY";
-            this.toolStripStatusXY.Size = new System.Drawing.Size(0, 17);
+            this.toolStripStatusXY.Size = new System.Drawing.Size(0, 20);
             // 
             // statusStrip1
             // 
@@ -118,10 +119,8 @@ namespace TickZoom.Charting
             this.dataGraph.Size = new System.Drawing.Size(772, 404);
             this.dataGraph.TabIndex = 0;
             this.dataGraph.MouseMoveEvent += new ZedGraph.ZedGraphControl.ZedMouseEventHandler(this.DataGraphMouseMoveEvent);
-		    this.dataGraph.IsShowDrawObjectTags = false;
-		    this.dataGraph.MouseHover += new EventHandler(this.DataGraphMouseHoverEvent);
-            this.dataGraph.ZoomEvent += new ZedGraphControl.ZoomEventHandler(this.DataGraphZoomEvent);
             this.dataGraph.ScrollEvent += new System.Windows.Forms.ScrollEventHandler(this.DataGraphScrollEvent);
+            this.dataGraph.MouseHover += new System.EventHandler(this.DataGraphMouseHoverEvent);
             this.dataGraph.ContextMenuBuilder += new ZedGraph.ZedGraphControl.ContextMenuBuilderEventHandler(this.DataGraphContextMenuBuilder);
             // 
             // indicatorValues
@@ -133,10 +132,22 @@ namespace TickZoom.Charting
             this.indicatorValues.Size = new System.Drawing.Size(772, 17);
             this.indicatorValues.TabIndex = 8;
             // 
+            // audioCheckBox
+            // 
+            this.audioCheckBox.AutoSize = true;
+            this.audioCheckBox.BackColor = System.Drawing.Color.Transparent;
+            this.audioCheckBox.Location = new System.Drawing.Point(681, 14);
+            this.audioCheckBox.Name = "audioCheckBox";
+            this.audioCheckBox.Size = new System.Drawing.Size(89, 17);
+            this.audioCheckBox.TabIndex = 9;
+            this.audioCheckBox.Text = "Enable Audio";
+            this.audioCheckBox.UseVisualStyleBackColor = false;
+            // 
             // ChartControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.audioCheckBox);
             this.Controls.Add(this.indicatorValues);
             this.Controls.Add(this.logTextBox);
             this.Controls.Add(this.statusStrip1);
@@ -158,6 +169,7 @@ namespace TickZoom.Charting
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.TextBox logTextBox;
         private System.Windows.Forms.Label indicatorValues;
+        private System.Windows.Forms.CheckBox audioCheckBox;
 		
 		public ZedGraphControl DataGraph {
 			get { return dataGraph; }

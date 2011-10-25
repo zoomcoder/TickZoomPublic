@@ -35,7 +35,7 @@ namespace TickZoom.Api
 	/// </summary>
 	public class BootStrap
 	{
-		private readonly string assemblyName = "TickZoomLoader.dll";
+		private readonly string assemblyName = "PluginLoader.dll";
 		private readonly string interfaceName = "FactoryLoader";
 	    public FactoryLoader FactoryLoader()
 	    {
@@ -58,7 +58,9 @@ namespace TickZoom.Api
 	    }
 		private string GetExecutablePath()
 		{
-			return Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("file:\\", "");
+            var codeBase = Assembly.GetExecutingAssembly().CodeBase;
+		    var directory = Path.GetDirectoryName(codeBase);
+			return directory.Replace("file:\\", "");
 		}
 	}
 }

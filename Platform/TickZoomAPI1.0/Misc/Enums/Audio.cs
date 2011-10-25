@@ -31,6 +31,7 @@ namespace TickZoom.Api
 
 	public enum Audio {
 		RisingVolume,
-		IntervalChime
+		IntervalChime,
+        TradeChime,
 	}
 }

@@ -30,6 +30,7 @@ using System.ComponentModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Media;
 using System.Reflection;
 using System.Text;
@@ -71,12 +72,10 @@ namespace TickZoom.Charting
 		StrategyInterface strategyForTrades;
 		bool isDynamicUpdate = false;
 		Color[] colors = { Color.Black, Color.Red, Color.FromArgb(194,171,213), Color.FromArgb (250,222,130) } ;
-		bool isAudioNotify = false;
 		bool isAutoScroll = true;
 		bool isCompactMode = false;
 		ChartType chartType = ChartType.Bar;
 		Interval intervalChartBar;
-		string storageFolder;
         SymbolInfo symbol;
 		private volatile bool isDrawn = false;
 		private Execute execute;
@@ -100,10 +99,6 @@ namespace TickZoom.Charting
 				Interval intervalChartDisplay = Factory.Engine.DefineInterval(BarUnit.Day,1);
 				Interval intervalChartBar = Factory.Engine.DefineInterval(BarUnit.Day,1);
 				Interval intervalChartUpdate = Factory.Engine.DefineInterval(BarUnit.Day,1);
-	       		storageFolder = Factory.Settings["AppDataFolder"];
-	       		if( storageFolder == null) {
-	       			throw new ApplicationException( "Must set AppDataFolder property in app.config");
-	       		}
 		    } catch( Exception) {
 				// This exception means we're running inside the form designer.
 				// TODO: find a better way to determine if running in form designer mode.
@@ -143,23 +138,45 @@ namespace TickZoom.Charting
 		}
 		
 		public void AudioNotify(Audio clip) {
-			if( isAudioNotify) {
-				string fileName = "";
+			if( audioCheckBox.Checked)
+			{
+			    var fileName = "";
 				try {
 					switch( clip) {
 						case Audio.RisingVolume:
-							fileName = storageFolder + @"\Media\risingVolume.wav";
+					        fileName = Factory.Settings["RisingVolume"];
+                            if( string.IsNullOrEmpty(fileName))
+                            {
+                                fileName = @"..\..\Media\RisingVolume.wav";
+                            }
 						    SoundPlayer simpleSound = new SoundPlayer(fileName);
 						    simpleSound.Play();
 						    break;
 						case Audio.IntervalChime:
-						    fileName = storageFolder + @"\Media\intervalChime.wav";
+                            fileName = Factory.Settings["IntervalChime"];
+                            if (string.IsNullOrEmpty(fileName))
+                            {
+                                fileName = @"..\..\Media\IntervalChime.wav";
+                            }
 						    simpleSound = new SoundPlayer(fileName);
 						    simpleSound.Play();
 						    break;
-					}
-				} catch( Exception e) {
-					log.Notice("Error playing " + fileName + ": " + e);
+                        case Audio.TradeChime:
+                            fileName = Factory.Settings["TradeChime"];
+                            if (string.IsNullOrEmpty(fileName))
+                            {
+                                fileName = @"..\..\Media\TradeChime.wav";
+                            }
+                            simpleSound = new SoundPlayer(fileName);
+                            simpleSound.Play();
+                            break;
+                    }
+				}
+                catch( Exception e)
+				{
+				    var message = "Error playing " + clip + " with file " + fileName + " because " + e.Message;
+					log.Notice(message);
+                    log.Info(message,e);
 				}
 			}
 		}
@@ -173,7 +190,9 @@ namespace TickZoom.Charting
 		    dataGraph.PointToolTip.Active = false;
 			
 			// Fill background
-			master.Fill = new Fill( Color.FromArgb( 220, 220, 255 ));
+		    var backgroundColor = Color.FromArgb(220, 220, 255);
+		    audioCheckBox.BackColor = backgroundColor;
+			master.Fill = new Fill( backgroundColor);
 			// Clear out the initial GraphPane
 			master.PaneList.Clear();
 			
@@ -473,6 +492,7 @@ namespace TickZoom.Charting
 		    objectId++;
 		    graphObjs.Add(objectId,arrow);
 	        priceGraphPane.GraphObjList.Add(arrow);
+            execute.OnUIThread(() => AudioNotify(Audio.TradeChime));
 			return objectId;
 		}
 		
