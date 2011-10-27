@@ -134,6 +134,7 @@ namespace TickZoom.Charting
             // 
             // audioCheckBox
             // 
+            this.audioCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.audioCheckBox.AutoSize = true;
             this.audioCheckBox.BackColor = System.Drawing.Color.Transparent;
             this.audioCheckBox.Location = new System.Drawing.Point(681, 14);
