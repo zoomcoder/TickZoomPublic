@@ -1482,7 +1482,8 @@ namespace TickZoom.MBTFIX
                     TryAddPhysicalOrder(order);
                 }
                 SendCancelOrder(order, true);
-            } else
+            }
+            else
             {
                 if (debug) log.Debug("Resending order: " + order);
                 if (SyncTicks.Enabled && !IsRecovered)

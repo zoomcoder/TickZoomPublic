@@ -615,25 +615,30 @@ namespace TickZoom.FIX
                 for( var i = previous; i<=end; i++)
                 {
                     CreateOrChangeOrder order;
-                    FIXTMessage1_1 gapMessage;
+                    FIXTMessage1_1 missingMessage;
                     var sentFlag = false;
                     if( orderStore.TryGetOrderBySequence( i, out order))
                     {
                         if( previous < i)
                         {
-                            gapMessage = GapFillMessage(previous, i);
-                            SendMessageInternal(gapMessage);
+                            missingMessage = GapFillMessage(previous, i);
+                            SendMessageInternal(missingMessage);
                         }
                         ResendOrder(order);
                         sentFlag = true;
                     }
-                    else if( fixFactory.TryGetHistory( i, out gapMessage))
+                    else if( fixFactory.TryGetHistory( i, out missingMessage))
                     {
-                        gapMessage.SetDuplicate(true);
-                        switch (gapMessage.Type)
+                        missingMessage.SetDuplicate(true);
+                        switch (missingMessage.Type)
                         {
                             case "5": // Logoff
-                                SendMessageInternal(gapMessage);
+                                if (previous < i)
+                                {
+                                    var gapMessage = GapFillMessage(previous, i);
+                                    SendMessageInternal(gapMessage);
+                                }
+                                SendMessageInternal(missingMessage);
                                 sentFlag = true;
                                 break;
                             case "A":
@@ -643,7 +648,7 @@ namespace TickZoom.FIX
                             case "AN":
                                 break;
                             default:
-                                log.Warn("Message type " + gapMessage.Type + " skipped during resend: " + gapMessage);
+                                log.Warn("Message type " + missingMessage.Type + " skipped during resend: " + missingMessage);
                                 break;
                         }
                     }
