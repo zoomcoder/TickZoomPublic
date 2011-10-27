@@ -132,9 +132,9 @@ namespace TickZoom.Starters
 			try {
 				List<Provider> senderList = new List<Provider>();
                 SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
+                Provider provider = Factory.Provider.RemoteProvider(address, (ushort)port);
                 for (int i = 0; i < symbols.Length; i++)
                 {
-                    Provider provider = Factory.Provider.RemoteProvider(address, (ushort)port);
                     senderList.Add(provider);
                 }
 				return senderList.ToArray();
