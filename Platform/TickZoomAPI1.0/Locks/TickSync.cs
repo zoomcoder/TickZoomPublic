@@ -384,11 +384,8 @@ namespace TickZoom.Api
             if (trace) log.Trace("RemoveReprocessPhysicalOrders(" + value + ") " + this);
             if (value < 0)
             {
-                log.Warn("ReprocessPhysicalOrders: value below zero: " + (*state).reprocessPhysical);
-            }
-            if (value < 0)
-            {
-                if (trace) System.Diagnostics.Debugger.Break();
+                var temp = Interlocked.Increment(ref (*state).reprocessPhysical);
+                if (debug) log.Debug("ReprocessPhysical counter was " + value + ". Incremented to " + temp);
             }
         }
 

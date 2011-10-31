@@ -257,9 +257,22 @@ namespace TickZoom.FIX
 
 	    private TimeStamp utcLogonTime;
 	    private bool resetAtLogin = false;
-		
-		private Yield SocketTask() {
+
+	    private SocketState lastSocketState = SocketState.New;
+        private Status lastConnectionStatus = Status.None;
+        private Yield SocketTask()
+        {
 			if( isDisposed ) return Yield.NoWork.Repeat;
+            if( socket.State != lastSocketState)
+            {
+                if( debug) log.Debug("SocketState changed to " + socket.State);
+                lastSocketState = socket.State;
+            }
+            if( connectionStatus != lastConnectionStatus)
+            {
+                if (debug) log.Debug("Connection status changed to " + connectionStatus);
+                lastConnectionStatus = connectionStatus;
+            }
 			switch( socket.State) {
 				case SocketState.New:
                     if( CheckFailedLoginFile() )
@@ -426,7 +439,8 @@ namespace TickZoom.FIX
                         case Status.New:
                         case Status.PendingRecovery:
                         case Status.Recovered:
-							retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
+                        case Status.PendingLogin:
+                            retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 							connectionStatus = Status.PendingRetry;
 							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
 							retryDelay += retryIncrease;
@@ -442,7 +456,7 @@ namespace TickZoom.FIX
 							} else {
 								return Yield.NoWork.Repeat;
 							}
-                        case Status.PendingLogin:
+                            return Yield.NoWork.Repeat;
                         case Status.PendingLogOut:
                             Dispose();
                             return Yield.NoWork.Repeat;

@@ -410,7 +410,6 @@ namespace TickZoom.Starters
             {
                 throw new TickZoomException("Please enter at least one symbol.");
             }
-			Factory.Parallel.SetMode( parallelMode);
 			TickEngine engine = Factory.Engine.TickEngine;
 			ProjectProperties.Engine.CopyProperties(engine);
 			engine.ChartProperties = ProjectProperties.Chart;
