@@ -51,13 +51,13 @@ namespace TickZoom.Examples
 			// Loop through and setup a default strategy to handle orders
 			// for each symbol.
 			for( int i=0; i<properties.Starter.SymbolProperties.Length; i++) {
-				string symbol = properties.Starter.SymbolInfo[i].Symbol;
+				string symbol = properties.Starter.SymbolProperties[i].Symbol;
 				ModelInterface market = CreateStrategy("StrategyCommon",symbol+"Strategy");
 				market.SymbolDefault = symbol;
 				AddDependency("ExampleScannerStrategy",symbol+"Strategy");
 			}
 			TopModel = GetPortfolio("ExampleScannerStrategy");
-			TopModel.SymbolDefault = properties.Starter.SymbolInfo[0].Symbol;
+			TopModel.SymbolDefault = properties.Starter.SymbolProperties[0].Symbol;
 		}
 		
 	}

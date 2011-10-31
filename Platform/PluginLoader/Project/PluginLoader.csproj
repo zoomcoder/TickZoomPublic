@@ -1,4 +1,5 @@
-﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="3.5">
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="3.5">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -11,7 +12,6 @@
     <NoStdLib>False</NoStdLib>
     <NoConfig>False</NoConfig>
     <OutputType>Library</OutputType>
-    <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\ICSharpCode.SharpDevelop.snk</AssemblyOriginatorKeyFile>
     <BaseAddress>83886080</BaseAddress>
     <RunPostBuildEvent>Always</RunPostBuildEvent>
@@ -24,22 +24,20 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
-    <Optimize>False</Optimize>
-    <DebugType>Full</DebugType>
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
     <DocumentationFile>..\..\bin\TickZoomLoader.xml</DocumentationFile>
     <NoWarn>1591</NoWarn>
     <DefineConstants>DEBUG</DefineConstants>
-    <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <OutputPath>..\..\..\bin\Debug</OutputPath>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugSymbols>false</DebugSymbols>
-    <Optimize>True</Optimize>
-    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+    <Optimize>true</Optimize>
     <OutputPath>..\..\..\bin\Release</OutputPath>
     <WarningLevel>4</WarningLevel>
-    <DebugType>PdbOnly</DebugType>
+    <DebugType>none</DebugType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
     <RegisterForComInterop>False</RegisterForComInterop>
@@ -48,15 +46,15 @@
     <FileAlignment>4096</FileAlignment>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\..\..\..\Tools\1.0\Zip\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
+    <Reference Include="ICSharpCode.SharpZipLib, Version=0.85.5.452, Culture=neutral, PublicKeyToken=1b03e6acf1164f73">
+      <HintPath>..\..\..\..\Tools\1.0\Zip\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\AssemblyInfo.cs" />
@@ -112,10 +110,6 @@
     <Compile Include="Src\Util\AppDomainLaunchHelper.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\DynamicQuery\DynamicQuery\DynamicQuery.csproj">
-      <Project>{F285CEB0-4108-440C-AD94-1C1A7C159D7C}</Project>
-      <Name>DynamicQuery</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\DynamicQuery\DynamicQuery\DynamicQuery.csproj">
       <Project>{F285CEB0-4108-440C-AD94-1C1A7C159D7C}</Project>
       <Name>DynamicQuery</Name>

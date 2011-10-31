@@ -60,9 +60,9 @@ namespace TickZoom.Interceptors
 		
 		private void LogEntry(string description) {
 			if( Strategy.Chart.IsDynamicUpdate) {
-        		if( IsNotice) Log.Notice("Bar="+Strategy.Chart.DisplayBars.CurrentBar+", " + description);
+        		if( IsNotice) Log.Notice("Bar="+Strategy.Chart.ChartBars.CurrentBar+", " + description);
 			} else {
-        		if( IsDebug) Log.Debug("Bar="+Strategy.Chart.DisplayBars.CurrentBar+", " + description);
+        		if( IsDebug) Log.Debug("Bar="+Strategy.Chart.ChartBars.CurrentBar+", " + description);
 			}
 		}
 		

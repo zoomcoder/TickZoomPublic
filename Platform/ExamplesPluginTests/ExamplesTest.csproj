@@ -1,4 +1,5 @@
-﻿<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{E12CA83B-0ACF-4E59-8C6C-F4D51A3DDC3C}</ProjectGuid>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -13,6 +14,8 @@
     <NoStdLib>False</NoStdLib>
     <WarningLevel>4</WarningLevel>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <ProductVersion>9.0.21022</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <OutputPath>..\..\bin\Debug\</OutputPath>
@@ -46,11 +49,23 @@
     <StartProgram>..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe</StartProgram>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <DefineConstants>DEBUG;SkipPostSharp</DefineConstants>
+    <DebugType>full</DebugType>
+    <WarningLevel>4</WarningLevel>
+    <Optimize>false</Optimize>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <CustomCommands>
+      <CustomCommands>
+        <Command type="Execute" command="..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe" />
+      </CustomCommands>
+    </CustomCommands>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <StartAction>Program</StartAction>
     <StartProgram>..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe</StartProgram>
     <DefineConstants>SkipPostSharp</DefineConstants>
+    <DebugType>none</DebugType>
+    <WarningLevel>4</WarningLevel>
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
   <Import Project="..\..\TickZoom.CSharp.Targets" />
@@ -61,15 +76,6 @@
     <Copy SourceFiles="@(EngineFilesToCopy)" DestinationFolder="$(OutputPath)" />
   </Target>
   <ItemGroup>
-    <Reference Include="nunit.core">
-      <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\lib\nunit.core.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.core.interfaces">
-      <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\lib\nunit.core.interfaces.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.framework">
-      <HintPath>Lib\nunit.framework.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core">
@@ -80,6 +86,16 @@
     </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="nunit.core, Version=2.5.1.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
+      <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\lib\nunit.core.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.core.interfaces, Version=2.5.1.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
+      <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\lib\nunit.core.interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=2.5.1.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\framework\nunit.framework.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GUI\GUITest.cs" />

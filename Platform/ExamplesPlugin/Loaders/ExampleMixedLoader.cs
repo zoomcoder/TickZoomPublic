@@ -56,7 +56,7 @@ namespace TickZoom.Examples
 			// This portfolio has one strategy on symbol A
 			// and 2 strategies on symbol B to demonstrate
 			// portfolio "self-organization".
-			string symbol = properties.Starter.SymbolInfo[0].Symbol;
+			string symbol = properties.Starter.SymbolProperties[0].Symbol;
 			Strategy strategy = CreateStrategy("ExampleOrderStrategy","ExampleOrder-"+symbol) as Strategy;
 			strategy.SymbolDefault = symbol;
 			strategy.Performance.Equity.GraphEquity = false;
@@ -67,7 +67,7 @@ namespace TickZoom.Examples
 		    strategy.AddDependency(indicator);
 	    	AddDependency( "Portfolio", "ExampleOrder-"+symbol);
 
-			symbol = properties.Starter.SymbolInfo[1].Symbol;
+			symbol = properties.Starter.SymbolProperties[1].Symbol;
 			strategy = CreateStrategy("ExampleOrderStrategy","ExampleOrder-"+symbol) as Strategy;
 			strategy.SymbolDefault = symbol;
 			strategy.Performance.Equity.GraphEquity = false;
@@ -89,7 +89,7 @@ namespace TickZoom.Examples
             AddDependency("Portfolio", "ExampleReversal-" + symbol);
 	    	
 	    	for( int i=2; i<properties.Starter.SymbolProperties.Length; i++) {
-				symbol = properties.Starter.SymbolInfo[i].Symbol;
+				symbol = properties.Starter.SymbolProperties[i].Symbol;
 				strategy = CreateStrategy("ExampleOrderStrategy","ExampleOrder-"+symbol) as Strategy;
 				strategy.SymbolDefault = symbol;
 				strategy.Performance.Equity.GraphEquity = false;

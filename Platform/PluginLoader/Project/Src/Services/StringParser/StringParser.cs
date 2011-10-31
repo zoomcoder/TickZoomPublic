@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq.Dynamic;
+//using System.Linq.Dynamic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -98,9 +98,9 @@ namespace TickZoom.Loader
 		{
 			if (input == null)
 				return null;
-			if( input[0] == '{' ) {
-				return Eval(input, customTags);
-			}
+//			if( input[0] == '{' ) {
+//				return Eval(input, customTags);
+//			}
 			int pos = 0;
 			StringBuilder output = null; // don't use StringBuilder if input is a single property
 			do {
@@ -146,24 +146,6 @@ namespace TickZoom.Loader
 				}
 			} while (pos < input.Length);
 			return output.ToString();
-		}
-		
-		public static string Eval(string input, string[,] customTags)
-		{
-			int end = input.IndexOf('}');
-			if (end != input.Length - 1) {
-				return input;
-			} else {
-				string expression = input.Substring(1, end - 1);
-				var parameters = new List<ParameterExpression>();
-//				var x = Expression.Parameter(typeof(int), "x");
-//				parameters.Add(x);
-				string stringExpression = "(" + expression + ").ToString()";
-				var e = DynamicExpression.ParseLambda( parameters.ToArray(), typeof(string),
-				        stringExpression, null);
-				Delegate function = e.Compile();
-				return (string) function.DynamicInvoke();
-			}
 		}
 		
 		static string GetValue(string propertyName, string[,] customTags)

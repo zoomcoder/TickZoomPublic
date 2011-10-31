@@ -172,12 +172,12 @@ namespace TickZoom
 					if( sr.Trend == Trend.Up) {
 						if( Position.IsFlat && !LongExitSignal) {
 							Orders.Enter.ActiveNow.BuyMarket();
-							Log.Notice(Ticks[0].Time + ", bar=" + Chart.DisplayBars.CurrentBar + ", Long");
+							Log.Notice(Ticks[0].Time + ", bar=" + Chart.ChartBars.CurrentBar + ", Long");
 						}
 					} else if( sr.Trend == Trend.Down) {
 						if( Position.IsFlat && !ShortExitSignal) {
 							Orders.Enter.ActiveNow.SellMarket();
-							Log.Notice(Ticks[0].Time + ", bar=" + Chart.DisplayBars.CurrentBar + ", Short");
+							Log.Notice(Ticks[0].Time + ", bar=" + Chart.ChartBars.CurrentBar + ", Short");
 						}
 					}
 				}

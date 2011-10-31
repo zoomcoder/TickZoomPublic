@@ -54,18 +54,18 @@ namespace TickZoom.Examples
 			// Example log message.
 			//Log.WriteLine( "close: " + Ticks[0] + " " + Minutes.Close[0] + " " + Minutes.Time[0]);
 			
-			for( int i=0; i<Markets.Count; i++) {
-				if( Markets[i].Position.HasPosition) {
-					Markets[i].Orders.Exit.ActiveNow.GoFlat();
+			for( int i=0; i<Strategies.Count; i++) {
+				if( Strategies[i].Position.HasPosition) {
+					Strategies[i].Orders.Exit.ActiveNow.GoFlat();
 				}
-				if( Markets[i].Position.IsFlat) {
-					double close = Markets[i].Bars.Close[0];
-					double high = Markets[i].Bars.High[1];
-					if( Markets[i].Bars.Close[0] > Markets[i].Bars.High[1]) {
-						Markets[i].Orders.Enter.ActiveNow.BuyMarket();
+				if( Strategies[i].Position.IsFlat) {
+					double close = Strategies[i].Bars.Close[0];
+					double high = Strategies[i].Bars.High[1];
+					if( Strategies[i].Bars.Close[0] > Strategies[i].Bars.High[1]) {
+						Strategies[i].Orders.Enter.ActiveNow.BuyMarket();
 					}
-					if( Markets[i].Bars.Close[0] < Markets[i].Bars.Low[1]) {
-						Markets[i].Orders.Enter.ActiveNow.SellMarket();
+					if( Strategies[i].Bars.Close[0] < Strategies[i].Bars.Low[1]) {
+						Strategies[i].Orders.Enter.ActiveNow.SellMarket();
 					}
 				}
 			}
