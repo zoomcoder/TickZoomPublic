@@ -7,7 +7,6 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ExamplesPluginTests</RootNamespace>
     <AssemblyName>ExamplesTest</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <SourceAnalysisOverrideSettingsFile>C:\Documents and Settings\Wayne Walter\Application Data\ICSharpCode/SharpDevelop3.0\Settings.SourceAnalysis</SourceAnalysisOverrideSettingsFile>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
@@ -49,10 +48,6 @@
     <StartProgram>..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe</StartProgram>
     <UseVSHostingProcess>true</UseVSHostingProcess>
     <DefineConstants>DEBUG;SkipPostSharp</DefineConstants>
-    <DebugType>full</DebugType>
-    <WarningLevel>4</WarningLevel>
-    <Optimize>false</Optimize>
-    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <CustomCommands>
       <CustomCommands>
         <Command type="Execute" command="..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe" />
@@ -64,8 +59,6 @@
     <StartProgram>..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe</StartProgram>
     <DefineConstants>SkipPostSharp</DefineConstants>
     <DebugType>none</DebugType>
-    <WarningLevel>4</WarningLevel>
-    <Optimize>true</Optimize>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
   <Import Project="..\..\TickZoom.CSharp.Targets" />
@@ -92,10 +85,10 @@
     <Reference Include="nunit.core.interfaces, Version=2.5.1.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
       <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\lib\nunit.core.interfaces.dll</HintPath>
     </Reference>
-    <Reference Include="nunit.framework, Version=2.5.1.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="nunit.framework">
       <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\framework\nunit.framework.dll</HintPath>
     </Reference>
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GUI\GUITest.cs" />

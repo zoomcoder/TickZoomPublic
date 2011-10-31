@@ -49,9 +49,9 @@ namespace Loaders
 			var fourTicks = new ExampleOrderStrategy() {
 				Name = "FourTicksData"
 			};
-			fourTicks.SymbolDefault = properties.Starter.SymbolInfo[0].Symbol;
+			fourTicks.SymbolDefault = properties.Starter.SymbolProperties[0].Symbol;
 			var reversal = new ExampleReversalStrategy() {
-				SymbolDefault = properties.Starter.SymbolInfo[0].Symbol
+				SymbolDefault = properties.Starter.SymbolProperties[0].Symbol
 			};
 			AddDependency(portfolio,fourTicks);
 			AddDependency(portfolio,reversal);
