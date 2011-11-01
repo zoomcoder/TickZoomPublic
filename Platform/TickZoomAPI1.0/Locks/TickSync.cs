@@ -212,11 +212,14 @@ namespace TickZoom.Api
 
         public void RollbackPhysicalFills()
         {
+            var result = false;
             while ((*rollback).physicalFills > 0 && (*state).physicalFills > 0)
             {
                 Interlocked.Decrement(ref (*state).physicalFills);
                 Interlocked.Decrement(ref (*rollback).physicalFills);
+                result = true;
             }
+            if (trace && result) log.Trace( "RollbackPhysicalFills(" + (*state).physicalFills + ")");
         }
 
         public void RemovePhysicalFill(object fill)

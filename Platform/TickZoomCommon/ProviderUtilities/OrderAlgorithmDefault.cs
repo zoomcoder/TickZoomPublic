@@ -1258,7 +1258,6 @@ namespace TickZoom.Common
                             tickSync.RollbackPositionChange();
                             tickSync.RollbackProcessPhysicalOrders();
                             tickSync.RollbackReprocessPhysicalOrders();
-                            tickSync.RollbackPhysicalFills();
                         }
 					}
                     finally {

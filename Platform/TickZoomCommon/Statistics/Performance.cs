@@ -201,10 +201,9 @@ namespace TickZoom.Statistics
 			TransactionPairBinary pair = TransactionPairBinary.Create();
 			pair.Enter(fill.Position, fill.Price, fill.Time, fill.PostedTime, model.Chart.ChartBars.BarCount, fill.OrderId, fill.OrderSerialNumber);
 			comboTradesBinary.Add(pair);
-			if( trace) {
-				log.Trace( "Enter trade: " + pair);
-			}
-			if( model is Strategy) {
+            if (debug) log.Debug("Enter Trade: " + pair);
+            if (model is Strategy)
+            {
 				Strategy strategy = (Strategy) model;
 				LogicalOrder filledOrder;
 				if( !strategy.TryGetOrderById( fill.OrderId, out filledOrder)) {
@@ -218,7 +217,9 @@ namespace TickZoom.Statistics
 			TransactionPairBinary combo = comboTradesBinary.Tail;
 			combo.ChangeSize(fill.Position,fill.Price);
 			comboTradesBinary.Tail = combo;
-			if( model is Strategy) {
+            if (debug) log.Debug("Change Trade: " + combo);
+            if (model is Strategy)
+            {
 				Strategy strategy = (Strategy) model;
 				LogicalOrder filledOrder;
 				if( !strategy.TryGetOrderById( fill.OrderId, out filledOrder)) {
@@ -232,7 +233,8 @@ namespace TickZoom.Statistics
 			TransactionPairBinary comboTrade = comboTradesBinary.Tail;
 			comboTrade.Exit( fill.Price, fill.Time, fill.PostedTime, model.Chart.ChartBars.BarCount, fill.OrderId, fill.OrderSerialNumber);
 			comboTradesBinary.Tail = comboTrade;
-		    var profitLoss2 = profitLoss as ProfitLoss2;
+            if( debug) log.Debug("Exit Trade: " + comboTrade);
+            var profitLoss2 = profitLoss as ProfitLoss2;
 		    double pnl = 0D;
             if( profitLoss2 == null)
             {

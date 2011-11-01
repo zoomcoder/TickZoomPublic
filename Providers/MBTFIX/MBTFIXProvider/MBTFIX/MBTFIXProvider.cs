@@ -403,17 +403,17 @@ namespace TickZoom.MBTFIX
 			var lower = packetFIX.Text.ToLower();
 			var text = packetFIX.Text;
 			var errorOkay = false;
-			errorOkay = lower.Contains("order") && lower.Contains("server") ? true : errorOkay;
+			errorOkay = lower.Contains("server") ? true : errorOkay;
 			errorOkay = text.Contains("DEMOORDS") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD1") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD2") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD01") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD02") ? true : errorOkay;
-			if( errorOkay) {
-				log.Error( packetFIX.Text + " -- Sending EndBroker event.");
-				TrySendEndBroker();
-				log.Info( packetFIX.Text + " Sent EndBroker event due to Message:\n" + packetFIX);
-			} else {
+            log.Error(packetFIX.Text + " -- Sending EndBroker event.");
+            TrySendEndBroker();
+            log.Info(packetFIX.Text + " Sent EndBroker event due to Message:\n" + packetFIX);
+            if (!errorOkay)
+            {
 				string message = "FIX Server reported an error: " + packetFIX.Text + "\n" + packetFIX;
 				throw new ApplicationException( message);
 			}
