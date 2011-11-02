@@ -529,7 +529,7 @@ namespace TickZoom.MBTFIX
                     case "1":
                         symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
                         tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
-                        tickSync.AddPhysicalFill();
+                        //tickSync.AddPhysicalFill();
                         break;
                 }
                 

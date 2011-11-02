@@ -202,13 +202,6 @@ namespace TickZoom.Api
             }
         }
 
-        public void AddPhysicalFill()
-        {
-            var value = Interlocked.Increment(ref (*state).physicalFills);
-            RollbackPhysicalFills();
-            if (trace) log.Trace("AddPhysicalFill( from resend? ) " + this);
-        }
-
         public void AddPhysicalFill(PhysicalFill fill)
         {
             var value = Interlocked.Increment(ref (*state).physicalFills);

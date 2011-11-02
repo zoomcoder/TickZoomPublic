@@ -287,18 +287,7 @@ namespace TickZoom.MBTFIX
         private TimeStamp recentHeartbeatTime = default(TimeStamp);
         private void SendHeartbeat()
         {
-            if (SyncTicks.Enabled)
-            {
-                lock (orderAlgorithmsLocker)
-                {
-                    foreach (var kvp in orderAlgorithms)
-                    {
-                        var tickSync = SyncTicks.GetTickSync(kvp.Key);
-                        tickSync.ClearPhysicalFills();
-                    }
-                }
-            }
-            if (!isBrokerStarted) RequestSessionUpdate();
+            if( !isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
             if( IsRecovered)
             {
@@ -308,6 +297,7 @@ namespace TickZoom.MBTFIX
                     {
                         var algo = kvp.Value;
                         algo.CheckForPending();
+                        algo.ProcessOrders();
                     }
                 }
             }

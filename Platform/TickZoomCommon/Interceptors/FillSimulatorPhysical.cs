@@ -48,7 +48,12 @@ namespace TickZoom.Interceptors
             }
         }
         private static readonly bool notice = staticLog.IsNoticeEnabled;
-        private Queue<PhysicalFill> fillQueue = new Queue<PhysicalFill>();
+        private struct FillWrapper
+        {
+            public bool IsCounterSet;
+            public PhysicalFill Fill;
+        }
+        private Queue<FillWrapper> fillQueue = new Queue<FillWrapper>();
         private Log log;
 
 		private Dictionary<string,CreateOrChangeOrder> orderMap = new Dictionary<string, CreateOrChangeOrder>();
@@ -319,10 +324,10 @@ namespace TickZoom.Interceptors
         {
             while (fillQueue.Count > 0)
             {
-                var fill = fillQueue.Dequeue();
-                if (debug) log.Debug("Dequeuing fill (" + isOnline + "): " + fill);
-                if (SyncTicks.Enabled && !isOnline) tickSync.AddPhysicalFill(fill);
-                onPhysicalFill(fill);
+                var wrapper = fillQueue.Dequeue();
+                if (debug) log.Debug("Dequeuing fill (" + isOnline + "): " + wrapper.Fill);
+                if (SyncTicks.Enabled && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
+                onPhysicalFill(wrapper.Fill);
             }
         }
 		
@@ -730,8 +735,13 @@ namespace TickZoom.Interceptors
             //}
 			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills, totalSize, cumulativeSize, remainingSize, false);
             if (debug) log.Debug("Enqueuing fill (online: " + isOnline + "): " + fill);
-            if (SyncTicks.Enabled && isOnline) tickSync.AddPhysicalFill(fill);
-            fillQueue.Enqueue(fill);
+		    var wrapper = new FillWrapper
+		                      {
+		                          IsCounterSet = isOnline,
+		                          Fill = fill,
+		                      };
+            if (SyncTicks.Enabled && wrapper.IsCounterSet) tickSync.AddPhysicalFill(fill);
+            fillQueue.Enqueue(wrapper);
         }
 		
 		public bool UseSyntheticLimits {
