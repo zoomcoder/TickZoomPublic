@@ -156,6 +156,12 @@ namespace TickZoom.Api
             if (trace) log.Trace("ForceClear() " + this);
         }
 
+        public void ClearPhysicalFills()
+        {
+            var fills = Interlocked.Exchange(ref (*state).physicalFills, 0);
+            if (trace) log.Trace("ClearPhysicalFills(" + fills + ")");
+        }
+
         public void ForceClearOrders()
         {
             var orders = Interlocked.Exchange(ref (*state).physicalOrders, 0);
