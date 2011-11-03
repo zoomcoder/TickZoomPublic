@@ -928,6 +928,11 @@ namespace TickZoom.MBTFIX
             else
             {
                 if (debug) log.Debug("Broker offline so fill not sent for " + symbol + " to receiver: " + fill);
+                if( SyncTicks.Enabled)
+                {
+                    var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                    tickSync.RemovePhysicalFillWaiting(fill);
+                }
             }
 		}
 

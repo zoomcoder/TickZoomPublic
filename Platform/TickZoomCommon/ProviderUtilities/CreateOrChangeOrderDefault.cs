@@ -101,7 +101,7 @@ namespace TickZoom.Common
         }
 
 		public CreateOrChangeOrderDefault(OrderAction orderAction, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
-            : this(OrderState.Active,symbol,logical,side,size,price)
+            : this(OrderState.Pending,symbol,logical,side,size,price)
 		{
 		    binary.action = orderAction;
 		}

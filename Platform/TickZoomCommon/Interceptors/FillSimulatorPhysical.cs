@@ -322,6 +322,7 @@ namespace TickZoom.Interceptors
 
         public void FlushFillQueue()
         {
+            if( !isOnline) return;
             while (fillQueue.Count > 0)
             {
                 var wrapper = fillQueue.Dequeue();

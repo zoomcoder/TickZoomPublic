@@ -168,8 +168,8 @@ namespace TickZoom.Common
 		}
 		
 		private void TryChangeBrokerOrder(CreateOrChangeOrder createOrChange, CreateOrChangeOrder origOrder) {
-            if (createOrChange.OrderState == OrderState.Active)
-            {
+            //if (createOrChange.OrderState == OrderState.Active)
+            //{
                 createOrChange.OriginalOrder = origOrder;
                 origOrder.ReplacedBy = createOrChange;
                 if (physicalOrderCache.HasCancelOrder(createOrChange))
@@ -188,7 +188,7 @@ namespace TickZoom.Common
                 {
                     TryRemovePhysicalOrder(createOrChange);
                 }
-			}
+            //}
 		}
 		
 		private void TryAddPhysicalOrder(CreateOrChangeOrder createOrChange) {
@@ -1262,6 +1262,7 @@ namespace TickZoom.Common
                             tickSync.RollbackPositionChange();
                             tickSync.RollbackProcessPhysicalOrders();
                             tickSync.RollbackReprocessPhysicalOrders();
+                            tickSync.RollbackPhysicalFills();
                         }
 					}
                     finally {
@@ -1774,10 +1775,7 @@ namespace TickZoom.Common
             }
             if (SyncTicks.Enabled)
             {
-                if( order.Action == OrderAction.Cancel)
-                {
-                    tickSync.RemovePhysicalOrder(order);
-                }
+                tickSync.RemovePhysicalOrder(order);
                 if (removeOriginal && origOrder != null && (origOrder.OrderState == OrderState.Pending || origOrder.OrderState == OrderState.PendingNew))
                 {
                     tickSync.RemovePhysicalOrder(origOrder);
