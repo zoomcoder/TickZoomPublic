@@ -1057,7 +1057,7 @@ namespace TickZoom.Common
                 expiryLimit.AddSeconds(-5);
             }
             if (debug) log.Debug("Checking for orders pending since: " + expiryLimit);
-            var list = physicalOrderCache.GetOrders((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew));
+            var list = physicalOrderCache.GetOrders((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew || x.Type == OrderType.BuyMarket || x.Type == OrderType.SellMarket));
             var cancelOrders = new List<CreateOrChangeOrder>();
             foreach( var order in list)
             {
