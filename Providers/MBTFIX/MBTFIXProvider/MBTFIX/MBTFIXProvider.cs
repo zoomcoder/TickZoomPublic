@@ -130,7 +130,12 @@ namespace TickZoom.MBTFIX
         }
 		
 		private void TrySendEndBroker() {
-            if (!isBrokerStarted) return;
+
+            if (!isBrokerStarted)
+            {
+                if( debug) log.Debug("Tried to send EndBroker but broker status is already offline.");
+                return;
+            }
             lock (symbolsRequestedLocker)
             {
 				foreach(var kvp in symbolsRequested) {
@@ -287,7 +292,8 @@ namespace TickZoom.MBTFIX
         private TimeStamp recentHeartbeatTime = default(TimeStamp);
         private void SendHeartbeat()
         {
-            if( !isBrokerStarted) RequestSessionUpdate();
+            if (debug) log.Debug("SendHeartBeat Status " + ConnectionStatus + ", Broker Online " + isBrokerStarted + ", Session Status Online " + isOrderServerOnline + ", Resend Complete " + IsResendComplete);
+            if (!isBrokerStarted) RequestSessionUpdate();
             if( !IsRecovered) TryEndRecovery();
             if( IsRecovered)
             {
@@ -494,6 +500,7 @@ namespace TickZoom.MBTFIX
                     newIsSessionStatusOnline = false;
                 }
             }
+            if( debug) log.Debug("Order server connected (new " + newIsSessionStatusOnline + ", previous " + isOrderServerOnline);
             if (newIsSessionStatusOnline != isOrderServerOnline)
             {
                 isOrderServerOnline = newIsSessionStatusOnline;

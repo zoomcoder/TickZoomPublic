@@ -39,13 +39,15 @@ namespace TickZoom.Api
         public int positionChange;
         public int processPhysical;
         public int reprocessPhysical;
-        public int physicalFills;
+        public int physicalFillsCreated;
+        public int physicalFillsWaiting;
         public int physicalOrders;
         public int physicalFillSimulators;
         public bool Compare(TickSyncState other)
         {
             return ticks == other.ticks && positionChange == other.positionChange &&
-                   processPhysical == other.processPhysical && physicalFills == other.physicalFills &&
+                   processPhysical == other.processPhysical && physicalFillsCreated == other.physicalFillsCreated &&
+                   physicalFillsWaiting == other.physicalFillsWaiting &&
                    reprocessPhysical == other.reprocessPhysical && physicalOrders == other.physicalOrders &&
                    physicalFillSimulators == other.physicalFillSimulators;
 
@@ -87,28 +89,28 @@ namespace TickZoom.Api
         private bool CheckCompletedInternal()
         {
             return (*state).ticks == 0 && (*state).positionChange == 0 &&
-                   (*state).physicalOrders == 0 && (*state).physicalFills == 0 &&
+                   (*state).physicalOrders == 0 && (*state).physicalFillsCreated == 0 &&
                    (*state).processPhysical == 0 && (*state).reprocessPhysical == 0 &&
                    (*state).physicalFillSimulators == 1;
         }
         private bool CheckOnlyProcessingOrders()
         {
             return (*state).physicalOrders == 0 &&
-                (*state).physicalFills == 0 && (*state).processPhysical > 0 &&
+                (*state).physicalFillsCreated == 0 && (*state).processPhysical > 0 &&
                    (*state).physicalFillSimulators == 1;
         }
 
         private bool CheckOnlyReprocessOrders()
         {
             return (*state).physicalOrders == 0 &&
-                (*state).physicalFills == 0 && (*state).reprocessPhysical > 0 &&
+                (*state).physicalFillsCreated == 0 && (*state).reprocessPhysical > 0 &&
                    (*state).physicalFillSimulators == 1;
         }
 
         private bool CheckProcessingOrders()
         {
             return (*state).positionChange > 0 || (*state).physicalOrders > 0 ||
-                   (*state).physicalFills > 0 || (*state).processPhysical > 0 ||
+                   (*state).physicalFillsCreated > 0 || (*state).processPhysical > 0 ||
                    (*state).reprocessPhysical > 0;
         }
 
@@ -146,29 +148,25 @@ namespace TickZoom.Api
 
         public void ForceClear()
         {
-            var ticks = Interlocked.Exchange(ref (*state).ticks, 0);
-            var orders = Interlocked.Exchange(ref (*state).physicalOrders, 0);
-            var process = Interlocked.Exchange(ref (*state).processPhysical, 0);
-            var reprocess = Interlocked.Exchange(ref (*state).reprocessPhysical, 0);
-            var changes = Interlocked.Exchange(ref (*state).positionChange, 0);
-            var fills = Interlocked.Exchange(ref (*state).physicalFills, 0);
+            Interlocked.Exchange(ref (*state).ticks, 0);
+            Interlocked.Exchange(ref (*state).physicalOrders, 0);
+            Interlocked.Exchange(ref (*state).processPhysical, 0);
+            Interlocked.Exchange(ref (*state).reprocessPhysical, 0);
+            Interlocked.Exchange(ref (*state).positionChange, 0);
+            Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
+            Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
             Unlock();
             if (trace) log.Trace("ForceClear() " + this);
         }
 
-        public void ClearPhysicalFills()
-        {
-            var fills = Interlocked.Exchange(ref (*state).physicalFills, 0);
-            if (trace) log.Trace("ClearPhysicalFills(" + fills + ")");
-        }
-
         public void ForceClearOrders()
         {
-            var orders = Interlocked.Exchange(ref (*state).physicalOrders, 0);
-            var changes = Interlocked.Exchange(ref (*state).positionChange, 0);
-            var process = Interlocked.Exchange(ref (*state).processPhysical, 0);
-            var reprocess = Interlocked.Exchange(ref (*state).reprocessPhysical, 0);
-            var fills = Interlocked.Exchange(ref (*state).physicalFills, 0);
+            Interlocked.Exchange(ref (*state).physicalOrders, 0);
+            Interlocked.Exchange(ref (*state).positionChange, 0);
+            Interlocked.Exchange(ref (*state).processPhysical, 0);
+            Interlocked.Exchange(ref (*state).reprocessPhysical, 0);
+            Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
+            Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
             if (trace) log.Trace("ForceClearOrders() " + this);
         }
 
@@ -179,7 +177,7 @@ namespace TickZoom.Api
 
         private string ToString(TickSyncState temp)
         {
-            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills " + temp.physicalFills + ", Simulators " + temp.physicalFillSimulators;
+            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills Created " + temp.physicalFillsCreated + ", Fills Waiting " + temp.physicalFillsWaiting + ", Simulators " + temp.physicalFillSimulators;
         }
 
         public void AddTick(Tick tick)
@@ -204,31 +202,56 @@ namespace TickZoom.Api
 
         public void AddPhysicalFill(PhysicalFill fill)
         {
-            var value = Interlocked.Increment(ref (*state).physicalFills);
             RollbackPhysicalFills();
-            if (trace) log.Trace("AddPhysicalFill(" + value + "," + fill + "," + fill.Order + ") " + this);
+            var valueCreated = Interlocked.Increment(ref (*state).physicalFillsCreated);
+            var valueWaiting = Interlocked.Increment(ref (*state).physicalFillsWaiting);
+            if (trace) log.Trace("AddPhysicalFill( Created " + valueCreated + ", Waiting " + valueWaiting + fill + "," + fill.Order + ") " + this);
         }
 
         public void RollbackPhysicalFills()
         {
-            var result = false;
-            while ((*rollback).physicalFills > 0 && (*state).physicalFills > 0)
+            var resultCreated = false;
+            var resultWaiting = false;
+            while ((*rollback).physicalFillsCreated > 0 && (*state).physicalFillsCreated > 0)
             {
-                Interlocked.Decrement(ref (*state).physicalFills);
-                Interlocked.Decrement(ref (*rollback).physicalFills);
-                result = true;
+                Interlocked.Decrement(ref (*state).physicalFillsCreated);
+                Interlocked.Decrement(ref (*rollback).physicalFillsCreated);
+                resultCreated = true;
             }
-            if (trace && result) log.Trace( "RollbackPhysicalFills(" + (*state).physicalFills + ")");
+            while ((*rollback).physicalFillsWaiting > 0 && (*state).physicalFillsWaiting > 0)
+            {
+                Interlocked.Decrement(ref (*state).physicalFillsWaiting);
+                Interlocked.Decrement(ref (*rollback).physicalFillsWaiting);
+                resultWaiting = true;
+            }
+            if (trace && (resultCreated || resultWaiting)) log.Trace("RollbackPhysicalFills( Created " + (*state).physicalFillsCreated + ", Waiting " + (*state).physicalFillsCreated);
         }
 
         public void RemovePhysicalFill(object fill)
         {
-            var value = Interlocked.Decrement(ref (*state).physicalFills);
-            if (trace) log.Trace("RemovePhysicalFill(" + value + "," + fill + ") " + this);
-            if (value < 0)
+            var valueCreated = Interlocked.Decrement(ref (*state).physicalFillsCreated);
+            var valueWaiting = Interlocked.Decrement(ref (*state).physicalFillsWaiting);
+            if (trace) log.Trace("RemovePhysicalFill( Created " + valueCreated + ", Waiting " + valueWaiting + ", " + fill + ") " + this);
+            if (valueCreated < 0)
             {
-                var temp = Interlocked.Increment(ref (*state).physicalFills);
-                if (debug) log.Debug("PhysicalFills counter was " + value + ". Incremented to " + temp);
+                var temp = Interlocked.Increment(ref (*state).physicalFillsCreated);
+                if (debug) log.Debug("physicalFillsCreated counter was " + valueCreated + ". Incremented to " + temp);
+            }
+            if (valueWaiting < 0)
+            {
+                var temp = Interlocked.Increment(ref (*state).physicalFillsWaiting);
+                if (debug) log.Debug("physicalFillsWaiting counter was " + valueWaiting + ". Incremented to " + temp);
+            }
+        }
+
+        public void RemovePhysicalFillWaiting(object fill)
+        {
+            var valueWaiting = Interlocked.Decrement(ref (*state).physicalFillsWaiting);
+            if (trace) log.Trace("RemovePhysicalFillWaiting( Waiting " + valueWaiting + ", " + fill + ") " + this);
+            if (valueWaiting < 0)
+            {
+                var temp = Interlocked.Increment(ref (*state).physicalFillsWaiting);
+                if (debug) log.Debug("physicalFillsWaiting counter was " + valueWaiting + ". Incremented to " + temp);
             }
         }
 
@@ -391,14 +414,9 @@ namespace TickZoom.Api
             }
         }
 
-        public bool SentPhysicalOrders
+        public bool SentPhysicalFillsWaiting
         {
-            get { return (*state).physicalOrders > 0; }
-        }
-
-        public bool SentPhysicalFills
-        {
-            get { return (*state).physicalFills > 0; }
+            get { return (*state).physicalFillsWaiting > 0; }
         }
 
         public bool SentPositionChange
@@ -431,15 +449,5 @@ namespace TickZoom.Api
             get { return (*state).processPhysical > 0; }
         }
 
-        public int PhysicalFills
-        {
-            get { return (*state).physicalFills; }
-        }
-
-        public bool RollbackNeeded
-        {
-            get { return rollbackNeeded; }
-            set { rollbackNeeded = value; }
-        }
     }
 }
