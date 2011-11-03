@@ -572,24 +572,26 @@ namespace TickZoom.FIX
         public void SendSessionStatusOnline()
         {
             SendSessionStatus("2");
+            var handlers = new List<FIXServerSymbolHandler>();
             using( symbolHandlersLocker.Using())
             {
-                if( debug) log.Debug("Flushing all fill queues.");
-                foreach( var kvp in symbolHandlers)
+                if (debug) log.Debug("Flushing all fill queues.");
+                foreach (var kvp in symbolHandlers)
                 {
-                    var handler = kvp.Value;
-                    handler.FillSimulator.FlushFillQueue();
+                    handlers.Add(kvp.Value);
                 }
-                if( debug) log.Debug("Current FIX Simulator orders.");
-                foreach( var kvp in symbolHandlers)
+            }
+            foreach(var handler in handlers) {
+                handler.FillSimulator.FlushFillQueue();
+            }
+            if (debug) log.Debug("Current FIX Simulator orders.");
+            foreach( var handler in handlers)
+            {
+                var orders = handler.FillSimulator.GetActiveOrders(handler.Symbol);
+                for( var current = orders.First; current != null; current = current.Next)
                 {
-                    var handler = kvp.Value;
-                    var orders = handler.FillSimulator.GetActiveOrders(handler.Symbol);
-                    for( var current = orders.First; current != null; current = current.Next)
-                    {
-                        var order = current.Value;
-                        if(debug) log.Debug(order.ToString());
-                    }
+                    var order = current.Value;
+                    if(debug) log.Debug(order.ToString());
                 }
             }
         }

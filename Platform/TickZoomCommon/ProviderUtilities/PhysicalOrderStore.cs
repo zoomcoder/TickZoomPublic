@@ -849,7 +849,7 @@ namespace TickZoom.Common
             AssertAtomic();
             using (ordersLocker.Using())
             {
-                if (trace) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
+                if (trace ) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
                 ordersByBrokerId[order.BrokerOrder] = order;
                 if( order.Sequence != 0)
                 {

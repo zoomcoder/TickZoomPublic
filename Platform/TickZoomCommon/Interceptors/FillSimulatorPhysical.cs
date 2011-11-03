@@ -322,11 +322,15 @@ namespace TickZoom.Interceptors
 
         public void FlushFillQueue()
         {
-            if( !isOnline) return;
+            if( !isOnline)
+            {
+                if( debug) log.Debug("Unable to flush fill queue yet because isOnline is " + isOnline);
+                return;
+            }
             while (fillQueue.Count > 0)
             {
                 var wrapper = fillQueue.Dequeue();
-                if (debug) log.Debug("Dequeuing fill (" + isOnline + "): " + wrapper.Fill);
+                if (debug) log.Debug("Dequeuing fill ( isOnline " + isOnline + "): " + wrapper.Fill);
                 if (SyncTicks.Enabled && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
                 onPhysicalFill(wrapper.Fill);
             }

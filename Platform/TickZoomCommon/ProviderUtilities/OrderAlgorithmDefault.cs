@@ -168,8 +168,8 @@ namespace TickZoom.Common
 		}
 		
 		private void TryChangeBrokerOrder(CreateOrChangeOrder createOrChange, CreateOrChangeOrder origOrder) {
-            //if (createOrChange.OrderState == OrderState.Active)
-            //{
+            if (origOrder.OrderState == OrderState.Active)
+            {
                 createOrChange.OriginalOrder = origOrder;
                 origOrder.ReplacedBy = createOrChange;
                 if (physicalOrderCache.HasCancelOrder(createOrChange))
@@ -179,16 +179,17 @@ namespace TickZoom.Common
                 }
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
                 TryAddPhysicalOrder(createOrChange);
+                physicalOrderCache.SetOrder(createOrChange);
                 if (physicalOrderHandler.OnChangeBrokerOrder(createOrChange))
                 {
                     sentPhysicalOrders++;
-                    physicalOrderCache.SetOrder(createOrChange);
                 }
                 else
                 {
+                    physicalOrderCache.RemoveOrder(createOrChange.BrokerOrder);
                     TryRemovePhysicalOrder(createOrChange);
                 }
-            //}
+            }
 		}
 		
 		private void TryAddPhysicalOrder(CreateOrChangeOrder createOrChange) {
@@ -213,13 +214,14 @@ namespace TickZoom.Common
                 return false;
             }
             TryAddPhysicalOrder(physical);
+            physicalOrderCache.SetOrder(physical);
             if (physicalOrderHandler.OnCreateBrokerOrder(physical))
             {
-                physicalOrderCache.SetOrder(physical);
                 sentPhysicalOrders++;
             }
             else
             {
+                physicalOrderCache.RemoveOrder(physical.BrokerOrder);
                 TryRemovePhysicalOrder(physical);
             }
             return true;
@@ -645,7 +647,7 @@ namespace TickZoom.Common
 			if( createOrChange.Side != side) {
                 if (debug) log.Debug("Canceling because " + createOrChange.Side + " != " + side + ": " + createOrChange);
 				TryCancelBrokerOrder(createOrChange);
-                createOrChange = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, createOrChange.Size, price);
+                createOrChange = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, createOrChange.Size, price);
 				TryCreateBrokerOrder(createOrChange);
 			    result = false;
 			}
@@ -737,13 +739,13 @@ namespace TickZoom.Common
                     if (logicalPosition < 0 && logical.StrategyPosition <= 0 && logical.StrategyPosition > logicalPosition)
                     {
                         result = false;
-                        var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                        var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
                         TryCreateBrokerOrder(physical);
                     }
                     if (logicalPosition > 0 && logical.StrategyPosition >= 0 && logical.StrategyPosition < logicalPosition)
                     {
                         result = false;
-                        var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                        var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
                         TryCreateBrokerOrder(physical);
                     }
 					break;
@@ -771,7 +773,7 @@ namespace TickZoom.Common
 						if(debug) log.Debug("ProcessMissingPhysical("+logical+")");
 					    result = false;
 						side = GetOrderSide(logical.Type);
-                        var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                        var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
 						TryCreateBrokerOrder(physical);
 					}
 					break;
@@ -785,7 +787,7 @@ namespace TickZoom.Common
         {
             if (debug) log.Debug("ProcessMissingPhysical(" + logical + ")");
             var side = GetOrderSide(logical.Type);
-            var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+            var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
             TryCreateBrokerOrder(physical);
         }
 
@@ -800,7 +802,7 @@ namespace TickZoom.Common
                     if (debug) log.Debug("ProcessMissingPhysical(" + logical + ")");
                     result = false;
                     var side = GetOrderSide(logical.Type);
-                    var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                    var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
                     TryCreateBrokerOrder(physical);
                 }
 			}
@@ -812,7 +814,7 @@ namespace TickZoom.Common
                     result = false;
                     if (debug) log.Debug("ProcessMissingPhysical(" + logical + ")");
                     var side = GetOrderSide(logical.Type);
-                    var physical = new CreateOrChangeOrderDefault(OrderState.Active, symbol, logical, side, size, price);
+                    var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
                     TryCreateBrokerOrder(physical);
                 }
 			}
@@ -963,7 +965,7 @@ namespace TickZoom.Common
             }
 			if( delta > 0)
 			{
-                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, delta, 0, 0, null, null, default(TimeStamp));
+                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, delta, 0, 0, null, null, default(TimeStamp));
                 log.Info("Sending adjustment order to position: " + createOrChange);
                 if( TryCreateBrokerOrder(createOrChange))
                 {
@@ -991,7 +993,7 @@ namespace TickZoom.Common
                 if( sendAdjustment)
                 {
                     side = actualPosition >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
-                    createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Active, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
+                    createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
                     log.Info("Sending adjustment order to correct position: " + createOrChange);
                     if (TryCreateBrokerOrder(createOrChange))
                     {
@@ -1691,8 +1693,9 @@ namespace TickZoom.Common
 	    // This is a callback to confirm order was properly placed.
         public void ConfirmChange(CreateOrChangeOrder order, bool isRealTime)
         {
-            if (debug) log.Debug("ConfirmChange(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            order.OrderState = OrderState.Active;
             physicalOrderCache.SetOrder(order);
+            if (debug) log.Debug("ConfirmChange(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             if (order.OriginalOrder != null)
             {
                 physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
@@ -1732,8 +1735,9 @@ namespace TickZoom.Common
 
         public void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime)
         {
-            if( debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            order.OrderState = OrderState.Active;
             physicalOrderCache.SetOrder(order);
+            if (debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             if (isRealTime)
             {
                 PerformCompareProtected();
