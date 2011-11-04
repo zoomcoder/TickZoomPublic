@@ -936,11 +936,11 @@ namespace TickZoom.Common
 
         public void TrySyncPosition(Iterable<StrategyPosition> strategyPositions)
         {
-            if (isPositionSynced)
-            {
-                if (debug) log.Debug("TrySyncPosition() ignore. Position already synced.");
-                return;
-            }
+            //if (isPositionSynced)
+            //{
+            //    if (debug) log.Debug("TrySyncPosition() ignore. Position already synced.");
+            //    return;
+            //}
             logicalOrderCache.SyncPositions(strategyPositions);
             SyncPosition();
         }
@@ -955,13 +955,13 @@ namespace TickZoom.Common
             if( delta != 0)
             {
                 IsPositionSynced = false;
-                log.Notice("SyncPositionInternal() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+                log.Notice("SyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
                 if (debug) log.Debug("TrySyncPosition - " + tickSync);
             }
             else if( positionDelta == 0)
             {
                 IsPositionSynced = true;
-                log.Notice("SyncPositionInternal() found position currently synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+                log.Notice("SyncPosition() found position currently synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
             }
 			if( delta > 0)
 			{
@@ -1006,24 +1006,30 @@ namespace TickZoom.Common
             }
         }
 
-        public void SetLogicalOrders(Iterable<LogicalOrder> inputLogicals, Iterable<StrategyPosition> strategyPositions)
+        public void SetStrategyPositions(Iterable<StrategyPosition> strategyPositions)
         {
-			if( trace) {
-				int count = originalLogicals == null ? 0 : originalLogicals.Count;
-				log.Trace("SetLogicalOrders() order count = " + count);
-			}
+            logicalOrderCache.SyncPositions(strategyPositions);
+		}
+
+        public void SetLogicalOrders(Iterable<LogicalOrder> inputLogicals)
+        {
+            if (trace)
+            {
+                int count = originalLogicals == null ? 0 : originalLogicals.Count;
+                log.Trace("SetLogicalOrders() order count = " + count);
+            }
             if (CheckForFilledOrders(inputLogicals))
             {
                 if (debug) log.Debug("Found already filled orders in position change event. Ignoring until recent fills get posted.");
                 return;
             }
             logicalOrderCache.SetActiveOrders(inputLogicals);
-			bufferedLogicals.Clear();
-			bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
-		    canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
-		    bufferedLogicalsChanged = true;
-            if( debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ", strategy positions " + strategyPositions.Count);
-		}
+            bufferedLogicals.Clear();
+            bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
+            canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
+            bufferedLogicalsChanged = true;
+            if (debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ")");
+        }
 		
 		public void SetDesiredPosition(	int position) {
 			this.desiredPosition = position;
@@ -1152,13 +1158,15 @@ namespace TickZoom.Common
                 logical = FindHistoricalLogicalOrder(physical.Order.LogicalSerialNumber);
                 if( logical != null)
                 {
+                    if (debug) log.Debug("Logical order already in canceled list: " + logical);
                     isFilledAfterCancel = true;
                 }
             }
             else
             {
-                if( logical.Price != physical.Order.Price)
+                if( logical.Price.ToLong() != physical.Order.Price.ToLong())
                 {
+                    if (debug) log.Debug("Already canceled because physical order price " + physical.Order.Price + " dffers from logical order price " + logical);
                     isFilledAfterCancel = true;
                 }
             }
@@ -1264,7 +1272,6 @@ namespace TickZoom.Common
                             tickSync.RollbackPositionChange();
                             tickSync.RollbackProcessPhysicalOrders();
                             tickSync.RollbackReprocessPhysicalOrders();
-                            tickSync.RollbackPhysicalFills();
                         }
 					}
                     finally {
@@ -1491,9 +1498,10 @@ namespace TickZoom.Common
 		{
 			if( debug)
 			{
+			    var mismatch = actualPosition == desiredPosition ? "match" : "MISMATCH";
 			    log.Debug("PerformCompare for " + symbol + " with " +
 			              actualPosition + " actual " +
-			              desiredPosition + " desired.");
+			              desiredPosition + " desired. Positions " + mismatch + ".");
 			}
 				
             originalPhysicals.Clear();

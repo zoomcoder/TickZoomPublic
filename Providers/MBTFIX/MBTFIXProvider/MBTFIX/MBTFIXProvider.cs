@@ -87,41 +87,50 @@ namespace TickZoom.MBTFIX
             {
                 OrderStore.ForceSnapShot();
             }
-            if (IsRecovered)
+            var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
+            if( SyncTicks.Enabled)
             {
-                var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
-                if( SyncTicks.Enabled)
-                {
-                    log.Notice(message);
-                } else
-                {
-                    log.Error(message);
-                }
-                log.Info("Logging out -- Sending EndBroker event.");
-                TrySendEndBroker();
+                log.Notice(message);
+            } else
+            {
+                log.Error(message);
             }
+            log.Info("Logging out -- Sending EndBroker event.");
+            TrySendEndBroker();
         }
 
 		public override void OnRetry() {
 		}
 
-		private void TrySendStartBroker() {
-            if( isBrokerStarted) return;
+        private void TrySendSynchronizeBroker()
+        {
+            //TrySend(EventType.SynchronizeBroker);
+        }
+
+        private void TrySendStartBroker()
+        {
+            if (isBrokerStarted) return;
+            if( !IsRecovered) return;
+            TrySend(EventType.StartBroker);
+            isBrokerStarted = true;
+        }
+
+        private void TrySend(EventType type)
+        {
 			lock( symbolsRequestedLocker) {
-                if( debug) log.Debug("Sending StartBroker to all receivers...");
+                if( debug) log.Debug("Sending " + type + " to all receivers...");
 				foreach( var kvp in symbolsRequested) {
 					SymbolInfo symbol = kvp.Value;
 					long end = Factory.Parallel.TickCount + 5000;
-					while( !receiver.OnEvent(symbol,(int)EventType.StartBroker,symbol)) {
+					while( !receiver.OnEvent(symbol,(int)type,symbol)) {
 						if( isDisposed) return;
 						if( Factory.Parallel.TickCount > end) {
-							throw new ApplicationException("Timeout while sending start broker.");
+							throw new ApplicationException("Timeout while sending " + type);
 						}
 						Factory.Parallel.Yield();
 					}
 				}
 			}
-		    isBrokerStarted = true;
 		}
 
         public int ProcessOrders()
@@ -294,8 +303,8 @@ namespace TickZoom.MBTFIX
         {
             if (debug) log.Debug("SendHeartBeat Status " + ConnectionStatus + ", Broker Online " + isBrokerStarted + ", Session Status Online " + isOrderServerOnline + ", Resend Complete " + IsResendComplete);
             if (!isBrokerStarted) RequestSessionUpdate();
-            if( !IsRecovered) TryEndRecovery();
-            if( IsRecovered)
+            if (!IsRecovered) TryEndRecovery();
+            if (IsRecovered)
             {
                 lock( orderAlgorithmsLocker)
                 {
@@ -303,7 +312,7 @@ namespace TickZoom.MBTFIX
                     {
                         var algo = kvp.Value;
                         algo.CheckForPending();
-                        algo.ProcessOrders();
+                        //algo.ProcessOrders();
                     }
                 }
             }
@@ -465,10 +474,27 @@ namespace TickZoom.MBTFIX
         }
         private void StartPositionSync()
         {
-			log.Info("Recovered Open Orders:\n" + GetOpenOrders());
-			TrySendStartBroker();
+            if( debug) log.Debug("StartPositionSync()");
+            var openOrders = GetOpenOrders();
+            if( string.IsNullOrEmpty(openOrders))
+            {
+                if( debug) log.Debug("Found 0 open orders.");
+            }
+            else
+            {
+			    if( debug) log.Debug("Recovered Open Orders:\n" + openOrders);
+            }
 			MessageFIXT1_1.IsQuietRecovery = false;
-		}
+            foreach( var kvp in orderAlgorithms)
+            {
+                var algorithm = kvp.Value;
+                algorithm.ProcessOrders();
+                if (algorithm.IsPositionSynced)
+                {
+                    TrySendStartBroker();
+                }
+            }
+        }
 
         private Dictionary<string,bool> sessionStatusMap = new Dictionary<string, bool>();
         private volatile bool isOrderServerOnline = false;
@@ -903,6 +929,15 @@ namespace TickZoom.MBTFIX
                 {
                     algorithm.IncreaseActualPosition( fillPosition);
                     log.Notice("Fill id " + packetFIX.ClientOrderId + " not found. Must have been a manual trade.");
+                    if( SyncTicks.Enabled)
+                    {
+                        var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                        tickSync.RemovePhysicalFill(packetFIX.ClientOrderId);
+                    }
+                }
+                if( algorithm.IsPositionSynced)
+                {
+                    TrySendStartBroker();
                 }
 			}
 		}
@@ -1315,23 +1350,27 @@ namespace TickZoom.MBTFIX
 
         public override void PositionChange(Receiver receiver, SymbolInfo symbol, int desiredPosition, Iterable<LogicalOrder> inputOrders, Iterable<StrategyPosition> strategyPositions)
 		{
-            if (!IsRecovered)
-            {
-                if( debug) log.Debug("PositionChange event received while FIX was offline or recovering. Ignoring. Current connection status is: " + ConnectionStatus);
-                return;
-            }
 			var count = inputOrders == null ? 0 : inputOrders.Count;
 			if( debug) log.Debug( "PositionChange " + symbol + ", desired " + desiredPosition + ", order count " + count);
 			
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             algorithm.SetDesiredPosition(desiredPosition);
-            algorithm.SetLogicalOrders(inputOrders, strategyPositions);
-            if( !algorithm.IsPositionSynced)
+            algorithm.SetStrategyPositions(strategyPositions);
+            algorithm.SetLogicalOrders(inputOrders);
+            if (!IsRecovered)
             {
-                algorithm.TrySyncPosition(strategyPositions);
+                if (debug) log.Debug("PositionChange event received while FIX was offline or recovering. Skipping ProcessOrders. Current connection status is: " + ConnectionStatus);
+                return;
             }
-
+            //if (!algorithm.IsPositionSynced)
+            //{
+                algorithm.TrySyncPosition(strategyPositions);
+            //}
             algorithm.ProcessOrders();
+            if( algorithm.IsPositionSynced)
+            {
+                TrySendStartBroker();
+            }
 		}
 		
 		
@@ -1490,19 +1529,19 @@ namespace TickZoom.MBTFIX
             if( order.Action == OrderAction.Cancel)
             {
                 if (debug) log.Debug("Resending cancel order: " + order);
-                if (SyncTicks.Enabled && !IsRecovered)
-                {
-                    TryAddPhysicalOrder(order);
-                }
+                //if (SyncTicks.Enabled && !IsRecovered)
+                //{
+                //    TryAddPhysicalOrder(order);
+                //}
                 SendCancelOrder(order, true);
             }
             else
             {
                 if (debug) log.Debug("Resending order: " + order);
-                if (SyncTicks.Enabled && !IsRecovered)
-                {
-                    TryAddPhysicalOrder(order);
-                }
+                //if (SyncTicks.Enabled && !IsRecovered)
+                //{
+                //    TryAddPhysicalOrder(order);
+                //}
                 OnCreateOrChangeBrokerOrder(order, true);
             }
         }

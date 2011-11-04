@@ -45,7 +45,8 @@ namespace TickZoom.Api
 		EndHistorical,
 		StartRealTime,
 		StartBroker,
-		EndBroker,
+        SynchronizeBroker,
+        EndBroker,
         TickBatch,
         RemoteShutdown,
 		

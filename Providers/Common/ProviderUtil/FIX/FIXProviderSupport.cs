@@ -344,13 +344,25 @@ namespace TickZoom.FIX
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							}
-					        Message message = null;
 					        var foundMessage = false;
+					        MessageFIXT1_1 messageFIX;
 
-                            if( foundMessage = Socket.TryGetMessage(out message))
+                            if( resendBuffer.TryGetValue(remoteSequence, out messageFIX))
                             {
-                                if (debug) log.Debug("Received FIX Message: " + message);
-                                var messageFIX = (MessageFIXT1_1)message;
+                                resendBuffer.Remove(remoteSequence);
+                                foundMessage = true;
+                            }
+
+                            if( !foundMessage)
+                            {
+                                Message message = null;
+                                foundMessage = Socket.TryGetMessage(out message);
+                                messageFIX = (MessageFIXT1_1) message;
+                            }
+
+                            if( foundMessage)
+                            {
+                                if (debug) log.Debug("Received FIX Message: " + messageFIX);
                                 if (messageFIX.MessageType == "A")
                                 {
                                     if( messageFIX.Sequence < remoteSequence)
@@ -370,7 +382,6 @@ namespace TickZoom.FIX
 
 					        if( foundMessage) {
 								lastMessageTime = TimeStamp.UtcNow;
-                                var messageFIX = (MessageFIXT1_1)message;
                                 switch( messageFIX.MessageType)
                                 {
                                     case "2":
@@ -382,7 +393,8 @@ namespace TickZoom.FIX
                                 }
                                 using (orderStore.Lock())
                                 {
-                                    if (!CheckForMissingMessages(message))
+                                    bool releaseFlag;
+                                    if (!CheckForMissingMessages(messageFIX, out releaseFlag))
 							        {
                                         switch (messageFIX.MessageType)
                                         {
@@ -418,8 +430,11 @@ namespace TickZoom.FIX
                                         }
                                         orderStore.UpdateRemoteSequence(remoteSequence);
                                     }
+                                    if( releaseFlag)
+                                    {
+                                        Socket.MessageFactory.Release(messageFIX);
+                                    }
                                 }
-                                Socket.MessageFactory.Release(message);
                                 IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							} else {
@@ -485,13 +500,16 @@ namespace TickZoom.FIX
             {
                 throw new InvalidOperationException("Only gap fill sequence reset supportted: \n" + packetFIX);
             }
-            if (packetFIX.NewSeqNum < remoteSequence)  // ResetSeqNo
+            if (packetFIX.NewSeqNum < remoteSequence)
             {
                 throw new InvalidOperationException("Reset new sequence number must be greater than or equal to the next sequence: " + remoteSequence + ".\n" + packetFIX);
             }
             remoteSequence = packetFIX.NewSeqNum;
             isResendComplete = true;
-            TryRequestResend(packetFIX);
+            if (packetFIX.Sequence > remoteSequence)
+            {
+                HandleResend(packetFIX.Sequence, packetFIX);
+            }
             if (debug) log.Debug("Received gap fill. Setting next sequence = " + remoteSequence);
         }
 
@@ -528,17 +546,15 @@ namespace TickZoom.FIX
 	    private int expectedResendSequence;
 	    private bool isResendComplete = true;
 
-        private bool CheckForMissingMessages(Message message)
+        private bool CheckForMissingMessages(MessageFIXT1_1 messageFIX, out bool releaseFlag)
         {
-            var messageFIX = (MessageFIXT1_1) message;
-            var sequence = messageFIX.Sequence;
+            releaseFlag = true;
             if( messageFIX.MessageType == "A")
             {
                 if (messageFIX.Sequence == remoteSequence)
                 {
                     RemoteSequence = messageFIX.Sequence + 1;
                     if (debug) log.Debug("Login sequence matched. Incrementing remote sequence to " + RemoteSequence);
-                    //OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
                 }
                 else
                 {
@@ -546,8 +562,10 @@ namespace TickZoom.FIX
                 }
                 return false;
             }
-            else if (TryRequestResend(messageFIX))
+            else if (messageFIX.Sequence > remoteSequence)
             {
+                HandleResend(messageFIX.Sequence, messageFIX);
+                releaseFlag = false;
                 return true;
             }
             else if( messageFIX.Sequence < remoteSequence)
@@ -557,7 +575,7 @@ namespace TickZoom.FIX
             }
             else
             {
-                if( !isResendComplete && messageFIX.Sequence >= expectedResendSequence)
+                if (!isResendComplete && messageFIX.Sequence >= expectedResendSequence)
                 {
                     isResendComplete = true;
                     if (debug) log.Debug("Set resend complete: " + isResendComplete);
@@ -565,35 +583,24 @@ namespace TickZoom.FIX
                 }
                 RemoteSequence = messageFIX.Sequence + 1;
                 if( debug) log.Debug("Incrementing remote sequence to " + RemoteSequence);
-                //OrderStore.UpdateSequence(RemoteSequence, FixFactory.LastSequence);
                 return false;
             }
         }
 
-        private bool TryRequestResend(MessageFIXT1_1 messageFIX)
-        {
-            var result = false;
-            if( verbose) log.Verbose("Comparing fix sequence " + messageFIX.Sequence + " to expected sequence " + remoteSequence);
-            if (messageFIX.Sequence > remoteSequence)
-            {
-                result = true;
-                HandleResend(messageFIX.Sequence);
-            }
-            return result;
-        }
-
-        private void HandleResend(int sequence) {
-            if (debug) log.Debug("Sequence is " + sequence + " but expected sequence is " + remoteSequence + ". Ignoring message.");
-            expectedResendSequence = sequence;
-            if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
+        Dictionary<long,MessageFIXT1_1> resendBuffer = new Dictionary<long, MessageFIXT1_1>();
+        private void HandleResend(int sequence, MessageFIXT1_1 messageFIX) {
+            if (debug) log.Debug("Sequence is " + sequence + " but expected sequence is " + remoteSequence + ". Buffering message.");
+            resendBuffer[sequence] = messageFIX;
             if (isResendComplete)
             {
                 isResendComplete = false;
                 if (debug) log.Debug("TryRequestResend() Set resend complete flag: " + isResendComplete);
+                expectedResendSequence = sequence;
+                if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
                 var mbtMsg = fixFactory.Create();
                 mbtMsg.AddHeader("2");
                 mbtMsg.SetBeginSeqNum(remoteSequence);
-                mbtMsg.SetEndSeqNum(0);
+                mbtMsg.SetEndSeqNum(sequence-1);
                 if (verbose) log.Verbose(" Sending resend request: " + mbtMsg);
                 SendMessage(mbtMsg);
             }

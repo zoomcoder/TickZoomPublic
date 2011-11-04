@@ -179,9 +179,9 @@ namespace TickZoom.MBTFIX
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
         }
 
+	    private bool onlineNextTime = false;
         private void FIXRequestSessionStatus(MessageFIX4_4 packet)
         {
-            //625=DEMOORDS1  340=2  336=TSSTATE
             if (packet.TradingSessionId != "TSSTATE")
             {
                 throw new ApplicationException("Expected TSSTATE for trading session id but was: " + packet.TradingSessionId);
@@ -190,16 +190,21 @@ namespace TickZoom.MBTFIX
             {
                 throw new ApplicationException("Expected unique trading session request id but was:" + packet.TradingSessionRequestId);
             }
-            
-            if( IsOrderServerOnline)
+
+            if( onlineNextTime)
+            {
+                SetOrderServerOnline();
+                onlineNextTime = false;
+            }
+            if (IsOrderServerOnline)
             {
                 SendSessionStatusOnline();
             }
             else
             {
                 SendSessionStatus("3");
-                SetOrderServerOnline();
             }
+            onlineNextTime = true;
         }
 
 

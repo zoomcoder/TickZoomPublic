@@ -1382,7 +1382,7 @@ namespace Orders
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
 			Assert.AreEqual(0,handler.Orders.CreatedOrders.Count);
-			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
+			Assert.AreEqual(1,handler.Orders.CanceledOrders.Count);
 		}
 		
 		[Test]
@@ -1404,7 +1404,7 @@ namespace Orders
 			
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
 			Assert.AreEqual(2,handler.Orders.CreatedOrders.Count);
-			Assert.AreEqual(0,handler.Orders.CanceledOrders.Count);
+			Assert.AreEqual(1,handler.Orders.CanceledOrders.Count);
 		}
 		
 		[Test]
@@ -1595,8 +1595,9 @@ namespace Orders
 			}
             public void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders)
             {
-                orderAlgorithm.SetLogicalOrders(logicalOrders, strategyPositions);
-			}
+                orderAlgorithm.SetStrategyPositions(strategyPositions);
+                orderAlgorithm.SetLogicalOrders(logicalOrders);
+            }
 
             public void TrySyncPosition()
             {

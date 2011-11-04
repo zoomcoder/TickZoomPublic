@@ -41,8 +41,9 @@ namespace TickZoom.Api
 	public interface OrderAlgorithm : PhysicalOrderConfirm
 	{
 		void SetDesiredPosition(int position);
-        void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders, Iterable<StrategyPosition> strategyPositions);
-		void ProcessFill( PhysicalFill fill);
+        void SetStrategyPositions(Iterable<StrategyPosition> strategyPositions);
+        void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders);
+        void ProcessFill(PhysicalFill fill);
 		void SetActualPosition(int position);
         void IncreaseActualPosition(int position);
         void TrySyncPosition(Iterable<StrategyPosition> strategyPositions);

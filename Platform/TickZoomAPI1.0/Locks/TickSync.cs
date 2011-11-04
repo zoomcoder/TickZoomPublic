@@ -90,19 +90,19 @@ namespace TickZoom.Api
         {
             return (*state).ticks == 0 && (*state).positionChange == 0 &&
                    (*state).physicalOrders == 0 && (*state).physicalFillsCreated == 0 &&
-                   (*state).processPhysical == 0 && (*state).reprocessPhysical == 0 &&
-                   (*state).physicalFillSimulators == 1;
+                   (*state).processPhysical == 0 && (*state).reprocessPhysical == 0
+                   && (*state).physicalFillSimulators == 1;
         }
         private bool CheckOnlyProcessingOrders()
         {
             return (*state).physicalOrders == 0 &&
-                (*state).physicalFillsCreated == 0 && (*state).processPhysical > 0 &&
-                   (*state).physicalFillSimulators == 1;
+                   (*state).physicalFillsCreated == 0 && (*state).processPhysical > 0 && (*state).physicalFillSimulators == 1;
         }
 
         private bool CheckOnlyReprocessOrders()
         {
-            return (*state).physicalOrders == 0 && (*state).reprocessPhysical > 0 && (*state).physicalFillSimulators == 1;
+            return (*state).physicalOrders == 0 && (*state).reprocessPhysical > 0;
+            // && (*state).physicalFillSimulators == 1;
         }
 
         private bool CheckProcessingOrders()
