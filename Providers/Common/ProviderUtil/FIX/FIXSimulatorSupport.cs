@@ -58,7 +58,7 @@ namespace TickZoom.FIX
 		private YieldMethod MainLoopMethod;
 	    private int heartbeatDelay = 1; 
         private ServerState fixState = ServerState.Startup;
-        private bool simulateDisconnect = false;
+        private bool simulateDisconnect = true;
         protected bool simulateSendOrderServerOffline = true;
         protected bool simulateRecvOrderServerOffline = true;
         private bool simulateOrderBlackHole = true;

@@ -237,6 +237,7 @@ namespace TickZoom.MBTFIX
             cancelOrder.OriginalOrder = origOrder;
             CancelOrder(cancelOrder);
             ProcessCancelOrder(cancelOrder);
+            TryProcessAdustments(cancelOrder);
             return;
         }
 
