@@ -272,8 +272,17 @@ namespace TickZoom.Interceptors
             }
 		    return 1;
 		}
-		
-		public void StartTick(Tick lastTick)
+
+        public int ProcessAdjustments()
+        {
+            if (hasCurrentTick)
+            {
+                ProcessAdjustmentsInternal(currentTick);
+            }
+            return 1;
+        }
+
+        public void StartTick(Tick lastTick)
 		{
 			if( trace) log.Trace("StartTick("+lastTick+")");
 			if( !lastTick.IsQuote && !lastTick.IsTrade) {
@@ -282,6 +291,31 @@ namespace TickZoom.Interceptors
 			currentTick.Inject( lastTick.Extract());
 			hasCurrentTick = true;
 		}
+
+        private void ProcessAdjustmentsInternal(Tick tick)
+        {
+            if (verbose) log.Verbose("ProcessAdjustments( " + symbol + ", " + tick + " )");
+            if (symbol == null)
+            {
+                throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
+            }
+            for (var node = marketOrders.First; node != null; node = node.Next)
+            {
+                var order = node.Value;
+                if( order.LogicalOrderId == 0)
+                {
+                    OnProcessOrder(order, tick);
+                }
+            }
+            if (onPhysicalFill == null)
+            {
+                throw new ApplicationException("Please set the OnPhysicalFill property.");
+            }
+            else
+            {
+                FlushFillQueue();
+            }
+        }
 
 		private void ProcessOrdersInternal(Tick tick) {
 			if( isOpenTick && tick.Time > openTime) {

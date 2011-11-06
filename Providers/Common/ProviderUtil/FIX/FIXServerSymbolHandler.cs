@@ -128,8 +128,14 @@ namespace TickZoom.FIX
 		public void CreateOrder(CreateOrChangeOrder order) {
 			FillSimulator.OnCreateBrokerOrder( order);
 		}
-		
-		public void ChangeOrder(CreateOrChangeOrder order) {
+
+        public void TryProcessAdjustments()
+        {
+            FillSimulator.ProcessAdjustments();
+        }
+
+        public void ChangeOrder(CreateOrChangeOrder order)
+        {
 			FillSimulator.OnChangeBrokerOrder( order);
         }
 

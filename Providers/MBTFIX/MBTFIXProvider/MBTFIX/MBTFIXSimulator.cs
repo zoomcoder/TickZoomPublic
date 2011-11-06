@@ -273,6 +273,7 @@ namespace TickZoom.MBTFIX
                 }
                 CreateOrder(order);
                 ProcessCreateOrder(order);
+                TryProcessAdustments(order);
             }
             return;
         }

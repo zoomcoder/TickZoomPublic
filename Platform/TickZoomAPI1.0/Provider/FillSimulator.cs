@@ -43,5 +43,6 @@ namespace TickZoom.Api
 	    TimeStamp CurrentTick { get; }
 	    bool IsOnline { get; set; }
 	    void FlushFillQueue();
+	    int ProcessAdjustments();
 	}
 }

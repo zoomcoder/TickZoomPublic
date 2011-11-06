@@ -803,6 +803,19 @@ namespace TickZoom.FIX
             }
         }
 
+        public void TryProcessAdustments(CreateOrChangeOrder order)
+        {
+            FIXServerSymbolHandler symbolHandler;
+            using (symbolHandlersLocker.Using())
+            {
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+            }
+            if (symbolHandler != null)
+            {
+                symbolHandler.TryProcessAdjustments();
+            }
+        }
+
         public void ChangeOrder(CreateOrChangeOrder order)
         {
             FIXServerSymbolHandler symbolHandler;
