@@ -26,6 +26,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace TickZoom.Api
 {
@@ -33,17 +34,27 @@ namespace TickZoom.Api
 		private SymbolInfo symbol;
 		private int position;
 		private long utcTime;
+	    private long counter;
 		private Iterable<LogicalOrder> orders;
 	    private Iterable<StrategyPosition> strategyPositions;
-		public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime) {
-			this.symbol = symbol;
-			this.position = position;
-			this.orders = orders;
-		    this.strategyPositions = strategyPositions;
-			this.utcTime = utcTime;
+        private static long counterNext = 0;
+
+        public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime) : this( symbol, position, orders, strategyPositions, utcTime, Interlocked.Increment(ref counterNext))
+        {
 		}
-		
-		public int Position {
+
+        public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime, long counter)
+        {
+            this.symbol = symbol;
+            this.position = position;
+            this.orders = orders;
+            this.strategyPositions = strategyPositions;
+            this.utcTime = utcTime;
+            this.counter = counter;
+        }
+
+        public int Position
+        {
 			get { return position; }
 		}
 		
@@ -63,5 +74,16 @@ namespace TickZoom.Api
 	    {
 	        get { return strategyPositions; }
 	    }
+
+	    public long Counter
+	    {
+	        get { return counter; }
+	        set { counter = value; }
+	    }
+
+        public override string ToString()
+        {
+            return "Counter " + counter + ", "  + symbol + ", Position " + position + ", Orders " + orders.Count;
+        }
 	}
 }

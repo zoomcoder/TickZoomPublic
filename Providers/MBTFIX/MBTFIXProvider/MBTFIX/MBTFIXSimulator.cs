@@ -150,7 +150,7 @@ namespace TickZoom.MBTFIX
 			try {
 				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
 			} catch( ApplicationException) {
-				log.Warn( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.");
+				if( debug) log.Debug( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.");
                 OnRejectOrder(order,true,symbol + ": Cannot change order. Probably already filled or canceled." );
 				return;
 			}
@@ -257,7 +257,7 @@ namespace TickZoom.MBTFIX
             var order = ConstructOrder(packet, packet.ClientOrderId);
             if (!IsOrderServerOnline)
             {
-                log.Warn(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
+                if(debug) log.Debug(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, true, symbol + ": Order Server Offline.");
                 return;
             }

@@ -901,7 +901,7 @@ namespace TickZoom.FIX
 			return false;
 		}
 
-        public abstract void PositionChange(Receiver receiver, SymbolInfo symbol, int signal, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions);
+        public abstract void PositionChange(Receiver receiver, PositionChangeDetail positionChange);
 		
 	 	protected volatile bool isDisposed = false;
 	    public void Dispose() 
@@ -952,7 +952,7 @@ namespace TickZoom.FIX
                         PositionChangeDetail positionChange = (PositionChangeDetail)eventDetail;
                         using( orderStore.Lock())
                         {
-                            PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders, positionChange.StrategyPositions);
+                            PositionChange(receiver, positionChange);
                         }
                         break;
                     case EventType.Terminate:

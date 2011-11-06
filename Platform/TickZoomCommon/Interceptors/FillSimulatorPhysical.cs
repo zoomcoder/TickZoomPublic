@@ -483,7 +483,7 @@ namespace TickZoom.Interceptors
 			}
 			if( onRejectOrder != null)
 			{
-			    log.Warn("Rejecting order because position is " + actualPosition + " but order side was " + order.Side + ": " + order);
+			    if( debug) log.Debug("Rejecting order because position is " + actualPosition + " but order side was " + order.Side + ": " + order);
 				onRejectOrder( order, true, message);
 			} else {
 				throw new ApplicationException( message + " while handling order: " + order);

@@ -1348,10 +1348,13 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-        public override void PositionChange(Receiver receiver, SymbolInfo symbol, int desiredPosition, Iterable<LogicalOrder> inputOrders, Iterable<StrategyPosition> strategyPositions)
+        public override void PositionChange(Receiver receiver, PositionChangeDetail positionChange)
 		{
-			var count = inputOrders == null ? 0 : inputOrders.Count;
-			if( debug) log.Debug( "PositionChange " + symbol + ", desired " + desiredPosition + ", order count " + count);
+            var symbol = positionChange.Symbol;
+            int desiredPosition = positionChange.Position;
+            var inputOrders = positionChange.Orders;
+            var strategyPositions = positionChange.StrategyPositions;
+			if( debug) log.Debug( "PositionChange " + positionChange);
 			
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             algorithm.SetDesiredPosition(desiredPosition);
