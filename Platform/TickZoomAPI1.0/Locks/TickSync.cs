@@ -48,8 +48,7 @@ namespace TickZoom.Api
             return ticks == other.ticks && positionChange == other.positionChange &&
                    processPhysical == other.processPhysical && physicalFillsCreated == other.physicalFillsCreated &&
                    physicalFillsWaiting == other.physicalFillsWaiting &&
-                   reprocessPhysical == other.reprocessPhysical && physicalOrders == other.physicalOrders &&
-                   physicalFillSimulators == other.physicalFillSimulators;
+                   reprocessPhysical == other.reprocessPhysical && physicalOrders == other.physicalOrders;
 
         }
     }
@@ -90,13 +89,12 @@ namespace TickZoom.Api
         {
             return (*state).ticks == 0 && (*state).positionChange == 0 &&
                    (*state).physicalOrders == 0 && (*state).physicalFillsCreated == 0 &&
-                   (*state).processPhysical == 0 && (*state).reprocessPhysical == 0
-                   && (*state).physicalFillSimulators == 1;
+                   (*state).processPhysical == 0 && (*state).reprocessPhysical == 0;
         }
         private bool CheckOnlyProcessingOrders()
         {
             return (*state).physicalOrders == 0 &&
-                   (*state).physicalFillsCreated == 0 && (*state).processPhysical > 0 && (*state).physicalFillSimulators == 1;
+                   (*state).physicalFillsCreated == 0 && (*state).processPhysical > 0;
         }
 
         private bool CheckOnlyReprocessOrders()
