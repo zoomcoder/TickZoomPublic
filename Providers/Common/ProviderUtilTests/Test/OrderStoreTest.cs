@@ -1,6 +1,6 @@
+using System.Threading;
 using NUnit.Framework;
 using TickZoom.Api;
-using TickZoom.MBTFIX;
 using System.IO;
 using System;
 using System.Text;
@@ -9,7 +9,7 @@ using TickZoom.FIX;
 namespace Test
 {
     [TestFixture]
-    public unsafe class OrderStoreTest 
+    public class OrderStoreTest 
     {
         public static readonly Log log = Factory.SysLog.GetLogger(typeof(OrderStoreTest));
 
@@ -260,24 +260,48 @@ namespace Test
 
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
-                store.SnapshotRolloverSize = 1000;
-                store.SetOrder(order1);
+                using( store.Lock())
+                {
+                    store.SnapshotRolloverSize = 1000;
+                    store.SetOrder(order1);
+                }
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 
-                // Replace order in store to make new snapshot.
-                store.SetOrder(order2);
+                using (store.Lock())
+                {
+                    // Replace order in store to make new snapshot.
+                    store.SetOrder(order2);
+                }
                 store.ForceSnapShot();
                 store.WaitForSnapshot();
 
-                for (int i = 0; i < 20; i++ )
+                for (int i = 0; i < 20; i++)
                 {
                     store.ForceSnapShot();
                     store.WaitForSnapshot();
                 }
             }
 
-            File.Delete(dbpath);
+            Exception deleteException = null;
+            for (var end = Environment.TickCount + 5000; Environment.TickCount < end; )
+            {
+                try
+                {
+                    File.Delete(dbpath);
+                    deleteException = null;
+                    break;
+                }
+                catch( Exception ex)
+                {
+                    Thread.Sleep(1000);
+                    deleteException = ex;
+                }
+            }
+            if( deleteException != null)
+            {
+                throw new ApplicationException("Failed to delete file.", deleteException);
+            }
             File.WriteAllText(dbpath,"This is a test for corrupt snapshot file.");
 
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
@@ -286,7 +310,12 @@ namespace Test
 
                 Assert.AreEqual(2, store.Count());
 
-                var result1 = store.GetOrderById(clientId1);
+                CreateOrChangeOrder result1;
+                CreateOrChangeOrder result2;
+                using (store.Lock())
+                {
+                    result1 = store.GetOrderById(clientId1);
+                }
                 Assert.AreEqual(order1.Price, result1.Price);
                 Assert.AreEqual(order1.Size, result1.Size);
                 Assert.AreEqual(order1.BrokerOrder, result1.BrokerOrder);
@@ -296,7 +325,10 @@ namespace Test
                 Assert.AreEqual(order1.Type, result1.Type);
                 Assert.AreEqual(order1.LogicalSerialNumber, result1.LogicalSerialNumber);
 
-                var result2 = store.GetOrderById(clientId2);
+                using (store.Lock())
+                {
+                    result2 = store.GetOrderById(clientId2);
+                }
                 Assert.AreEqual(order2.Price, result2.Price);
                 Assert.AreEqual(order2.Size, result2.Size);
                 Assert.AreEqual(order2.BrokerOrder, result2.BrokerOrder);

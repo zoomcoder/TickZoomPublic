@@ -59,6 +59,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <WarningLevel>4</WarningLevel>
     <Optimize>false</Optimize>
+    <OutputPath>..\..\..\bin\Debug\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -68,6 +69,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <WarningLevel>4</WarningLevel>
     <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\..\..\bin\Release\</OutputPath>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
   <ItemGroup>
@@ -95,6 +97,7 @@
     <Compile Include="FIX\FIXTFactory1_1.cs" />
     <Compile Include="FIX\FIXTMessage.cs" />
     <Compile Include="FIX\FIXTMessage1_1.cs" />
+    <Compile Include="FIX\IncludeExcludeMatcher.cs" />
     <Compile Include="FIX\MessageFactoryFix44.cs" />
     <Compile Include="FIX\PacketFIX4_4.cs" />
     <Compile Include="FIX\PacketFIXT1_1.cs">

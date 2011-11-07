@@ -35,7 +35,7 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public abstract class FIXProviderSupport : Provider, LogAware
+    public abstract class FIXProviderSupport : Provider, LogAware
 	{
         private PhysicalOrderStore orderStore;
         private readonly Log log;
@@ -273,7 +273,8 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Connection status changed to " + connectionStatus);
                 lastConnectionStatus = connectionStatus;
             }
-			switch( socket.State) {
+            switch (socket.State)
+            {
 				case SocketState.New:
                     if( CheckFailedLoginFile() )
                     {
@@ -344,23 +345,24 @@ namespace TickZoom.FIX
 								IncreaseRetryTimeout();
 								return Yield.DidWork.Repeat;
 							}
-					        var foundMessage = false;
-					        MessageFIXT1_1 messageFIX;
 
-                            if( resendBuffer.TryGetValue(remoteSequence, out messageFIX))
+					        MessageFIXT1_1 messageFIX = null;
+
+                            if( connectionStatus != Status.PendingLogin && resendBuffer.TryGetValue(remoteSequence, out messageFIX))
                             {
                                 resendBuffer.Remove(remoteSequence);
-                                foundMessage = true;
                             }
 
-                            if( !foundMessage)
+                            if( messageFIX == null)
                             {
                                 Message message = null;
-                                foundMessage = Socket.TryGetMessage(out message);
-                                messageFIX = (MessageFIXT1_1) message;
+                                if( Socket.TryGetMessage(out message))
+                                {
+                                    messageFIX = (MessageFIXT1_1)message;
+                                }
                             }
 
-                            if( foundMessage)
+                            if( messageFIX != null)
                             {
                                 if (debug) log.Debug("Received FIX Message: " + messageFIX);
                                 if (messageFIX.MessageType == "A")
@@ -383,7 +385,8 @@ namespace TickZoom.FIX
                                 }
                             }
 
-					        if( foundMessage) {
+                            if (messageFIX != null)
+                            {
 								lastMessageTime = TimeStamp.UtcNow;
                                 switch( messageFIX.MessageType)
                                 {
@@ -804,35 +807,45 @@ namespace TickZoom.FIX
         	configFile.AssureValue("EquityDemo/UserName","CHANGEME");
         	configFile.AssureValue("EquityDemo/Password","CHANGEME");
         	configFile.AssureValue("EquityDemo/AccountNumber","CHANGEME");
-        	configFile.AssureValue("ForexDemo/UseLocalFillTime","true");
+            configFile.AssureValue("EquityDemo/SessionIncludes", "*");
+            configFile.AssureValue("EquityDemo/SessionExcludes", "");
+            configFile.AssureValue("ForexDemo/UseLocalFillTime", "true");
         	configFile.AssureValue("ForexDemo/ServerAddress","127.0.0.1");
         	configFile.AssureValue("ForexDemo/ServerPort","5679");
         	configFile.AssureValue("ForexDemo/UserName","CHANGEME");
         	configFile.AssureValue("ForexDemo/Password","CHANGEME");
         	configFile.AssureValue("ForexDemo/AccountNumber","CHANGEME");
-        	configFile.AssureValue("EquityLive/UseLocalFillTime","true");
+            configFile.AssureValue("ForexDemo/SessionIncludes", "*");
+            configFile.AssureValue("ForexDemo/SessionExcludes", "");
+            configFile.AssureValue("EquityLive/UseLocalFillTime", "true");
         	configFile.AssureValue("EquityLive/ServerAddress","127.0.0.1");
         	configFile.AssureValue("EquityLive/ServerPort","5680");
         	configFile.AssureValue("EquityLive/UserName","CHANGEME");
         	configFile.AssureValue("EquityLive/Password","CHANGEME");
         	configFile.AssureValue("EquityLive/AccountNumber","CHANGEME");
-        	configFile.AssureValue("ForexLive/UseLocalFillTime","true");
+            configFile.AssureValue("EquityLive/SessionIncludes", "*");
+            configFile.AssureValue("EquityLive/SessionExcludes", "");
+            configFile.AssureValue("ForexLive/UseLocalFillTime", "true");
         	configFile.AssureValue("ForexLive/ServerAddress","127.0.0.1");
         	configFile.AssureValue("ForexLive/ServerPort","5680");
         	configFile.AssureValue("ForexLive/UserName","CHANGEME");
         	configFile.AssureValue("ForexLive/Password","CHANGEME");
         	configFile.AssureValue("ForexLive/AccountNumber","CHANGEME");
-        	configFile.AssureValue("Simulate/UseLocalFillTime","false");
+            configFile.AssureValue("ForexLive/SessionIncludes", "*");
+            configFile.AssureValue("ForexLive/SessionExcludes", "");
+            configFile.AssureValue("Simulate/UseLocalFillTime", "false");
         	configFile.AssureValue("Simulate/ServerAddress","127.0.0.1");
         	configFile.AssureValue("Simulate/ServerPort","6489");
         	configFile.AssureValue("Simulate/UserName","Simulate1");
         	configFile.AssureValue("Simulate/Password","only4sim");
         	configFile.AssureValue("Simulate/AccountNumber","11111111");
-			
+            configFile.AssureValue("Simulate/SessionIncludes", "*");
+            configFile.AssureValue("Simulate/SessionExcludes", "");			
 			ParseProperties(configFile);
 		}
-        
-        private void ParseProperties(ConfigFile configFile) {
+
+        private void ParseProperties(ConfigFile configFile)
+        {
 			var value = GetField("UseLocalFillTime",configFile, false);
 			if( !string.IsNullOrEmpty(value)) {
 				useLocalFillTime = value.ToLower() != "false";
@@ -846,8 +859,12 @@ namespace TickZoom.FIX
 			userName = GetField("UserName",configFile, true);
 			password = GetField("Password",configFile, true);
 			accountNumber = GetField("AccountNumber",configFile, true);
-
+            var includeString = GetField("SessionIncludes", configFile, false);
+            var excludeString = GetField("SessionExcludes", configFile, false);
+            sessionMatcher = new IncludeExcludeMatcher(includeString, excludeString);
         }
+
+        private IncludeExcludeMatcher sessionMatcher;
         
         private string GetField( string field, ConfigFile configFile, bool required) {
 			var result = configFile.GetValue(configSection + "/" + field);
@@ -855,6 +872,11 @@ namespace TickZoom.FIX
 				Exception( field, configFile);
 			}
 			return result;
+        }
+
+        public bool CompareSession( string session)
+        {
+            return sessionMatcher.Compare(session);
         }
         
         private void Exception( string field, ConfigFile configFile) {

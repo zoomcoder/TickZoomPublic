@@ -507,6 +507,10 @@ namespace TickZoom.MBTFIX
             var subId = string.IsNullOrEmpty(packetFIX.TradingSessionSubId)
                             ? packetFIX.TradingSessionId
                             : packetFIX.TradingSessionSubId;
+            if( !CompareSession( packetFIX.TradingSessionSubId) )
+            {
+                return;
+            }
             switch (packetFIX.TradingSessionStatus)
             {
                 case 2:

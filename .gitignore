@@ -7,3 +7,4 @@ bin/
 _ReSharper.*/
 *.ReSharper
 *.ReSharper.user
+*.pidb

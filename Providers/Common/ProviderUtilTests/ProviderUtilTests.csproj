@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{FC143137-365B-420B-8832-FC8AE61EEC1C}</ProjectGuid>
@@ -47,6 +47,9 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <WarningLevel>4</WarningLevel>
     <Optimize>false</Optimize>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OutputPath>..\..\..\bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;SkipPostSharp</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>true</Optimize>
@@ -54,6 +57,10 @@
     <DebugType>none</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <WarningLevel>4</WarningLevel>
+    <OutputPath>..\..\..\bin\Release\</OutputPath>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>
+    </DefineConstants>
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.Targets" />
   <ItemGroup>
@@ -72,13 +79,20 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Test\BaseProviderTests.cs" />
+    <Compile Include="Test\IncludeExcludeMatcherTest.cs" />
+    <Compile Include="Test\LoopTest.cs" />
     <Compile Include="Test\NegativeFilterTests.cs" />
+    <Compile Include="Test\OrderStoreTest.cs" />
     <Compile Include="Test\ProviderTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Platform\TickZoomAPI1.0\API1.0.csproj">
       <Project>{27D6C88D-52B6-432C-820B-CD38A299830C}</Project>
       <Name>API1.0</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ProviderUtil\ProviderUtil.csproj">
+      <Project>{00E10E7D-4270-448C-921C-72A795FBF13F}</Project>
+      <Name>ProviderUtil</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

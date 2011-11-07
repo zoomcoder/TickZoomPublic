@@ -931,6 +931,7 @@ namespace TickZoom.Common
                     {
                         ForceSnapShot();
                     }
+                    TryClose();
                 }
             }
         }

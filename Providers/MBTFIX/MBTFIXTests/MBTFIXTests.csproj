@@ -57,7 +57,6 @@
     <Compile Include="ForexLevel1Test.cs" />
     <Compile Include="FuturesLevel1AndTrades.cs" />
     <Compile Include="FIXSimulatorTest.cs" />
-    <Compile Include="OrderStoreTest.cs" />
     <Compile Include="QuotesAPI.cs" />
     <Compile Include="TimeAndSales.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
