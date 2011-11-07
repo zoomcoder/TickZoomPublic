@@ -89,7 +89,7 @@ namespace TickZoom.Api
             {
                 throw new InvalidOperationException("Recency must be non-zero.");
             }
-            if (recency > this.recency)
+            if (recency >= this.recency)
             {
                 if (position != actualPosition)
                 {
