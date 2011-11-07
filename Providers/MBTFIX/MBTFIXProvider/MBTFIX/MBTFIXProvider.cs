@@ -443,6 +443,7 @@ namespace TickZoom.MBTFIX
                 case Status.Recovered:
                 case Status.PendingLogOut:
                 case Status.PendingLogin:
+                case Status.Disconnected:
                     return;
                 case Status.PendingRecovery:
                     if (IsResendComplete && isOrderServerOnline)
@@ -640,7 +641,7 @@ namespace TickZoom.MBTFIX
                                 OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
                                 (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                             {
-                                if (debug) log.Debug("New order messaged ignored for Forex Stop: " + order);
+                                if (debug) log.Debug("New order message ignored for Forex Stop: " + order);
                             }
                             else
                             {

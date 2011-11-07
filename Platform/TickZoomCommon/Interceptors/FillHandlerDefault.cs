@@ -91,10 +91,11 @@ namespace TickZoom.Interceptors
                 if( fill.Recency > strategy.Recency)
                 {
                     strategy.Recency = fill.Recency+1;
-                    if (trace) log.Trace("strategy recency now " + strategy.Recency);
-                } else
+                    if (debug) log.Debug("strategy recency now " + strategy.Recency);
+                }
+                else
                 {
-                    if (trace) log.Trace("fill recency " + fill.Recency + " and stratgy recency " + strategy.Recency);
+                    log.Warn("Fill recency " + fill.Recency + " less than or equal to strategy recency " + strategy.Recency);
                 }
 			} else {
 				throw new ApplicationException("A fill for order id: " + orderId + " was incorrectly routed to: " + strategyInterface.Name);

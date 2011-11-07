@@ -112,8 +112,8 @@ namespace TickZoom.Api
 			sb.Append( utcTime);
 			sb.Append( ",");
 			sb.Append( postedTime);
-			sb.Append(",");
-			sb.Append(TimeStamp.UtcNow.Internal);
+			sb.Append(", Recency ");
+		    sb.Append(recency);
 			return sb.ToString();
 		}
 

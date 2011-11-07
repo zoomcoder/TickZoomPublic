@@ -93,14 +93,14 @@ namespace TickZoom.Api
             {
                 if (position != actualPosition)
                 {
-                    if (debug) log.Debug("Strategy " + Id + " for " + Symbol + " position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
+                    if (debug) log.Debug("Strategy " + Id + " for " + Symbol + " actual position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
                     actualPosition = position;
                 }
                 this.recency = recency;
             }
             else if (position != actualPosition)
             {
-                if (debug) log.Debug("Rejected change of strategy " + Id + " for " + Symbol + "position " + actualPosition + " to " + position + ".  Recency " + recency + " wasn't newer than " + this.recency);
+                if (debug) log.Debug("Rejected change of strategy " + Id + " for " + Symbol + " actual position " + actualPosition + " to " + position + ".  Recency " + recency + " wasn't newer than " + this.recency);
             }
         }
 	}

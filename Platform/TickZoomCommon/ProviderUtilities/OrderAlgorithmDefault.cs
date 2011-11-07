@@ -1467,7 +1467,6 @@ namespace TickZoom.Common
 			var strategyPosition = (StrategyPositionDefault) order.Strategy;
             if( debug) log.Debug("Adjusting strategy position to " + fill.Position + " from " + strategyPosition.ActualPosition + ". Recency " + fill.Recency + " for strategy id " + strategyPosition.Id);
             strategyPosition.TrySetPosition(fill.Position, fill.Recency);
-//			orderCache.RemoveInactive(order);
 		}
 		
 		public int ProcessOrders() {
@@ -1496,7 +1495,9 @@ namespace TickZoom.Common
 		private int recursiveCounter;
 		private bool PerformCompareInternal()
 		{
-			if( debug)
+		    var result = true;
+
+            if (debug)
 			{
 			    var mismatch = actualPosition == desiredPosition ? "match" : "MISMATCH";
 			    log.Debug("PerformCompare for " + symbol + " with " +
@@ -1535,8 +1536,6 @@ namespace TickZoom.Common
 			if(originalPhysicals != null) {
 				physicalOrders.AddLast(originalPhysicals);
 			}
-
-		    var result = true;
 
 			CreateOrChangeOrder createOrChange;
 			extraLogicals.Clear();
