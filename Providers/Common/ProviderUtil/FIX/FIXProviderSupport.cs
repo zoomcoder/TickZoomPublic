@@ -365,7 +365,7 @@ namespace TickZoom.FIX
                                 if (debug) log.Debug("Received FIX Message: " + messageFIX);
                                 if (messageFIX.MessageType == "A")
                                 {
-                                    if( messageFIX.Sequence < remoteSequence)
+                                    if (messageFIX.Sequence < remoteSequence)
                                     {
                                         remoteSequence = messageFIX.Sequence;
                                         resetAtLogin = true;
@@ -376,7 +376,10 @@ namespace TickZoom.FIX
                                         resetAtLogin = false;
                                     }
                                     utcLogonTime = new TimeStamp(messageFIX.SendUtcTime);
-                                    HandleLogon(messageFIX);
+                                    if( HandleLogon(messageFIX))
+                                    {
+                                        connectionStatus = Status.PendingRecovery;
+                                    }
                                 }
                             }
 
@@ -489,7 +492,7 @@ namespace TickZoom.FIX
 			}
 		}
 
-        protected virtual void HandleLogon(MessageFIXT1_1 message)
+        protected virtual bool HandleLogon(MessageFIXT1_1 message)
         {
             throw new NotImplementedException();
         }
@@ -561,6 +564,12 @@ namespace TickZoom.FIX
                     if (debug) log.Debug("Login remote sequence mismatch. Resend needed.");
                 }
                 return false;
+            }
+            else if (connectionStatus == Status.PendingLogin)
+            {
+                resendBuffer[messageFIX.Sequence] = messageFIX;
+                releaseFlag = false;
+                return true;
             }
             else if (messageFIX.Sequence > remoteSequence)
             {

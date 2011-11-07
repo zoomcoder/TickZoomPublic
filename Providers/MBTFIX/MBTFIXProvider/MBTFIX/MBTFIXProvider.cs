@@ -353,7 +353,7 @@ namespace TickZoom.MBTFIX
             }
 		}
 
-        protected override void HandleLogon(MessageFIXT1_1 message)
+        protected override bool HandleLogon(MessageFIXT1_1 message)
         {
             if (ConnectionStatus != Status.PendingLogin)
             {
@@ -362,12 +362,12 @@ namespace TickZoom.MBTFIX
             }
             if (VerifyLoginAck(message))
             {
-                return;
+                return true;
             }
             else
             {
                 RegenerateSocket();
-                return;
+                return false;
             }
         }
 		
