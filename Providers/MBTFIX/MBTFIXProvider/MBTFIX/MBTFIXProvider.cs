@@ -219,11 +219,6 @@ namespace TickZoom.MBTFIX
         public override bool OnLogin()
         {
             if (debug) log.Debug("Login()");
-            foreach (var kvp in orderAlgorithms)
-            {
-                var algorithm = kvp.Value;
-                algorithm.IsPositionSynced = false;
-            }
 
             if (OrderStore.Recover())
             {
@@ -237,6 +232,15 @@ namespace TickZoom.MBTFIX
                 }
                 if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.LogOrders());
+                if (debug) log.Debug("Recovered positions from snapshot:");
+                lock (orderAlgorithmsLocker)
+                {
+                    foreach( var kvp in orderAlgorithms)
+                    {
+                        var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
+                        if (debug) log.Debug(symbol + " " + kvp.Value.ActualPosition);
+                    }
+                }
                 RemoteSequence = OrderStore.RemoteSequence;
                 SendLogin(OrderStore.LocalSequence+500);
                 OrderStore.ForceSnapShot();
@@ -857,7 +861,7 @@ namespace TickZoom.MBTFIX
                     }
                     if (order != null)
                     {
-                        var algo = orderAlgorithms[order.Symbol.BinaryIdentifier];
+                        var algo = GetAlgorithm(order.Symbol.BinaryIdentifier);
                         algo.RejectOrder(order,removeOriginal,IsRecovered);
                     }
                     else if( SyncTicks.Enabled )
@@ -1015,7 +1019,7 @@ namespace TickZoom.MBTFIX
             OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
             if (order != null)
             {
-                var algo = orderAlgorithms[order.Symbol.BinaryIdentifier];
+                var algo = GetAlgorithm(order.Symbol.BinaryIdentifier);
                 algo.RejectOrder(order,removeOriginal,IsRecovered);
             }
             else if( SyncTicks.Enabled )

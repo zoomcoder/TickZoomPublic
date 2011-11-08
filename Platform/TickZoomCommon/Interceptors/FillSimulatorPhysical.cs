@@ -67,7 +67,7 @@ namespace TickZoom.Interceptors
 
 		private Action<PhysicalFill> onPhysicalFill;
 		private Action<CreateOrChangeOrder,bool,string> onRejectOrder;
-		private Action<int> onPositionChange;
+		private Action<long> onPositionChange;
 		private bool useSyntheticMarkets = true;
 		private bool useSyntheticStops = true;
 		private bool useSyntheticLimits = true;
@@ -828,7 +828,7 @@ namespace TickZoom.Interceptors
 			}
 		}
 		
-		public Action<int> OnPositionChange {
+		public Action<long> OnPositionChange {
 			get { return onPositionChange; }
 			set { onPositionChange = value; }
 		}

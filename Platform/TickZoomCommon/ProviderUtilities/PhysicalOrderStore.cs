@@ -33,6 +33,7 @@ namespace TickZoom.Common
         private Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
         private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
         private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
+        private Dictionary<long,long> positions = new Dictionary<long, long>();
         private TaskLock ordersLocker = new TaskLock();
         //private int pendingExpireSeconds = 3;
         private string databasePath;
@@ -473,6 +474,26 @@ namespace TickZoom.Common
                     writer.Write(serial);
                     writer.Write(unique[order]);
                 }
+
+                var positionCount = 0;
+                foreach( var kvp in positions)
+                {
+                    if( kvp.Value != 0)
+                    {
+                        positionCount++;
+                    }
+                }
+                writer.Write(positionCount);
+                foreach (var kvp in positions)
+                {
+                    if (kvp.Value != 0)
+                    {
+                        positionCount++;
+                        var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
+                        writer.Write(symbol.Symbol);
+                        writer.Write(kvp.Value);
+                    }
+                }
             }
             memory.Position = 0;
             writer.Write((Int32)memory.Length - sizeof(Int32)); // length excludes the size of the length value.
@@ -668,12 +689,68 @@ namespace TickZoom.Common
                         ordersBySerial[order.LogicalSerialNumber] = order;
                     }
                 }
+
+                using( positionsLocker.Using())
+                {
+                    var positionCount = reader.ReadInt32();
+                    positions = new Dictionary<long, long>();
+                    for (var i = 0L; i < positionCount; i++ )
+                    {
+                        var symbolString = reader.ReadString();
+                        var symbol = Factory.Symbol.LookupSymbol(symbolString);
+                        var position = reader.ReadInt64();
+                        positions.Add(symbol.BinaryIdentifier, position);
+                    }
+                }
                 return true;
             }
             catch( Exception ex)
             {
                 log.Info("Loading snapshot at offset " + snapshot.Offset + " failed due to " + ex.Message + ". Rolling back to previous snapshot.", ex);
                 return false;
+            }
+        }
+
+        public void SetActualPosition( SymbolInfo symbol, long position)
+        {
+            using( positionsLocker.Using())
+            {
+                positions[symbol.BinaryIdentifier] = position;
+            }
+        }
+
+        public long GetActualPosition( SymbolInfo symbol)
+        {
+            using (positionsLocker.Using())
+            {
+                long position;
+                if( positions.TryGetValue( symbol.BinaryIdentifier, out position ))
+                {
+                    return position;
+                }
+                else
+                {
+                    return 0L;
+                }
+            }
+        }
+
+        public long IncreaseActualPosition(SymbolInfo symbol, long increase)
+        {
+            using (positionsLocker.Using())
+            {
+                long position;
+                if (positions.TryGetValue(symbol.BinaryIdentifier, out position))
+                {
+                    position += increase;
+                    positions[symbol.BinaryIdentifier] = position;
+                    return position;
+                }
+                else
+                {
+                    positions[symbol.BinaryIdentifier] = increase;
+                    return increase;
+                }
             }
         }
 
@@ -913,6 +990,8 @@ namespace TickZoom.Common
         }
 
         protected volatile bool isDisposed = false;
+        private SimpleLock positionsLocker = new SimpleLock();
+
         public void Dispose()
         {
             Dispose(true);

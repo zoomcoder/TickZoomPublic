@@ -62,7 +62,6 @@ namespace TickZoom.Common
 		private int desiredPosition;
 		private Action<SymbolInfo,LogicalFillBinary> onProcessFill;
 		private bool handleSimulatedExits = false;
-		private int actualPosition = 0;
 		private int sentPhysicalOrders = 0;
 		private TickSync tickSync;
 		private Dictionary<long,long> filledOrders = new Dictionary<long,long>();
@@ -861,7 +860,7 @@ namespace TickZoom.Common
 				case OrderType.SellLimit:
 				case OrderType.SellMarket:
 				case OrderType.SellStop:
-					if( actualPosition > 0) {
+					if( physicalOrderCache.GetActualPosition(symbol) > 0) {
 						return OrderSide.Sell;
 					} else {
 						return OrderSide.SellShort;
@@ -872,7 +871,7 @@ namespace TickZoom.Common
 		}
 		
 		private int FindPendingAdjustments() {
-			var positionDelta = desiredPosition - actualPosition;
+            var positionDelta = desiredPosition - physicalOrderCache.GetActualPosition(symbol);
 			var pendingAdjustments = 0;
 
             originalPhysicals.Clear();
@@ -949,23 +948,23 @@ namespace TickZoom.Common
         {
             // Find any pending adjustments.
             var pendingAdjustments = FindPendingAdjustments();
-            var positionDelta = desiredPosition - actualPosition;
+            var positionDelta = desiredPosition - physicalOrderCache.GetActualPosition(symbol);
 			var delta = positionDelta - pendingAdjustments;
 			CreateOrChangeOrder createOrChange;
             if( delta != 0)
             {
                 IsPositionSynced = false;
-                log.Notice("SyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+                log.Notice("SyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
                 if (debug) log.Debug("TrySyncPosition - " + tickSync);
             }
             else if( positionDelta == 0)
             {
                 IsPositionSynced = true;
-                log.Notice("SyncPosition() found position currently synced. With expected " + desiredPosition + " and actual " + actualPosition + " plus pending adjustments " + pendingAdjustments);
+                log.Notice("SyncPosition() found position currently synced. With expected " + desiredPosition + " and actual " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
             }
 			if( delta > 0)
 			{
-                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, delta, 0, 0, null, null, default(TimeStamp));
+                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, (int) delta, 0, 0, null, null, default(TimeStamp));
                 log.Info("Sending adjustment order to position: " + createOrChange);
                 if( TryCreateBrokerOrder(createOrChange))
                 {
@@ -978,7 +977,7 @@ namespace TickZoom.Common
             else if (delta < 0)
             {
                 OrderSide side;
-                var pendingDelta = actualPosition + pendingAdjustments;
+                var pendingDelta = physicalOrderCache.GetActualPosition(symbol) + pendingAdjustments;
                 var sendAdjustment = false;
 				if( pendingDelta > 0) {
 					side = OrderSide.Sell;
@@ -992,8 +991,8 @@ namespace TickZoom.Common
                 }
                 if( sendAdjustment)
                 {
-                    side = actualPosition >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
-                    createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
+                    side = physicalOrderCache.GetActualPosition(symbol) >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
+                    createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, (int) Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
                     log.Info("Sending adjustment order to correct position: " + createOrChange);
                     if (TryCreateBrokerOrder(createOrChange))
                     {
@@ -1146,9 +1145,9 @@ namespace TickZoom.Common
 		
 		public void ProcessFill( PhysicalFill physical) {
             if (debug) log.Debug("ProcessFill() physical: " + physical);
-		    var beforePosition = actualPosition;
-            actualPosition += physical.Size;
-            if( debug) log.Debug("Updating actual position from " + beforePosition + " to " + actualPosition + " from fill size " + physical.Size);
+            var beforePosition = physicalOrderCache.GetActualPosition(symbol);
+		    physicalOrderCache.IncreaseActualPosition(symbol, physical.Size);
+            if (debug) log.Debug("Updating actual position from " + beforePosition + " to " + physicalOrderCache.GetActualPosition(symbol) + " from fill size " + physical.Size);
 			var isCompletePhysicalFill = physical.RemainingSize == 0;
             var isFilledAfterCancel = false;
             TryFlushBufferedLogicals();
@@ -1499,9 +1498,9 @@ namespace TickZoom.Common
 
             if (debug)
 			{
-			    var mismatch = actualPosition == desiredPosition ? "match" : "MISMATCH";
+                var mismatch = physicalOrderCache.GetActualPosition(symbol) == desiredPosition ? "match" : "MISMATCH";
 			    log.Debug("PerformCompare for " + symbol + " with " +
-			              actualPosition + " actual " +
+                          physicalOrderCache.GetActualPosition(symbol) + " actual " +
 			              desiredPosition + " desired. Positions " + mismatch + ".");
 			}
 				
@@ -1645,30 +1644,18 @@ namespace TickZoom.Common
             }
         }
 	
-		public int ActualPosition {
-			get { return actualPosition; }
+		public long ActualPosition {
+            get { return physicalOrderCache.GetActualPosition(symbol); }
 		}
 
-		public void SetActualPosition( int position)
+		public void SetActualPosition( long position)
 		{
-		    var value = Interlocked.Exchange(ref actualPosition, position);
-            if (debug) log.Debug("SetActualPosition(" + actualPosition + ")");
-        }
+		    physicalOrderCache.SetActualPosition(symbol, position);
+		}
 
         public void IncreaseActualPosition( int position)
         {
-            var count = Math.Abs(position);
-            var result = actualPosition;
-            for( var i=0; i<count; i++)
-            {
-                if (position > 0)
-                {
-                    result = Interlocked.Increment(ref actualPosition);
-                } else
-                {
-                    result = Interlocked.Decrement(ref actualPosition);
-                }
-            }
+            var result = physicalOrderCache.IncreaseActualPosition(symbol, position);
             if( debug) log.Debug("Changed actual postion to " + result);
         }
 

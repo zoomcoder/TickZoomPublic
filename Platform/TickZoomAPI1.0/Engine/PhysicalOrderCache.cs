@@ -26,6 +26,9 @@ namespace TickZoom.Api
         PhysicalOrderLock Lock();
         void Unlock();
         void ResetLastChange();
+        void SetActualPosition(SymbolInfo symbol, long position);
+        long GetActualPosition(SymbolInfo symbol);
+        long IncreaseActualPosition(SymbolInfo symbol, long increase);
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

@@ -36,7 +36,7 @@ namespace TickZoom.Api
 		int ActualPosition { get; set; }
 		Action<PhysicalFill> OnPhysicalFill { get; set; }
 		Action<CreateOrChangeOrder,bool,string> OnRejectOrder { get; set; }
-		Action<int> OnPositionChange { get; set; }
+		Action<long> OnPositionChange { get; set; }
 		PhysicalOrderConfirm ConfirmOrders { get; set; }
 	    Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
 		bool IsBarData { get; set; }

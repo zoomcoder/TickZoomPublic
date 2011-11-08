@@ -44,13 +44,13 @@ namespace TickZoom.Api
         void SetStrategyPositions(Iterable<StrategyPosition> strategyPositions);
         void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders);
         void ProcessFill(PhysicalFill fill);
-		void SetActualPosition(int position);
+		void SetActualPosition(long position);
         void IncreaseActualPosition(int position);
         void TrySyncPosition(Iterable<StrategyPosition> strategyPositions);
         bool HandleSimulatedExits { get; set; }
         PhysicalOrderHandler PhysicalOrderHandler { get; }
         Action<SymbolInfo, LogicalFillBinary> OnProcessFill { get; set; }
-        int ActualPosition { get; }
+        long ActualPosition { get; }
         bool IsPositionSynced { get; set; }
 	    int ProcessOrders();
 	    void RemovePending(CreateOrChangeOrder order, bool isRealTime);
