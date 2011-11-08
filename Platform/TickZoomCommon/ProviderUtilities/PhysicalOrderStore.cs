@@ -34,6 +34,7 @@ namespace TickZoom.Common
         private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
         private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
         private Dictionary<long,long> positions = new Dictionary<long, long>();
+        private Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
         private TaskLock ordersLocker = new TaskLock();
         //private int pendingExpireSeconds = 3;
         private string databasePath;
@@ -494,6 +495,28 @@ namespace TickZoom.Common
                         writer.Write(kvp.Value);
                     }
                 }
+
+                positionCount = 0;
+                foreach (var kvp in strategyPositions)
+                {
+                    var strategyPosition = kvp.Value;
+                    if (strategyPosition.ExpectedPosition != 0)
+                    {
+                        positionCount++;
+                    }
+                }
+                writer.Write(positionCount);
+                foreach (var kvp in strategyPositions)
+                {
+                    var strategyPosition = kvp.Value;
+                    if (strategyPosition.ExpectedPosition != 0)
+                    {
+                        writer.Write(strategyPosition.Symbol.ToString());
+                        writer.Write(strategyPosition.Id);
+                        writer.Write(strategyPosition.Recency);
+                        writer.Write(strategyPosition.ExpectedPosition);
+                    }
+                }
             }
             memory.Position = 0;
             writer.Write((Int32)memory.Length - sizeof(Int32)); // length excludes the size of the length value.
@@ -702,6 +725,24 @@ namespace TickZoom.Common
                         positions.Add(symbol.BinaryIdentifier, position);
                     }
                 }
+
+                using (positionsLocker.Using())
+                {
+                    var positionCount = reader.ReadInt32();
+                    strategyPositions = new Dictionary<int, StrategyPosition>();
+                    for (var i = 0L; i < positionCount; i++)
+                    {
+                        var symbolString = reader.ReadString();
+                        var symbol = Factory.Symbol.LookupSymbol(symbolString);
+                        var strategyId = reader.ReadInt32();
+                        var recency = reader.ReadInt64();
+                        var position = reader.ReadInt64();
+                        var strategyPosition = new StrategyPositionDefault(strategyId, symbol);
+                        strategyPosition.SetExpectedPosition(position);
+                        strategyPosition.Recency = recency;
+                        strategyPositions.Add(strategyId, strategyPosition);
+                    }
+                }
                 return true;
             }
             catch( Exception ex)
@@ -711,7 +752,32 @@ namespace TickZoom.Common
             }
         }
 
-        public void SetActualPosition( SymbolInfo symbol, long position)
+        public void SyncPositions(Iterable<StrategyPosition> strategyPositions)
+        {
+            if (debug)
+            {
+                for (var node = strategyPositions.First; node != null; node = node.Next)
+                {
+                    var sp = node.Value;
+                    log.Debug("Syncing Strategy Position. id " + sp.Id + ", position " + sp.ExpectedPosition + ", recency " + sp.Recency);
+                }
+            }
+            for (var current = strategyPositions.First; current != null; current = current.Next)
+            {
+                var position = current.Value;
+                StrategyPosition strategyPosition;
+                if (!this.strategyPositions.TryGetValue(position.Id, out strategyPosition))
+                {
+                    strategyPosition = new StrategyPositionDefault(position.Id, position.Symbol);
+                    this.strategyPositions.Add(position.Id, strategyPosition);
+                }
+                strategyPosition.SetExpectedPosition(position.ExpectedPosition);
+                strategyPosition.TrySetPosition(position.ExpectedPosition, position.Recency);
+                log.Info("Syncing strategy id " + strategyPosition.Id + " to expected position " + position.ExpectedPosition + " recency " + position.Recency);
+            }
+        }
+
+        public void SetActualPosition(SymbolInfo symbol, long position)
         {
             using( positionsLocker.Using())
             {
@@ -727,6 +793,36 @@ namespace TickZoom.Common
                 if( positions.TryGetValue( symbol.BinaryIdentifier, out position ))
                 {
                     return position;
+                }
+                else
+                {
+                    return 0L;
+                }
+            }
+        }
+
+        public void SetStrategyPosition(SymbolInfo symbol, int strategyId, long position)
+        {
+            using (positionsLocker.Using())
+            {
+                StrategyPosition strategyPosition;
+                if (!this.strategyPositions.TryGetValue(strategyId, out strategyPosition))
+                {
+                    strategyPosition = new StrategyPositionDefault(strategyId, symbol);
+                    this.strategyPositions.Add(strategyId, strategyPosition);
+                }
+                strategyPosition.SetExpectedPosition(position);
+            }
+        }
+
+        public long GetStrategyPosition(int strategyId)
+        {
+            using (positionsLocker.Using())
+            {
+                StrategyPosition strategyPosition;
+                if (strategyPositions.TryGetValue(strategyId, out strategyPosition))
+                {
+                    return strategyPosition.ExpectedPosition;
                 }
                 else
                 {

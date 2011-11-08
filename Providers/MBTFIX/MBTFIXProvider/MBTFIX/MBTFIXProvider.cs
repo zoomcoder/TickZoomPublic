@@ -222,6 +222,20 @@ namespace TickZoom.MBTFIX
 
             if (OrderStore.Recover())
             {
+                // Reset the order algorithms
+                lock( orderAlgorithmsLocker)
+                {
+                    var symbolIds = new List<long>();
+                    foreach( var kvp in orderAlgorithms)
+                    {
+                        symbolIds.Add(kvp.Key);
+                    }
+                    orderAlgorithms.Clear();
+                    foreach( var symbolId in symbolIds)
+                    {
+                        GetAlgorithm(symbolId);
+                    }
+                }
                 if( SyncTicks.Enabled)
                 {
                     foreach (var order in OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew))

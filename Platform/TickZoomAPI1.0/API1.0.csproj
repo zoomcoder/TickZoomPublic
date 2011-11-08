@@ -96,6 +96,7 @@
     <Compile Include="Engine\LogEvent.cs" />
     <Compile Include="Engine\LogicalOrderCache.cs" />
     <Compile Include="Engine\ProviderSimulator.cs" />
+    <Compile Include="Engine\StrategyPositionDefault.cs" />
     <Compile Include="Locks\NativeMappedFile.cs" />
     <Compile Include="Locks\SharedMemory.cs" />
     <Compile Include="Locks\SimpleLock.cs" />

@@ -2,13 +2,11 @@ namespace TickZoom.Api
 {
     public interface StrategyPosition
     {
-        int ActualPosition { get; }
         long Recency { get; }
-        int ExpectedPosition { get; }
+        long ExpectedPosition { get; }
         SymbolInfo Symbol { get; }
         int Id { get; }
-        void SetExpectedPosition(int position);
-        void SetActualPosition(int position);
-        void TrySetPosition( int position, long recency);
+        void SetExpectedPosition(long position);
+        void TrySetPosition(long position, long recency);
     }
 }

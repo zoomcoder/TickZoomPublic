@@ -29,6 +29,9 @@ namespace TickZoom.Api
         void SetActualPosition(SymbolInfo symbol, long position);
         long GetActualPosition(SymbolInfo symbol);
         long IncreaseActualPosition(SymbolInfo symbol, long increase);
+        void SetStrategyPosition(SymbolInfo symbol, int strategyId, long position);
+        long GetStrategyPosition(int strategyId);
+        void SyncPositions(Iterable<StrategyPosition> strategyPositions);
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

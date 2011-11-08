@@ -28,89 +28,13 @@ using System;
 
 namespace TickZoom.Api
 {
-	public class StrategyPositionDefault : StrategyPosition
+    public interface LogicalOrderCache
 	{
-	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (StrategyPositionDefault));
-        private static readonly bool debug = log.IsDebugEnabled;
-        private static readonly bool trace = log.IsTraceEnabled;
-        private int _id;
-	    private SymbolInfo _symbol;
-        private int actualPosition;
-        private int expectedPosition;
-        private long recency;
-
-        public StrategyPositionDefault(int id, SymbolInfo symbol)
-        {
-            this._id = id;
-            this._symbol = symbol;
-            if( trace) log.Trace("New StrategyPosition");
-        }
-
-	    public int ActualPosition
-	    {
-	        get { return actualPosition; }
-	    }
-
-	    public long Recency
-	    {
-	        get { return recency; }
-	    }
-
-	    public int ExpectedPosition
-	    {
-	        get { return expectedPosition; }
-	    }
-
-	    public SymbolInfo Symbol
-	    {
-	        get { return _symbol; }
-	    }
-
-	    public int Id
-	    {
-	        get { return _id; }
-	    }
-
-	    public void SetExpectedPosition(int position)
-        {
-            if (trace) log.Trace("SetExpectedPositions() strategy " + Id + " for " + Symbol + " position change from " + expectedPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
-            expectedPosition = position;
-        }
-
-        public void SetActualPosition(int position)
-        {
-            if (trace) log.Trace("SetActualPosition() strategy " + Id + " for " + Symbol + " position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
-            actualPosition = position;
-        }
-
-	    public void TrySetPosition( int position, long recency)
-        {
-            if( recency == 0L)
-            {
-                throw new InvalidOperationException("Recency must be non-zero.");
-            }
-            if (recency >= this.recency)
-            {
-                if (position != actualPosition)
-                {
-                    if (debug) log.Debug("Strategy " + Id + " for " + Symbol + " actual position change from " + actualPosition + " to " + position + ". Recency " + this.recency + " to " + recency);
-                    actualPosition = position;
-                }
-                this.recency = recency;
-            }
-            else if (position != actualPosition)
-            {
-                if (debug) log.Debug("Rejected change of strategy " + Id + " for " + Symbol + " actual position " + actualPosition + " to " + position + ".  Recency " + recency + " wasn't newer than " + this.recency);
-            }
-        }
-	}
-	public interface LogicalOrderCache
-	{
-		StrategyPosition GetStrategyPosition(int id);
+        //StrategyPosition GetStrategyPosition(int id);
 		LogicalOrder FindLogicalOrder(int id);
 		void SetActiveOrders(Iterable<LogicalOrder> inputOrders);
 		Iterable<LogicalOrder> ActiveOrders { get; }
 		void RemoveInactive(LogicalOrder order);
-        void SyncPositions(Iterable<StrategyPosition> strategyPositions);
+        //void SyncPositions(Iterable<StrategyPosition> strategyPositions);
 	}
 }
