@@ -297,8 +297,17 @@ namespace TickZoom.MBTFIX
         }
 
         public override void OnStartSymbol(SymbolInfo symbol)
-		{
-		}
+        {
+            if( ConnectionStatus == Status.Recovered)
+            {
+                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+                algorithm.ProcessOrders();
+                if (algorithm.IsPositionSynced)
+                {
+                    TrySendStartBroker();
+                }
+            }
+        }
 
 		public override void OnStopSymbol(SymbolInfo symbol)
 		{
@@ -405,7 +414,7 @@ namespace TickZoom.MBTFIX
 					PositionUpdate( packetFIX);
 					break;
 				case "8":
-			        var transactTime = new TimeStamp(packetFIX.TransactionTime);
+                    var transactTime = new TimeStamp(packetFIX.TransactionTime);
                     if( transactTime >= loginTime || SyncTicks.Enabled)
                     {
                         ExecutionReport(packetFIX);
@@ -525,7 +534,7 @@ namespace TickZoom.MBTFIX
             var subId = string.IsNullOrEmpty(packetFIX.TradingSessionSubId)
                             ? packetFIX.TradingSessionId
                             : packetFIX.TradingSessionSubId;
-            if( !CompareSession( packetFIX.TradingSessionSubId) )
+            if( !CompareSession( subId) )
             {
                 return;
             }

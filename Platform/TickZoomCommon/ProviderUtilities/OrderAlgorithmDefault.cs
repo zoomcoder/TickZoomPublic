@@ -892,9 +892,7 @@ namespace TickZoom.Common
             originalPhysicals.Clear();
             originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
 
-			var next = originalPhysicals.First;
-			for( var node = next; node != null; node = next) {
-				next = node.Next;
+			for( var node = originalPhysicals.First; node != null; node = node.Next) {
 				CreateOrChangeOrder order = node.Value;
 				if(order.Type != OrderType.BuyMarket &&
 				   order.Type != OrderType.SellMarket) {

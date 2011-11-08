@@ -23,6 +23,10 @@ namespace TickZoom.FIX
             log = Factory.SysLog.GetLogger(typeof(IncludeExcludeMatcher) + "." + GetType().Name);
             log.Register(this);
             includes = ParseList(includeString);
+            if( includes.Length == 0)
+            {
+                includes = new string[] { "*" };
+            }
             excludes = ParseList(excludeString);
         }
         private string[] ParseList(string list)
