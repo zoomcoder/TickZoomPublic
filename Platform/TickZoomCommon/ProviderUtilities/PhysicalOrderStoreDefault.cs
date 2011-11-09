@@ -1,5 +1,4 @@
-using System;
-using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -8,13 +7,7 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-    public class LogicalOrderReference
-    {
-        public long LogicalSerialNumber;
-        public CreateOrChangeOrder CreateOrChangeOrder;
-    }
-
-    public class PhysicalOrderStoreDefault : IDisposable, PhysicalOrderCache, PhysicalOrderStore, LogAware
+    public class PhysicalOrderStoreDefault : PhysicalOrderStore, LogAware
     {
         private Log log;
         private volatile bool info;
@@ -30,13 +23,18 @@ namespace TickZoom.Common
                 trace = log.IsTraceEnabled;
             }
         }
+
+        private class SymbolPosition
+        {
+            public long Position;
+        }
+
         private Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
         private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
         private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
-        private Dictionary<long,long> positions = new Dictionary<long, long>();
+        private Dictionary<long, SymbolPosition> positions = new Dictionary<long, SymbolPosition>();
         private Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
         private TaskLock ordersLocker = new TaskLock();
-        //private int pendingExpireSeconds = 3;
         private string databasePath;
         private FileStream fs;
         private MemoryStream memory = null;
@@ -46,6 +44,7 @@ namespace TickZoom.Common
         private Dictionary<int,CreateOrChangeOrder> uniqueIds = new Dictionary<int,CreateOrChangeOrder>();
         private Dictionary<int,int> replaceIds = new Dictionary<int,int>();
         private Dictionary<int, int> originalIds = new Dictionary<int, int>();
+        private TimeStamp lastSequenceReset;
         private int uniqueId = 0;
         private long snapshotTimer;
         private Action writeFileAction;
@@ -150,6 +149,12 @@ namespace TickZoom.Common
         public int LocalSequence
         {
             get { return localSequence; }
+        }
+
+        public TimeStamp LastSequenceReset
+        {
+            get { return lastSequenceReset; }
+            set { lastSequenceReset = value; }
         }
 
         private bool AddUniqueOrder(CreateOrChangeOrder order)
@@ -350,7 +355,7 @@ namespace TickZoom.Common
         {
             try
             {
-               log.Info("SnapshotHandler()");
+                if( debug) log.Debug("SnapshotHandler()");
                 using( Lock()) {
                     SnapShot();
                 }
@@ -377,6 +382,7 @@ namespace TickZoom.Common
                 // Write the current sequence number
                 writer.Write(remoteSequence);
                 writer.Write(LocalSequence);
+                writer.Write(lastSequenceReset.Internal);
                 if (debug) log.Debug("Snapshot writing Local Sequence  " + localSequence + ", Remote Sequence " + remoteSequence);
                 foreach (var kvp in ordersByBrokerId)
                 {
@@ -476,45 +482,56 @@ namespace TickZoom.Common
                     writer.Write(unique[order]);
                 }
 
-                var positionCount = 0;
-                foreach( var kvp in positions)
+                using( positionsLocker.Using())
                 {
-                    if( kvp.Value != 0)
-                    {
-                        positionCount++;
-                    }
-                }
-                writer.Write(positionCount);
-                foreach (var kvp in positions)
-                {
-                    if (kvp.Value != 0)
-                    {
-                        positionCount++;
-                        var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
-                        writer.Write(symbol.Symbol);
-                        writer.Write(kvp.Value);
-                    }
-                }
+                    if (debug) log.Debug("Symbol Positions\n" + SymbolPositionsToStringInternal());
+                    if (debug) log.Debug("Strategy Positions\n" + StrategyPositionsToStringInternal());
 
-                positionCount = 0;
-                foreach (var kvp in strategyPositions)
-                {
-                    var strategyPosition = kvp.Value;
-                    if (strategyPosition.ExpectedPosition != 0)
+                    var positionCount = 0;
+                    foreach (var kvp in positions)
                     {
-                        positionCount++;
+                        var symbolPosition = kvp.Value;
+                        if (symbolPosition.Position != 0)
+                        {
+                            positionCount++;
+                        }
                     }
-                }
-                writer.Write(positionCount);
-                foreach (var kvp in strategyPositions)
-                {
-                    var strategyPosition = kvp.Value;
-                    if (strategyPosition.ExpectedPosition != 0)
+                    writer.Write(positionCount);
+
+
+                    foreach (var kvp in positions)
                     {
-                        writer.Write(strategyPosition.Symbol.ToString());
-                        writer.Write(strategyPosition.Id);
-                        writer.Write(strategyPosition.Recency);
-                        writer.Write(strategyPosition.ExpectedPosition);
+                        var symbolPosition = kvp.Value;
+                        if (symbolPosition.Position != 0)
+                        {
+                            positionCount++;
+                            var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
+                            writer.Write(symbol.Symbol);
+                            writer.Write(kvp.Value.Position);
+                        }
+                    }
+
+                    positionCount = 0;
+                    foreach (var kvp in strategyPositions)
+                    {
+                        var strategyPosition = kvp.Value;
+                        if (strategyPosition.ExpectedPosition != 0)
+                        {
+                            positionCount++;
+                        }
+                    }
+
+                    writer.Write(positionCount);
+                    foreach (var kvp in strategyPositions)
+                    {
+                        var strategyPosition = kvp.Value;
+                        if (strategyPosition.ExpectedPosition != 0)
+                        {
+                            writer.Write(strategyPosition.Symbol.ToString());
+                            writer.Write(strategyPosition.Id);
+                            writer.Write(strategyPosition.Recency);
+                            writer.Write(strategyPosition.ExpectedPosition);
+                        }
                     }
                 }
             }
@@ -525,7 +542,7 @@ namespace TickZoom.Common
                 fs.Write(memory.GetBuffer(), 0, (int)memory.Length);
                 snapshotLength += memory.Length;
                 log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
-                    ", Size = " + memory.Length + ". File Size = " + snapshotLength);
+                         ", Size = " + memory.Length + ". File Size = " + snapshotLength);
             }
             if (isDisposed)
             {
@@ -633,6 +650,7 @@ namespace TickZoom.Common
 
                 remoteSequence = reader.ReadInt32();
                 localSequence = reader.ReadInt32();
+                lastSequenceReset = new TimeStamp(reader.ReadInt64());
 
                 int orderCount = reader.ReadInt32();
                 for (var i = 0; i < orderCount; i++)
@@ -716,19 +734,17 @@ namespace TickZoom.Common
                 using( positionsLocker.Using())
                 {
                     var positionCount = reader.ReadInt32();
-                    positions = new Dictionary<long, long>();
+                    positions = new Dictionary<long, SymbolPosition>();
                     for (var i = 0L; i < positionCount; i++ )
                     {
                         var symbolString = reader.ReadString();
                         var symbol = Factory.Symbol.LookupSymbol(symbolString);
                         var position = reader.ReadInt64();
-                        positions.Add(symbol.BinaryIdentifier, position);
+                        var symbolPosition = new SymbolPosition {Position = position};
+                        positions.Add(symbol.BinaryIdentifier, symbolPosition);
                     }
-                }
 
-                using (positionsLocker.Using())
-                {
-                    var positionCount = reader.ReadInt32();
+                    positionCount = reader.ReadInt32();
                     strategyPositions = new Dictionary<int, StrategyPosition>();
                     for (var i = 0L; i < positionCount; i++)
                     {
@@ -741,6 +757,7 @@ namespace TickZoom.Common
                         strategyPosition.SetExpectedPosition(position);
                         strategyPosition.Recency = recency;
                         strategyPositions.Add(strategyId, strategyPosition);
+                        if( debug) log.Debug("Loaded strategy position: " + strategyPosition);
                     }
                 }
                 return true;
@@ -759,7 +776,7 @@ namespace TickZoom.Common
                 for (var node = strategyPositions.First; node != null; node = node.Next)
                 {
                     var sp = node.Value;
-                    log.Debug("Syncing Strategy Position. id " + sp.Id + ", position " + sp.ExpectedPosition + ", recency " + sp.Recency);
+                    log.Debug("Received strategy position. " + sp);
                 }
             }
             for (var current = strategyPositions.First; current != null; current = current.Next)
@@ -771,9 +788,7 @@ namespace TickZoom.Common
                     strategyPosition = new StrategyPositionDefault(position.Id, position.Symbol);
                     this.strategyPositions.Add(position.Id, strategyPosition);
                 }
-                strategyPosition.SetExpectedPosition(position.ExpectedPosition);
                 strategyPosition.TrySetPosition(position.ExpectedPosition, position.Recency);
-                log.Info("Syncing strategy id " + strategyPosition.Id + " to expected position " + position.ExpectedPosition + " recency " + position.Recency);
             }
         }
 
@@ -781,7 +796,17 @@ namespace TickZoom.Common
         {
             using( positionsLocker.Using())
             {
-                positions[symbol.BinaryIdentifier] = position;
+                if( debug) log.Debug("SetActualPosition( " + symbol + " = " + position + ")");
+                SymbolPosition symbolPosition;
+                if (!positions.TryGetValue(symbol.BinaryIdentifier, out symbolPosition))
+                {
+                    symbolPosition = new SymbolPosition {Position = position};
+                    positions.Add(symbol.BinaryIdentifier,symbolPosition);
+                }
+                else
+                {
+                    positions[symbol.BinaryIdentifier].Position = position;
+                }
             }
         }
 
@@ -789,10 +814,10 @@ namespace TickZoom.Common
         {
             using (positionsLocker.Using())
             {
-                long position;
-                if( positions.TryGetValue( symbol.BinaryIdentifier, out position ))
+                SymbolPosition symbolPosition;
+                if (positions.TryGetValue(symbol.BinaryIdentifier, out symbolPosition))
                 {
-                    return position;
+                    return symbolPosition.Position;
                 }
                 else
                 {
@@ -835,24 +860,23 @@ namespace TickZoom.Common
         {
             using (positionsLocker.Using())
             {
-                long position;
-                if (positions.TryGetValue(symbol.BinaryIdentifier, out position))
+                SymbolPosition symbolPosition;
+                if (!positions.TryGetValue(symbol.BinaryIdentifier, out symbolPosition))
                 {
-                    position += increase;
-                    positions[symbol.BinaryIdentifier] = position;
-                    return position;
+                    symbolPosition = new SymbolPosition {Position = increase};
+                    positions.Add(symbol.BinaryIdentifier,symbolPosition);
                 }
                 else
                 {
-                    positions[symbol.BinaryIdentifier] = increase;
-                    return increase;
+                    symbolPosition.Position += increase;
                 }
+                return symbolPosition.Position;
             }
         }
 
         public void Clear()
         {
-            log.Info("Clearing all orders.");
+            if( debug) log.Debug("Clearing all orders.");
             using( ordersLocker.Using())
             {
                 ordersByBrokerId.Clear();
@@ -1072,7 +1096,7 @@ namespace TickZoom.Common
             }
         }
 
-        public string LogOrders()
+        public string OrdersToString()
         {
             using (ordersLocker.Using())
             {
@@ -1114,6 +1138,45 @@ namespace TickZoom.Common
         public int Count()
         {
             return ordersByBrokerId.Count;
+        }
+
+        public string SymbolPositionsToString()
+        {
+            using (positionsLocker.Using())
+            {
+                return SymbolPositionsToStringInternal();
+            }
+        }
+
+        public string StrategyPositionsToString()
+        {
+            using (positionsLocker.Using())
+            {
+                return StrategyPositionsToStringInternal();
+            }
+        }
+
+        private string SymbolPositionsToStringInternal()
+        {
+            var sb = new StringBuilder();
+            foreach (var kvp in positions)
+            {
+                var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
+                var position = kvp.Value;
+                sb.AppendLine(symbol + " " + position);
+            }
+            return sb.ToString();
+        }
+
+        public string StrategyPositionsToStringInternal()
+        {
+            var sb = new StringBuilder();
+            foreach (var kvp in strategyPositions)
+            {
+                var strategyPosition = kvp.Value;
+                sb.AppendLine(strategyPosition.ToString());
+            }
+            return sb.ToString();
         }
     }
 }

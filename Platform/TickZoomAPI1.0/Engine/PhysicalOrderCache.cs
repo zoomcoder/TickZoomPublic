@@ -32,6 +32,8 @@ namespace TickZoom.Api
         void SetStrategyPosition(SymbolInfo symbol, int strategyId, long position);
         long GetStrategyPosition(int strategyId);
         void SyncPositions(Iterable<StrategyPosition> strategyPositions);
+        string StrategyPositionsToString();
+        string SymbolPositionsToString();
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache
@@ -53,7 +55,8 @@ namespace TickZoom.Api
         void UpdateLocalSequence(int localSequence);
         void UpdateRemoteSequence(int remoteSequence);
         void SetSequences(int remoteSequence, int localSequence);
-        string LogOrders();
+        TimeStamp LastSequenceReset { get; set; }
+        string OrdersToString();
         int Count();
     }
 }

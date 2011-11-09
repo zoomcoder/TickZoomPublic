@@ -215,13 +215,6 @@ namespace TickZoom.FIX
 		}
 		
 		/// <summary>
-		/// 52 The time this order was sent
-		/// </summary>
-		public void SetSendingTime(string value) {
-			Append(52, value);
-		}
-		
-		/// <summary>
 		/// 55 Stock Symbol, or Currency Pair
 		/// </summary>
 		public void SetSymbol(string value)

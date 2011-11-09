@@ -32,11 +32,21 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-	public class FIXTMessage1_1 : FIXTMessage {
+	public class FIXTMessage1_1 : FIXTMessage
+	{
+	    private TimeStamp sendTime;
 		public FIXTMessage1_1(string version, string sender, string target) : base(version) {
 			this.target = target;
 			this.sender = sender;
 		}
+
+        /// <summary>
+        /// 52 Send Time
+        /// </summary>
+        public void SetSendTime(TimeStamp sendTime)
+        {
+            this.sendTime = sendTime;
+        }
 		
 		/// <summary>
 		/// 98 Encryption. 0= NO encryption
@@ -158,7 +168,14 @@ namespace TickZoom.FIX
 			header.Append(49,sender);
 			header.Append(56,target);
 			header.Append(34,Sequence);
-			header.Append(52,TimeStamp.UtcNow);
+            if( sendTime == default(TimeStamp))
+            {
+                header.Append(52, TimeStamp.UtcNow);
+            }
+            else
+            {
+                header.Append(52, sendTime);
+            }
 			if( duplicate) {
 				header.Append(43,"Y");  
 			} else {

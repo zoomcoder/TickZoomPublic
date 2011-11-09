@@ -255,9 +255,6 @@ namespace TickZoom.FIX
 			}
 		}
 
-	    private TimeStamp utcLogonTime;
-	    private bool resetAtLogin = false;
-
 	    private SocketState lastSocketState = SocketState.New;
         private Status lastConnectionStatus = Status.None;
         private Yield SocketTask()
@@ -367,17 +364,12 @@ namespace TickZoom.FIX
                                 if (debug) log.Debug("Received FIX Message: " + messageFIX);
                                 if (messageFIX.MessageType == "A")
                                 {
-                                    if (messageFIX.Sequence < remoteSequence)
+                                    if (messageFIX.Sequence == 1 || messageFIX.Sequence < remoteSequence)
                                     {
                                         remoteSequence = messageFIX.Sequence;
-                                        resetAtLogin = true;
                                         if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + RemoteSequence);
+                                        orderStore.LastSequenceReset = new TimeStamp(messageFIX.SendUtcTime);
                                     }
-                                    else
-                                    {
-                                        resetAtLogin = false;
-                                    }
-                                    utcLogonTime = new TimeStamp(messageFIX.SendUtcTime);
                                     if( HandleLogon(messageFIX))
                                     {
                                         connectionStatus = Status.PendingRecovery;
@@ -422,15 +414,6 @@ namespace TickZoom.FIX
                                                 Dispose();
                                                 break;
                                             default:
-                                                if (resetAtLogin && messageFIX.IsPossibleDuplicate)
-                                                {
-                                                    var transactTime = new TimeStamp(messageFIX.TransactTime);
-                                                    var timeSinceLogon = transactTime - utcLogonTime;
-                                                    if (timeSinceLogon.TotalMinutes < 0)
-                                                    {
-                                                        throw new ApplicationException("Transact time (field 60) was less than last reset logon time, " + utcLogonTime + " for:\n" + messageFIX);
-                                                    }
-                                                }
                                                 ReceiveMessage(messageFIX);
                                                 break;
                                         }

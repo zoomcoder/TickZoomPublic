@@ -632,6 +632,7 @@ namespace TickZoom.FIX
             mbtMsg.SetEncryption(0);
             mbtMsg.SetHeartBeatInterval(HeartbeatDelay);
             mbtMsg.AddHeader("A");
+            mbtMsg.SetSendTime(new TimeStamp(1800,1,1));
             if (debug) log.Debug("Sending login response: " + mbtMsg);
             SendMessage(mbtMsg);
             return true;
