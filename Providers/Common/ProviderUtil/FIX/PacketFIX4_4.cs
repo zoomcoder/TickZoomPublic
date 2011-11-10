@@ -61,7 +61,8 @@ namespace TickZoom.FIX
 		string executionType = null;
 		string internalOrderId = null;
 		string transactionTime = null;
-		int leavesQuantity = 0;
+        string originalSendTime = null;
+        int leavesQuantity = 0;
 		int longQuantity = 0;
 		int shortQuantity = 0;
 	    private int subscriptionRequestType;
@@ -173,7 +174,10 @@ namespace TickZoom.FIX
 				case 100:
 					result = GetString(out destination);
 					break;
-				case 150:
+                case 122:
+                    result = GetString(out originalSendTime);
+                    break;
+                case 150:
 					result = GetString(out executionType);
 					break;
 				case 151:
@@ -429,7 +433,15 @@ namespace TickZoom.FIX
 			get { return transactionTime; }
 		}
 
-		/// <summary>
+        /// <summary>
+        /// 122 Time of original message, expressed in UTC
+        /// </summary>
+        public string OriginalSendTime
+        {
+            get { return transactionTime; }
+        }
+
+        /// <summary>
 		/// 151 Amount of shares still live in the Order
 		/// </summary>
 		public int LeavesQuantity {

@@ -367,7 +367,7 @@ namespace TickZoom.FIX
                                     if (messageFIX.Sequence == 1 || messageFIX.Sequence < remoteSequence)
                                     {
                                         remoteSequence = messageFIX.Sequence;
-                                        if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + RemoteSequence);
+                                        if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + remoteSequence);
                                         orderStore.LastSequenceReset = new TimeStamp(messageFIX.SendUtcTime);
                                     }
                                     if( HandleLogon(messageFIX))
@@ -391,33 +391,46 @@ namespace TickZoom.FIX
                                 }
                                 using (orderStore.Lock())
                                 {
-                                    bool releaseFlag;
-                                    if (!CheckForMissingMessages(messageFIX, out releaseFlag))
-							        {
-                                        switch (messageFIX.MessageType)
+                                    var releaseFlag = true;
+                                    var message4_4 = messageFIX as MessageFIX4_4;
+                                    // Workaround for bug in MBT FIX Server that sends message from prior to 
+                                    // last sequence number reset.
+                                    if( messageFIX.IsPossibleDuplicate &&
+                                        message4_4 != null && message4_4.OriginalSendTime != null &&
+                                        new TimeStamp(message4_4.OriginalSendTime) < OrderStore.LastSequenceReset)
+                                    {
+                                        log.Info("Ignoring message with sequence " + messageFIX.Sequence + " as work around to MBT FIX server defect because original send time (122) " + new TimeStamp(message4_4.OriginalSendTime) + " is prior to last sequence reset " + OrderStore.LastSequenceReset);
+                                    }
+                                    else
+                                    {
+
+                                        if (!CheckForMissingMessages(messageFIX, out releaseFlag))
                                         {
-                                            case "A": //logon
-                                                // Already handled and sequence incremented.
-                                                break;
-                                            case "2": // resend
-                                                // Already handled and sequence incremented.
-                                                break;
-                                            case "4": // gap fill
-                                                HandleGapFill(messageFIX);
-                                                break;
-                                            case "3": // reject
-                                                HandleReject(messageFIX);
-                                                break;
-                                            case "5": // log off confirm
-                                                if (debug) log.Debug("Log off confirmation received.");
-                                                connectionStatus = Status.Disconnected;
-                                                Dispose();
-                                                break;
-                                            default:
-                                                ReceiveMessage(messageFIX);
-                                                break;
+                                            switch (messageFIX.MessageType)
+                                            {
+                                                case "A": //logon
+                                                    // Already handled and sequence incremented.
+                                                    break;
+                                                case "2": // resend
+                                                    // Already handled and sequence incremented.
+                                                    break;
+                                                case "4": // gap fill
+                                                    HandleGapFill(messageFIX);
+                                                    break;
+                                                case "3": // reject
+                                                    HandleReject(messageFIX);
+                                                    break;
+                                                case "5": // log off confirm
+                                                    if (debug) log.Debug("Log off confirmation received.");
+                                                    connectionStatus = Status.Disconnected;
+                                                    Dispose();
+                                                    break;
+                                                default:
+                                                    ReceiveMessage(messageFIX);
+                                                    break;
+                                            }
+                                            orderStore.UpdateRemoteSequence(remoteSequence);
                                         }
-                                        orderStore.UpdateRemoteSequence(remoteSequence);
                                     }
                                     if( releaseFlag)
                                     {
@@ -547,7 +560,7 @@ namespace TickZoom.FIX
                 }
                 else
                 {
-                    if (debug) log.Debug("Login remote sequence mismatch. Resend needed.");
+                    if (debug) log.Debug("Login remote sequence " + messageFIX.Sequence + " mismatch expected sequence " + remoteSequence + ". Resend needed.");
                 }
                 return false;
             }

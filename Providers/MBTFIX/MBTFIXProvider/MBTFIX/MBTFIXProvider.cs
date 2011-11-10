@@ -106,28 +106,25 @@ namespace TickZoom.MBTFIX
             //TrySend(EventType.SynchronizeBroker);
         }
 
-        private void TrySendStartBroker()
+        private void TrySendStartBroker(SymbolInfo symbol)
         {
             if (isBrokerStarted) return;
             if( !IsRecovered) return;
-            TrySend(EventType.StartBroker);
+            TrySend(EventType.StartBroker, symbol);
             isBrokerStarted = true;
         }
 
-        private void TrySend(EventType type)
+        private void TrySend(EventType type, SymbolInfo symbol)
         {
 			lock( symbolsRequestedLocker) {
-                if( debug) log.Debug("Sending " + type + " to all receivers...");
-				foreach( var kvp in symbolsRequested) {
-					SymbolInfo symbol = kvp.Value;
-					long end = Factory.Parallel.TickCount + 5000;
-					while( !receiver.OnEvent(symbol,(int)type,symbol)) {
-						if( isDisposed) return;
-						if( Factory.Parallel.TickCount > end) {
-							throw new ApplicationException("Timeout while sending " + type);
-						}
-						Factory.Parallel.Yield();
+                if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
+				long end = Factory.Parallel.TickCount + 5000;
+				while( !receiver.OnEvent(symbol,(int)type,symbol)) {
+					if( isDisposed) return;
+					if( Factory.Parallel.TickCount > end) {
+						throw new ApplicationException("Timeout while sending " + type);
 					}
+					Factory.Parallel.Yield();
 				}
 			}
 		}
@@ -299,7 +296,7 @@ namespace TickZoom.MBTFIX
                 }
                 if (algorithm.IsPositionSynced)
                 {
-                    TrySendStartBroker();
+                    TrySendStartBroker(symbol);
                 }
             }
         }
@@ -513,7 +510,8 @@ namespace TickZoom.MBTFIX
                 algorithm.ProcessOrders();
                 if (algorithm.IsPositionSynced)
                 {
-                    TrySendStartBroker();
+                    var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
+                    TrySendStartBroker(symbol);
                 }
             }
         }
@@ -1003,7 +1001,7 @@ namespace TickZoom.MBTFIX
                 }
                 if( algorithm.IsPositionSynced)
                 {
-                    TrySendStartBroker();
+                    TrySendStartBroker(symbolInfo);
                 }
 			}
 		}
@@ -1355,30 +1353,6 @@ namespace TickZoom.MBTFIX
             }
         }
 
-        private void TestMethod(MessageFIX4_4 packetFIX)
-        {
-			string account = packetFIX.Account;
-			string destination = packetFIX.Destination;
-			int orderQuantity = packetFIX.OrderQuantity;
-			double averagePrice = packetFIX.AveragePrice;
-			string orderID = packetFIX.OrderId;
-			string massStatusRequestId = packetFIX.MassStatusRequestId;
-			string positionEffect = packetFIX.PositionEffect;
-			string orderType = packetFIX.OrderType;
-			string clientOrderId = packetFIX.ClientOrderId;
-			double price = packetFIX.Price;
-			int cumulativeQuantity = packetFIX.CumulativeQuantity;
-			string executionId = packetFIX.ExecutionId;
-			int productType = packetFIX.ProductType;
-			string symbol = packetFIX.Symbol;
-			string side = packetFIX.Side;
-			string timeInForce = packetFIX.TimeInForce;
-			string executionType = packetFIX.ExecutionType;
-			string internalOrderId = packetFIX.InternalOrderId;
-			string transactionTime = packetFIX.TransactionTime;
-			int leavesQuantity = packetFIX.LeavesQuantity;
-		}
-		
 		private OrderAlgorithm GetAlgorithm(string clientOrderId) {
 			CreateOrChangeOrder origOrder;
 			try {
@@ -1438,7 +1412,7 @@ namespace TickZoom.MBTFIX
             algorithm.ProcessOrders();
             if( algorithm.IsPositionSynced)
             {
-                TrySendStartBroker();
+                TrySendStartBroker(symbol);
             }
 		}
 		
