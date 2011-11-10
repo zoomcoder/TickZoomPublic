@@ -485,7 +485,6 @@ namespace TickZoom.Common
                 using( positionsLocker.Using())
                 {
                     if (debug) log.Debug("Symbol Positions\n" + SymbolPositionsToStringInternal());
-                    if (debug) log.Debug("Strategy Positions\n" + StrategyPositionsToStringInternal());
 
                     var positionCount = 0;
                     foreach (var kvp in positions)
@@ -511,28 +510,6 @@ namespace TickZoom.Common
                         }
                     }
 
-                    positionCount = 0;
-                    foreach (var kvp in strategyPositions)
-                    {
-                        var strategyPosition = kvp.Value;
-                        if (strategyPosition.ExpectedPosition != 0)
-                        {
-                            positionCount++;
-                        }
-                    }
-
-                    writer.Write(positionCount);
-                    foreach (var kvp in strategyPositions)
-                    {
-                        var strategyPosition = kvp.Value;
-                        if (strategyPosition.ExpectedPosition != 0)
-                        {
-                            writer.Write(strategyPosition.Symbol.ToString());
-                            writer.Write(strategyPosition.Id);
-                            writer.Write(strategyPosition.Recency);
-                            writer.Write(strategyPosition.ExpectedPosition);
-                        }
-                    }
                 }
             }
             memory.Position = 0;
@@ -744,21 +721,7 @@ namespace TickZoom.Common
                         positions.Add(symbol.BinaryIdentifier, symbolPosition);
                     }
 
-                    positionCount = reader.ReadInt32();
                     strategyPositions = new Dictionary<int, StrategyPosition>();
-                    for (var i = 0L; i < positionCount; i++)
-                    {
-                        var symbolString = reader.ReadString();
-                        var symbol = Factory.Symbol.LookupSymbol(symbolString);
-                        var strategyId = reader.ReadInt32();
-                        var recency = reader.ReadInt64();
-                        var position = reader.ReadInt64();
-                        var strategyPosition = new StrategyPositionDefault(strategyId, symbol);
-                        strategyPosition.SetExpectedPosition(position);
-                        strategyPosition.Recency = recency;
-                        strategyPositions.Add(strategyId, strategyPosition);
-                        if( debug) log.Debug("Loaded strategy position: " + strategyPosition);
-                    }
                 }
                 return true;
             }
