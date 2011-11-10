@@ -356,7 +356,7 @@ namespace TickZoom.MBTQuotes
 	                           	IncreaseRetryTimeout();
                             }
 
-					        return Yield.DidWork.Repeat;
+					        return receivedMessage ? Yield.DidWork.Repeat : Yield.NoWork.Repeat;
 						default:
 							return Yield.NoWork.Repeat;
 					}

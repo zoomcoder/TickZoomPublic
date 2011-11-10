@@ -967,13 +967,13 @@ namespace TickZoom.Common
             if( delta != 0)
             {
                 IsPositionSynced = false;
-                log.Notice("SyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
+                log.Info("SyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
                 if (debug) log.Debug("TrySyncPosition - " + tickSync);
             }
             else if( positionDelta == 0)
             {
                 IsPositionSynced = true;
-                log.Notice("SyncPosition() found position currently synced. With expected " + desiredPosition + " and actual " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
+                log.Info("SyncPosition() found position currently synced. With expected " + desiredPosition + " and actual " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
             }
 			if( delta > 0)
 			{

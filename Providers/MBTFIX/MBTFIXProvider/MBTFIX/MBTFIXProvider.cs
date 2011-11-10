@@ -293,7 +293,10 @@ namespace TickZoom.MBTFIX
             if( ConnectionStatus == Status.Recovered)
             {
                 var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                algorithm.ProcessOrders();
+                using (OrderStore.Lock())
+                {
+                    algorithm.ProcessOrders();
+                }
                 if (algorithm.IsPositionSynced)
                 {
                     TrySendStartBroker();

@@ -27,6 +27,10 @@ namespace TickZoom.Common
         private class SymbolPosition
         {
             public long Position;
+            public override string ToString()
+            {
+                return Position.ToString();
+            }
         }
 
         private Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();

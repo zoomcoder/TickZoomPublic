@@ -40,7 +40,7 @@ namespace TickZoom.Starters
 		
 		public override void Run(ModelLoaderInterface loader)
 		{
-            parallelMode = ParallelMode.Normal;
+            parallelMode = ParallelMode.RealTime;
             Factory.SysLog.RegisterHistorical("FIXSimulator", GetDefaultLogConfig());
             Factory.SysLog.RegisterRealTime("FIXSimulator", GetDefaultLogConfig());
             Config = "WarehouseTest.config";
