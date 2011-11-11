@@ -1,4 +1,4 @@
-Portfolio,10000,-41130.75,3193.75,-37937
+Portfolio,10000,-42380.75,3193.75,-39187
 ExampleOrderStrategy-AD,10000,800,0,800
 ExampleOrderStrategy-BO,10000,9160,0,9160
 ExampleOrderStrategy-BP,10000,2312.5,2562.5,4875
@@ -24,7 +24,6 @@ ExampleOrderStrategy-KC,10000,11500,0,11500
 ExampleOrderStrategy-LB,10000,13630,0,13630
 ExampleOrderStrategy-LC,10000,10000,2500,12500
 ExampleOrderStrategy-LH,10000,7100,0,7100
-ExampleOrderStrategy-MD,10000,11250,0,11250
 ExampleOrderStrategy-ME,10000,8875,-375,8500
 ExampleOrderStrategy-MG,10000,8350,0,8350
 ExampleOrderStrategy-MI,10000,4100,0,4100
