@@ -45,7 +45,7 @@ namespace TickZoom.Api
 		FastQueue<T> FastQueue<T>(string name);
 		Pool<T> Pool<T>() where T : new();
         Pool<T> PoolChecked<T>() where T : new();
-        Pool<TickBinaryBox> TickPool();
+        Pool<TickBinaryBox> TickPool(SymbolInfo symbol);
 		string GetQueueStats();
 		void Release();
 	}

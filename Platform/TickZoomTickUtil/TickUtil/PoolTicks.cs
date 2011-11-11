@@ -48,18 +48,10 @@ namespace TickZoom.TickUtil
                 var binary = item.TickBinary;
                 Diagnose.AddTick(enqueDiagnoseMetric,ref binary);
             }
-            //for( var node = _freed.First; node != null; node = node.Next)
-            //{
-            //    if( node.Value.TickBinary.Id == item.TickBinary.Id)
-            //    {
-            //        Diagnose.LogTicks(300);
-            //        System.Diagnostics.Debugger.Break();
-            //    }
-            //}
-            _freed.AddFirst(item);
-            if (_freed.Count > 10)
+            using (_sync.Using())
             {
-                using( _sync.Using())
+                _freed.AddFirst(item);
+                if (_freed.Count > 10)
                 {
                     if (_freed.Count > 10)
                     {

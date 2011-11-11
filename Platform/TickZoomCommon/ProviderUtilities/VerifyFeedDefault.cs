@@ -46,7 +46,7 @@ namespace TickZoom.Common
 		private volatile BrokerState brokerState = BrokerState.Disconnected;
 		private Task task;
 		private static object taskLocker = new object();
-		private Pool<TickBinaryBox> tickPool = Factory.TickUtil.TickPool();
+	    private Pool<TickBinaryBox> tickPool;
 		private bool keepReceived = false;
 		private List<TickBinary> received = new List<TickBinary>();
 		private int pauseSeconds = 3;
@@ -71,6 +71,7 @@ namespace TickZoom.Common
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
             tickQueue.StartEnqueue = Start;
+            tickPool =  Factory.TickUtil.TickPool(symbol);
 		}
 
 		public void Start()

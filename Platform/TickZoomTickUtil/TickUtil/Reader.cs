@@ -66,7 +66,6 @@ namespace TickZoom.TickUtil
 
 		public Reader()
 		{
-			tickBoxPool = Factory.TickUtil.TickPool();
 			var property = "PriceDataFolder";
 			priceDataFolder = Factory.Settings[property];
 			if (priceDataFolder == null) {
@@ -264,7 +263,9 @@ namespace TickZoom.TickUtil
 		
 		private bool PrepareTask()
 		{
-			for (int retry = 0; retry < 3; retry++) {
+		    tickBoxPool = Factory.TickUtil.TickPool(symbol);
+            for (int retry = 0; retry < 3; retry++)
+            {
 				try {
 					if (!quietMode) {
 						LogInfo("Reading from file: " + fileName);
@@ -449,7 +450,8 @@ namespace TickZoom.TickUtil
 		
 		private Yield StartEvent()
 		{
-			if (!receiver.OnEvent(symbol, (int)EventType.StartHistorical, null)) {
+            if (!receiver.OnEvent(symbol, (int)EventType.StartHistorical, null))
+            {
 				return Yield.NoWork.Repeat;
 			} else {
 				if (!quietMode) {

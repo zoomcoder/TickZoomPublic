@@ -37,7 +37,7 @@ namespace TickZoom.TickUtil
 	/// </summary>
 	public class TickUtilFactoryImpl : TickUtilFactory
 	{
-		private Pool<TickBinaryBox> tickPool;
+		private Dictionary<long,Pool<TickBinaryBox>> tickPools;
 		private object locker = new object();
 		
 		public TickQueue TickQueue( Type type) {
@@ -81,16 +81,26 @@ namespace TickZoom.TickUtil
             return new PoolChecked<T>();
         }
 
-        public Pool<TickBinaryBox> TickPool()
+        public Pool<TickBinaryBox> TickPool(SymbolInfo symbol)
         {
-			if( tickPool == null) {
+			if( tickPools == null) {
 				lock( locker) {
-					if( tickPool == null) {
-						tickPool = new PoolTicks();
+					if( tickPools == null)
+					{
+					    tickPools = new Dictionary<long, Pool<TickBinaryBox>>();
 					}
 				}
 			}
-			return tickPool;
+            lock( locker)
+            {
+                Pool<TickBinaryBox> tickPool;
+                if( !tickPools.TryGetValue(symbol.BinaryIdentifier, out tickPool))
+                {
+                    tickPool = new PoolTicks();
+                    tickPools.Add(symbol.BinaryIdentifier,tickPool);
+                }
+                return tickPool;
+            }
 		}
 		
 	    private static readonly List<Queue> queueList = new List<Queue>();

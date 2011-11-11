@@ -54,7 +54,7 @@ namespace TickZoom.Common
 		public double last = 0D;
         private OrderAlgorithm logicalOrderHandler;
         private bool isRunning = false;
-        private Pool<TickBinaryBox> tickPool = Factory.TickUtil.TickPool();
+	    private Pool<TickBinaryBox> tickPool;
         private TimeStamp time;
 	    private int diagnoseMetric = Diagnose.RegisterMetric("Symbol Handler");
         private long tickCount = 0L;
@@ -80,6 +80,7 @@ namespace TickZoom.Common
 			this.receiver = receiver;
 			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
 			this.salesLatency = new LatencyMetric( "SymbolHandler-Trade-" + symbol.Symbol.StripInvalidPathChars());
+            tickPool =  Factory.TickUtil.TickPool(symbol);
 		}
 		
 		bool errorWrongLevel1Type = false;

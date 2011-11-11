@@ -114,10 +114,10 @@ namespace TickZoom.Starters
 	public class DesignProvider : Provider {
 		private object taskLocker = new object();
  		private volatile bool isDisposed = false;
- 		private Pool<TickBinaryBox> tickPool = Factory.TickUtil.TickPool();
 		
 		public void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail)
 		{
+		    var tickPool = Factory.TickUtil.TickPool(symbol);
 			TickIO tickIO = Factory.TickUtil.TickIO();
 			tickIO.Initialize();
 			tickIO.SetSymbol( symbol.BinaryIdentifier);

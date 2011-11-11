@@ -36,7 +36,7 @@ namespace TickZoom.TickUtil
 	   	readonly bool debug = log.IsDebugEnabled;
 	    private TickQueue readQueue = new TickQueueImpl("DataReceiverDefault",1000);
         Provider sender;
-        Pool<TickBinaryBox> tickPool = Factory.TickUtil.TickPool();
+	    private Pool<TickBinaryBox> tickPool;
 	    private static readonly bool captureEvents = Factory.Provider.EventLog.CheckEnabled(log);
 	    private int receiverId;
         
@@ -46,8 +46,9 @@ namespace TickZoom.TickUtil
 			return receiverState;
 		}
 		
-		public DataReceiverDefault(Provider sender) {
+		public DataReceiverDefault(Provider sender, SymbolInfo symbol) {
 			this.sender = sender;
+		    this.tickPool = Factory.TickUtil.TickPool(symbol);
 			readQueue.StartEnqueue = Start;
 			if( captureEvents) {
 				receiverId = Factory.Provider.EventLog.GetReceiverId(this);
