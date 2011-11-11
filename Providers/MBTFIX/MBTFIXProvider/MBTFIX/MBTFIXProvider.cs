@@ -260,7 +260,7 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Recovered symbol positions from snapshot:\n" + OrderStore.SymbolPositionsToString());
                 if (debug) log.Debug("Recovered strategy positions from snapshot:\n" + OrderStore.StrategyPositionsToString());
                 RemoteSequence = OrderStore.RemoteSequence;
-                SendLogin(OrderStore.LocalSequence+500);
+                SendLogin(OrderStore.LocalSequence+1000);
                 OrderStore.ForceSnapShot();
             }
             else
