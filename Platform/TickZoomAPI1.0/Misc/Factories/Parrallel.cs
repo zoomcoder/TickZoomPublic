@@ -152,5 +152,6 @@ namespace TickZoom.Api
         long TimerCount { get; }
 	    int ThreadCount { get; }
 	    void ReleaseIOTasks();
+	    void ExcuteAsync( Action asyncAction);
 	}
 }

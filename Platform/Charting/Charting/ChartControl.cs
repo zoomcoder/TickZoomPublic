@@ -55,12 +55,14 @@ namespace TickZoom.Charting
 	public partial class ChartControl : UserControl, TickZoom.Api.Chart, LogAware
 	{
 		private static Log log;
-		private volatile bool debug;
+        private volatile bool verbose;
+        private volatile bool debug;
         private volatile bool trace;
         public void RefreshLogLevel()
         {
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
+            verbose = log.IsVerboseEnabled;
         }
         TimeStamp firstTime;
 		StockPointList stockPointList;
@@ -1412,7 +1414,7 @@ namespace TickZoom.Charting
 	    private void refreshTick(object sender, EventArgs e)
 		{
 			try {
-                if (trace) log.Trace("refreshTick()");
+                if (verbose) log.Verbose("refreshTick()");
                 if (this.FindForm().WindowState != FormWindowState.Minimized)
                 {
                     if (tickUpdate)

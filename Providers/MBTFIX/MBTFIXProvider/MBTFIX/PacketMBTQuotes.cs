@@ -167,6 +167,12 @@ namespace TickZoom.MBTQuotes
         private readonly char[] optionTypeChar = new char[] { 'C', 'P' };
         private unsafe void ParseData()
         {
+            if (trace)
+            {
+                data.Position = 0;
+                var messageText = new string(dataIn.ReadChars(Remaining));
+                log.Trace("ParseData(): " + messageText);
+            }
             data.Position = 2;
             fixed( byte *bptr = data.GetBuffer()) {
                 messageType = (char) *bptr;
@@ -297,7 +303,8 @@ namespace TickZoom.MBTQuotes
                 ++ptr;
             }
             if( *ptr == EndOfField || *ptr == EndOfMessage) {
-                Position += (int) (ptr - bptr);
+                ++ptr;
+                Position += (int)(ptr - bptr);
                 return val;
             } else {
                 ++ptr;

@@ -127,6 +127,12 @@ namespace TickZoom.MBTQuotes
                     log.Info("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
                     break;
 				case '3':
+                    if( trace)
+                    {
+                        message.Data.Position = 0;
+			            var messageText = new string(message.DataIn.ReadChars(message.Remaining));
+                        log.Trace("Received tick: " + messageText);
+                    }
 					TimeAndSalesUpdate( message);
 					break;
                 case '4':

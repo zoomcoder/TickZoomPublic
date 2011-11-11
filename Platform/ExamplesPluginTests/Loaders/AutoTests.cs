@@ -331,7 +331,7 @@ namespace Loaders
 			    Name = "MultiSymbolOrders",
 			    Loader = new ExampleOrdersLoader(),
 				Symbols = @"AD.1month, BO.1month, BP.1month, CC.1month, CD.1month, CL.1month,
-					CN.1month, CT.1month, DJ.1month, DX.1month, EC.1month, ED.1month,
+                    CN.1month, CT.1month, DJ.1month, DX.1month, EC.1month, ED.1month,
                     ER.1month, ES.1month, FC.1month, FV.1month, GC.1month, HG.1month,
                     HO.1month, JO.1month, JY.1month, KC.1month, LB.1month, LC.1month,
                     LH.1month, MD.1month, ME.1month, MG.1month, MI.1month, NG.1month,
