@@ -5,8 +5,8 @@ namespace TickZoom.Api
 {
     public struct PhysicalOrderLock : IDisposable
     {
-        private PhysicalOrderCache lockedCache;
-        public PhysicalOrderLock(PhysicalOrderCache cache)
+        private PhysicalOrderStore lockedCache;
+        public PhysicalOrderLock(PhysicalOrderStore cache)
         {
             lockedCache = cache;
         }
@@ -56,6 +56,7 @@ namespace TickZoom.Api
         void UpdateRemoteSequence(int remoteSequence);
         void SetSequences(int remoteSequence, int localSequence);
         TimeStamp LastSequenceReset { get; set; }
+        bool IsBusy { get; }
         string OrdersToString();
         int Count();
     }

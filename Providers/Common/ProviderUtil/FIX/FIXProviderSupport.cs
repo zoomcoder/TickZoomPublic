@@ -255,12 +255,25 @@ namespace TickZoom.FIX
 			}
 		}
 
+        private bool SnapshotBusy
+        {
+            get { return orderStore != null && orderStore.IsBusy; }
+        }
+
 	    private SocketState lastSocketState = SocketState.New;
         private Status lastConnectionStatus = Status.None;
+        private bool snapshotNeeded;
         private Yield SocketTask()
         {
-			if( isDisposed ) return Yield.NoWork.Repeat;
-            if( socket.State != lastSocketState)
+            if (isDisposed) return Yield.NoWork.Repeat;
+            if (snapshotNeeded && !SnapshotBusy)
+            {
+                OrderStore.ForceSnapShot();
+                snapshotNeeded = false;
+                return Yield.NoWork.Repeat;
+            }
+            if (SnapshotBusy) return Yield.NoWork.Repeat;
+            if (socket.State != lastSocketState)
             {
                 if( debug) log.Debug("SocketState changed to " + socket.State);
                 lastSocketState = socket.State;
@@ -1156,5 +1169,11 @@ namespace TickZoom.FIX
 	    {
 	        get { return isResendComplete; }
 	    }
+
+        public bool SnapshotNeeded
+        {
+            get { return snapshotNeeded; }
+            set { snapshotNeeded = value; }
+        }
 	}
 }

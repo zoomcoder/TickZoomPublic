@@ -194,7 +194,10 @@ namespace TickZoom.Common
                         writeFileAction.EndInvoke(writeFileResult);
                         writeFileResult = null;
                     }
-                    if( debug) log.Debug("Snapshot still in progress. Started from:\n" + lastSnapshotTrace);
+                    else
+                    {
+                        throw new ApplicationException("Snapshot still in progress. Last snapshot started from:\n" + lastSnapshotTrace + "\nEnd of previous stack trace.");
+                    }
                 }
                 if( writeFileResult == null)
                 {
@@ -206,10 +209,18 @@ namespace TickZoom.Common
             }
         }
 
+        public bool IsBusy
+        {
+            get
+            {
+                return writeFileResult != null && !writeFileResult.IsCompleted;
+            }
+        }
+
         public void WaitForSnapshot()
         {
-          
-            while (writeFileResult != null && !writeFileResult.IsCompleted)
+
+            while (IsBusy)
             {
                 Thread.Sleep(100);
             }
@@ -614,7 +625,6 @@ namespace TickZoom.Common
                 if (loaded)
                 {
                     forceSnapShotRollover = true;
-                    ForceSnapShot();
                 }
                 return loaded;
             }
