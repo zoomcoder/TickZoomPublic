@@ -90,6 +90,7 @@ namespace TickZoom.MBTFIX
             if( OrderStore != null)
             {
                 OrderStore.ForceSnapShot();
+                OrderStore.WaitForSnapshot();
             }
             var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
             if( SyncTicks.Enabled)
@@ -260,7 +261,7 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Recovered symbol positions from snapshot:\n" + OrderStore.SymbolPositionsToString());
                 if (debug) log.Debug("Recovered strategy positions from snapshot:\n" + OrderStore.StrategyPositionsToString());
                 RemoteSequence = OrderStore.RemoteSequence;
-                SendLogin(OrderStore.LocalSequence+1000);
+                SendLogin(OrderStore.LocalSequence + 500);
                 OrderStore.ForceSnapShot();
             }
             else
@@ -481,6 +482,7 @@ namespace TickZoom.MBTFIX
                     if (IsResendComplete && isOrderServerOnline)
                     {
                         OrderStore.ForceSnapShot();
+                        OrderStore.WaitForSnapshot();
                         EndRecovery();
                         RequestPositions();
                         StartPositionSync();

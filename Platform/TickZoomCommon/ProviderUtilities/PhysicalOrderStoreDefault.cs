@@ -182,20 +182,23 @@ namespace TickZoom.Common
             }
         }
 
+        private string lastSnapshotTrace;
         public void ForceSnapShot()
         {
             using( snapshotLocker.Using())
             {
-                if (writeFileResult != null)
+                while(writeFileResult != null)
                 {
                     if (writeFileResult.IsCompleted)
                     {
                         writeFileAction.EndInvoke(writeFileResult);
                         writeFileResult = null;
                     }
+                    if( debug) log.Debug("Snapshot still in progress. Started from:\n" + lastSnapshotTrace);
                 }
                 if( writeFileResult == null)
                 {
+                    lastSnapshotTrace = Environment.StackTrace;
                     writeFileResult = writeFileAction.BeginInvoke(null, null);
                     updateCount = 0;
                     snapshotTimer = Factory.TickCount;
