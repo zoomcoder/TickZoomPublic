@@ -34,6 +34,7 @@ namespace TickZoom.Api
 	{
 	    private static readonly Log log = Factory.Log.GetLogger(typeof (SimpleLock));
 	    private int isLocked = 0;
+	    private Thread lockingThread;
 	    
 		public bool IsLocked {
 			get { return isLocked == 1; }
@@ -41,6 +42,10 @@ namespace TickZoom.Api
 	    
 		public bool TryLock() {
 	    	var result = Interlocked.CompareExchange(ref isLocked,1,0) == 0;
+            if( result)
+            {
+                lockingThread = Thread.CurrentThread;
+            }
 		    return result;
 		}
 	    
@@ -53,7 +58,8 @@ namespace TickZoom.Api
 			    ++count;
                 if( checkDeadlock && count > int.MaxValue)
                 {
-                    throw new ApplicationException("Deadlock. " + Environment.StackTrace);
+                    lockingThread.Abort();
+                    throw new ApplicationException("Deadlock.");
                 }
 			}
 	    }

@@ -349,7 +349,9 @@ namespace Loaders
 				try {
 					string appData = Factory.Settings["AppDataFolder"];
 					var symbolStrings = symbols.Split(new char[] { ',' });
-					foreach( var symbol in symbolStrings) {
+					foreach( var fullSymbol in symbolStrings) {
+                        var symbolParts = fullSymbol.Split(new char[] { '.' });
+					    var symbol = symbolParts[0];
 						var symbolFile = symbol.Trim().StripInvalidPathChars();
 			 			File.Delete( appData + @"\Test\\ServerCache\" + symbolFile + ".tck");
 					}

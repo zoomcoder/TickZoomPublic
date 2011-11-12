@@ -147,7 +147,7 @@ namespace TickZoom.Symbols
 		private void HandleCategory(SymbolCategory category, XmlReader reader) {
 			string tagName = reader.Name;
 			category.Name = reader.GetAttribute("name");
-			log.Debug("Handle category " + category.Name);
+			if( trace) log.Trace("Handle category " + category.Name);
 			if( reader.IsEmptyElement) { return; }
 			log.Indent();
 			while( reader.Read()) {

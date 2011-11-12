@@ -211,7 +211,14 @@ namespace TickZoom.FIX
             int copyTo = FindSplitAt(buffer);
             if (copyTo > 0)
             {
-                data.Write(buffer.GetBuffer(), position, (int)copyTo);
+                try
+                {
+                    data.Write(buffer.GetBuffer(), position, (int)copyTo);
+                }
+                catch( ArgumentException ex )
+                {
+                    throw;
+                }
                 buffer.Position += copyTo;
                 if( verbose) log.Verbose("Copied buffer: " + this);
                 return true;
