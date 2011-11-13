@@ -262,68 +262,70 @@ namespace TickZoom.FIX
 
 	    private SocketState lastSocketState = SocketState.New;
         private Status lastConnectionStatus = Status.None;
-        private bool snapshotNeeded;
         private Yield SocketTask()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
-            if (snapshotNeeded && !SnapshotBusy)
+            if (orderStore != null && orderStore.IsBusy) return Yield.NoWork.Repeat;
+
+            using( OrderStore.Lock())
             {
-                OrderStore.ForceSnapShot();
-                snapshotNeeded = false;
-                return Yield.NoWork.Repeat;
-            }
-            if (SnapshotBusy) return Yield.NoWork.Repeat;
-            if (socket.State != lastSocketState)
-            {
-                if( debug) log.Debug("SocketState changed to " + socket.State);
-                lastSocketState = socket.State;
-            }
-            if( connectionStatus != lastConnectionStatus)
-            {
-                if (debug) log.Debug("Connection status changed to " + connectionStatus);
-                lastConnectionStatus = connectionStatus;
-            }
-            switch (socket.State)
-            {
-				case SocketState.New:
-                    if( CheckFailedLoginFile() )
-                    {
-                        return Yield.Terminate;
-                    }
-					if( receiver != null) {
-						Initialize();
-						retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
-						log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
-						return Yield.DidWork.Repeat;
-					} else {
-						return Yield.NoWork.Repeat;
-					}
-				case SocketState.PendingConnect:
-					if( Factory.Parallel.TickCount >= retryTimeout) {
-						log.Info("Connection Timeout");
-						SetupRetry();
-						retryDelay += retryIncrease;
-						retryDelay = Math.Min(retryDelay,retryMaximum);
-						return Yield.DidWork.Repeat;
-					} else {
-						return Yield.NoWork.Repeat;
-					}
-				case SocketState.Connected:
-					if( connectionStatus == Status.New) {
-						connectionStatus = Status.Connected;
-                        if( debug) log.Debug("Connected with socket: " + socket);
-						if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-					}
-					switch( connectionStatus) {
-						case Status.Connected:
-                            if( orderStore == null)
-                            {
-                                orderStore = Factory.Utility.PhyscalOrderStore(ProviderName);
-                            }
-                            isResendComplete = true;
-                            if (debug) log.Debug("Set resend complete: " + IsResendComplete);
-                            using( orderStore.Lock())
-                            {
+                if (socket.State != lastSocketState)
+                {
+                    if (debug) log.Debug("SocketState changed to " + socket.State);
+                    lastSocketState = socket.State;
+                }
+                if (connectionStatus != lastConnectionStatus)
+                {
+                    if (debug) log.Debug("Connection status changed to " + connectionStatus);
+                    lastConnectionStatus = connectionStatus;
+                }
+                switch (socket.State)
+                {
+                    case SocketState.New:
+                        if (CheckFailedLoginFile())
+                        {
+                            return Yield.Terminate;
+                        }
+                        if (receiver != null)
+                        {
+                            Initialize();
+                            retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
+                            log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
+                            return Yield.DidWork.Repeat;
+                        }
+                        else
+                        {
+                            return Yield.NoWork.Repeat;
+                        }
+                    case SocketState.PendingConnect:
+                        if (Factory.Parallel.TickCount >= retryTimeout)
+                        {
+                            log.Info("Connection Timeout");
+                            SetupRetry();
+                            retryDelay += retryIncrease;
+                            retryDelay = Math.Min(retryDelay, retryMaximum);
+                            return Yield.DidWork.Repeat;
+                        }
+                        else
+                        {
+                            return Yield.NoWork.Repeat;
+                        }
+                    case SocketState.Connected:
+                        if (connectionStatus == Status.New)
+                        {
+                            connectionStatus = Status.Connected;
+                            if (debug) log.Debug("Connected with socket: " + socket);
+                            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+                        }
+                        switch (connectionStatus)
+                        {
+                            case Status.Connected:
+                                if (orderStore == null)
+                                {
+                                    orderStore = Factory.Utility.PhyscalOrderStore(ProviderName);
+                                }
+                                isResendComplete = true;
+                                if (debug) log.Debug("Set resend complete: " + IsResendComplete);
                                 if (OnLogin())
                                 {
                                     connectionStatus = Status.PendingLogin;
@@ -334,81 +336,75 @@ namespace TickZoom.FIX
                                 {
                                     RegenerateSocket();
                                 }
-                            }
-                            return Yield.DidWork.Repeat;
-                        case Status.PendingLogin:
-                        case Status.PendingLogOut:
-                        case Status.PendingRecovery:
-						case Status.Recovered:
-                            if (retryDelay != retryStart)
-                            {
-								retryDelay = retryStart;
-								log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
-							}
-							if( Factory.Parallel.TickCount >= heartbeatTimeout)
-							{
-							    var typeStr = connectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
-								log.Info( typeStr + ". Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
-                                log.Error("FIXProvider " + typeStr);
-                                SyncTicks.LogStatus();
-								SetupRetry();
-								IncreaseRetryTimeout();
-								return Yield.DidWork.Repeat;
-							}
-
-					        MessageFIXT1_1 messageFIX = null;
-
-                            if( connectionStatus != Status.PendingLogin && resendBuffer.TryGetValue(remoteSequence, out messageFIX))
-                            {
-                                resendBuffer.Remove(remoteSequence);
-                            }
-
-                            if( messageFIX == null)
-                            {
-                                Message message = null;
-                                if( Socket.TryGetMessage(out message))
+                                return Yield.DidWork.Repeat;
+                            case Status.PendingLogin:
+                            case Status.PendingLogOut:
+                            case Status.PendingRecovery:
+                            case Status.Recovered:
+                                if (retryDelay != retryStart)
                                 {
-                                    messageFIX = (MessageFIXT1_1)message;
+                                    retryDelay = retryStart;
+                                    log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
                                 }
-                            }
-
-                            if( messageFIX != null)
-                            {
-                                if (debug) log.Debug("Received FIX Message: " + messageFIX);
-                                if (messageFIX.MessageType == "A")
+                                if (Factory.Parallel.TickCount >= heartbeatTimeout)
                                 {
-                                    if (messageFIX.Sequence == 1 || messageFIX.Sequence < remoteSequence)
+                                    var typeStr = connectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
+                                    log.Info(typeStr + ". Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
+                                    log.Error("FIXProvider " + typeStr);
+                                    SyncTicks.LogStatus();
+                                    SetupRetry();
+                                    IncreaseRetryTimeout();
+                                    return Yield.DidWork.Repeat;
+                                }
+
+                                MessageFIXT1_1 messageFIX = null;
+
+                                if (connectionStatus != Status.PendingLogin && resendBuffer.TryGetValue(remoteSequence, out messageFIX))
+                                {
+                                    resendBuffer.Remove(remoteSequence);
+                                }
+
+                                if (messageFIX == null)
+                                {
+                                    Message message = null;
+                                    if (Socket.TryGetMessage(out message))
                                     {
-                                        remoteSequence = messageFIX.Sequence;
-                                        if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + remoteSequence);
-                                        orderStore.LastSequenceReset = new TimeStamp(messageFIX.SendUtcTime);
-                                    }
-                                    if( HandleLogon(messageFIX))
-                                    {
-                                        connectionStatus = Status.PendingRecovery;
+                                        messageFIX = (MessageFIXT1_1)message;
                                     }
                                 }
-                            }
 
-                            if (messageFIX != null)
-                            {
-								lastMessageTime = TimeStamp.UtcNow;
-                                switch( messageFIX.MessageType)
+                                if (messageFIX != null)
                                 {
-                                    case "2":
-                                        using( orderStore.Lock())
+                                    if (debug) log.Debug("Received FIX Message: " + messageFIX);
+                                    if (messageFIX.MessageType == "A")
+                                    {
+                                        if (messageFIX.Sequence == 1 || messageFIX.Sequence < remoteSequence)
                                         {
-                                            HandleResend(messageFIX);
+                                            remoteSequence = messageFIX.Sequence;
+                                            if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + remoteSequence);
+                                            orderStore.LastSequenceReset = new TimeStamp(messageFIX.SendUtcTime);
                                         }
-                                        break;
+                                        if (HandleLogon(messageFIX))
+                                        {
+                                            connectionStatus = Status.PendingRecovery;
+                                        }
+                                    }
                                 }
-                                using (orderStore.Lock())
+
+                                if (messageFIX != null)
                                 {
+                                    lastMessageTime = TimeStamp.UtcNow;
+                                    switch (messageFIX.MessageType)
+                                    {
+                                        case "2":
+                                            HandleResend(messageFIX);
+                                            break;
+                                    }
                                     var releaseFlag = true;
                                     var message4_4 = messageFIX as MessageFIX4_4;
                                     // Workaround for bug in MBT FIX Server that sends message from prior to 
                                     // last sequence number reset.
-                                    if( messageFIX.IsPossibleDuplicate &&
+                                    if (messageFIX.IsPossibleDuplicate &&
                                         message4_4 != null && message4_4.OriginalSendTime != null &&
                                         new TimeStamp(message4_4.OriginalSendTime) < OrderStore.LastSequenceReset)
                                     {
@@ -445,63 +441,69 @@ namespace TickZoom.FIX
                                             orderStore.UpdateRemoteSequence(remoteSequence);
                                         }
                                     }
-                                    if( releaseFlag)
+                                    if (releaseFlag)
                                     {
                                         Socket.MessageFactory.Release(messageFIX);
                                     }
+                                    orderStore.IncrementUpdateCount();
+                                    IncreaseRetryTimeout();
+                                    return Yield.DidWork.Repeat;
                                 }
-                                IncreaseRetryTimeout();
-								return Yield.DidWork.Repeat;
-							} else {
-								return Yield.NoWork.Repeat;
-							}
-                        case Status.Disconnected:
-                            return Yield.NoWork.Repeat;
-                        default:
-                            throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
-                    }
-				case SocketState.Disconnected:
-                case SocketState.Closed:
-                    switch (connectionStatus)
-                    {
-                        case Status.Connected:
-                        case Status.Disconnected:
-                        case Status.New:
-                        case Status.PendingRecovery:
-                        case Status.Recovered:
-                        case Status.PendingLogin:
-                            retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
-							connectionStatus = Status.PendingRetry;
-							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
-							retryDelay += retryIncrease;
-							retryDelay = Math.Min(retryDelay,retryMaximum);
-							return Yield.NoWork.Repeat;
-                        case Status.PendingRetry:
-							if( Factory.Parallel.TickCount >= retryTimeout) {
-								log.Info("Retry Time Elapsed");
-								OnRetry();
-								RegenerateSocket();
-								if( trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
-								return Yield.DidWork.Repeat;
-							} else {
-								return Yield.NoWork.Repeat;
-							}
-                            return Yield.NoWork.Repeat;
-                        case Status.PendingLogOut:
-                            Dispose();
-                            return Yield.NoWork.Repeat;
-                        default:
-                            log.Warn("Unexpected connection status when socket disconnected: " + connectionStatus + ". Shutting down the provider.");
-                            Dispose();
-                            return Yield.NoWork.Repeat;
-					}
-                case SocketState.Closing:
-                    return Yield.NoWork.Repeat;
-                default:
-					string textMessage = "Unknown socket state: " + socket.State;
-					log.Error( textMessage);
-					throw new ApplicationException(textMessage);
-			}
+                                else
+                                {
+                                    return Yield.NoWork.Repeat;
+                                }
+                            case Status.Disconnected:
+                                return Yield.NoWork.Repeat;
+                            default:
+                                throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
+                        }
+                    case SocketState.Disconnected:
+                    case SocketState.Closed:
+                        switch (connectionStatus)
+                        {
+                            case Status.Connected:
+                            case Status.Disconnected:
+                            case Status.New:
+                            case Status.PendingRecovery:
+                            case Status.Recovered:
+                            case Status.PendingLogin:
+                                retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
+                                connectionStatus = Status.PendingRetry;
+                                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
+                                retryDelay += retryIncrease;
+                                retryDelay = Math.Min(retryDelay, retryMaximum);
+                                return Yield.NoWork.Repeat;
+                            case Status.PendingRetry:
+                                if (Factory.Parallel.TickCount >= retryTimeout)
+                                {
+                                    log.Info("Retry Time Elapsed");
+                                    OnRetry();
+                                    RegenerateSocket();
+                                    if (trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
+                                    return Yield.DidWork.Repeat;
+                                }
+                                else
+                                {
+                                    return Yield.NoWork.Repeat;
+                                }
+                                return Yield.NoWork.Repeat;
+                            case Status.PendingLogOut:
+                                Dispose();
+                                return Yield.NoWork.Repeat;
+                            default:
+                                log.Warn("Unexpected connection status when socket disconnected: " + connectionStatus + ". Shutting down the provider.");
+                                Dispose();
+                                return Yield.NoWork.Repeat;
+                        }
+                    case SocketState.Closing:
+                        return Yield.NoWork.Repeat;
+                    default:
+                        string textMessage = "Unknown socket state: " + socket.State;
+                        log.Error(textMessage);
+                        throw new ApplicationException(textMessage);
+                }
+            }
 		}
 
         protected virtual bool HandleLogon(MessageFIXT1_1 message)
@@ -1170,10 +1172,5 @@ namespace TickZoom.FIX
 	        get { return isResendComplete; }
 	    }
 
-        public bool SnapshotNeeded
-        {
-            get { return snapshotNeeded; }
-            set { snapshotNeeded = value; }
-        }
 	}
 }

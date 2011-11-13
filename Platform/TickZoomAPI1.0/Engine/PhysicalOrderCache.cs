@@ -42,7 +42,6 @@ namespace TickZoom.Api
         long SnapshotRolloverSize { get; set; }
         int RemoteSequence { get; }
         int LocalSequence { get; }
-        void TrySnapshot();
         void ForceSnapShot();
         void WaitForSnapshot();
         bool Recover();
@@ -59,5 +58,6 @@ namespace TickZoom.Api
         bool IsBusy { get; }
         string OrdersToString();
         int Count();
+        void IncrementUpdateCount();
     }
 }

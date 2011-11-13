@@ -115,10 +115,25 @@ namespace TickZoom.Common
             return new PhysicalOrderLock(this);
         }
 
+        private bool snapshotNeeded;
         public void Unlock()
         {
             Monitor.Exit(snapshotLocker);
             Interlocked.Decrement(ref lockCounter);
+            if (snapshotNeeded)
+            {
+                StartSnapShot();
+                snapshotNeeded = false;
+            }
+            else
+            {
+                TryStartSnapshot();
+            }
+        }
+
+        public void IncrementUpdateCount()
+        {
+            ++updateCount;
         }
 
         public static bool IsLocked
@@ -173,17 +188,22 @@ namespace TickZoom.Common
             return false;
         }
 
-        public void TrySnapshot()
+        private void TryStartSnapshot()
         {
             if (isDisposed) return;
             if (updateCount > 100)
             {
-                ForceSnapShot();
+                StartSnapShot();
             }
         }
 
-        private string lastSnapshotTrace;
         public void ForceSnapShot()
+        {
+            snapshotNeeded = true;
+        }
+
+        private string lastSnapshotTrace;
+        private void StartSnapShot()
         {
             using( snapshotLocker.Using())
             {
@@ -970,7 +990,6 @@ namespace TickZoom.Common
             using (ordersLocker.Using())
             {
                 this.localSequence = localSequence;
-                TrySnapshot();
             }
         }
 
@@ -980,7 +999,6 @@ namespace TickZoom.Common
             using (ordersLocker.Using())
             {
                 this.remoteSequence = remoteSequence;
-                TrySnapshot();
             }
         }
 
@@ -1040,7 +1058,6 @@ namespace TickZoom.Common
                         throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
                     }
                 }
-                //TrySnapshot();
             }
         }
 
