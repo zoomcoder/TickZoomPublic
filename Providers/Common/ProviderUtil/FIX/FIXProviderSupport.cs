@@ -36,7 +36,7 @@ using TickZoom.Api;
 namespace TickZoom.FIX
 {
     public abstract class FIXProviderSupport : Provider, LogAware
-	{
+    {
         private PhysicalOrderStore orderStore;
         private readonly Log log;
         private volatile bool trace;
@@ -100,13 +100,15 @@ namespace TickZoom.FIX
 
 		public FIXProviderSupport()
 		{
-			log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+GetType().Name);
+		    this.providerName = GetType().Name;
+            log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+providerName);
 		    log.Register(this);
             verbose = log.IsVerboseEnabled;
             debug = log.IsDebugEnabled;
 			trace = log.IsTraceEnabled;
         	log.Info(providerName+" Startup");
-			RegenerateSocket();
+            orderStore = Factory.Utility.PhyscalOrderStore(providerName);
+            RegenerateSocket();
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
 			socketTask.Start();
   			string logRecoveryString = Factory.Settings["LogRecovery"];
@@ -257,7 +259,7 @@ namespace TickZoom.FIX
 
         private bool SnapshotBusy
         {
-            get { return orderStore != null && orderStore.IsBusy; }
+            get { return orderStore.IsBusy; }
         }
 
 	    private SocketState lastSocketState = SocketState.New;
@@ -265,9 +267,26 @@ namespace TickZoom.FIX
         private Yield SocketTask()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
-            if (orderStore != null && orderStore.IsBusy) return Yield.NoWork.Repeat;
+            if (SnapshotBusy) return Yield.NoWork.Repeat;
 
-            using( OrderStore.Lock())
+            if (positionChangeQueue.Count > 0)
+            {
+                using (positionChangeQueueLocker.Using())
+                {
+                    if (positionChangeQueue.Count > 0)
+                    {
+                        using( OrderStore.Lock())
+                        {
+                            var positionChange = positionChangeQueue.Dequeue();
+                            PositionChange(positionChange);
+                        }
+                    }
+                }
+            }
+
+            if (SnapshotBusy) return Yield.DidWork.Repeat;
+
+            using (OrderStore.Lock())
             {
                 if (socket.State != lastSocketState)
                 {
@@ -320,10 +339,6 @@ namespace TickZoom.FIX
                         switch (connectionStatus)
                         {
                             case Status.Connected:
-                                if (orderStore == null)
-                                {
-                                    orderStore = Factory.Utility.PhyscalOrderStore(ProviderName);
-                                }
                                 isResendComplete = true;
                                 if (debug) log.Debug("Set resend complete: " + IsResendComplete);
                                 if (OnLogin())
@@ -943,7 +958,7 @@ namespace TickZoom.FIX
 			return false;
 		}
 
-        public abstract void PositionChange(Receiver receiver, PositionChangeDetail positionChange);
+        public abstract void PositionChange(PositionChangeDetail positionChange);
 		
 	 	protected volatile bool isDisposed = false;
 	    public void Dispose() 
@@ -991,10 +1006,10 @@ namespace TickZoom.FIX
                         StopSymbol(receiver, symbol);
                         break;
                     case EventType.PositionChange:
-                        PositionChangeDetail positionChange = (PositionChangeDetail)eventDetail;
-                        using( orderStore.Lock())
+                        var positionChange = (PositionChangeDetail)eventDetail;
+                        using( positionChangeQueueLocker.Using())
                         {
-                            PositionChange(receiver, positionChange);
+                            positionChangeQueue.Enqueue(positionChange);
                         }
                         break;
                     case EventType.Terminate:
@@ -1009,6 +1024,9 @@ namespace TickZoom.FIX
                 OnException(ex);
             }
 		}
+
+        private SimpleLock positionChangeQueueLocker = new SimpleLock();
+        private Queue<PositionChangeDetail> positionChangeQueue = new Queue<PositionChangeDetail>();
 	    
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {
             if( !fixMsg.IsDuplicate)

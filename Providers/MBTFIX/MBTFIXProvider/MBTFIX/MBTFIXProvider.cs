@@ -73,12 +73,11 @@ namespace TickZoom.MBTFIX
             None,
         }
         private string fixDestination = "MBT";
-		
-		public MBTFIXProvider(string name)
+
+        public MBTFIXProvider(string name)
 		{
             log.Register(this);
 			log.Notice("Using config file name: " + name);
-			ProviderName = "MBTFIXProvider";
 			if( name.Contains(".config")) {
 				throw new ApplicationException("Please remove .config from config section name.");
 			}
@@ -1404,7 +1403,7 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-        public override void PositionChange(Receiver receiver, PositionChangeDetail positionChange)
+        public override void PositionChange(PositionChangeDetail positionChange)
 		{
             var symbol = positionChange.Symbol;
             int desiredPosition = positionChange.Position;
