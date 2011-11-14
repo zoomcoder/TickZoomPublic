@@ -270,6 +270,10 @@ namespace TickZoom.Interceptors
 			if( hasCurrentTick) {
                 ProcessOrdersInternal(currentTick);
             }
+            else
+			{
+			    if( debug) log.Debug("Skipping ProcessOrders because HasCurrentTick is " + hasCurrentTick);
+			}
 		    return 1;
 		}
 
@@ -331,7 +335,7 @@ namespace TickZoom.Interceptors
 			if( symbol == null) {
 				throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
 			}
-            if( trace) log.Trace( "Orders: Market " + marketOrders.Count + ", Increase " + increaseOrders.Count + ", Decrease " + decreaseOrders.Count);
+            if( debug) log.Debug( "Orders: Market " + marketOrders.Count + ", Increase " + increaseOrders.Count + ", Decrease " + decreaseOrders.Count);
 			for( var node = marketOrders.First; node != null; node = node.Next) {
 				var order = node.Value;
 				OnProcessOrder(order, tick);

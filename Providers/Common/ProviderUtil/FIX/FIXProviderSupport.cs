@@ -805,7 +805,10 @@ namespace TickZoom.FIX
         	}
         	// This adds a new order handler.
         	TryAddSymbol(symbol);
-        	OnStartSymbol(symbol);
+            using( orderStore.Lock())
+            {
+                OnStartSymbol(symbol);
+            }
         }
         
         public abstract void OnStartSymbol( SymbolInfo symbol);
