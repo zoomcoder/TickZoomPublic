@@ -33,6 +33,7 @@ namespace TickZoom.Api
 	public class SimpleLock : IDisposable
 	{
 	    private static readonly Log log = Factory.Log.GetLogger(typeof (SimpleLock));
+	    private static readonly bool debug = log.IsDebugEnabled;
 	    private int isLocked = 0;
 	    
 		public bool IsLocked {
@@ -49,32 +50,33 @@ namespace TickZoom.Api
 		public void Lock()
 		{
             if( TryLock()) return;
-		    var logCount = 0;
-		    var count = 0;
+            if( isLocked == Thread.CurrentThread.ManagedThreadId)
+            {
+                throw new ApplicationException("Already locked by this same thread.");
+            }
+		    var count = 0L;
+		    var loggedFlag = false;
 			while( !TryLock())
 			{
-			    ++count;
-                if( count > 1000000)
+                if (count > 1000000)
                 {
-                    var thread = Thread.CurrentThread;
-                    if( thread.ManagedThreadId == isLocked)
+                    if (!loggedFlag)
                     {
-                        throw new ApplicationException("Looping lock on current thread.");
-                    }
-                    else
-                    {
-                        ++logCount;
-                        if( logCount > 5)
+                        try
                         {
-                            throw new ApplicationException("Deadlock or thread sleeping during lock: " + Environment.StackTrace);
+                            throw new ApplicationException("Either deadlocked thread or else sleeping thread while locked.");
                         }
-                        else
+                        catch( Exception ex)
                         {
-                            log.Error("Deadlock or thread sleeping during lock: " + Environment.StackTrace);
-                            Thread.Sleep(1);
-                            count = 0;
+                            if (debug) log.Warn(ex.Message, ex);
                         }
+                        loggedFlag = true;
                     }
+                    Thread.Sleep(1);
+                }
+                else
+                {
+                    ++count;
                 }
 			}
 	    }

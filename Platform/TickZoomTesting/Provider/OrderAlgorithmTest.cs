@@ -52,7 +52,7 @@ namespace Orders
 		public void Setup() {
             strategy = new Strategy();
             strategy.Context = new MockContext();
-            physicalCache = Factory.Utility.PhyscalOrderStore("TestProvider");
+            physicalCache = Factory.Utility.PhyscalOrderCache();
             handler = new TestOrderAlgorithm(symbol, strategy, ProcessFill, physicalCache);
             orders.Clear();
 		}
@@ -322,22 +322,17 @@ namespace Orders
 
         private void SetActualSize( int size)
         {
-            using( physicalCache.Lock())
+            if (size > 0)
             {
-                if (size > 0)
-                {
-                    CreateLogicalEntry(OrderType.BuyMarket, 234.12, size);
-                }
-                else
-                {
-                    CreateLogicalEntry(OrderType.SellMarket, 234.12, Math.Abs(size));
-                }
-                handler.SetLogicalOrders(orders);
-                handler.PerformCompare();
-                handler.FillCreatedOrders();
-                orders.Clear();
-                handler.ClearPhysicalOrders();
+                CreateLogicalEntry(OrderType.BuyMarket, 234.12, size);
             }
+            else
+            {
+                CreateLogicalEntry(OrderType.SellMarket, 234.12, Math.Abs(size));
+            }
+            handler.ProcessOrders(orders);
+            orders.Clear();
+            handler.ClearPhysicalOrders();
         }
             
 		
@@ -416,9 +411,7 @@ namespace Orders
 			CreateLogicalExit(OrderType.BuyStop,194.12);
 
 			handler.SetDesiredPosition(1000);
-			handler.SetLogicalOrders(orders);
-			handler.PerformCompare();
-            handler.FillCreatedOrders();
+			handler.ProcessOrders(orders);
 
             Assert.AreEqual(1,handler.Orders.CanceledOrders.Count);
 			Assert.AreEqual(0,handler.Orders.ChangedOrders.Count);
@@ -1593,6 +1586,17 @@ namespace Orders
 				strategy.Position.Change(position,100.00,TimeStamp.UtcNow);
 				orderAlgorithm.SetDesiredPosition(position);
 			}
+
+            public void ProcessOrders(Iterable<LogicalOrder> orders)
+            {
+                using( physicalCache.Lock())
+                {
+                    SetLogicalOrders(orders);
+                    orderAlgorithm.ProcessOrders();
+                    FillCreatedOrders();
+                }
+            }
+
             public void SetLogicalOrders(Iterable<LogicalOrder> logicalOrders)
             {
                 orderAlgorithm.SetStrategyPositions(strategyPositions);
@@ -1610,6 +1614,8 @@ namespace Orders
                     FillMarketOrders();
                 }
             }
+
+
 			public void PerformCompare()
 			{
                 using( physicalCache.Lock())
@@ -1633,30 +1639,24 @@ namespace Orders
 
             public void FillMarketOrders()
             {
-                using (physicalCache.Lock())
+                var ordersCopy = orders.activeOrders.ToArray();
+                for (int i = 0; i < ordersCopy.Length; i++)
                 {
-                    var ordersCopy = orders.activeOrders.ToArray();
-                    for (int i = 0; i < ordersCopy.Length; i++)
+                    var physical = ordersCopy[i];
+                    if (physical.Type == OrderType.BuyMarket || physical.Type == OrderType.SellMarket)
                     {
-                        var physical = ordersCopy[i];
-                        if (physical.Type == OrderType.BuyMarket || physical.Type == OrderType.SellMarket)
-                        {
-                            FillOrder(physical);
-                        }
+                        FillOrder(physical);
                     }
                 }
             }
 
 		    public void FillCreatedOrders()
             {
-                using( physicalCache.Lock())
+                var ordersCopy = orders.activeOrders.ToArray();
+                for (int i = 0; i < ordersCopy.Length; i++)
                 {
-                    var ordersCopy = orders.activeOrders.ToArray();
-                    for (int i = 0; i < ordersCopy.Length; i++)
-                    {
-                        var physical = ordersCopy[i];
-                        FillOrder(physical);
-                    }
+                    var physical = ordersCopy[i];
+                    FillOrder(physical);
                 }
             }
 

@@ -110,6 +110,12 @@ namespace TickZoom.MBTQuotes
         public int Condition {
             get { return condition; }
         }
+        private int salesType;
+        public int SalesType
+        {
+            get { return salesType;  }
+        }
+
         private int status;
 		
         public int Status {
@@ -231,6 +237,9 @@ namespace TickZoom.MBTQuotes
                             break;
                         case 2007: // Last Trade Size
                             lastSize = GetInt(ref ptr, end);
+                            break;
+                        case 2039: // Last Trade Size
+                            salesType = GetInt(ref ptr, end);
                             break;
                         case 2082: // Condition
                             condition = GetInt(ref ptr, end);

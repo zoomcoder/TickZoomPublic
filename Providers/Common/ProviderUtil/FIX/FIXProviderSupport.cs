@@ -1007,6 +1007,7 @@ namespace TickZoom.FIX
                         break;
                     case EventType.PositionChange:
                         var positionChange = (PositionChangeDetail)eventDetail;
+                        if( debug) log.Debug("PositionChangeQueue has " + positionChangeQueue.Count + " items.");
                         using( positionChangeQueueLocker.Using())
                         {
                             positionChangeQueue.Enqueue(positionChange);
@@ -1026,7 +1027,7 @@ namespace TickZoom.FIX
 		}
 
         private SimpleLock positionChangeQueueLocker = new SimpleLock();
-        private Queue<PositionChangeDetail> positionChangeQueue = new Queue<PositionChangeDetail>();
+        private Queue<PositionChangeDetail> positionChangeQueue = new Queue<PositionChangeDetail>(1000);
 	    
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {
             if( !fixMsg.IsDuplicate)

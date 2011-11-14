@@ -7,7 +7,9 @@ namespace TickZoom.TickUtil
 {
     public class PoolTicks : Pool<TickBinaryBox>
     {
-        private Stack<TickBinaryBox> _items = new Stack<TickBinaryBox>();
+        private static Log log = Factory.Log.GetLogger(typeof (PoolTicks));
+        private int _itemsCapacity = 10;
+        private Stack<TickBinaryBox> _items = new Stack<TickBinaryBox>(10);
         private SimpleLock _sync = new SimpleLock();
         private int count = 0;
         private ActiveList<TickBinaryBox> _freed = new ActiveList<TickBinaryBox>();
@@ -23,18 +25,28 @@ namespace TickZoom.TickUtil
             pushDiagnoseMetric = Diagnose.RegisterMetric("PoolTicks-Push-"+id);
         }
 
+        private TickBinaryBox CreateInternal()
+        {
+            Interlocked.Increment(ref count);
+            var box = new TickBinaryBox();
+            box.TickBinary.Id = Interlocked.Increment(ref nextTickId);
+            return box;
+        }
+
         public TickBinaryBox Create()
         {
-            using (_sync.Using()) {
-                if (_items.Count == 0) {
-                    Interlocked.Increment(ref count);
-                    var box = new TickBinaryBox();
-                    box.TickBinary.Id = Interlocked.Increment(ref nextTickId);
-                    return box;
-                } else {
+            if (_items.Count == 0)
+            {
+                return CreateInternal();
+            }
+            using (_sync.Using())
+            {
+                if( _items.Count > 0)
+                {
                     return _items.Pop();
                 }
             }
+            return CreateInternal();
         }
 
         public void Free(TickBinaryBox item)
@@ -48,21 +60,32 @@ namespace TickZoom.TickUtil
                 var binary = item.TickBinary;
                 Diagnose.AddTick(enqueDiagnoseMetric,ref binary);
             }
+            var node = new ActiveListNode<TickBinaryBox>(item);
             using (_sync.Using())
             {
-                _freed.AddFirst(item);
-                if (_freed.Count > 10)
+                _freed.AddFirst(node);
+            }
+            if (_freed.Count > 10)
+            {
+                Stack<TickBinaryBox> newItems = null;
+                if( _items.Count+1 >= _itemsCapacity)
                 {
-                    if (_freed.Count > 10)
+                    _itemsCapacity *= 2;
+                    newItems = new Stack<TickBinaryBox>(_itemsCapacity);
+                    log.Info("Capacity increased to " + _itemsCapacity);
+                }
+                using (_sync.Using())
+                {
+                    if (newItems != null)
                     {
-                        var freed = _freed.RemoveLast().Value;
-                        if (Diagnose.TraceTicks)
+                        while (_items.Count > 0)
                         {
-                            var binary = freed.TickBinary;
-                            Diagnose.AddTick(pushDiagnoseMetric, ref binary);
+                            newItems.Push(_items.Pop());
                         }
-                        _items.Push(freed);
+                        _items = newItems;
                     }
+                    var freed = _freed.RemoveLast().Value;
+                    _items.Push(freed);
                 }
             }
         }

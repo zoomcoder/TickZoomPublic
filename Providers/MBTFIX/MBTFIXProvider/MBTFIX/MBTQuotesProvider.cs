@@ -133,7 +133,12 @@ namespace TickZoom.MBTQuotes
 			            var messageText = new string(message.DataIn.ReadChars(message.Remaining));
                         log.Trace("Received tick: " + messageText);
                     }
-					TimeAndSalesUpdate( message);
+                    // Filter Form T trades which are belatedly entered at the last close price
+                    // later on the next day with sales type 30031 or condition 29.
+                    if( message.SalesType != 30031 && message.Condition != 29)
+                    {
+                        TimeAndSalesUpdate(message);
+                    }
 					break;
                 case '4':
                     OptionChainUpdate( message);

@@ -1,20 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
-    public struct PhysicalOrderLock : IDisposable
-    {
-        private PhysicalOrderStore lockedCache;
-        public PhysicalOrderLock(PhysicalOrderStore cache)
-        {
-            lockedCache = cache;
-        }
-        public void Dispose()
-        {
-            lockedCache.Unlock();
-        }
-    }
     public interface PhysicalOrderCache : IDisposable
     {
         void SetOrder(CreateOrChangeOrder order);

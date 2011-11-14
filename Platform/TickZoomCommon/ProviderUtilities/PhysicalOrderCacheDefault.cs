@@ -81,7 +81,7 @@ namespace TickZoom.Common
         {
             if (!IsLocked)
             {
-                log.Error("Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.\n" + Environment.StackTrace);
+                throw new ApplicationException("Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.");
             }
         }
 
