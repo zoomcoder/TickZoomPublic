@@ -301,10 +301,7 @@ namespace TickZoom.MBTFIX
             if( ConnectionStatus == Status.Recovered)
             {
                 var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                using (OrderStore.Lock())
-                {
-                    algorithm.OrderAlgorithm.ProcessOrders();
-                }
+                algorithm.OrderAlgorithm.ProcessOrders();
                 if (algorithm.OrderAlgorithm.IsPositionSynced)
                 {
                     TrySendStartBroker(symbol);
@@ -912,17 +909,14 @@ namespace TickZoom.MBTFIX
                         rejectReason = true;
                     }
 
-			        using (OrderStore.Lock())
-			        {
-                        OrderStore.RemoveOrder(packetFIX.ClientOrderId);
-                        if (removeOriginal)
-                        {
-                            OrderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
-                        }
-                        else
-                        {
-                            ResetFromPending(packetFIX.OriginalClientOrderId);
-                        }
+                    OrderStore.RemoveOrder(packetFIX.ClientOrderId);
+                    if (removeOriginal)
+                    {
+                        OrderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
+                    }
+                    else
+                    {
+                        ResetFromPending(packetFIX.OriginalClientOrderId);
                     }
                     if (order != null)
                     {
@@ -1201,44 +1195,41 @@ namespace TickZoom.MBTFIX
 				log.Debug("ReplaceOrder( " + packetFIX.OriginalClientOrderId + " => " + packetFIX.ClientOrderId + ")");
 			}
 			CreateOrChangeOrder order;
-            using (OrderStore.Lock())
+            if (!OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order))
             {
-                if (!OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order))
+                if (IsRecovery)
                 {
-                    if (IsRecovery)
-                    {
-                        order = UpdateOrReplaceOrder(packetFIX, packetFIX.ClientOrderId, packetFIX.ClientOrderId,
-                                                     OrderState.Active, "ReplaceOrder");
-                        return order;
-                    }
-                    else
-                    {
-                        if (LogRecovery || !IsRecovery)
-                        {
-                            log.Warn("Order ID# " + packetFIX.ClientOrderId + " was not found for replace.");
-                        }
-                        return null;
-                    }
-                }
-                order.OrderState = OrderState.Active;
-                int quantity = packetFIX.LeavesQuantity;
-                if (quantity > 0)
-                {
-                    if (info && (LogRecovery || !IsRecovery))
-                    {
-                        if (debug)
-                            log.Debug("Updated order: " + order + ".  Executed: " + packetFIX.CumulativeQuantity +
-                                      " Remaining: " + packetFIX.LeavesQuantity);
-                    }
+                    order = UpdateOrReplaceOrder(packetFIX, packetFIX.ClientOrderId, packetFIX.ClientOrderId,
+                                                 OrderState.Active, "ReplaceOrder");
+                    return order;
                 }
                 else
                 {
-                    if (info && (LogRecovery || !IsRecovery))
+                    if (LogRecovery || !IsRecovery)
                     {
-                        if (debug)
-                            log.Debug("Order Completely Filled. Id: " + packetFIX.ClientOrderId + ".  Executed: " +
-                                      packetFIX.CumulativeQuantity);
+                        log.Warn("Order ID# " + packetFIX.ClientOrderId + " was not found for replace.");
                     }
+                    return null;
+                }
+            }
+            order.OrderState = OrderState.Active;
+            int quantity = packetFIX.LeavesQuantity;
+            if (quantity > 0)
+            {
+                if (info && (LogRecovery || !IsRecovery))
+                {
+                    if (debug)
+                        log.Debug("Updated order: " + order + ".  Executed: " + packetFIX.CumulativeQuantity +
+                                  " Remaining: " + packetFIX.LeavesQuantity);
+                }
+            }
+            else
+            {
+                if (info && (LogRecovery || !IsRecovery))
+                {
+                    if (debug)
+                        log.Debug("Order Completely Filled. Id: " + packetFIX.ClientOrderId + ".  Executed: " +
+                                  packetFIX.CumulativeQuantity);
                 }
             }
 		    if( !packetFIX.ClientOrderId.Equals((string)order.BrokerOrder))
@@ -1328,41 +1319,38 @@ namespace TickZoom.MBTFIX
                 log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
                 return null;
             }
-            using (OrderStore.Lock())
+            CreateOrChangeOrder oldOrder;
+            if (!OrderStore.TryGetOrderById(oldClientOrderId, out oldOrder))
             {
-                CreateOrChangeOrder oldOrder;
-                if (!OrderStore.TryGetOrderById(oldClientOrderId, out oldOrder))
+                if (debug && (LogRecovery || !IsRecovery))
                 {
-                    if (debug && (LogRecovery || !IsRecovery))
-                    {
-                        log.Debug("Original Order ID# " + oldClientOrderId + " not found for updating cancel order. Normal.");
-                    }
-                    return null;
+                    log.Debug("Original Order ID# " + oldClientOrderId + " not found for updating cancel order. Normal.");
                 }
-                CreateOrChangeOrder order;
-                if (! OrderStore.TryGetOrderById(newClientOrderId, out order))
-                {
-                    if (debug && (LogRecovery || IsRecovered))
-                    {
-                        log.Debug("Client Order ID# " + newClientOrderId + " was not found. Recreating.");
-                    }
-                    order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, oldOrder);
-                    order.BrokerOrder = newClientOrderId;
-                }
-                OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
-                if (oldOrder != null)
-                {
-                    if (debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
-                    oldOrder.ReplacedBy = order;
-                }
-                if (trace)
-                {
-                    log.Trace("Updated order list:");
-                    var logOrders = OrderStore.OrdersToString();
-                    log.Trace("Broker Orders:\n" + logOrders);
-                }
-                return order;
+                return null;
             }
+            CreateOrChangeOrder order;
+            if (! OrderStore.TryGetOrderById(newClientOrderId, out order))
+            {
+                if (debug && (LogRecovery || IsRecovered))
+                {
+                    log.Debug("Client Order ID# " + newClientOrderId + " was not found. Recreating.");
+                }
+                order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, oldOrder);
+                order.BrokerOrder = newClientOrderId;
+            }
+            OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+            if (oldOrder != null)
+            {
+                if (debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
+                oldOrder.ReplacedBy = order;
+            }
+            if (trace)
+            {
+                log.Trace("Updated order list:");
+                var logOrders = OrderStore.OrdersToString();
+                log.Trace("Broker Orders:\n" + logOrders);
+            }
+            return order;
         }
 
         private SymbolAlgorithm GetAlgorithm(string clientOrderId)
@@ -1488,10 +1476,7 @@ namespace TickZoom.MBTFIX
 			    CreateOrChangeOrder origOrder;
 				if( OrderStore.TryGetOrderById(origBrokerOrder, out origOrder))
 				{
-                    using (OrderStore.Lock())
-                    {
-                        origOrder.ReplacedBy = order;
-                    }
+                    origOrder.ReplacedBy = order;
 				    if (debug) log.Debug("Setting replace property of " + origBrokerOrder + " to " + order.BrokerOrder);
                 }
 			} else {
@@ -1623,10 +1608,7 @@ namespace TickZoom.MBTFIX
 				}
 				return true;
 			}
-            using (OrderStore.Lock())
-            {
-                createOrChangeOrder.ReplacedBy = order;
-            }
+            createOrChangeOrder.ReplacedBy = order;
 		    if( !object.ReferenceEquals(order.OriginalOrder,createOrChangeOrder))
             {
                 throw new ApplicationException("Different objects!");
@@ -1666,10 +1648,7 @@ namespace TickZoom.MBTFIX
 		public bool OnChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
             if (!IsRecovered) return false;
-            using (OrderStore.Lock())
-            {
-                createOrChangeOrder.OrderState = OrderState.Pending;
-            }
+            createOrChangeOrder.OrderState = OrderState.Pending;
             if (debug) log.Debug("OnChangeBrokerOrder( " + createOrChangeOrder + ". Connection " + ConnectionStatus + ", IsOrderServerOnline " + isOrderServerOnline);
             if (createOrChangeOrder.Action != OrderAction.Change)
             {

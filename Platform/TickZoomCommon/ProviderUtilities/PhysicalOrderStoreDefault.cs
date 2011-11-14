@@ -7,7 +7,7 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-    public class PhysicalOrderStoreDefault : PhysicalOrderStore, LogAware
+    public class PhysicalOrderStoreDefault : PhysicalOrderCacheDefault, PhysicalOrderStore
     {
         private Log log;
         private volatile bool info;
@@ -24,20 +24,6 @@ namespace TickZoom.Common
             }
         }
 
-        private class SymbolPosition
-        {
-            public long Position;
-            public override string ToString()
-            {
-                return Position.ToString();
-            }
-        }
-
-        private Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
-        private Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
-        private Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
-        private Dictionary<long, SymbolPosition> positions = new Dictionary<long, SymbolPosition>();
-        private Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
         private TaskLock ordersLocker = new TaskLock();
         private string databasePath;
         private FileStream fs;
@@ -50,7 +36,6 @@ namespace TickZoom.Common
         private Dictionary<int, int> originalIds = new Dictionary<int, int>();
         private TimeStamp lastSequenceReset;
         private int uniqueId = 0;
-        private long snapshotTimer;
         private Action writeFileAction;
         private IAsyncResult writeFileResult;
         private long snapshotLength = 0;
@@ -58,11 +43,11 @@ namespace TickZoom.Common
         private long snapshotRolloverSize = 128*1024;
         private string storeName;
         private string dbFolder;
-        private TaskLock snapshotLocker = new TaskLock();
         private int remoteSequence = 0;
         private int localSequence = 0;
         private object fileLocker = new object();
-        private static int lockCounter = 0;
+        private object snapshotLocker = new object();
+        private bool snapshotNeeded;
 
         public PhysicalOrderStoreDefault(string name)
         {
@@ -108,18 +93,9 @@ namespace TickZoom.Common
             return false;
         }
 
-        public PhysicalOrderLock Lock()
+        public override void Unlock()
         {
-            Monitor.Enter(snapshotLocker);
-            Interlocked.Increment(ref lockCounter);
-            return new PhysicalOrderLock(this);
-        }
-
-        private bool snapshotNeeded;
-        public void Unlock()
-        {
-            Monitor.Exit(snapshotLocker);
-            Interlocked.Decrement(ref lockCounter);
+            base.Unlock();
             if (snapshotNeeded)
             {
                 StartSnapShot();
@@ -130,15 +106,9 @@ namespace TickZoom.Common
                 TryStartSnapshot();
             }
         }
-
         public void IncrementUpdateCount()
         {
             ++updateCount;
-        }
-
-        public static bool IsLocked
-        {
-            get { return lockCounter > 0; }
         }
 
         public string DatabasePath
@@ -150,14 +120,6 @@ namespace TickZoom.Common
         {
             get { return snapshotRolloverSize; }
             set { snapshotRolloverSize = value; }
-        }
-
-        private void AssertAtomic()
-        {
-            if (!PhysicalOrderStoreDefault.IsLocked)
-            {
-                log.Error("Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.\n" + Environment.StackTrace);
-            }
         }
 
         public int RemoteSequence
@@ -205,7 +167,7 @@ namespace TickZoom.Common
         private string lastSnapshotTrace;
         private void StartSnapShot()
         {
-            using( snapshotLocker.Using())
+            lock( snapshotLocker)
             {
                 while(writeFileResult != null)
                 {
@@ -224,7 +186,6 @@ namespace TickZoom.Common
                     lastSnapshotTrace = Environment.StackTrace;
                     writeFileResult = writeFileAction.BeginInvoke(null, null);
                     updateCount = 0;
-                    snapshotTimer = Factory.TickCount;
                 }
             }
         }
@@ -244,7 +205,7 @@ namespace TickZoom.Common
             {
                 Thread.Sleep(100);
             }
-            lock(snapshotLocker.Using())
+            lock(snapshotLocker)
             {
                 if (writeFileResult != null && writeFileResult.IsCompleted)
                 {
@@ -394,7 +355,9 @@ namespace TickZoom.Common
             try
             {
                 if( debug) log.Debug("SnapshotHandler()");
-                using( Lock()) {
+                using( cacheLocker.Using())
+                {
+
                     SnapShot();
                 }
             }
@@ -769,111 +732,6 @@ namespace TickZoom.Common
             }
         }
 
-        public void SyncPositions(Iterable<StrategyPosition> strategyPositions)
-        {
-            if (debug)
-            {
-                for (var node = strategyPositions.First; node != null; node = node.Next)
-                {
-                    var sp = node.Value;
-                    log.Debug("Received strategy position. " + sp);
-                }
-            }
-            for (var current = strategyPositions.First; current != null; current = current.Next)
-            {
-                var position = current.Value;
-                StrategyPosition strategyPosition;
-                if (!this.strategyPositions.TryGetValue(position.Id, out strategyPosition))
-                {
-                    strategyPosition = new StrategyPositionDefault(position.Id, position.Symbol);
-                    this.strategyPositions.Add(position.Id, strategyPosition);
-                }
-                strategyPosition.TrySetPosition(position.ExpectedPosition, position.Recency);
-            }
-        }
-
-        public void SetActualPosition(SymbolInfo symbol, long position)
-        {
-            using( positionsLocker.Using())
-            {
-                if( debug) log.Debug("SetActualPosition( " + symbol + " = " + position + ")");
-                SymbolPosition symbolPosition;
-                if (!positions.TryGetValue(symbol.BinaryIdentifier, out symbolPosition))
-                {
-                    symbolPosition = new SymbolPosition {Position = position};
-                    positions.Add(symbol.BinaryIdentifier,symbolPosition);
-                }
-                else
-                {
-                    positions[symbol.BinaryIdentifier].Position = position;
-                }
-            }
-        }
-
-        public long GetActualPosition( SymbolInfo symbol)
-        {
-            using (positionsLocker.Using())
-            {
-                SymbolPosition symbolPosition;
-                if (positions.TryGetValue(symbol.BinaryIdentifier, out symbolPosition))
-                {
-                    return symbolPosition.Position;
-                }
-                else
-                {
-                    return 0L;
-                }
-            }
-        }
-
-        public void SetStrategyPosition(SymbolInfo symbol, int strategyId, long position)
-        {
-            using (positionsLocker.Using())
-            {
-                StrategyPosition strategyPosition;
-                if (!this.strategyPositions.TryGetValue(strategyId, out strategyPosition))
-                {
-                    strategyPosition = new StrategyPositionDefault(strategyId, symbol);
-                    this.strategyPositions.Add(strategyId, strategyPosition);
-                }
-                strategyPosition.SetExpectedPosition(position);
-            }
-        }
-
-        public long GetStrategyPosition(int strategyId)
-        {
-            using (positionsLocker.Using())
-            {
-                StrategyPosition strategyPosition;
-                if (strategyPositions.TryGetValue(strategyId, out strategyPosition))
-                {
-                    return strategyPosition.ExpectedPosition;
-                }
-                else
-                {
-                    return 0L;
-                }
-            }
-        }
-
-        public long IncreaseActualPosition(SymbolInfo symbol, long increase)
-        {
-            using (positionsLocker.Using())
-            {
-                SymbolPosition symbolPosition;
-                if (!positions.TryGetValue(symbol.BinaryIdentifier, out symbolPosition))
-                {
-                    symbolPosition = new SymbolPosition {Position = increase};
-                    positions.Add(symbol.BinaryIdentifier,symbolPosition);
-                }
-                else
-                {
-                    symbolPosition.Position += increase;
-                }
-                return symbolPosition.Position;
-            }
-        }
-
         public void Clear()
         {
             if( debug) log.Debug("Clearing all orders.");
@@ -882,105 +740,6 @@ namespace TickZoom.Common
                 ordersByBrokerId.Clear();
                 ordersBySequence.Clear();
                 ordersBySerial.Clear();
-            }
-        }
-
-        public bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order)
-        {
-            AssertAtomic();
-            if (brokerOrder == null)
-            {
-                order = null;
-                return false;
-            }
-            using (ordersLocker.Using())
-            {
-                return ordersByBrokerId.TryGetValue((string) brokerOrder, out order);
-            }
-        }
-
-        public bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order)
-        {
-            AssertAtomic();
-            if (sequence == 0)
-            {
-                order = null;
-                return false;
-            }
-            using (ordersLocker.Using())
-            {
-                return ordersBySequence.TryGetValue(sequence, out order);
-            }
-        }
-
-        public CreateOrChangeOrder GetOrderById(string brokerOrder)
-        {
-            AssertAtomic();
-            using (ordersLocker.Using())
-            {
-                CreateOrChangeOrder order;
-                if (!ordersByBrokerId.TryGetValue((string) brokerOrder, out order))
-                {
-                    throw new ApplicationException("Unable to find order for id: " + brokerOrder);
-                }
-                return order;
-            }
-        }
-
-        public CreateOrChangeOrder RemoveOrder(string clientOrderId)
-        {
-            if (trace) log.Trace("RemoveOrder( " + clientOrderId + ")");
-            AssertAtomic();
-            if (string.IsNullOrEmpty(clientOrderId))
-            {
-                return null;
-            }
-            using (ordersLocker.Using())
-            {
-                //TrySnapshot();
-                CreateOrChangeOrder order = null;
-                if (ordersByBrokerId.TryGetValue(clientOrderId, out order))
-                {
-                    var result = ordersByBrokerId.Remove(clientOrderId);
-                    if( result && trace) log.Trace("Removed order by broker id " + clientOrderId + ": " + order);
-                    CreateOrChangeOrder orderBySerial;
-                    if( ordersBySerial.TryGetValue(order.LogicalSerialNumber, out orderBySerial))
-                    {
-                        if( orderBySerial.BrokerOrder.Equals(clientOrderId))
-                        {
-                            var result2 = ordersBySerial.Remove(order.LogicalSerialNumber);
-                            if( result2 && trace) log.Trace("Removed order by logical id " + order.LogicalSerialNumber + ": " + orderBySerial);
-                        }
-                    }
-                    return order;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
-
-        public bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order)
-        {
-            AssertAtomic();
-            using (ordersLocker.Using())
-            {
-                return ordersBySerial.TryGetValue(logicalSerialNumber, out order);
-            }
-        }
-
-        public CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber)
-        {
-            AssertAtomic();
-            using (ordersLocker.Using())
-            {
-                CreateOrChangeOrder order;
-                if (!ordersBySerial.TryGetValue(logicalSerialNumber, out order))
-                {
-                    throw new ApplicationException("Unable to find order by serial for id: " + logicalSerialNumber);
-                }
-                return order;
             }
         }
 
@@ -1009,114 +768,10 @@ namespace TickZoom.Common
             this.localSequence = localSequence;
         }
 
-        public bool HasCreateOrder(CreateOrChangeOrder order)
+        private volatile bool isDisposed = false;
+        protected override void Dispose(bool disposing)
         {
-            var createOrderQueue = GetActiveOrders(order.Symbol);
-            for (var current = createOrderQueue.First; current != null; current = current.Next)
-            {
-                var queueOrder = current.Value;
-                if (order.Action == OrderAction.Create && order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
-                {
-                    if (debug) log.Debug("Create ignored because order was already on create order queue: " + queueOrder);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public bool HasCancelOrder(PhysicalOrder order)
-        {
-            var cancelOrderQueue = GetActiveOrders(order.Symbol);
-            for (var current = cancelOrderQueue.First; current != null; current = current.Next)
-            {
-                var clientId = current.Value;
-                if (clientId.OriginalOrder != null && order.OriginalOrder.BrokerOrder == clientId.OriginalOrder.BrokerOrder)
-                {
-                    if (debug) log.Debug("Cancel or Changed ignored because previous order order working for: " + order);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public void SetOrder(CreateOrChangeOrder order)
-        {
-            AssertAtomic();
-            using (ordersLocker.Using())
-            {
-                if (trace ) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
-                ordersByBrokerId[order.BrokerOrder] = order;
-                if( order.Sequence != 0)
-                {
-                    ordersBySequence[order.Sequence] = order;
-                }
-                if( order.LogicalSerialNumber != 0)
-                {
-                    ordersBySerial[order.LogicalSerialNumber] = order;
-                    if (order.Action == OrderAction.Cancel && order.OriginalOrder == null)
-                    {
-                        throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
-                    }
-                }
-            }
-        }
-
-        public List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder,bool> select)
-        {
-            AssertAtomic();
-            var list = new List<CreateOrChangeOrder>();
-            using (ordersLocker.Using())
-            {
-                foreach (var kvp in ordersByBrokerId)
-                {
-                    var order = kvp.Value;
-                    if (select(order))
-                    {
-                        list.Add(order);
-                    }
-                }
-            }
-            return list;
-        }
-
-        public void ResetLastChange()
-        {
-            AssertAtomic();
-            if( debug) log.Debug("Resetting last change time for all physical orders.");
-            using (ordersLocker.Using())
-            {
-                foreach (var kvp in ordersByBrokerId)
-                {
-                    var order = kvp.Value;
-                    order.ResetLastChange();
-                }
-            }
-        }
-
-        public string OrdersToString()
-        {
-            using (ordersLocker.Using())
-            {
-                var sb = new StringBuilder();
-                foreach (var kvp in ordersByBrokerId)
-                {
-                    sb.AppendLine(kvp.Value.ToString());
-                }
-                return sb.ToString();
-            }
-        }
-
-        protected volatile bool isDisposed = false;
-        private SimpleLock positionsLocker = new SimpleLock();
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
+            base.Dispose(disposing);
             if (!isDisposed)
             {
                 log.Info("Dispose()");
@@ -1126,54 +781,11 @@ namespace TickZoom.Common
                     if (anySnapShotWritten)
                     {
                         ForceSnapShot();
+                        WaitForSnapshot();
                     }
                     TryClose();
                 }
             }
-        }
-
-        public int Count()
-        {
-            return ordersByBrokerId.Count;
-        }
-
-        public string SymbolPositionsToString()
-        {
-            using (positionsLocker.Using())
-            {
-                return SymbolPositionsToStringInternal();
-            }
-        }
-
-        public string StrategyPositionsToString()
-        {
-            using (positionsLocker.Using())
-            {
-                return StrategyPositionsToStringInternal();
-            }
-        }
-
-        private string SymbolPositionsToStringInternal()
-        {
-            var sb = new StringBuilder();
-            foreach (var kvp in positions)
-            {
-                var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
-                var position = kvp.Value;
-                sb.AppendLine(symbol + " " + position);
-            }
-            return sb.ToString();
-        }
-
-        public string StrategyPositionsToStringInternal()
-        {
-            var sb = new StringBuilder();
-            foreach (var kvp in strategyPositions)
-            {
-                var strategyPosition = kvp.Value;
-                sb.AppendLine(strategyPosition.ToString());
-            }
-            return sb.ToString();
         }
     }
 }

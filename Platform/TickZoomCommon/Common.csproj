@@ -108,6 +108,7 @@
     <Compile Include="Interceptors\PhysicalFillDefault.cs" />
     <Compile Include="Interceptors\StrategyInterceptor.cs" />
     <Compile Include="ProviderUtilities\Arguments.cs" />
+    <Compile Include="ProviderUtilities\PhysicalOrderCacheDefault.cs" />
     <Compile Include="ProviderUtilities\PhysicalOrderQueue.cs" />
     <Compile Include="ProviderUtilities\PhysicalOrderStoreDefault.cs" />
     <Compile Include="ProviderUtilities\ServiceInstaller.cs" />

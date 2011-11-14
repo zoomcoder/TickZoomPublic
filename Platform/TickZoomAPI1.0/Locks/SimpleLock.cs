@@ -34,32 +34,47 @@ namespace TickZoom.Api
 	{
 	    private static readonly Log log = Factory.Log.GetLogger(typeof (SimpleLock));
 	    private int isLocked = 0;
-	    private Thread lockingThread;
 	    
 		public bool IsLocked {
-			get { return isLocked == 1; }
+			get { return isLocked != 0; }
 		}
 	    
-		public bool TryLock() {
-	    	var result = Interlocked.CompareExchange(ref isLocked,1,0) == 0;
-            if( result)
-            {
-                lockingThread = Thread.CurrentThread;
-            }
+		public bool TryLock()
+		{
+		    var thread = Thread.CurrentThread;
+	    	var result = Interlocked.CompareExchange(ref isLocked,thread.ManagedThreadId,0) == 0;
 		    return result;
 		}
 	    
 		public void Lock()
 		{
-		    var checkDeadlock = true;
-		    var count = 0L;
+            if( TryLock()) return;
+		    var logCount = 0;
+		    var count = 0;
 			while( !TryLock())
 			{
 			    ++count;
-                if( checkDeadlock && count > int.MaxValue)
+                if( count > 1000000)
                 {
-                    lockingThread.Abort();
-                    throw new ApplicationException("Deadlock.");
+                    var thread = Thread.CurrentThread;
+                    if( thread.ManagedThreadId == isLocked)
+                    {
+                        throw new ApplicationException("Looping lock on current thread.");
+                    }
+                    else
+                    {
+                        ++logCount;
+                        if( logCount > 5)
+                        {
+                            throw new ApplicationException("Deadlock or thread sleeping during lock: " + Environment.StackTrace);
+                        }
+                        else
+                        {
+                            log.Error("Deadlock or thread sleeping during lock: " + Environment.StackTrace);
+                            Thread.Sleep(1);
+                            count = 0;
+                        }
+                    }
                 }
 			}
 	    }

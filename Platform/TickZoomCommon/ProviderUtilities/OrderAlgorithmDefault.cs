@@ -139,10 +139,7 @@ namespace TickZoom.Common
         {
 			var result = false;
             var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
-            using (physicalOrderCache.Lock())
-            {
-                physical.ReplacedBy = cancelOrder;
-            }
+            physical.ReplacedBy = cancelOrder;
             if (physicalOrderCache.HasCancelOrder(cancelOrder))
             {
                 if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has a cancel or replace already.");
@@ -1723,10 +1720,7 @@ namespace TickZoom.Common
             if (order.OriginalOrder != null)
             {
                 physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
-                using (physicalOrderCache.Lock())
-                {
-                    order.OriginalOrder = null;
-                }
+                order.OriginalOrder = null;
             }
             if (isRealTime)
             {
