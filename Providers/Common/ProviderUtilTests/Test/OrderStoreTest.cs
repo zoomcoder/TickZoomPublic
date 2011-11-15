@@ -182,12 +182,12 @@ namespace Test
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 store.SetOrder(order1);
-                store.ForceSnapShot();
+                store.RequestSnapshot();
                 store.WaitForSnapshot();
 
                 // Replace order in store to make new snapshot.
                 store.SetOrder(order2);
-                store.ForceSnapShot();
+                store.RequestSnapshot();
                 store.WaitForSnapshot();
             }
 
@@ -260,25 +260,25 @@ namespace Test
 
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
-                using( store.Lock())
+                using( store.BeginTransaction())
                 {
                     store.SnapshotRolloverSize = 1000;
                     store.SetOrder(order1);
                 }
-                store.ForceSnapShot();
+                store.RequestSnapshot();
                 store.WaitForSnapshot();
 
-                using (store.Lock())
+                using (store.BeginTransaction())
                 {
                     // Replace order in store to make new snapshot.
                     store.SetOrder(order2);
                 }
-                store.ForceSnapShot();
+                store.RequestSnapshot();
                 store.WaitForSnapshot();
 
                 for (int i = 0; i < 20; i++)
                 {
-                    store.ForceSnapShot();
+                    store.RequestSnapshot();
                     store.WaitForSnapshot();
                 }
             }
@@ -312,7 +312,7 @@ namespace Test
 
                 CreateOrChangeOrder result1;
                 CreateOrChangeOrder result2;
-                using (store.Lock())
+                using (store.BeginTransaction())
                 {
                     result1 = store.GetOrderById(clientId1);
                 }
@@ -325,7 +325,7 @@ namespace Test
                 Assert.AreEqual(order1.Type, result1.Type);
                 Assert.AreEqual(order1.LogicalSerialNumber, result1.LogicalSerialNumber);
 
-                using (store.Lock())
+                using (store.BeginTransaction())
                 {
                     result2 = store.GetOrderById(clientId2);
                 }

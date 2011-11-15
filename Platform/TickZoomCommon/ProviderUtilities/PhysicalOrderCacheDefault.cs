@@ -57,17 +57,17 @@ namespace TickZoom.Common
             }
             public void Dispose()
             {
-                lockedCache.Unlock();
+                lockedCache.EndTransaction();
             }
         }
 
-        public IDisposable Lock()
+        public IDisposable BeginTransaction()
         {
             cacheLocker.Lock();
             return physicalOrderLock;
         }
 
-        public virtual void Unlock()
+        public void EndTransaction()
         {
             cacheLocker.Unlock();
         }

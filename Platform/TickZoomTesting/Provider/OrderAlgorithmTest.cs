@@ -1514,7 +1514,7 @@ namespace Orders
 			
 			public void AddPhysicalOrder(OrderState orderState, OrderSide side, OrderType type, double price, int size, int logicalOrderId, string brokerOrder)
 			{
-                using (physicalCache.Lock())
+                using (physicalCache.BeginTransaction())
                 {
                     var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, OrderFlags.None, price,
                                                               size, logicalOrderId, 0, brokerOrder, null,
@@ -1526,7 +1526,7 @@ namespace Orders
 
             public void AddPhysicalOrder(OrderState orderState, OrderSide side, OrderType type, double price, int size, LogicalOrder logicalOrder, string brokerOrder)
             {
-                using (physicalCache.Lock())
+                using (physicalCache.BeginTransaction())
                 {
                     var order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbol, side, type, OrderFlags.None, price, size, logicalOrder.Id, logicalOrder.SerialNumber, brokerOrder, null, TimeStamp.UtcNow);
                     activeOrders.Add(order);
@@ -1566,7 +1566,7 @@ namespace Orders
                 var logicalCache = Factory.Engine.LogicalOrderCache(symbol, false);
                 orderAlgorithm = Factory.Utility.OrderAlgorithm("test", symbol, orders, logicalCache, physicalCache);
                 orderAlgorithm.OnProcessFill = onProcessFill;
-                using (physicalOrderCache.Lock())
+                using (physicalOrderCache.BeginTransaction())
                 {
                     orderAlgorithm.TrySyncPosition(new ActiveList<StrategyPosition>());
                 }
@@ -1589,7 +1589,7 @@ namespace Orders
 
             public void ProcessOrders(Iterable<LogicalOrder> orders)
             {
-                using( physicalCache.Lock())
+                using( physicalCache.BeginTransaction())
                 {
                     SetLogicalOrders(orders);
                     orderAlgorithm.ProcessOrders();
@@ -1605,7 +1605,7 @@ namespace Orders
 
             public void TrySyncPosition()
             {
-                using( physicalCache.Lock())
+                using( physicalCache.BeginTransaction())
                 {
                     ClearSyncPosition();
                     orderAlgorithm.TrySyncPosition(strategyPositions);
@@ -1618,7 +1618,7 @@ namespace Orders
 
 			public void PerformCompare()
 			{
-                using( physicalCache.Lock())
+                using( physicalCache.BeginTransaction())
                 {
                     orderAlgorithm.ProcessOrders();
                 }

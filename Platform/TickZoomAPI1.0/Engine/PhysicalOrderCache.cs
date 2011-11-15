@@ -16,8 +16,8 @@ namespace TickZoom.Api
         CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber);
         bool HasCancelOrder(PhysicalOrder order);
         bool HasCreateOrder(CreateOrChangeOrder order);
-        IDisposable Lock();
-        void Unlock();
+        IDisposable BeginTransaction();
+        void EndTransaction();
         void ResetLastChange();
         void SetActualPosition(SymbolInfo symbol, long position);
         long GetActualPosition(SymbolInfo symbol);
@@ -37,7 +37,7 @@ namespace TickZoom.Api
         long SnapshotRolloverSize { get; set; }
         int RemoteSequence { get; }
         int LocalSequence { get; }
-        void ForceSnapShot();
+        void RequestSnapshot();
         void WaitForSnapshot();
         bool Recover();
         void UpdateLocalSequence(int localSequence);
@@ -47,5 +47,6 @@ namespace TickZoom.Api
         bool IsBusy { get; }
         int Count();
         void IncrementUpdateCount();
+        void TrySnapshot();
     }
 }

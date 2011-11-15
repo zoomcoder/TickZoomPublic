@@ -267,7 +267,6 @@ namespace TickZoom.FIX
         private Yield SocketTask()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
-            if (SnapshotBusy) return Yield.NoWork.Repeat;
 
             if (positionChangeQueue.Count > 0)
             {
@@ -275,7 +274,7 @@ namespace TickZoom.FIX
                 {
                     if (positionChangeQueue.Count > 0)
                     {
-                        using( OrderStore.Lock())
+                        using( OrderStore.BeginTransaction())
                         {
                             var positionChange = positionChangeQueue.Dequeue();
                             PositionChange(positionChange);
@@ -286,7 +285,8 @@ namespace TickZoom.FIX
 
             if (SnapshotBusy) return Yield.DidWork.Repeat;
 
-            using (OrderStore.Lock())
+            var transaction = OrderStore.BeginTransaction();
+            try
             {
                 if (socket.State != lastSocketState)
                 {
@@ -518,6 +518,11 @@ namespace TickZoom.FIX
                         log.Error(textMessage);
                         throw new ApplicationException(textMessage);
                 }
+            }
+            finally
+            {
+                transaction.Dispose();
+                orderStore.TrySnapshot();
             }
 		}
 
@@ -805,7 +810,7 @@ namespace TickZoom.FIX
         	}
         	// This adds a new order handler.
         	TryAddSymbol(symbol);
-            using( orderStore.Lock())
+            using( orderStore.BeginTransaction())
             {
                 OnStartSymbol(symbol);
             }
@@ -1091,7 +1096,7 @@ namespace TickZoom.FIX
                     case Status.Recovered:
                     case Status.PendingRecovery:
                         connectionStatus = Status.PendingLogOut;
-                        using( orderStore.Lock())
+                        using( orderStore.BeginTransaction())
                         {
                             if (debug) log.Debug("Calling OnLogOut()");
                             OnLogout();

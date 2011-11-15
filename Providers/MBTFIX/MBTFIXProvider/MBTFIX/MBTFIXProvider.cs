@@ -86,7 +86,7 @@ namespace TickZoom.MBTFIX
 		
 		public override void OnDisconnect() {
             HeartbeatDelay = int.MaxValue;
-		    OrderStore.ForceSnapShot();
+		    OrderStore.RequestSnapshot();
             var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
             if( SyncTicks.Enabled)
             {
@@ -257,7 +257,7 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Recovered strategy positions from snapshot:\n" + OrderStore.StrategyPositionsToString());
                 RemoteSequence = OrderStore.RemoteSequence;
                 SendLogin(OrderStore.LocalSequence + 500);
-                OrderStore.ForceSnapShot();
+                OrderStore.RequestSnapshot();
             }
             else
             {
@@ -473,7 +473,7 @@ namespace TickZoom.MBTFIX
                 case Status.PendingRecovery:
                     if (IsResendComplete && isOrderServerOnline)
                     {
-                        OrderStore.ForceSnapShot();
+                        OrderStore.RequestSnapshot();
                         EndRecovery();
                         RequestPositions();
                         StartPositionSync();

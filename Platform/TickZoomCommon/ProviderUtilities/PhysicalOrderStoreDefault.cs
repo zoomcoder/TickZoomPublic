@@ -93,9 +93,8 @@ namespace TickZoom.Common
             return false;
         }
 
-        public override void Unlock()
+        public void TrySnapshot()
         {
-            base.Unlock();
             if (snapshotNeeded)
             {
                 StartSnapShot();
@@ -106,6 +105,7 @@ namespace TickZoom.Common
                 TryStartSnapshot();
             }
         }
+
         public void IncrementUpdateCount()
         {
             ++updateCount;
@@ -159,7 +159,7 @@ namespace TickZoom.Common
             }
         }
 
-        public void ForceSnapShot()
+        public void RequestSnapshot()
         {
             snapshotNeeded = true;
         }
@@ -780,8 +780,16 @@ namespace TickZoom.Common
                     isDisposed = true;
                     if (anySnapShotWritten)
                     {
-                        ForceSnapShot();
-                        WaitForSnapshot();
+                        if( IsBusy)
+                        {
+                            WaitForSnapshot();
+                        }
+                        else
+                        {
+                            RequestSnapshot();
+                            TrySnapshot();
+                            WaitForSnapshot();
+                        }
                     }
                     TryClose();
                 }
