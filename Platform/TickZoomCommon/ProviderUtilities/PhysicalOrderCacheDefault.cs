@@ -40,6 +40,7 @@ namespace TickZoom.Common
         private TaskLock ordersLocker = new TaskLock();
         protected SimpleLock cacheLocker = new SimpleLock();
         private PhysicalOrderLock physicalOrderLock;
+        protected bool disposeNeeded;
 
         public PhysicalOrderCacheDefault()
         {
@@ -70,6 +71,10 @@ namespace TickZoom.Common
         public void EndTransaction()
         {
             cacheLocker.Unlock();
+            if( disposeNeeded)
+            {
+                Dispose();
+            }
         }
 
         public bool IsLocked
@@ -418,6 +423,11 @@ namespace TickZoom.Common
                 log.Info("Dispose()");
                 if (disposing)
                 {
+                    disposeNeeded = true;
+                    if( cacheLocker.IsLocked)
+                    {
+                        return;
+                    }
                     isDisposed = true;
                 }
             }

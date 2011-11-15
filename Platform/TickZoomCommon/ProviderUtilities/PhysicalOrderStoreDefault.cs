@@ -360,6 +360,10 @@ namespace TickZoom.Common
 
                     SnapShot();
                 }
+                if( disposeNeeded)
+                {
+                    Dispose();
+                }
             }
             catch (Exception ex)
             {
@@ -777,6 +781,11 @@ namespace TickZoom.Common
                 log.Info("Dispose()");
                 if (disposing)
                 {
+                    disposeNeeded = true;
+                    if (cacheLocker.IsLocked)
+                    {
+                        return;
+                    }
                     isDisposed = true;
                     if (anySnapShotWritten)
                     {
