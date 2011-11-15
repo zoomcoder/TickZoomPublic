@@ -194,7 +194,7 @@ namespace Loaders
 			});
 			
 			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.Historical,
+			    Mode = AutoTestMode.Default,
 			    Name = "ExampleMixedTest",
 			    Loader = new ExampleMixedLoader(),
 				Symbols = primarySymbol + ",EUR/USD,USD/CHF",
