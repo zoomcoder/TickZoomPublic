@@ -742,8 +742,7 @@ namespace TickZoom.MBTFIX
                             {
                                 if (LogRecovery || !IsRecovery)
                                 {
-                                    log.Info("Orig order for " + packetFIX.OriginalClientOrderId +
-                                        " was not found. Probably already canceled:\n" + GetOpenOrders());
+                                    log.Info("Orig order for " + packetFIX.OriginalClientOrderId + " was not found. Probably already canceled.");
                                 }
                             }
                             if (clientOrder != null && clientOrder.ReplacedBy != null)

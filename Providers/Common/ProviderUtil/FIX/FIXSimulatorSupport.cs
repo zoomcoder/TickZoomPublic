@@ -540,9 +540,9 @@ namespace TickZoom.FIX
                                     fixState = ServerState.Recovered;
                                     SendSessionStatusOnline();
                                     // Setup disconnect simulation.
-                                    nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                                    nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
                                     if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
-                                    nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                                    nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
                                     if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
                                 }
                                 switch (packetFIX.MessageType)
@@ -612,13 +612,13 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
                 FixFactory = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
                 remoteSequence = packet.Sequence;
-                nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
                 if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
-                nextRecvDisconnectSequence = packet.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                nextRecvDisconnectSequence = packet.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
                 if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
-                nextSendOrderServerOfflineSequence = FixFactory.LastSequence + random.Next(simulateSendOrderServerOfflineFrequency) + simulateSendOrderServerOfflineFrequency;
+                nextSendOrderServerOfflineSequence = FixFactory.LastSequence + random.Next(simulateSendOrderServerOfflineFrequency * symbolHandlers.Count) + simulateSendOrderServerOfflineFrequency;
                 if (debug) log.Debug("Set next order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
-                nextRecvOrderServerOfflineSequence = packet.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency) + simulateRecvOrderServerOfflineFrequency;
+                nextRecvOrderServerOfflineSequence = packet.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency * symbolHandlers.Count) + simulateRecvOrderServerOfflineFrequency;
                 if (debug) log.Debug("Set next order server offline sequence for receive = " + nextRecvOrderServerOfflineSequence);
             }
             else if (FixFactory == null)
@@ -664,7 +664,7 @@ namespace TickZoom.FIX
             if (simulateDisconnect && FixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
             {
                 if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= receive disconnect sequence " + nextRecvDisconnectSequence + " so ignoring AND disconnecting.");
-                nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
                 if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
                 // Ignore this message. Pretend we never received it AND disconnect.
                 // This will test the message recovery.)
@@ -681,7 +681,7 @@ namespace TickZoom.FIX
             if (simulateRecvOrderServerOffline && IsRecovered && FixFactory != null && packetFIX.Sequence >= nextRecvOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Skipping sequence " + packetFIX.Sequence + " because >= recv order server offline " + nextRecvOrderServerOfflineSequence + " so making session status offline. " + packetFIX);
-                nextRecvOrderServerOfflineSequence = packetFIX.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency) + simulateRecvOrderServerOfflineFrequency;
+                nextRecvOrderServerOfflineSequence = packetFIX.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency * symbolHandlers.Count) + simulateRecvOrderServerOfflineFrequency;
                 if (debug) log.Debug("Set next recv order server offline sequence = " + nextRecvOrderServerOfflineSequence);
                 SetOrderServerOffline();
                 SendSessionStatus("3"); //offline
@@ -692,14 +692,14 @@ namespace TickZoom.FIX
             switch (packetFIX.MessageType)
             {
                 case "G":
-                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency) == 1)
+                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency*symbolHandlers.Count) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         return true;
                     }
                     break;
                 case "D":
-                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency) == 1)
+                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         return true;
@@ -954,7 +954,7 @@ namespace TickZoom.FIX
             if (simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)
             {
                 if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= send disconnect sequence " + nextSendDisconnectSequence + " so ignoring AND disconnecting.");
-                nextSendDisconnectSequence = fixMessage.Sequence + random.Next(simulateDisconnectFrequency) + simulateDisconnectFrequency;
+                nextSendDisconnectSequence = fixMessage.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
                 if (trace) log.Trace("Set next disconnect sequence for send = " + nextSendDisconnectSequence);
                 isConnectionLost = true;
                 return;
@@ -980,7 +980,7 @@ namespace TickZoom.FIX
             if (simulateSendOrderServerOffline && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Skipping sequence " + fixMessage.Sequence + " because >= send order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline. " + fixMessage);
-                nextSendOrderServerOfflineSequence = fixMessage.Sequence + random.Next(simulateSendOrderServerOfflineFrequency) + simulateSendOrderServerOfflineFrequency;
+                nextSendOrderServerOfflineSequence = fixMessage.Sequence + random.Next(simulateSendOrderServerOfflineFrequency * symbolHandlers.Count) + simulateSendOrderServerOfflineFrequency;
                 if (trace) log.Trace("Set next send order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
                 SetOrderServerOffline();
                 SendSessionStatus("3");
