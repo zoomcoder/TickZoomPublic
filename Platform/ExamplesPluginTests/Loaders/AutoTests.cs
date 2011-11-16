@@ -327,7 +327,7 @@ namespace Loaders
 			list.Add( spyQuoteDataOnly);
 			
 			var multiSymbolOrders = new AutoTestSettings {
-			    Mode = AutoTestMode.Historical, 
+			    Mode = AutoTestMode.Default, 
 			    Name = "MultiSymbolOrders",
 			    Loader = new ExampleOrdersLoader(),
 				Symbols = @"AD.1month, BO.1month, BP.1month, CC.1month, CD.1month, CL.1month,

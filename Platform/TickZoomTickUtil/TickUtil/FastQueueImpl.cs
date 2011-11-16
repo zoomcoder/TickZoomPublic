@@ -318,11 +318,6 @@ namespace TickZoom.TickUtil
 		        NodePool.Free(last);
 	            temp = queue.Count;
                 earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
-                if( queue.Count == 0) {
-		            if( task != null) {
-			            task.UpdateUtcTime(connectionId,earliestUtcTime);
-	    	        }
-                }
 	    	} finally {
 	            SpinUnLock();
 	    	}

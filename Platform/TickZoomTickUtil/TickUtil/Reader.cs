@@ -210,6 +210,7 @@ namespace TickZoom.TickUtil
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader-" + symbol);
                     fileReaderTask = Factory.Parallel.IOLoop(this, OnException, FileReader);
+                    fileReaderTask.Scheduler = Scheduler.RoundRobin;
                     fileReaderTask.Start();
                     isStarted = true;
                 }

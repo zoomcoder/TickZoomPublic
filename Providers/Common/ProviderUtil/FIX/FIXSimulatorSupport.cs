@@ -202,10 +202,11 @@ namespace TickZoom.FIX
 		private void TryInitializeTask() {
 			if( task == null) {
 				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
+			    task.Scheduler = Scheduler.RoundRobin;
                 quotePacketQueue.Connect(task);
                 fixPacketQueue.Connect(task);
+                task.Start();
             }
-            task.Start();
         }
 
 		private void OnDisconnectFIX(Socket socket)

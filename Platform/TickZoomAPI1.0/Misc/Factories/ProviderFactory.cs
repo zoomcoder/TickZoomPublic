@@ -39,7 +39,7 @@ namespace TickZoom.Api
 	public interface ProviderFactory {
 		void Release();
 		Provider AsyncProvider( Provider provider);
-		AsyncReceiver AsyncReceiver( Receiver receiver);
+		AsyncReceiver AsyncReceiver( Receiver receiver, string name);
 		Provider InProcessProvider(string providerAssembly);
 		Provider RemoteProvider(string address, ushort port);
 		Provider ProviderProcess(string address, ushort port, string executableFileName);
