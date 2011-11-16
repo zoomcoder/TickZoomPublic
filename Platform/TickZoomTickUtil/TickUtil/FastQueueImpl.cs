@@ -157,11 +157,11 @@ namespace TickZoom.TickUtil
         }
 
 	    private int connectionId;
-	    public void Connect(Task task)
+	    public void ConnectInbound(Task task)
 	    {
 			if( this.task != task) {
 				this.task = task;
-				task.Connect( this, out connectionId);
+				task.ConnectInbound( this, out connectionId);
 			}
 	    }
 	    
@@ -209,7 +209,7 @@ namespace TickZoom.TickUtil
 	            	}
 	            }
 	           	Interlocked.Increment(ref count);
-	           	if( task != null) task.IncreaseActivity();
+	           	if( task != null) task.IncreaseInbound();
             } finally {
 	            SpinUnLock();
             }
@@ -230,7 +230,7 @@ namespace TickZoom.TickUtil
                 {
                     task.UpdateUtcTime(connectionId, earliestUtcTime);
                 }
-                task.DecreaseActivityX();
+                task.DecreaseInbound();
 	    	}
             SpinUnLock();
         }

@@ -49,10 +49,10 @@ namespace TickZoom.Api
 		/// out the queue.
 		/// </summary>
 		void Boost();
-		void IncreaseActivity();
-		void DecreaseActivityX();
+		void IncreaseInbound();
+		void DecreaseInbound();
 		void UpdateUtcTime(int source,long utcTime);
-		void Connect(Queue queue, out int connectionId);
+		void ConnectInbound(Queue queue, out int inboundId);
 		bool HasActivity {
 			get;
 		}
@@ -78,6 +78,9 @@ namespace TickZoom.Api
 		Scheduler Scheduler {
 			get;
 			set;
-		}		
+		}
+
+	    void IncreaseOutbound();
+	    void DecreaseOutbound();
 	}
 }

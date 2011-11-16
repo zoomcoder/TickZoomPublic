@@ -152,12 +152,12 @@ namespace TickZoom.TickUtil
 			string baseName = Path.GetFileNameWithoutExtension(fileName);
 			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
 			appendTask.Scheduler = Scheduler.EarliestTime;
-			writeQueue.Connect(appendTask);
+			writeQueue.ConnectInbound(appendTask);
 			appendTask.Start();
 		}
 		
 		private void HasItem(object source) {
-			appendTask.IncreaseActivity();
+			appendTask.IncreaseInbound();
 		}
 		
 		TickBinary tick = new TickBinary();

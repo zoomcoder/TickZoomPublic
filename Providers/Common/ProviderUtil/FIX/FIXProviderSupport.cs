@@ -126,7 +126,7 @@ namespace TickZoom.FIX
 				socket.Dispose();
 			}
 			socket = Factory.Provider.Socket("MBTFIXSocket");
-			socket.ReceiveQueue.Connect( socketTask);
+			socket.ReceiveQueue.ConnectInbound( socketTask);
 			socket.OnDisconnect = OnDisconnect;
 			socket.MessageFactory = new MessageFactoryFix44();
 			if( debug) log.Debug("Created new " + socket);

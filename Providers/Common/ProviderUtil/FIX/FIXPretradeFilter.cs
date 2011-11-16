@@ -81,7 +81,7 @@ namespace TickZoom.FIX
 			log.Info("Received local connection: " + socket);
 			RequestRemoteConnect();
 			localTask = Factory.Parallel.Loop( "FilterLocalRead", OnException, LocalReadLoop);
-			localSocket.ReceiveQueue.Connect( localTask);
+			localSocket.ReceiveQueue.ConnectInbound( localTask);
 			localTask.Start();
 		}
 		
@@ -120,7 +120,7 @@ namespace TickZoom.FIX
 			remoteTask = Factory.Parallel.Loop( "FilterRemoteRead", OnException, RemoteReadLoop);
 			remoteTask.Start();
 			fixContext = new FIXContextDefault( localSocket, remoteSocket);
-			remoteSocket.ReceiveQueue.Connect( remoteTask);
+			remoteSocket.ReceiveQueue.ConnectInbound( remoteTask);
 			log.Info("Connected at " + remoteAddress + " and port " + remotePort + " with socket: " + localSocket);
 		}
 		
