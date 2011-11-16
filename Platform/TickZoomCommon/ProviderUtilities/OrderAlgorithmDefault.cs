@@ -1205,15 +1205,6 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Will sync positions because fill from order already canceled: " + physical.Order.ReplacedBy);
                 SyncPosition();
                 TryRemovePhysicalFill(physical);
-            }
-            else if (!isPositionSynced && physical.Order.LogicalSerialNumber > 0L)
-            {
-                if (debug) log.Debug("ProcessFill() for logical ignored. Position not yet synced.");
-                if( SyncTicks.Enabled)
-                {
-                    tickSync.RemovePhysicalFillWaiting(physical);
-                }
-                return;
             } else {
     		    LogicalFillBinary fill;
                 if( logical != null) {
