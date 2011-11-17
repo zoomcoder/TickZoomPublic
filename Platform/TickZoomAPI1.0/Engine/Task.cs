@@ -82,5 +82,6 @@ namespace TickZoom.Api
 
 	    void IncreaseOutbound(int id);
 	    void DecreaseOutbound(int id);
+	    unsafe void ConnectOutbound(Queue queue, out int outboundId);
 	}
 }

@@ -206,13 +206,13 @@ namespace TickZoom.TickUtil
                 if (!isStarted)
                 {
                     this.receiver = receiver;
-                    this.outboundQueue = receiver.GetQueue(symbol);
-                    if (debug)
-                        log.Debug("Start called.");
+                    outboundQueue = receiver.GetQueue(symbol);
+                    if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader-" + symbol);
                     fileReaderTask = Factory.Parallel.IOLoop(this, OnException, FileReader);
-                    fileReaderTask.Scheduler = Scheduler.RoundRobin;
+                    fileReaderTask.Scheduler = Scheduler.EarliestTime;
+                    outboundQueue.ConnectOutbound(fileReaderTask);
                     fileReaderTask.Start();
                     isStarted = true;
                 }

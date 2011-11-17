@@ -190,8 +190,8 @@ namespace TickZoom.TickUtil
             if (outboundTask == null)
             {
                 outboundTask = task;
-                task.ConnectInbound(this, out outboundId);
-                for( int i=0; i<Capacity; i++)
+                task.ConnectOutbound(this, out outboundId);
+                if( IsFull)
                 {
                     task.IncreaseOutbound(outboundId);
                 }
@@ -246,9 +246,15 @@ namespace TickZoom.TickUtil
 	            		inboundTask.UpdateUtcTime(inboundId,utcTime);
 	            	}
 	            }
-	           	Interlocked.Increment(ref count);
+                Interlocked.Increment(ref count);
 	           	if( inboundTask != null) inboundTask.IncreaseInbound(inboundId);
-            } finally {
+                if (outboundTask != null && queue.Count >= maxSize)
+                {
+                    outboundTask.IncreaseOutbound(outboundId);
+                }
+            }
+            finally
+            {
 	            SpinUnLock();
             }
 	        return true;
@@ -338,7 +344,8 @@ namespace TickZoom.TickUtil
 	    		if( !StartDequeue()) return false;
 	    	}
 	        if( queue == null || queue.Count==0) return false;
-	        var temp = 0;
+	        int priorCount;
+	        int newCount = 0;
 	    	if( !SpinLockNB()) return false;
 	    	try {
 	            if( isDisposed) {
@@ -352,16 +359,17 @@ namespace TickZoom.TickUtil
 	            if( count != queue.Count) {
 		        	throw new ApplicationException("Attempt to dequeue another item before calling ReleaseCount() for previously dequeued item. count " + count + ", queue.Count " + queue.Count);
 	            }
+	    	    priorCount = queue.Count;
 		        var last = queue.Last;
 		        tick = last.Value.Entry;
 		        queue.Remove(last);
 		        NodePool.Free(last);
-	            temp = queue.Count;
+	            newCount = queue.Count;
                 earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
 	    	} finally {
 	            SpinUnLock();
 	    	}
- 			if( temp == 0) {
+ 			if( newCount == 0) {
             	if( isBackingUp) {
             		isBackingUp = false;
             		if( debug) log.Debug( name + " queue now cleared after backup to " + maxLastBackup + " items.");
@@ -369,6 +377,10 @@ namespace TickZoom.TickUtil
             		maxLastBackup = 0;
             	}
 	    	}
+            if( priorCount >= maxSize && newCount < maxSize)
+            {
+                outboundTask.DecreaseOutbound(outboundId);
+            }
 	    	return true;
 	    }
 	    
