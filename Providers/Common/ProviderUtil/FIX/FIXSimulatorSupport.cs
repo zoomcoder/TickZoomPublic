@@ -291,7 +291,7 @@ namespace TickZoom.FIX
 			var result = false;
 			switch( state) {
 				case State.Start:
-					if( FIXReadLoop())
+					if( !fixPacketQueue.IsFull && FIXReadLoop())
 					{
 						result = true;
 					}
