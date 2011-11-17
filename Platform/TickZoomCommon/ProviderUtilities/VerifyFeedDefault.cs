@@ -39,7 +39,6 @@ namespace TickZoom.Common
 		private readonly bool debug = log.IsDebugEnabled;
         private readonly bool trace = log.IsTraceEnabled;
         private readonly bool verbose = log.IsVerboseEnabled;
-        //private TickQueue tickQueue = Factory.TickUtil.TickQueue(typeof(VerifyFeed));
 		private volatile bool isRealTime = false;
 		private TickSync tickSync;
 		private volatile ReceiverState receiverState = ReceiverState.Ready;
@@ -58,7 +57,7 @@ namespace TickZoom.Common
 			return received;
 		}
 
-		public FastQueue<EventItem> TickQueue {
+		public EventQueue TickQueue {
 			get { return queue; }
 		}
 
@@ -569,9 +568,6 @@ namespace TickZoom.Common
 			return true;
 		}
 
-		public bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail) {
-            throw new NotImplementedException();
-		}
 		
 		public TickIO LastTick {
 			get { return lastTick; }
@@ -589,7 +585,8 @@ namespace TickZoom.Common
 
 	    public ReceiveEventQueue GetQueue( SymbolInfo symbol)
 	    {
-	        if( symbol.BinaryIdentifier != this.symbol.BinaryIdentifier)
+            if (debug) log.Debug("GetQueue for " + symbol);
+            if (symbol.BinaryIdentifier != this.symbol.BinaryIdentifier)
 	        {
 	            throw new ApplicationException("Requested " + symbol + " but expected " + this.symbol);
 	        }

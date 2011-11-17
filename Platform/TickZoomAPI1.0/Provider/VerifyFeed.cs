@@ -44,7 +44,7 @@ namespace TickZoom.Api
 		void StartTimeTheFeed();
 		int EndTimeTheFeed(int expectedTickCount, int timeoutSeconds);
 		Yield TimeTheFeedTask();
-		FastQueue<EventItem> TickQueue { get; }
+		EventQueue TickQueue { get; }
 		bool IsRealTime { get; }
 		TickIO LastTick { get; }
 		bool KeepReceived { get; set; }

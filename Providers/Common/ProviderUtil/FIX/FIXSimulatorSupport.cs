@@ -898,13 +898,7 @@ namespace TickZoom.FIX
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if (debug) log.Debug("Resending simulated FIX Message: " + fixMessage);
-            while (!fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime))
-            {
-                if (fixPacketQueue.IsFull)
-                {
-                    throw new ApplicationException("Fix Queue is full.");
-                }
-            }
+            fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
         }
 
         private bool SendMessageInternal( Message message)
@@ -970,13 +964,7 @@ namespace TickZoom.FIX
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if( debug) log.Debug("Simulating FIX Message: " + fixMessage);
-            while (!fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime))
-            {
-                if (fixPacketQueue.IsFull)
-                {
-                    throw new ApplicationException("Fix Queue is full.");
-                }
-            }
+            fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
             IncreaseHeartbeat(Factory.Parallel.TickCount);
             if (simulateSendOrderServerOffline && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
             {

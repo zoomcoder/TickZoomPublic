@@ -54,8 +54,8 @@ namespace TickZoom.Api
 
     public interface ReceiveQueue<T> : Queue
     {
-		bool Enqueue(T item, long utcTime);
-	    bool TryEnqueue(T item, long utcTime);
+		void Enqueue(T item, long utcTime);
+        bool TryEnqueue(T item, long utcTime);
     }
 
 	public interface FastQueue<T> : ReceiveQueue<T>

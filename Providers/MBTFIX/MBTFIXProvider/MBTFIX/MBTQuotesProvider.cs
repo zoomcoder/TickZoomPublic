@@ -388,10 +388,7 @@ namespace TickZoom.MBTQuotes
 
             var queue = receiver.GetQueue(symbol);
 		    var item = new EventItem(symbol, (int) EventType.StartRealTime);
-            while (!queue.TryEnqueue(item,TimeStamp.UtcNow.Internal))
-            {
-                throw new ApplicationException("Enqueue failed for " + queue.Name);
-            }
+		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
 		}
 		
 		public override void OnStopSymbol(SymbolInfo symbol)
@@ -404,10 +401,7 @@ namespace TickZoom.MBTQuotes
        		buffer.Stop();
             var queue = receiver.GetQueue(symbol);
             var item = new EventItem(symbol, (int)EventType.EndRealTime);
-            while (!queue.TryEnqueue(item, TimeStamp.UtcNow.Internal))
-            {
-                throw new ApplicationException("Enqueue failed for " + queue.Name);
-            }
+		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
 		}
 		
 		

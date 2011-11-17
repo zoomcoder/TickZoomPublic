@@ -130,10 +130,7 @@ namespace TickZoom.MBTFIX
                 if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
 			    var queue = receiver.GetQueue(symbol);
 			    var item = new EventItem(symbol, (int) type);
-                while (!queue.TryEnqueue(item, TimeStamp.UtcNow.Internal))
-                {
-                    throw new ApplicationException("Enqueue failed for " + queue.Name);
-                }
+			    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
             }
 		}
 
@@ -156,9 +153,7 @@ namespace TickZoom.MBTFIX
                     }
 			        var queue = receiver.GetQueue(symbol);
 			        var item = new EventItem(symbol, (int)EventType.EndBroker);
-				    while( !queue.TryEnqueue(item,TimeStamp.UtcNow.Internal)) {
-                        throw new ApplicationException("Enqueue failed for " + queue.Name);
-					}
+				    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
 				    algorithm.IsBrokerStarted = false;
 				}
 			}
@@ -1011,11 +1006,8 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
                 var queue = receiver.GetQueue(symbol);
-                var item = new EventItem(symbol, (int)EventType.LogicalFill);
-                while (!queue.TryEnqueue(item, fill.UtcTime.Internal))
-                {
-                    throw new ApplicationException("Enqueue failed for " + queue.Name);
-                }
+                var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
+                queue.Enqueue(item, fill.UtcTime.Internal);
             }
             else
             {

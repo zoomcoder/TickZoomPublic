@@ -54,8 +54,8 @@ namespace TickZoom.TickUtil
 			this.utcTime = utcTime;
 		}
 	}
-
-    public class FastQueueImpl<T> : FastQueue<T> // where T : struct
+	
+	public class FastQueueImpl<T> : FastQueue<T> // where T : struct
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueueImpl.<" + typeof(FastQueueImpl<T>).GetGenericArguments()[0].Name + ">");
 		private readonly bool debug = log.IsDebugEnabled;
@@ -153,8 +153,14 @@ namespace TickZoom.TickUtil
         	spinLock.Unlock();
 	    }
 	    
-        public bool Enqueue(T tick, long utcTime) {
-        	return TryEnqueue(tick, utcTime);
+        public void Enqueue(T tick, long utcTime) {
+            while (!TryEnqueue(tick, utcTime))
+            {
+                if( IsFull)
+                {
+                    throw new ApplicationException("Enqueue failed for " + name + " with " + queue.Count + " items.");
+                }
+            }
         }
 
 	    private int inboundId;

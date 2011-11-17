@@ -51,7 +51,7 @@ namespace TickZoom.TickUtil
 			get {
 				if (receiverInternal == null) {
 					if (debug)
-						log.Debug("queue was called. Setting up internal data receiver.");
+						log.Debug("ReadQueue was called. Setting up internal data receiver.");
 					receiverInternal = new DataReceiverDefault(this,Symbol);
 				}
 				return receiverInternal.ReadQueue;

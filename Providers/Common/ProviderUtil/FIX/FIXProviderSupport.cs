@@ -82,7 +82,6 @@ namespace TickZoom.FIX
 	    private string appDataFolder;
         private TimeStamp lastMessageTime;
         private int remoteSequence = 1;
-        private ReceiveEventQueue receiverQueue;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
