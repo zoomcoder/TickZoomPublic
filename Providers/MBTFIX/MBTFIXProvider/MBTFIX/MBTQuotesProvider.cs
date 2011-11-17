@@ -386,10 +386,11 @@ namespace TickZoom.MBTQuotes
                 }
             }
 
-            while (!receiver.OnEvent(symbol, (int)EventType.StartRealTime, null))
+            var queue = receiver.GetQueue(symbol);
+		    var item = new EventItem(symbol, (int) EventType.StartRealTime);
+            while (!queue.TryEnqueue(item,TimeStamp.UtcNow.Internal))
             {
-            	if( IsInterrupted) return;
-            	Factory.Parallel.Yield();
+                throw new ApplicationException("Enqueue failed for " + queue.Name);
             }
 		}
 		
@@ -401,7 +402,12 @@ namespace TickZoom.MBTQuotes
 		private void RequestStopSymbol(SymbolInfo symbol) {
        		SymbolHandler buffer = symbolHandlers[symbol.BinaryIdentifier];
        		buffer.Stop();
-			receiver.OnEvent(symbol,(int)EventType.EndRealTime,null);
+            var queue = receiver.GetQueue(symbol);
+            var item = new EventItem(symbol, (int)EventType.EndRealTime);
+            while (!queue.TryEnqueue(item, TimeStamp.UtcNow.Internal))
+            {
+                throw new ApplicationException("Enqueue failed for " + queue.Name);
+            }
 		}
 		
 		

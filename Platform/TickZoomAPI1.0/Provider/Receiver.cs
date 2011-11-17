@@ -41,13 +41,23 @@ namespace TickZoom.Api
         public SymbolInfo Symbol;
         public int EventType;
         public object EventDetail;
-        public long UtcTime;
+        public EventItem( SymbolInfo symbol, int eventType, object detail)
+        {
+            this.Symbol = symbol;
+            this.EventType = eventType;
+            this.EventDetail = detail;
+        }
+        public EventItem(SymbolInfo symbol, int eventType)
+        {
+            this.Symbol = symbol;
+            this.EventType = eventType;
+            this.EventDetail = null;
+        }
     }
 	
 	public interface Receiver : IDisposable
 	{
 	    ReceiveEventQueue GetQueue(SymbolInfo symbol);
-	    bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail);
 	}
 	
 	public interface Serializable {

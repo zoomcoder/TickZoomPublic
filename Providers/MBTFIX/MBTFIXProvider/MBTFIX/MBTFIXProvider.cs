@@ -128,15 +128,13 @@ namespace TickZoom.MBTFIX
         {
 			lock( symbolsRequestedLocker) {
                 if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
-				long end = Factory.Parallel.TickCount + 5000;
-				while( !receiver.OnEvent(symbol,(int)type,symbol)) {
-					if( isDisposed) return;
-					if( Factory.Parallel.TickCount > end) {
-						throw new ApplicationException("Timeout while sending " + type);
-					}
-					Factory.Parallel.Yield();
-				}
-			}
+			    var queue = receiver.GetQueue(symbol);
+			    var item = new EventItem(symbol, (int) type);
+                while (!queue.TryEnqueue(item, TimeStamp.UtcNow.Internal))
+                {
+                    throw new ApplicationException("Enqueue failed for " + queue.Name);
+                }
+            }
 		}
 
         public int ProcessOrders()
@@ -156,23 +154,11 @@ namespace TickZoom.MBTFIX
                         if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
                         continue;
                     }
-                    var waitIncrease = 10;
-				    var waitSeconds = waitIncrease;
-				    var errorFlag = false;
-					long end = Factory.Parallel.TickCount + waitSeconds * 1000;
-					while( !receiver.OnEvent(symbol,(int)EventType.EndBroker,symbol)) {
-						if( isDisposed) return;
-						if( Factory.Parallel.TickCount > end) {
-							log.Error( "Waiting over " + waitSeconds + " to send " + EventType.EndBroker + " will keep trying.");
-						    waitSeconds += waitIncrease;
-						    errorFlag = true;
-						}
-						Factory.Parallel.Yield();
+			        var queue = receiver.GetQueue(symbol);
+			        var item = new EventItem(symbol, (int)EventType.EndBroker);
+				    while( !queue.TryEnqueue(item,TimeStamp.UtcNow.Internal)) {
+                        throw new ApplicationException("Enqueue failed for " + queue.Name);
 					}
-                    if( errorFlag)
-                    {
-                        log.Notice(EventType.EndBroker + " successfully sent so error was resolved.");
-                    }
 				    algorithm.IsBrokerStarted = false;
 				}
 			}
@@ -1024,9 +1010,11 @@ namespace TickZoom.MBTFIX
             if( symbolAlgorithm.IsBrokerStarted)
             {
                 if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
-                while (!receiver.OnEvent(symbol, (int)EventType.LogicalFill, fill))
+                var queue = receiver.GetQueue(symbol);
+                var item = new EventItem(symbol, (int)EventType.LogicalFill);
+                while (!queue.TryEnqueue(item, fill.UtcTime.Internal))
                 {
-                    Factory.Parallel.Yield();
+                    throw new ApplicationException("Enqueue failed for " + queue.Name);
                 }
             }
             else

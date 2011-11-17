@@ -427,7 +427,7 @@ namespace TickZoom.MBTQuotes
 			SendError( ex.Message + "\n" + ex.StackTrace);
 			Dispose();
 		}
-		
+
         public void Start(Receiver receiver)
         {
         	this.receiver = (Receiver) receiver;
@@ -551,7 +551,7 @@ namespace TickZoom.MBTQuotes
 			if( receiver!= null) {
 				ErrorDetail detail = new ErrorDetail();
 				detail.ErrorMessage = error;
-				receiver.OnEvent(null,(int)EventType.Error, detail);
+				log.Error(detail.ErrorMessage);
 			}
 		}
 		

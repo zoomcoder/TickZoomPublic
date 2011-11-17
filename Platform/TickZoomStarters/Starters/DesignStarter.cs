@@ -123,16 +123,20 @@ namespace TickZoom.Starters
 			tickIO.SetSymbol( symbol.BinaryIdentifier);
 			tickIO.SetTime( new TimeStamp(2000,1,1));
 			tickIO.SetQuote(100D, 100D);
-			while( !receiver.OnEvent(symbol,(int)EventType.StartHistorical,symbol)) {
-				Factory.Parallel.Yield();
+		    var queue = receiver.GetQueue(symbol);
+		    var item = new EventItem(symbol, (int) EventType.StartHistorical, symbol);
+			while( !queue.TryEnqueue(item,TimeStamp.UtcNow.Internal)) {
+				throw new ApplicationException("Enqueue failed for " + queue.Name);
 			}
 			var binaryBox = tickPool.Create();
 		    var tickId = binaryBox.TickBinary.Id;
 			binaryBox.TickBinary = tickIO.Extract();
 		    binaryBox.TickBinary.Id = tickId;
-			while( !receiver.OnEvent(symbol,(int)EventType.Tick, binaryBox)) {
-				Factory.Parallel.Yield();
-			}
+            item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
+            while (!queue.TryEnqueue(item, TimeStamp.UtcNow.Internal))
+            {
+                throw new ApplicationException("Enqueue failed for " + queue.Name);
+            }
 			tickIO.Initialize();
 			tickIO.SetSymbol( symbol.BinaryIdentifier);
 			tickIO.SetTime( new TimeStamp(2000,1,2));
@@ -141,13 +145,16 @@ namespace TickZoom.Starters
             tickId = binaryBox.TickBinary.Id;
             binaryBox.TickBinary = tickIO.Extract();
             binaryBox.TickBinary.Id = tickId;
-            while (!receiver.OnEvent(symbol, (int)EventType.Tick, binaryBox))
+            item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
+            while (!queue.TryEnqueue(item, TimeStamp.UtcNow.Internal))
             {
-				Factory.Parallel.Yield();
-			}
-			while( !receiver.OnEvent(symbol,(int)EventType.EndHistorical,symbol)) {
-				Factory.Parallel.Yield();
-			}
+                throw new ApplicationException("Enqueue failed for " + queue.Name);
+            }
+            item = new EventItem(symbol, (int)EventType.EndHistorical);
+            while (!queue.TryEnqueue(item, TimeStamp.UtcNow.Internal))
+            {
+                throw new ApplicationException("Enqueue failed for " + queue.Name);
+            }
 		}
 		
 		public void StopSymbol(Receiver receiver, SymbolInfo symbol)

@@ -63,6 +63,7 @@ namespace TickZoom.TickUtil
 		private Pool<TickBinaryBox> tickBoxPool;
 		private TickBinaryBox box;
 	    private int diagnoseMetric;
+	    private ReceiveEventQueue outboundQueue;
 
 		public Reader()
 		{
@@ -205,6 +206,7 @@ namespace TickZoom.TickUtil
                 if (!isStarted)
                 {
                     this.receiver = receiver;
+                    this.outboundQueue = receiver.GetQueue(symbol);
                     if (debug)
                         log.Debug("Start called.");
                     start = Factory.TickCount;
@@ -221,9 +223,7 @@ namespace TickZoom.TickUtil
 		{
 			ErrorDetail detail = new ErrorDetail();
 			detail.ErrorMessage = ex.ToString();
-			while (!receiver.OnEvent(null, (int)EventType.Error, detail)) {
-				Factory.Parallel.Yield();
-			}
+            log.Error(detail.ErrorMessage);
 		}
 
 		public void Stop(Receiver receiver)
@@ -448,12 +448,17 @@ namespace TickZoom.TickUtil
 				return Yield.DidWork.Repeat;
 			}
 		}
-		
-		private Yield StartEvent()
+
+        private Yield StartEvent()
 		{
-            if (!receiver.OnEvent(symbol, (int)EventType.StartHistorical, null))
+		    var item = new EventItem
+		                   {
+		                       Symbol = symbol,
+		                       EventType = (int) EventType.StartHistorical,
+		                   };
+            if (!outboundQueue.TryEnqueue(item,TimeStamp.UtcNow.Internal))
             {
-				return Yield.NoWork.Repeat;
+				throw new ApplicationException( "Enqueue failed for " + outboundQueue.Name);
 			} else {
 				if (!quietMode) {
 					LogInfo("Starting loading for " + symbol + " from " + tickIO.ToPosition());
@@ -474,9 +479,15 @@ namespace TickZoom.TickUtil
 			}
             try
             {
-                if (!receiver.OnEvent(symbol, (int)EventType.Tick, box))
+    		    var item = new EventItem
+		                   {
+		                       Symbol = symbol,
+		                       EventType = (int)EventType.Tick,
+                               EventDetail = box
+		                   };
+                if (!outboundQueue.TryEnqueue(item,box.TickBinary.UtcTime))
                 {
-                    return Yield.NoWork.Repeat;
+				    throw new ApplicationException( "Enqueue failed for " + outboundQueue.Name);
                 }
                 else
                 {
@@ -493,8 +504,14 @@ namespace TickZoom.TickUtil
 
 		private Yield SendFinish()
 		{
-			if (!receiver.OnEvent(symbol, (int)EventType.EndHistorical, null)) {
-				return Yield.NoWork.Repeat;
+		    var item = new EventItem
+		                   {
+		                       Symbol = symbol,
+		                       EventType = (int)EventType.EndHistorical,
+		                   };
+            if (!outboundQueue.TryEnqueue(item,TimeStamp.UtcNow.Internal))
+            {
+				throw new ApplicationException( "Enqueue failed for " + outboundQueue.Name);
 			} else {
 				if( debug) log.Debug("EndHistorical for " + symbol);
 				return Yield.DidWork.Invoke(FinishTask);

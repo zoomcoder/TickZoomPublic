@@ -82,6 +82,7 @@ namespace TickZoom.FIX
 	    private string appDataFolder;
         private TimeStamp lastMessageTime;
         private int remoteSequence = 1;
+        private ReceiveEventQueue receiverQueue;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
@@ -936,7 +937,7 @@ namespace TickZoom.FIX
 			if( receiver!= null) {
 				ErrorDetail detail = new ErrorDetail();
 				detail.ErrorMessage = error;
-				receiver.OnEvent(null,(int)EventType.Error, detail);
+				log.Error(detail.ErrorMessage);
 			}
 		}
 		

@@ -523,10 +523,9 @@ namespace TickZoom.Common
 			return true;
 		}
 
-		public bool OnError(ErrorDetail error)
+		public void ReportError(ErrorDetail error)
 		{
 			OnException( new Exception(error.ErrorMessage));
-			return true;
 		}
 		
  		private volatile bool isDisposed = false;

@@ -58,6 +58,7 @@ namespace TickZoom.Common
         private TimeStamp time;
 	    private int diagnoseMetric = Diagnose.RegisterMetric("Symbol Handler");
         private long tickCount = 0L;
+        private ReceiveEventQueue outboundQueue;
         
         
 		public void Start()
@@ -74,10 +75,11 @@ namespace TickZoom.Common
         {
             
         }
-        
+
 		public SymbolHandlerDefault(SymbolInfo symbol, Receiver receiver) {
         	this.symbol = symbol;
 			this.receiver = receiver;
+		    this.outboundQueue = receiver.GetQueue(symbol);
 			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
 			this.salesLatency = new LatencyMetric( "SymbolHandler-Trade-" + symbol.Symbol.StripInvalidPathChars());
             tickPool =  Factory.TickUtil.TickPool(symbol);
@@ -108,9 +110,15 @@ namespace TickZoom.Common
 						box.TickBinary = tickIO.Extract();
 					    box.TickBinary.Id = tickId;
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-						while( !receiver.OnEvent(Symbol,(int)EventType.Tick,box))
-						{
-						    Factory.Parallel.Yield();
+					    var eventItem = new EventItem
+					                        {
+					                            EventType = (int) EventType.Tick,
+					                            Symbol = symbol,
+					                            EventDetail = box
+					                        };
+                        if( !outboundQueue.TryEnqueue( eventItem, box.TickBinary.UtcTime))
+                        {
+						    throw new ApplicationException("Outbound queue " + outboundQueue.Name + " failed to enqueue.");
 						}
 					    Interlocked.Increment(ref tickCount);
                         if( Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
@@ -196,9 +204,15 @@ namespace TickZoom.Common
                 log.Warn("Found trade tick with zero price: " + tickIO);
             }
             salesLatency.TryUpdate(box.TickBinary.Symbol, box.TickBinary.UtcTime);
-            while (!receiver.OnEvent(Symbol, (int)EventType.Tick, box))
+            var eventItem = new EventItem
             {
-                Factory.Parallel.Yield();
+                EventType = (int)EventType.Tick,
+                Symbol = symbol,
+                EventDetail = box
+            };
+            if (!outboundQueue.TryEnqueue(eventItem, box.TickBinary.UtcTime))
+            {
+                throw new ApplicationException("Outbound queue " + outboundQueue.Name + " failed to enqueue.");
             }
             Interlocked.Increment(ref tickCount);
             if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
@@ -252,10 +266,16 @@ namespace TickZoom.Common
 					log.Warn("Found trade tick with zero price: " + tickIO);
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-				while( !receiver.OnEvent(Symbol,(int)EventType.Tick,box))
-				{
-				    Factory.Parallel.Yield();
-				}
+                var eventItem = new EventItem
+                {
+                    EventType = (int)EventType.Tick,
+                    Symbol = symbol,
+                    EventDetail = box
+                };
+                if (!outboundQueue.TryEnqueue(eventItem, box.TickBinary.UtcTime))
+                {
+                    throw new ApplicationException("Outbound queue " + outboundQueue.Name + " failed to enqueue.");
+                }
                 Interlocked.Increment(ref tickCount);
                 if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
                 if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);
