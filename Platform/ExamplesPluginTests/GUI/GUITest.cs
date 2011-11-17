@@ -309,7 +309,7 @@ namespace Other
 						int count = 0;
 						while(true) {
 							while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
-							reader1.ReadQueue.RemoveStruct();
+							reader1.ReadQueue.ReleaseCount();
 							TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
 							count++;
 						}
@@ -328,9 +328,9 @@ namespace Other
 						int count = 0;
 						while(true) {
 							while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
-							reader1.ReadQueue.RemoveStruct();
+							reader1.ReadQueue.ReleaseCount();
 							while(!reader2.ReadQueue.TryDequeue(ref tick2)) { Thread.Sleep(1); }
-							reader2.ReadQueue.RemoveStruct();
+							reader2.ReadQueue.ReleaseCount();
 							TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
 							TimeStamp ts2 = new TimeStamp(tick2.UtcTime);
 							if( !ts1.Equals(ts2)) {

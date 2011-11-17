@@ -153,8 +153,8 @@ namespace TickZoom.TickUtil
         	spinLock.Unlock();
 	    }
 	    
-        public bool EnqueueStruct(ref T tick, long utcTime) {
-        	return TryEnqueueStruct(ref tick, utcTime);
+        public bool Enqueue(T tick, long utcTime) {
+        	return TryEnqueue(tick, utcTime);
         }
 
 	    private int inboundId;
@@ -199,7 +199,7 @@ namespace TickZoom.TickUtil
 
 	    private bool isBackingUp = false;
 		private int maxLastBackup = 0;
-	    public bool TryEnqueueStruct(ref T tick, long utcTime)
+	    public bool TryEnqueue(T tick, long utcTime)
 	    {
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
@@ -248,7 +248,7 @@ namespace TickZoom.TickUtil
 	        return true;
 	    }
 	    
-	    public void RemoveStruct() {
+	    public void ReleaseCount() {
             while( !SpinLockNB());
 	    	var tempCount = Interlocked.Decrement(ref count);
 	    	var tempQueueCount = queue.Count;
@@ -267,11 +267,11 @@ namespace TickZoom.TickUtil
             SpinUnLock();
         }
 	    
-	    public bool DequeueStruct(ref T tick) {
-	    	return TryDequeueStruct(ref tick);
+	    public bool Dequeue(T tick) {
+	    	return TryDequeue(tick);
 	    }
 	    
-	    public bool PeekStruct(ref T tick) {
+	    public bool Peek(T tick) {
 	    	return TryPeekStruct(ref tick);
 	    }
 	    
@@ -316,7 +316,7 @@ namespace TickZoom.TickUtil
             return true;
 	    }
 	    
-	    public bool TryDequeueStruct(ref T tick)
+	    public bool TryDequeue(T tick)
 	    {
             if( terminate) {
 	    		if( exception != null) {
@@ -342,7 +342,7 @@ namespace TickZoom.TickUtil
 	            }
 		        if( queue == null || queue.Count==0) return false;
 	            if( count != queue.Count) {
-		        	throw new ApplicationException("Attempt to dequeue another item before calling RemoveStruct() for previously dequeued item. count " + count + ", queue.Count " + queue.Count);
+		        	throw new ApplicationException("Attempt to dequeue another item before calling ReleaseCount() for previously dequeued item. count " + count + ", queue.Count " + queue.Count);
 	            }
 		        var last = queue.Last;
 		        tick = last.Value.Entry;
@@ -461,26 +461,6 @@ namespace TickZoom.TickUtil
 		
 		public bool IsStarted {
 			get { return isStarted; }
-		}
-		
-		public void Pause() {
-			if( debug) log.Debug("Pause called");
-			if( !isPaused) {
-				isPaused = true;
-				if( PauseEnqueue != null) {
-					PauseEnqueue();
-				}
-			}
-		}
-		
-		public void Resume() {
-			if( debug) log.Debug("Resume called");
-			if( isPaused) {
-				isPaused = false;
-				if( ResumeEnqueue != null) {
-					ResumeEnqueue();
-				}
-			}
 		}
 		
 		public ResumeEnqueue ResumeEnqueue {

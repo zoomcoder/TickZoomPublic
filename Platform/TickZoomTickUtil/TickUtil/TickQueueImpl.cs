@@ -57,7 +57,7 @@ namespace TickZoom.TickUtil
         	item.Symbol = o.Symbol;
         	item.EventType = (int) EventType.Tick;
     		item.Tick = o;
-    		return TryEnqueueStruct(ref item, item.Tick.UtcTime);
+    		return TryEnqueue(item, item.Tick.UtcTime);
 	    }
 	    
 	    public void Enqueue(EventType entryType, SymbolInfo symbol)
@@ -74,7 +74,7 @@ namespace TickZoom.TickUtil
 	    	if( symbol != null) {
 	    		item.Symbol = symbol.BinaryIdentifier;
 	    	}
-	    	return TryEnqueueStruct(ref item, TimeStamp.UtcNow.Internal);
+	    	return TryEnqueue(item, TimeStamp.UtcNow.Internal);
 	    }
 	    
 	    public void Enqueue(EventType entryType, string error)
@@ -88,7 +88,7 @@ namespace TickZoom.TickUtil
 	    {
         	QueueItem item = new QueueItem();
 	    	item.EventType = (int) entryType;
-	    	return TryEnqueueStruct(ref item,TimeStamp.UtcNow.Internal);
+	    	return TryEnqueue(item,TimeStamp.UtcNow.Internal);
 	    }
 	    
 	    public void Dequeue(ref TickBinary tick)
@@ -101,10 +101,10 @@ namespace TickZoom.TickUtil
 	    public bool TryDequeue(ref TickBinary tick)
 	    {
         	QueueItem item = new QueueItem();
-	    	bool result = TryDequeueStruct(ref item);
+	    	bool result = TryDequeue(item);
 	    	if( result) {
 	    		if( item.EventType != (int) EventType.Tick) {
-	    			RemoveStruct();
+	    			ReleaseCount();
 		    		string symbol;
 		    		if( item.Symbol != 0) {
 		    			symbol = item.Symbol.ToSymbol();

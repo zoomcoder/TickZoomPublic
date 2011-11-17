@@ -333,7 +333,7 @@ namespace TickZoom.FIX
             {
 				return Yield.NoWork.Return;
 			}
-		    while( !fixSimulatorSupport.QuotePacketQueue.EnqueueStruct(ref quoteMessage,quoteMessage.SendUtcTime))
+		    while( !fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage,quoteMessage.SendUtcTime))
 		    {
 		        if( fixSimulatorSupport.QuotePacketQueue.IsFull)
 		        {
@@ -342,7 +342,7 @@ namespace TickZoom.FIX
 		    }
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
 		    quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
-            reader.ReadQueue.RemoveStruct();
+            reader.ReadQueue.ReleaseCount();
             tickStatus = TickStatus.Sent;
             return Yield.DidWork.Return;
 		}

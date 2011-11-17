@@ -200,7 +200,7 @@ namespace TickZoom.TickUtil
 					if( !writeQueue.TryDequeue(ref tick)) {
 						break;
 					}
-					writeQueue.RemoveStruct();
+					writeQueue.ReleaseCount();
 					tickIO.Inject(tick);
 					if( trace) {
 						log.Trace("Writing to file: " + tickIO);

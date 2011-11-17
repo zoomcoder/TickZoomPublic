@@ -142,7 +142,7 @@ namespace TickZoom.TZData
 				try {
 					result = queue.TryDequeue(ref binary);
 					if( result) {
-						queue.RemoveStruct();
+						queue.ReleaseCount();
 					}
 				} catch( QueueException ex) {
 					// Ignore any other events.

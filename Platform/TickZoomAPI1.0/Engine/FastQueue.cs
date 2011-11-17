@@ -40,23 +40,12 @@ namespace TickZoom.Api
 	public interface Queue : IDisposable
 	{
 		string Name { get; }
-		void Clear();
-		void Flush();
-		void SetException(Exception ex);
-		void Pause();
-		void Resume();
 		string GetStats();
 		int Count { get; }
-		long EnqueueConflicts { get; }
-		long DequeueConflicts { get; }
+	    void SetException(Exception ex);
 		StartEnqueue StartEnqueue { get; set; }
-		int Timeout { get; set; }
 		bool IsStarted { get; }
-		ResumeEnqueue ResumeEnqueue { get; set; }
-		PauseEnqueue PauseEnqueue { get; set; }
-		bool IsPaused { get; }
 		int Capacity { get; }
-		long EarliestUtcTime { get; }
 	    bool IsFull {
 	    	get;
 	    }
@@ -64,15 +53,21 @@ namespace TickZoom.Api
 	    void ConnectOutbound(Task task);
 	}
 
-	public interface FastQueue<T> : Queue
+    public interface ReceiveQueue<T> : Queue
+    {
+		bool Enqueue(T tick, long utcTime);
+	    bool TryEnqueue(T tick, long utcTime);
+    }
+
+	public interface FastQueue<T> : ReceiveQueue<T>
 	{
-		bool EnqueueStruct(ref T tick, long utcTime);
-		bool DequeueStruct(ref T tick);
-		bool PeekStruct(ref T tick);
-	    bool TryEnqueueStruct(ref T tick, long utcTime);
-	    bool TryDequeueStruct(ref T tick);
-	    void RemoveStruct();
+        void Clear();
+        bool Dequeue(T tick);
+	    bool TryDequeue(T tick);
+		bool Peek(T tick);
+	    void ReleaseCount();
 	}
+
 }
 
 

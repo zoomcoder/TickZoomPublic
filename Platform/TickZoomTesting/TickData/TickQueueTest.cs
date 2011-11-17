@@ -57,7 +57,7 @@ namespace TickZoom.TickData
 			start = Factory.TickCount;
 			for(int i=0; i<10; i++) {
 				Assert.IsTrue(queue.TryDequeue(ref tick));
-				queue.RemoveStruct();
+				queue.ReleaseCount();
 			}
 			stop = Factory.TickCount;
 			log.Notice("Dequeue elapsed time is "+(stop-start)+"ms");

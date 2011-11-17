@@ -80,7 +80,7 @@ namespace TickZoom.TZData
                     while (true)
                     {
                         queue.Dequeue(ref tickBinary);
-                        queue.RemoveStruct();
+                        queue.ReleaseCount();
                         tickIO.Inject(tickBinary);
                         if (tickIO.UtcTime > endTime)
                         {

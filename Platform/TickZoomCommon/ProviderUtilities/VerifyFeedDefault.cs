@@ -108,7 +108,7 @@ namespace TickZoom.Common
 				}
 				try { 
 					if( tickQueue.TryDequeue(ref tickBinary)) {
-                        tickQueue.RemoveStruct();
+                        tickQueue.ReleaseCount();
 						tickIO.Inject(tickBinary);
 						if (debug ) { // }&& countLog < 5) {
 							log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
@@ -171,7 +171,7 @@ namespace TickZoom.Common
 				}
 				try { 
 					if( tickQueue.TryDequeue(ref tickBinary)) {
-						tickQueue.RemoveStruct();
+						tickQueue.ReleaseCount();
 						tickIO.Inject(tickBinary);
                         if (debug && count < 5)
                         {
@@ -224,7 +224,7 @@ namespace TickZoom.Common
                     }
                     else
                     {
-                        tickQueue.RemoveStruct();
+                        tickQueue.ReleaseCount();
                         if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
                         {
                             tickSync.RemoveTick();
@@ -260,7 +260,7 @@ namespace TickZoom.Common
 					if( !tickQueue.TryDequeue(ref binary)) {
 						Thread.Sleep(100);
 					} else {
-						tickQueue.RemoveStruct();
+						tickQueue.ReleaseCount();
                         if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
                         {
                             tickSync.RemoveTick();
@@ -290,7 +290,7 @@ namespace TickZoom.Common
 				try {
 					// Remove ticks just so as to get to the event we want to see.
 					if( tickQueue.TryDequeue(ref tickBinary)) {
-						tickQueue.RemoveStruct();
+						tickQueue.ReleaseCount();
 						if (customEventType> 0) {
 							assertEvent(customEventSymbol,customEventType,customEventDetail);
 							count++;
@@ -340,7 +340,7 @@ namespace TickZoom.Common
 					if( !tickQueue.TryDequeue(ref binary)) {
 						Thread.Sleep(10);
 					} else {
-						tickQueue.RemoveStruct();
+						tickQueue.ReleaseCount();
 						if( !actionAlreadyRun && action != null) {
 							actionAlreadyRun = true;
 							action();
@@ -451,7 +451,7 @@ namespace TickZoom.Common
 					if (!tickQueue.TryDequeue(ref tickBinary)) {
 						return Yield.NoWork.Repeat;
 					}
-					tickQueue.RemoveStruct();
+					tickQueue.ReleaseCount();
 					if( keepReceived) {
 						received.Add(tickBinary);
 					}

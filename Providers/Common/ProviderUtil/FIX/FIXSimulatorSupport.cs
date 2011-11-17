@@ -353,8 +353,8 @@ namespace TickZoom.FIX
 				return false;
 			}
 			if( trace) log.Trace("ProcessFIXPackets( " + fixPacketQueue.Count + " packets in queue.)");
-			if( fixPacketQueue.DequeueStruct(ref _fixWriteMessage)) {
-                fixPacketQueue.RemoveStruct();
+			if( fixPacketQueue.Dequeue(_fixWriteMessage)) {
+                fixPacketQueue.ReleaseCount();
 				return true;
 			} else {
 				return false;
@@ -428,8 +428,8 @@ namespace TickZoom.FIX
 				return false;
 			}
 			if( trace) log.Trace("ProcessQuotePackets( " + quotePacketQueue.Count + " packets in queue.)");
-			if( quotePacketQueue.DequeueStruct(ref _quoteWriteMessage)) {
-				QuotePacketQueue.RemoveStruct();
+			if( quotePacketQueue.Dequeue(_quoteWriteMessage)) {
+				QuotePacketQueue.ReleaseCount();
 				return true;
 			} else {
 				return false;
@@ -898,7 +898,7 @@ namespace TickZoom.FIX
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if (debug) log.Debug("Resending simulated FIX Message: " + fixMessage);
-            while (!fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.SendUtcTime))
+            while (!fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime))
             {
                 if (fixPacketQueue.IsFull)
                 {
@@ -970,7 +970,7 @@ namespace TickZoom.FIX
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if( debug) log.Debug("Simulating FIX Message: " + fixMessage);
-            while (!fixPacketQueue.EnqueueStruct(ref writePacket, writePacket.SendUtcTime))
+            while (!fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime))
             {
                 if (fixPacketQueue.IsFull)
                 {
