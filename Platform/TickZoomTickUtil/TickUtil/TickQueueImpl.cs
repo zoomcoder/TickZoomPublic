@@ -101,7 +101,7 @@ namespace TickZoom.TickUtil
 	    public bool TryDequeue(ref TickBinary tick)
 	    {
         	QueueItem item = new QueueItem();
-	    	bool result = TryDequeue(item);
+	    	bool result = TryDequeue(out item);
 	    	if( result) {
 	    		if( item.EventType != (int) EventType.Tick) {
 	    			ReleaseCount();

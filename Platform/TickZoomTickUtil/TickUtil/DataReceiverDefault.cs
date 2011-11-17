@@ -31,14 +31,124 @@ using TickZoom.Api;
 
 namespace TickZoom.TickUtil
 {
+    public class DataReceiverQueueWrapper : ReceiveEventQueue
+    {
+        private Pool<TickBinaryBox> tickPool;
+        private TickQueue tickQueue;
+        private SymbolInfo symbol;
+
+        public DataReceiverQueueWrapper( SymbolInfo symbol, Pool<TickBinaryBox> pool, TickQueue queue)
+        {
+            this.symbol = symbol;
+            this.tickPool = pool;
+            this.tickQueue = queue;
+        }
+
+        public StartEnqueue StartEnqueue
+        {
+            get { return tickQueue.StartEnqueue; }
+            set { tickQueue.StartEnqueue = value; }
+        }
+
+        public void Clear()
+        {
+            tickQueue.Clear();
+        }
+
+        public void ReleaseCount()
+        {
+            tickQueue.ReleaseCount();
+        }
+
+        public bool Enqueue(EventItem item, long utcTime)
+        {
+            return TryEnqueue(item, utcTime);
+        }
+
+        public bool TryEnqueue(EventItem item, long utcTime)
+        {
+            var result = false;
+            var binary = (TickBinaryBox)item.EventDetail;
+            if (tickQueue.TryEnqueue(ref binary.TickBinary))
+            {
+                tickPool.Free(binary);
+                result = true;
+            }
+            return result;
+        }
+
+        public string Name
+        {
+            get { return tickQueue.Name; }
+        }
+
+        public string GetStats()
+        {
+            return tickQueue.GetStats();
+        }
+
+        public int Count
+        {
+            get { return tickQueue.Count; }
+        }
+
+        public void SetException(Exception ex)
+        {
+            tickQueue.SetException(ex);
+        }
+
+        public bool IsStarted
+        {
+            get { return tickQueue.IsStarted; }
+        }
+
+        public int Capacity
+        {
+            get { return tickQueue.Capacity; }
+        }
+
+        public bool IsFull
+        {
+            get { return tickQueue.IsFull; }
+        }
+
+        public SymbolInfo Symbol
+        {
+            get { return symbol; }
+        }
+
+        public void ConnectInbound(Task task)
+        {
+            tickQueue.ConnectInbound(task);
+        }
+
+        public void ConnectOutbound(Task task)
+        {
+            tickQueue.ConnectOutbound(task);
+        }
+
+        public void Dispose()
+        {
+            tickQueue.Dispose();
+        }
+
+    }
+
 	public class DataReceiverDefault : Receiver {
 	   	static readonly Log log = Factory.SysLog.GetLogger(typeof(DataReceiverDefault));
 	   	readonly bool debug = log.IsDebugEnabled;
 	    private TickQueue readQueue = new TickQueueImpl("DataReceiverDefault",1000);
         Provider sender;
-	    private Pool<TickBinaryBox> tickPool;
-	    private static readonly bool captureEvents = Factory.Provider.EventLog.CheckEnabled(log);
-	    private int receiverId;
+	    private DataReceiverQueueWrapper wrapper;
+
+        public ReceiveEventQueue GetQueue(SymbolInfo symbol)
+        {
+            if (symbol.BinaryIdentifier != wrapper.Symbol.BinaryIdentifier)
+            {
+                throw new ApplicationException("Requested " + symbol + " but expected " + wrapper.Symbol);
+            }
+            return wrapper;
+        }
         
 		private ReceiverState receiverState = ReceiverState.Ready;
 		
@@ -48,11 +158,9 @@ namespace TickZoom.TickUtil
 		
 		public DataReceiverDefault(Provider sender, SymbolInfo symbol) {
 			this.sender = sender;
-		    this.tickPool = Factory.TickUtil.TickPool(symbol);
+		    var tickPool = Factory.TickUtil.TickPool(symbol);
+            wrapper = new DataReceiverQueueWrapper(symbol,tickPool,readQueue);
 			readQueue.StartEnqueue = Start;
-			if( captureEvents) {
-				receiverId = Factory.Provider.EventLog.GetReceiverId(this);
-			}
 		}
 		
 		private void Start() {
@@ -60,47 +168,7 @@ namespace TickZoom.TickUtil
 		}
 		
 		public bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail) {
-			bool result = false;
-			switch( (EventType) eventType) {
-				case EventType.Tick:
-					var binary = (TickBinaryBox) eventDetail;
-			        do
-			        {
-			            if (readQueue.TryEnqueue(ref binary.TickBinary))
-			            {
-			                result = true;
-			                tickPool.Free(binary);
-			                break;
-			            }
-			        } while (!readQueue.IsFull);
-					break;
-				case EventType.EndHistorical:
-					result = readQueue.TryEnqueue(EventType.EndHistorical, symbol);
-					break;
-				case EventType.StartRealTime:
-					result = readQueue.TryEnqueue(EventType.StartRealTime, symbol);
-					break;
-				case EventType.EndRealTime:
-					result = readQueue.TryEnqueue(EventType.EndRealTime, symbol);
-					break;
-				case EventType.Error:
-		    		result = readQueue.TryEnqueue(EventType.Error, symbol);
-		    		break;
-				case EventType.Terminate:
-		    		result = readQueue.TryEnqueue(EventType.Terminate, symbol);
-		    		break;
-				case EventType.LogicalFill:
-				case EventType.StartHistorical:
-				case EventType.Initialize:
-				case EventType.Open:
-				case EventType.Close:
-				case EventType.PositionChange:
-				default:
-		    		// Skip these event types.
-		    		result = true;
-					break;
-			}
-			return result;
+            throw new NotImplementedException();
 		}
 		
 		public TickQueue ReadQueue {
@@ -110,6 +178,5 @@ namespace TickZoom.TickUtil
 		public void Dispose() {
 			
 		}
-		
 	}
 }

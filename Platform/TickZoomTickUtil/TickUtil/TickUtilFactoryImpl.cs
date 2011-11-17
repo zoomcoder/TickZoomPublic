@@ -71,8 +71,14 @@ namespace TickZoom.TickUtil
 		public FastQueue<T> FastQueue<T>(string name) {
 			return new FastQueueImpl<T>(name);
 		}
-		
-		public Pool<T> Pool<T>() where T : new() {
+
+        public EventQueue EventQueue(SymbolInfo symbol, string name)
+        {
+            return new EventQueueImpl(symbol,name);
+        }
+
+        public Pool<T> Pool<T>() where T : new()
+        {
             return new PoolDefault<T>();
 		}
 

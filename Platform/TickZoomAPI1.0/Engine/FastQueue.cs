@@ -43,7 +43,6 @@ namespace TickZoom.Api
 		string GetStats();
 		int Count { get; }
 	    void SetException(Exception ex);
-		StartEnqueue StartEnqueue { get; set; }
 		bool IsStarted { get; }
 		int Capacity { get; }
 	    bool IsFull {
@@ -55,18 +54,28 @@ namespace TickZoom.Api
 
     public interface ReceiveQueue<T> : Queue
     {
-		bool Enqueue(T tick, long utcTime);
-	    bool TryEnqueue(T tick, long utcTime);
+		bool Enqueue(T item, long utcTime);
+	    bool TryEnqueue(T item, long utcTime);
     }
 
 	public interface FastQueue<T> : ReceiveQueue<T>
 	{
+        StartEnqueue StartEnqueue { get; set; }
         void Clear();
-        bool Dequeue(T tick);
-	    bool TryDequeue(T tick);
-		bool Peek(T tick);
+        bool Dequeue(out T tick);
+	    bool TryDequeue(out T tick);
+		bool Peek(out T tick);
 	    void ReleaseCount();
 	}
+
+    public interface ReceiveEventQueue : ReceiveQueue<EventItem>
+    {
+        SymbolInfo Symbol { get; }
+    }
+
+    public interface EventQueue : FastQueue<EventItem>, ReceiveEventQueue
+    {
+    }
 
 }
 

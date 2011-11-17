@@ -54,8 +54,8 @@ namespace TickZoom.TickUtil
 			this.utcTime = utcTime;
 		}
 	}
-	
-	public class FastQueueImpl<T> : FastQueue<T> // where T : struct
+
+    public class FastQueueImpl<T> : FastQueue<T> // where T : struct
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueueImpl.<" + typeof(FastQueueImpl<T>).GetGenericArguments()[0].Name + ">");
 		private readonly bool debug = log.IsDebugEnabled;
@@ -267,20 +267,22 @@ namespace TickZoom.TickUtil
             SpinUnLock();
         }
 	    
-	    public bool Dequeue(T tick) {
-	    	return TryDequeue(tick);
+	    public bool Dequeue(out T tick) {
+	    	return TryDequeue(out tick);
 	    }
 	    
-	    public bool Peek(T tick) {
-	    	return TryPeekStruct(ref tick);
+	    public bool Peek(out T tick) {
+	    	return TryPeekStruct(out tick);
 	    }
 	    
-	    public bool TryPeekStruct(ref T tick) {
+	    public bool TryPeekStruct(out T tick) {
 	    	FastQueueEntry<T> entry;
 	    	if( TryPeekStruct(out entry)) {
 	    		tick = entry.Entry;
 	    		return true;
-	    	} else {
+	    	} else
+	    	{
+	    	    tick = default(T);
 	    		return false;
 	    	}
 	    }
@@ -316,7 +318,7 @@ namespace TickZoom.TickUtil
             return true;
 	    }
 	    
-	    public bool TryDequeue(T tick)
+	    public bool TryDequeue(out T tick)
 	    {
             if( terminate) {
 	    		if( exception != null) {

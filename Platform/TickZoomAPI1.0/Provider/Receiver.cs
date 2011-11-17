@@ -35,9 +35,19 @@ namespace TickZoom.Api
 	
 	public interface AsyncReceiver : Receiver, AsyncHandler, IDisposable {
 	}
+
+    public struct EventItem
+    {
+        public SymbolInfo Symbol;
+        public int EventType;
+        public object EventDetail;
+        public long UtcTime;
+    }
 	
-	public interface Receiver : IDisposable {
-		bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail);
+	public interface Receiver : IDisposable
+	{
+	    ReceiveEventQueue GetQueue(SymbolInfo symbol);
+	    bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail);
 	}
 	
 	public interface Serializable {

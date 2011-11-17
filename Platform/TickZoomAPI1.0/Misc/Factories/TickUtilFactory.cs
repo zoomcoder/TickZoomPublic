@@ -48,5 +48,6 @@ namespace TickZoom.Api
         Pool<TickBinaryBox> TickPool(SymbolInfo symbol);
 		string GetQueueStats();
 		void Release();
+	    EventQueue EventQueue(SymbolInfo symbol, string name);
 	}
 }

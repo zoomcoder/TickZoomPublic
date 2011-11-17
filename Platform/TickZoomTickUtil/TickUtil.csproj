@@ -81,20 +81,19 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TickUtil\DataReceiverDefault.cs" />
+    <Compile Include="TickUtil\EventQueueImpl.cs" />
     <Compile Include="TickUtil\FastQueueImpl.cs" />
     <Compile Include="TickUtil\NodePool.cs" />
     <Compile Include="TickUtil\PoolTicks.cs" />
     <Compile Include="TickUtil\Reader.cs" />
     <Compile Include="TickUtil\TickMemoryStream.cs" />
     <Compile Include="TickUtil\PoolDefault.cs" />
-    <Compile Include="TickUtil\TickAggregator.cs" />
     <Compile Include="TickUtil\BarWriter.cs" />
     <Compile Include="TickUtil\BitArray.cs" />
     <Compile Include="TickUtil\BitBuffer.cs" />
     <Compile Include="TickUtil\ByteCount.cs" />
     <Compile Include="TickUtil\ByteMemory.cs" />
     <Compile Include="TickUtil\SignatureCompressor.cs" />
-    <Compile Include="TickUtil\SymbolQueue.cs" />
     <Compile Include="TickUtil\ThreadTask.cs" />
     <Compile Include="TickUtil\TaskQueue.cs" />
     <Compile Include="TickUtil\TickBuffer.cs" />

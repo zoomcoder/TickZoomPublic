@@ -39,7 +39,7 @@ namespace TickZoom.Common
 		private readonly bool debug = log.IsDebugEnabled;
         private readonly bool trace = log.IsTraceEnabled;
         private readonly bool verbose = log.IsVerboseEnabled;
-        private TickQueue tickQueue = Factory.TickUtil.TickQueue(typeof(VerifyFeed));
+        //private TickQueue tickQueue = Factory.TickUtil.TickQueue(typeof(VerifyFeed));
 		private volatile bool isRealTime = false;
 		private TickSync tickSync;
 		private volatile ReceiverState receiverState = ReceiverState.Ready;
@@ -52,13 +52,14 @@ namespace TickZoom.Common
 		private int pauseSeconds = 3;
 	    private SymbolInfo symbol;
         private TickIO lastTick = Factory.TickUtil.TickIO();
+        private EventQueue queue;
 		
 		public List<TickBinary> GetReceived() {
 			return received;
 		}
 
-		public TickQueue TickQueue {
-			get { return tickQueue; }
+		public FastQueue<EventItem> TickQueue {
+			get { return queue; }
 		}
 
 		public ReceiverState OnGetReceiverState(SymbolInfo symbol)
@@ -70,8 +71,9 @@ namespace TickZoom.Common
 		{
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-            tickQueue.StartEnqueue = Start;
+            queue.StartEnqueue = Start;
             tickPool =  Factory.TickUtil.TickPool(symbol);
+            queue = Factory.TickUtil.EventQueue(symbol,"VerifyFeed+"+symbol);
 		}
 
 		public void Start()
@@ -95,6 +97,29 @@ namespace TickZoom.Common
 			return Verify( expectedCount, assertTick, timeout, null);
 		}
 
+        public bool TryDequeueTick(ref TickBinary tickBinary)
+        {
+            EventItem eventItem;
+            var result = false;
+            if( queue.TryDequeue(out eventItem))
+            {
+                var eventType = (EventType) eventItem.EventType;
+                switch( eventType)
+                {
+                    case EventType.Tick:
+                        TickBinaryBox box = (TickBinaryBox)eventItem.EventDetail;
+                        tickBinary = box.TickBinary;
+                        queue.ReleaseCount();
+                        tickPool.Free(box);
+                        result = true;
+                        break;
+                    default:
+                        throw new QueueException(eventType);
+                }
+            }
+            return result;
+        }
+
 		private bool actionAlreadyRun = false;
 		public long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout, Action action)
 		{
@@ -107,8 +132,7 @@ namespace TickZoom.Common
 					throw propagateException;
 				}
 				try { 
-					if( tickQueue.TryDequeue(ref tickBinary)) {
-                        tickQueue.ReleaseCount();
+					if( TryDequeueTick(ref tickBinary)) {
 						tickIO.Inject(tickBinary);
 						if (debug ) { // }&& countLog < 5) {
 							log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
@@ -145,7 +169,7 @@ namespace TickZoom.Common
 						}
 					} else {
                         Thread.Sleep(100);
-                        if( tickQueue.Count == 0 && SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        if( queue.Count == 0 && SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
                         {
                             tickSync.RemoveTick();
                         }
@@ -170,8 +194,7 @@ namespace TickZoom.Common
 					throw propagateException;
 				}
 				try { 
-					if( tickQueue.TryDequeue(ref tickBinary)) {
-						tickQueue.ReleaseCount();
+					if( TryDequeueTick(ref tickBinary)) {
 						tickIO.Inject(tickBinary);
                         if (debug && count < 5)
                         {
@@ -218,13 +241,12 @@ namespace TickZoom.Common
                 }
                 try
                 {
-                    if (!tickQueue.TryDequeue(ref binary))
+                    if (!TryDequeueTick(ref binary))
                     {
                         Thread.Sleep(100);
                     }
                     else
                     {
-                        tickQueue.ReleaseCount();
                         if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
                         {
                             tickSync.RemoveTick();
@@ -257,10 +279,9 @@ namespace TickZoom.Common
 					throw propagateException;
 				}
 				try { 
-					if( !tickQueue.TryDequeue(ref binary)) {
+					if( !TryDequeueTick(ref binary)) {
 						Thread.Sleep(100);
 					} else {
-						tickQueue.ReleaseCount();
                         if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
                         {
                             tickSync.RemoveTick();
@@ -289,8 +310,7 @@ namespace TickZoom.Common
 				}
 				try {
 					// Remove ticks just so as to get to the event we want to see.
-					if( tickQueue.TryDequeue(ref tickBinary)) {
-						tickQueue.ReleaseCount();
+					if( TryDequeueTick(ref tickBinary)) {
 						if (customEventType> 0) {
 							assertEvent(customEventSymbol,customEventType,customEventDetail);
 							count++;
@@ -337,10 +357,9 @@ namespace TickZoom.Common
 					throw propagateException;
 				}
 				try { 
-					if( !tickQueue.TryDequeue(ref binary)) {
+					if( !TryDequeueTick(ref binary)) {
 						Thread.Sleep(10);
 					} else {
-						tickQueue.ReleaseCount();
 						if( !actionAlreadyRun && action != null) {
 							actionAlreadyRun = true;
 							action();
@@ -448,10 +467,9 @@ namespace TickZoom.Common
 		{
 			lock(taskLocker) {
 				try {
-					if (!tickQueue.TryDequeue(ref tickBinary)) {
+					if (!TryDequeueTick(ref tickBinary)) {
 						return Yield.NoWork.Repeat;
 					}
-					tickQueue.ReleaseCount();
 					if( keepReceived) {
 						received.Add(tickBinary);
 					}
@@ -482,36 +500,6 @@ namespace TickZoom.Common
 				}
 				return Yield.NoWork.Repeat;
 			}
-		}
-
-		public bool OnHistorical(SymbolInfo symbol)
-		{
-			try {
-				return tickQueue.TryEnqueue(EventType.StartHistorical, symbol);
-			} catch (QueueException) {
-				// Queue was already ended.
-			}
-			return true;
-		}
-
-	    private TickIO debugTick = Factory.TickUtil.TickIO();
-		public bool OnSend(TickBinaryBox o)
-		{
-			bool result = false;
-			try {
-				result = tickQueue.TryEnqueue(ref o.TickBinary);
-				if( result) {
-                    if (verbose)
-                    {
-                        debugTick.Inject(o.TickBinary);
-                        log.Verbose("Enqueued tick: " + debugTick);
-                    }
-                    tickPool.Free(o);
-				}
-			} catch (QueueException) {
-				// Queue already terminated.
-			}
-			return result;
 		}
 
 		Dictionary<long, int> actualPositions = new Dictionary<long, int>();
@@ -557,7 +545,7 @@ namespace TickZoom.Common
 		            	if( task != null) {
 			            	task.Stop();
 			            	task.Join();
-							tickQueue.Dispose();
+							queue.Dispose();
 		            	}
 		            }
 		            task = null;
@@ -568,59 +556,6 @@ namespace TickZoom.Common
     		}
 	    }
 	    
-		public bool OnEndHistorical(SymbolInfo symbol)
-		{
-			try {
-				return tickQueue.TryEnqueue(EventType.EndHistorical, symbol);
-			} catch (QueueException) {
-				// Queue was already ended.
-			}
-			return true;
-		}
-
-		public bool OnRealTime(SymbolInfo symbol)
-		{
-			try {
-				return tickQueue.TryEnqueue(EventType.StartRealTime, symbol);
-			} catch (QueueException) {
-				// Queue was already ended.
-			}
-			return true;
-		}
-
-
-		public bool OnEndRealTime(SymbolInfo symbol)
-		{
-			try {
-				return tickQueue.TryEnqueue(EventType.EndRealTime, symbol);
-			} catch (QueueException) {
-				// Queue was already ended.
-			}
-			return true;
-		}
-		
-
-		public bool OnStartBroker(SymbolInfo symbol)
-		{
-			try {
-				return tickQueue.TryEnqueue(EventType.StartBroker, symbol);
-			} catch (QueueException) {
-				// Queue was already ended.
-			}
-			return true;
-		}
-
-
-		public bool OnEndBroker(SymbolInfo symbol)
-		{
-			try {
-				return tickQueue.TryEnqueue(EventType.EndBroker, symbol);
-			} catch (QueueException) {
-				// Queue was already ended.
-			}
-			return true;
-		}
-		
 		public bool IsRealTime {
 			get { return isRealTime; }
 		}
@@ -634,56 +569,9 @@ namespace TickZoom.Common
 			customEventDetail = eventDetail;
 			return true;
 		}
-		
+
 		public bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail) {
-			bool result = false;
-			try {
-				switch( (EventType) eventType) {
-					case EventType.Tick:
-						TickBinaryBox binary = (TickBinaryBox) eventDetail;
-						result = OnSend(binary);
-						break;
-					case EventType.EndHistorical:
-						result = OnEndHistorical(symbol);
-						break;
-					case EventType.StartHistorical:
-						result = OnHistorical(symbol);
-						break;
-					case EventType.StartRealTime:
-						result = OnRealTime(symbol);
-						break;
-					case EventType.EndRealTime:
-						result = OnEndRealTime(symbol);
-						break;
-					case EventType.StartBroker:
-						result = OnStartBroker(symbol);
-						break;
-					case EventType.EndBroker:
-						result = OnEndBroker(symbol);
-						break;
-					case EventType.Error:
-						result = OnError((ErrorDetail)eventDetail);
-						break;
-					case EventType.LogicalFill:
-						result = OnLogicalFill(symbol,(LogicalFillBinary)eventDetail);
-						break;
-					case EventType.Terminate:
-						result = OnStop();
-			    		break;
-					case EventType.Initialize:
-					case EventType.Open:
-					case EventType.Close:
-					case EventType.PositionChange:
-			    		throw new ApplicationException("Unexpected EventType: " + eventType);
-					default:
-			    		result = OnCustomEvent(symbol,eventType,eventDetail);
-			    		break;
-				}
-				return result;
-			} catch( QueueException) {
-				log.Warn("Already terminated.");
-			}
-			return false;
+            throw new NotImplementedException();
 		}
 		
 		public TickIO LastTick {
@@ -699,5 +587,14 @@ namespace TickZoom.Common
 			get { return pauseSeconds; }
 			set { pauseSeconds = value; }
 		}
+
+	    public ReceiveEventQueue GetQueue( SymbolInfo symbol)
+	    {
+	        if( symbol.BinaryIdentifier != this.symbol.BinaryIdentifier)
+	        {
+	            throw new ApplicationException("Requested " + symbol + " but expected " + this.symbol);
+	        }
+	        return queue;
+	    }
 	}
 }
