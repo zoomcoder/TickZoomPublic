@@ -94,8 +94,9 @@ namespace TickZoom.TickUtil
         int backupLevel = 20;
         int backupInitial = 20;
         long earliestUtcTime = long.MaxValue;
-		private Task task;
-		private int count;
+		private Task inboundTask;
+        private Task outboundTask;
+        private int count;
 		
 		public long EarliestUtcTime {
 			get { return earliestUtcTime; }
@@ -156,16 +157,47 @@ namespace TickZoom.TickUtil
         	return TryEnqueueStruct(ref tick, utcTime);
         }
 
-	    private int connectionId;
+	    private int inboundId;
 	    public void ConnectInbound(Task task)
 	    {
-			if( this.task != task) {
-				this.task = task;
-				task.ConnectInbound( this, out connectionId);
+            if( task == null)
+            {
+                throw new ArgumentNullException("task cannot be null");
+            }
+			if( inboundTask == null) {
+				inboundTask = task;
+				task.ConnectInbound( this, out inboundId);
 			}
+            else if( inboundTask != task)
+            {
+                throw new ApplicationException("Attempt to connect inbound task " + task + " to the queue but task " + inboundTask + " was already connected.");
+            }
 	    }
-	    
-		private bool isBackingUp = false;
+
+	    private int outboundId;
+        public void ConnectOutbound(Task task)
+        {
+            if (task == null)
+            {
+                throw new ArgumentNullException("task cannot be null");
+            }
+            if (outboundTask == null)
+            {
+                outboundTask = task;
+                task.ConnectInbound(this, out outboundId);
+                for( int i=0; i<Capacity; i++)
+                {
+                    task.IncreaseOutbound(outboundId);
+                }
+            }
+            else if( outboundTask != task)
+            {
+                throw new ApplicationException("Attempt to connect more than one outbound task " + task + " to the queue but task " + outboundTask + " was already connected.");
+            }
+
+        }
+
+	    private bool isBackingUp = false;
 		private int maxLastBackup = 0;
 	    public bool TryEnqueueStruct(ref T tick, long utcTime)
 	    {
@@ -204,12 +236,12 @@ namespace TickZoom.TickUtil
                 if (temp == 0)
                 {
 	            	this.earliestUtcTime = utcTime;
-	            	if( task != null) {
-	            		task.UpdateUtcTime(connectionId,utcTime);
+	            	if( inboundTask != null) {
+	            		inboundTask.UpdateUtcTime(inboundId,utcTime);
 	            	}
 	            }
 	           	Interlocked.Increment(ref count);
-	           	if( task != null) task.IncreaseInbound();
+	           	if( inboundTask != null) inboundTask.IncreaseInbound(inboundId);
             } finally {
 	            SpinUnLock();
             }
@@ -224,13 +256,13 @@ namespace TickZoom.TickUtil
 	    	if( tempCount < tempQueueCount) {
 	    		throw new ApplicationException("Attempt to reduce FastQueue count less than internal queue: count " + tempCount + ", queue.Count " + tempQueueCount);
 	    	}
-	    	if( task != null)
+	    	if( inboundTask != null)
 	    	{
                 if (tempCount == 0)
                 {
-                    task.UpdateUtcTime(connectionId, earliestUtcTime);
+                    inboundTask.UpdateUtcTime(inboundId, earliestUtcTime);
                 }
-                task.DecreaseInbound();
+                inboundTask.DecreaseInbound(inboundId);
 	    	}
             SpinUnLock();
         }
@@ -355,6 +387,7 @@ namespace TickZoom.TickUtil
 	    
 	 	private volatile bool isDisposed = false;
 	 	private object disposeLocker = new object();
+
 	    public void Dispose() 
 	    {
 	        Dispose(true);
@@ -370,7 +403,7 @@ namespace TickZoom.TickUtil
 				        if( queue!=null) {
 				    		while( !SpinLockNB()) ;
 				    		try {
-						    	task = null;
+						    	inboundTask = null;
 						    	var next = queue.First;
 						    	for( var node = next; node != null; node = next) {
 						    		next = node.Next;

@@ -83,8 +83,8 @@ namespace TickZoom.MBTQuotes
 		    log.Register(this);
             RefreshLogLevel();
 	        log.Info(providerName+" Startup");
-			RegenerateSocket();
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
+            RegenerateSocket();
             taskTimer = Factory.Parallel.CreateTimer(socketTask, TimerTask);
             socketTask.Start();
 

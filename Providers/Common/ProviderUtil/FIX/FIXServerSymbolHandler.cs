@@ -95,10 +95,6 @@ namespace TickZoom.FIX
 
 	    private int initialCount;
 		
-		private void HasItem( object source) {
-			queueTask.IncreaseInbound();
-		}
-		
 	    private void TryCompleteTick() {
 	    	if( tickSync.Completed) {
 		    	if( trace) log.Trace("TryCompleteTick() Next Tick");

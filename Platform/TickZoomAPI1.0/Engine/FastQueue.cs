@@ -61,6 +61,7 @@ namespace TickZoom.Api
 	    	get;
 	    }
 		void ConnectInbound(Task task);
+	    void ConnectOutbound(Task task);
 	}
 
 	public interface FastQueue<T> : Queue

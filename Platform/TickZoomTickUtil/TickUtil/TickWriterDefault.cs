@@ -156,10 +156,6 @@ namespace TickZoom.TickUtil
 			appendTask.Start();
 		}
 		
-		private void HasItem(object source) {
-			appendTask.IncreaseInbound();
-		}
-		
 		TickBinary tick = new TickBinary();
 		TickIO tickIO = new TickImpl();
 

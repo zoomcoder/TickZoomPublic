@@ -108,10 +108,10 @@ namespace TickZoom.FIX
 			trace = log.IsTraceEnabled;
         	log.Info(providerName+" Startup");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
-            RegenerateSocket();
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
 			socketTask.Start();
-  			string logRecoveryString = Factory.Settings["LogRecovery"];
+            RegenerateSocket();
+            string logRecoveryString = Factory.Settings["LogRecovery"];
   			logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
             appDataFolder = Factory.Settings["AppDataFolder"];
             if (appDataFolder == null)
@@ -126,7 +126,7 @@ namespace TickZoom.FIX
 				socket.Dispose();
 			}
 			socket = Factory.Provider.Socket("MBTFIXSocket");
-			socket.ReceiveQueue.ConnectInbound( socketTask);
+            socket.ReceiveQueue.ConnectInbound(socketTask);
 			socket.OnDisconnect = OnDisconnect;
 			socket.MessageFactory = new MessageFactoryFix44();
 			if( debug) log.Debug("Created new " + socket);
