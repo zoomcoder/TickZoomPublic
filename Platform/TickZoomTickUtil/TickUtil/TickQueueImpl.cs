@@ -46,8 +46,11 @@ namespace TickZoom.TickUtil
 		
 	    public void Enqueue(ref TickBinary o)
 	    {
-	    	if( !TryEnqueue(ref o)) {
-	    		throw new ApplicationException("Enqueue failed.");
+            while( !TryEnqueue(ref o)) {
+                if( IsFull)
+                {
+                    throw new ApplicationException("Enqueue failed for " + Name + " with " + Count + " items.");
+                }
 	    	}
 	    }
 	    

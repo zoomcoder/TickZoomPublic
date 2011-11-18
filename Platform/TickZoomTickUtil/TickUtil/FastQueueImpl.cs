@@ -53,14 +53,18 @@ namespace TickZoom.TickUtil
 			this.Entry = entry;
 			this.utcTime = utcTime;
 		}
+        public override string ToString()
+        {
+            return Entry + " UTC " + new TimeStamp(utcTime);
+        }
 	}
 	
 	public class FastQueueImpl<T> : FastQueue<T> // where T : struct
 	{
-		private static readonly Log log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueueImpl.<" + typeof(FastQueueImpl<T>).GetGenericArguments()[0].Name + ">");
-		private readonly bool debug = log.IsDebugEnabled;
-		private readonly bool trace = log.IsTraceEnabled;
-		private readonly Log instanceLog;
+	    private readonly Log log;
+	    private bool debug;
+	    private bool trace;
+		private Log instanceLog;
 		private bool disableBackupLogging = false;
 		string name;
 		long lockSpins = 0;
@@ -112,7 +116,9 @@ namespace TickZoom.TickUtil
         	if( "TickWriter".Equals(name) || "DataReceiverDefault".Equals(name)) {
         		disableBackupLogging = true;
         	}
-        	var nameString = name as string;
+		    log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
+		    debug = log.IsDebugEnabled;
+		    trace = log.IsTraceEnabled;
             //if( !string.IsNullOrEmpty(nameString)) {
             //    if( nameString.Contains("-Receive")) {
 	        		backupLevel = backupInitial = 900;
@@ -205,7 +211,7 @@ namespace TickZoom.TickUtil
 
 	    private bool isBackingUp = false;
 		private int maxLastBackup = 0;
-	    public bool TryEnqueue(T tick, long utcTime)
+	    public bool TryEnqueue(T item, long utcTime)
 	    {
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
@@ -237,7 +243,8 @@ namespace TickZoom.TickUtil
 	            if( temp>=maxSize) {
 	            	return false;
 	            }
-                var node = NodePool.Create(new FastQueueEntry<T>(tick, utcTime));
+                if( trace) log.Trace("Enqueue " + item);
+                var node = NodePool.Create(new FastQueueEntry<T>(item, utcTime));
                 queue.AddFirst(node);
                 if (temp == 0)
                 {
@@ -330,7 +337,7 @@ namespace TickZoom.TickUtil
             return true;
 	    }
 	    
-	    public bool TryDequeue(out T tick)
+	    public bool TryDequeue(out T item)
 	    {
             if( terminate) {
 	    		if( exception != null) {
@@ -339,14 +346,25 @@ namespace TickZoom.TickUtil
 	            	throw new QueueException(EventType.Terminate);
 	    		}
             }
-	    	tick = default(T);
 	    	if( !isStarted) { 
-	    		if( !StartDequeue()) return false;
+	    		if( !StartDequeue())
+	    		{
+                    item = default(T);
+                    return false;
+	    		}
 	    	}
-	        if( queue == null || queue.Count==0) return false;
+	        if( queue == null || queue.Count==0)
+	        {
+                item = default(T);
+                return false;
+	        }
 	        int priorCount;
 	        int newCount = 0;
-	    	if( !SpinLockNB()) return false;
+	    	if( !SpinLockNB())
+	    	{
+                item = default(T);
+                return false;
+	    	}
 	    	try {
 	            if( isDisposed) {
 		    		if( exception != null) {
@@ -355,14 +373,23 @@ namespace TickZoom.TickUtil
 		            	throw new QueueException(EventType.Terminate);
 		    		}
 	            }
-		        if( queue == null || queue.Count==0) return false;
-	            if( count != queue.Count) {
+		        if( queue == null || queue.Count==0)
+		        {
+                    item = default(T);
+                    return false;
+		        }
+	            if( count > queue.Count) {
 		        	throw new ApplicationException("Attempt to dequeue another item before calling ReleaseCount() for previously dequeued item. count " + count + ", queue.Count " + queue.Count);
 	            }
-	    	    priorCount = queue.Count;
+                if (count < queue.Count)
+                {
+                    throw new ApplicationException("Called ReleaseCount() too many times before dequeuing next item. count " + count + ", queue.Count " + queue.Count);
+                }
+                priorCount = queue.Count;
 		        var last = queue.Last;
-		        tick = last.Value.Entry;
-		        queue.Remove(last);
+		        item = last.Value.Entry;
+                if (trace) log.Trace("Dequeue " + item);
+                queue.Remove(last);
 		        NodePool.Free(last);
 	            newCount = queue.Count;
                 earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;

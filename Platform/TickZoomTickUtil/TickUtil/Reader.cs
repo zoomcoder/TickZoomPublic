@@ -210,8 +210,8 @@ namespace TickZoom.TickUtil
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader-" + symbol);
-                    fileReaderTask = Factory.Parallel.IOLoop(this, OnException, FileReader);
-                    fileReaderTask.Scheduler = Scheduler.EarliestTime;
+                    fileReaderTask = Factory.Parallel.Loop(this, OnException, FileReader);
+                    fileReaderTask.Scheduler = Scheduler.InputOutput;
                     outboundQueue.ConnectOutbound(fileReaderTask);
                     fileReaderTask.Start();
                     isStarted = true;

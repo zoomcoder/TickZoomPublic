@@ -63,7 +63,7 @@ namespace TickZoom.Api
         StartEnqueue StartEnqueue { get; set; }
         void Clear();
         bool Dequeue(out T tick);
-	    bool TryDequeue(out T tick);
+	    bool TryDequeue(out T item);
 		bool Peek(out T tick);
 	    void ReleaseCount();
 	}

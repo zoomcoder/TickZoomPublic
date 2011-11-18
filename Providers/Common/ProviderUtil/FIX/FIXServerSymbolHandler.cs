@@ -247,9 +247,14 @@ namespace TickZoom.FIX
 				   	result = Yield.DidWork.Invoke(ProcessTick);
 				}
 			} catch( QueueException ex) {
-				if( ex.EntryType != EventType.EndHistorical) {
-					throw;
-				}
+                switch( ex.EntryType)
+                {
+                    case EventType.StartHistorical:
+                    case EventType.EndHistorical:
+                        break;
+                    default:
+                        throw;
+                }
 			}
 			return result;
 		}

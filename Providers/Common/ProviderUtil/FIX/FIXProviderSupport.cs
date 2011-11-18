@@ -285,6 +285,8 @@ namespace TickZoom.FIX
 
             if (SnapshotBusy) return Yield.DidWork.Repeat;
 
+            if (socket == null) return Yield.DidWork.Repeat;
+
             var transaction = OrderStore.BeginTransaction();
             try
             {

@@ -35,6 +35,10 @@ namespace TickZoom.Api
 	    public long Symbol;
 	    public TickBinary Tick;
 	    public object EventDetail;
+        public override string ToString()
+        {
+            return Factory.Symbol.LookupSymbol(Symbol) + " " + (EventType) EventType;
+        }
     }
 
 	public struct ProviderEvent {

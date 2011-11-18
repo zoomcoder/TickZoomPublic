@@ -53,6 +53,10 @@ namespace TickZoom.Api
             this.EventType = eventType;
             this.EventDetail = null;
         }
+        public override string ToString()
+        {
+            return Symbol + " " + (EventType) EventType;
+        }
     }
 	
 	public interface Receiver : IDisposable

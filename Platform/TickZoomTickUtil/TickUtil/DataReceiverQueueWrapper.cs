@@ -12,8 +12,8 @@ namespace TickZoom.TickUtil
         public DataReceiverQueueWrapper( SymbolInfo symbol, Pool<TickBinaryBox> pool, TickQueue queue)
         {
             this.symbol = symbol;
-            this.tickPool = pool;
-            this.tickQueue = queue;
+            tickPool = pool;
+            tickQueue = queue;
         }
 
         public StartEnqueue StartEnqueue
@@ -34,20 +34,26 @@ namespace TickZoom.TickUtil
 
         public void Enqueue(EventItem item, long utcTime)
         {
-            var binary = (TickBinaryBox)item.EventDetail;
-            tickQueue.Enqueue(ref binary.TickBinary);
+            var eventType = (EventType) item.EventType;
+            if( eventType == EventType.Tick)
+            {
+                var binary = (TickBinaryBox)item.EventDetail;
+                tickQueue.Enqueue(ref binary.TickBinary);
+                tickPool.Free(binary);
+            }
+            else
+            {
+                var queueItem = new QueueItem();
+                queueItem.Symbol = item.Symbol.BinaryIdentifier;
+                queueItem.EventType = (int) eventType;
+                queueItem.EventDetail = item.EventDetail;
+                tickQueue.Enqueue( queueItem, utcTime);
+            }
         }
 
         public bool TryEnqueue(EventItem item, long utcTime)
         {
-            var result = false;
-            var binary = (TickBinaryBox)item.EventDetail;
-            if (tickQueue.TryEnqueue(ref binary.TickBinary))
-            {
-                tickPool.Free(binary);
-                result = true;
-            }
-            return result;
+            throw new NotImplementedException();
         }
 
         public string Name

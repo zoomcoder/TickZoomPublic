@@ -582,16 +582,21 @@ namespace TickZoom.MBTFIX
 		}
 
         private Dictionary<long, StringBuilder> quoteBuilders = new Dictionary<long, StringBuilder>();
+        private SimpleLock quoteBuildersLocker = new SimpleLock();
         private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
+        private SimpleLock lastTicksLocker = new SimpleLock();
 
 		private void OnTick( Message quoteMessage, SymbolInfo symbol, Tick tick)
 		{
             if (trace) log.Trace("Sending tick: " + tick);
             StringBuilder quoteBuilder;
-            if( !quoteBuilders.TryGetValue(symbol.BinaryIdentifier, out quoteBuilder))
+            using( quoteBuildersLocker.Using())
             {
-                quoteBuilder = new StringBuilder(256);
-                quoteBuilders.Add(symbol.BinaryIdentifier, quoteBuilder);
+                if (!quoteBuilders.TryGetValue(symbol.BinaryIdentifier, out quoteBuilder))
+                {
+                    quoteBuilder = new StringBuilder(256);
+                    quoteBuilders.Add(symbol.BinaryIdentifier, quoteBuilder);
+                }
             }
             //var value = Interlocked.Increment(ref entryCounter);
             //if( value > 1)
@@ -600,10 +605,14 @@ namespace TickZoom.MBTFIX
             //}
             //otherStackTrace = Environment.StackTrace;
 			TickIO lastTick;
-			if( !lastTicks.TryGetValue( symbol.BinaryIdentifier, out lastTick)) {
-			   	lastTick = Factory.TickUtil.TickIO();
-			   	lastTicks[symbol.BinaryIdentifier] = lastTick;
-			}
+            using( lastTicksLocker.Using())
+            {
+                if (!lastTicks.TryGetValue(symbol.BinaryIdentifier, out lastTick))
+                {
+                    lastTick = Factory.TickUtil.TickIO();
+                    lastTicks[symbol.BinaryIdentifier] = lastTick;
+                }
+            }
             //if( quoteBuilder.Length == 0)
             //{
             //    quoteBuilder.Append("Nothing");

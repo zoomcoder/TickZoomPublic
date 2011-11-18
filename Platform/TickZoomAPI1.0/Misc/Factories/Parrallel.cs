@@ -106,10 +106,7 @@ namespace TickZoom.Api
 	
 	public interface ParallelStarter
 	{
-		void Once(object creator, Action<Exception> onException, Action once);
 		Task Loop(object creator, Action<Exception> onException, YieldMethod loop);
-		Task IOLoop(object creator, Action<Exception> onException, YieldMethod loop);
-		void While(object creator, Action<Exception> onException, Func<bool> loop);
 	}
 	
 	public interface ForLoop {

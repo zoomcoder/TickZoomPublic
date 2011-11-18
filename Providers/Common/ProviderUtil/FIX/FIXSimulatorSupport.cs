@@ -234,7 +234,7 @@ namespace TickZoom.FIX
 
         protected void CloseFIXSocket()
         {
-            if (fixPacketQueue != null)
+            if (fixPacketQueue != null && fixPacketQueue.Count > 0)
             {
                 fixPacketQueue.Clear();
             }
@@ -563,7 +563,6 @@ namespace TickZoom.FIX
                 }
                 finally
                 {
-                    //packetFIX.sequenceLocker.Unlock();
                     fixSocket.MessageFactory.Release(_fixReadMessage);
                 }
 			}

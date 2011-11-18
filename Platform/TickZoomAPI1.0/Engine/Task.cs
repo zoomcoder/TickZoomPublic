@@ -34,10 +34,18 @@ namespace TickZoom.Api
 		RoundRobin = 1,
 		EarliestTime = 2,
 		Activity = 4,
-		QualityOfService = RoundRobin | EarliestTime | Activity, 
+        InputOutput = 8,
+        QualityOfService = RoundRobin | EarliestTime | Activity, 
 	}
-	
-	public interface Task {
+
+    public enum QueueDirection
+    {
+        Inbound,
+        Outbound
+    }
+
+    public interface Task
+    {
 		void Start();
 		void Stop();
 		void Join();
