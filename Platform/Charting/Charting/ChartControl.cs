@@ -1415,7 +1415,8 @@ namespace TickZoom.Charting
 		{
 			try {
                 if (verbose) log.Verbose("refreshTick()");
-                if (this.FindForm().WindowState != FormWindowState.Minimized)
+			    var form = this.FindForm();
+                if (form.Visible && form.WindowState != FormWindowState.Minimized)
                 {
                     if (tickUpdate)
                     {
@@ -1718,6 +1719,11 @@ namespace TickZoom.Charting
 		public bool IsDrawn {
 			get { return isDrawn; }
 		}
+
+        private void OnVisibleChanged(object sender, EventArgs e)
+        {
+            refreshTimer.Enabled = Visible;
+        }
 
     }
 }

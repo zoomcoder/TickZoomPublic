@@ -55,5 +55,6 @@ namespace TickZoom.Api
 		int ReceiveQueueCount { get; }
 		FastQueue<Message> ReceiveQueue { get; }
 	    bool NoDelay { get; }
+	    void ConnectSend( Task task);
 	}
 }

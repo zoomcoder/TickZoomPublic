@@ -6,7 +6,7 @@ namespace TickZoom.TickUtil
     {
         private SymbolInfo symbol;
         public EventQueueImpl(SymbolInfo symbol, string name)
-            : base(name + "+" + symbol)
+            : base(name + "." + symbol)
         {
             this.symbol = symbol;
         }

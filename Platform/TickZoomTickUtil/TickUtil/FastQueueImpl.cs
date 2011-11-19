@@ -116,7 +116,7 @@ namespace TickZoom.TickUtil
         	if( "TickWriter".Equals(name) || "DataReceiverDefault".Equals(name)) {
         		disableBackupLogging = true;
         	}
-		    log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
+		    log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name.ToString().StripInvalidPathChars());
 		    debug = log.IsDebugEnabled;
 		    trace = log.IsTraceEnabled;
             //if( !string.IsNullOrEmpty(nameString)) {

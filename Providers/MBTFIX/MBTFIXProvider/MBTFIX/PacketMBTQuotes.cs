@@ -386,20 +386,24 @@ namespace TickZoom.MBTQuotes
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("MessageMbtQuotes: Position " + data.Position + ", length " + data.Length);
-            int offset = (int)data.Position;
-            while( offset < data.Length) {
-                int rowSize = (int) Math.Min(16,data.Length-offset);
-                byte[] bytes = new byte[rowSize];
-                Array.Copy(data.GetBuffer(),offset,bytes,0,rowSize);
-                for( int i = 0; i<bytes.Length; i++) {
-                    sb.Append(bytes[i].ToString("X").PadLeft(2,'0'));
-                    sb.Append(" ");
-                }
-                offset += rowSize;
-                sb.AppendLine();
-                sb.AppendLine(ASCIIEncoding.UTF8.GetString(bytes));
-            }
+            sb.Append("MessageMbtQuotes: Position " + data.Position + ", length " + data.Length + "  ");
+            sb.Append(ASCIIEncoding.UTF8.GetString(data.GetBuffer(),0,(int)data.Length));
+            var result = sb.ToString();
+            result = result.Replace("\n", @"\n");
+            return result.Replace("\r", @"\r");
+            //int offset = (int)data.Position;
+            //while( offset < data.Length) {
+            //    int rowSize = (int) Math.Min(16,data.Length-offset);
+            //    byte[] bytes = new byte[rowSize];
+            //    Array.Copy(data.GetBuffer(),offset,bytes,0,rowSize);
+            //    for( int i = 0; i<bytes.Length; i++) {
+            //        sb.Append(bytes[i].ToString("X").PadLeft(2,'0'));
+            //        sb.Append(" ");
+            //    }
+            //    offset += rowSize;
+            //    sb.AppendLine();
+            //    sb.AppendLine(ASCIIEncoding.UTF8.GetString(bytes));
+            //}))
             return sb.ToString();
         }
 		

@@ -69,7 +69,6 @@ namespace TickZoom.Charting
             // 
             // refreshTimer
             // 
-            this.refreshTimer.Enabled = true;
             this.refreshTimer.Tick += new System.EventHandler(this.refreshTick);
             // 
             // toolStripStatusXY
@@ -156,6 +155,7 @@ namespace TickZoom.Charting
             this.Name = "ChartControl";
             this.Size = new System.Drawing.Size(791, 452);
             this.Load += new System.EventHandler(this.ChartLoad);
+            this.VisibleChanged += new System.EventHandler(this.OnVisibleChanged);
             this.Resize += new System.EventHandler(this.ChartResize);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();

@@ -59,7 +59,7 @@ namespace TickZoom.TickUtil
 	   	    log = Factory.SysLog.GetLogger("DataReceiverDefault."+symbol.Symbol.StripInvalidPathChars());
 	   	    debug = log.IsDebugEnabled;
 			this.sender = sender;
-            readQueue = new TickQueueImpl("DataReceiverDefault+" + symbol.Symbol.StripInvalidPathChars(), 1000);
+            readQueue = new TickQueueImpl("DataReceiverDefault." + symbol.Symbol.StripInvalidPathChars(), 1000);
             var tickPool = Factory.TickUtil.TickPool(symbol);
             wrapper = new DataReceiverQueueWrapper(symbol,tickPool,readQueue);
 			readQueue.StartEnqueue = Start;
