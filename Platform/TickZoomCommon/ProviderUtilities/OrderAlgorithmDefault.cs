@@ -1191,6 +1191,10 @@ namespace TickZoom.Common
                     originalPhysicals.Remove(physical.Order.ReplacedBy);
                     physicalOrders.Remove(physical.Order.ReplacedBy);
                     physicalOrderCache.RemoveOrder(physical.Order.ReplacedBy.BrokerOrder);
+                    if( SyncTicks.Enabled)
+                    {
+                        tickSync.RemovePhysicalOrder(physical.Order.ReplacedBy);
+                    }
                 }
                 physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
 			}

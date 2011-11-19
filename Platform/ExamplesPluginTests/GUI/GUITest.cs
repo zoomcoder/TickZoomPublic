@@ -303,7 +303,6 @@ namespace Other
 				string compareFile2 = appData + @"\Test\ServerCache\ESZ9.tck";
 				using ( TickReader reader1 = Factory.TickUtil.TickReader()) {
 					reader1.Initialize(compareFile1,config.SymbolList);
-                    reader1.ReadQueue.ConnectInbound(null);
                     TickBinary tick1 = new TickBinary();
 					try {
 						int count = 0;
@@ -314,7 +313,7 @@ namespace Other
 							count++;
 						}
 					} catch( QueueException ex) {
-						Assert.AreEqual(ex.EntryType,EventType.EndHistorical);
+                        Assert.IsTrue(ex.EntryType == EventType.StartHistorical || ex.EntryType == EventType.EndHistorical,"start or end historical");
 					}
 				}
 				using ( TickReader reader1 = Factory.TickUtil.TickReader())
@@ -340,8 +339,8 @@ namespace Other
 							count++;
 						}
 					} catch( QueueException ex) {
-						Assert.AreEqual(ex.EntryType,EventType.EndHistorical);
-					}
+                        Assert.IsTrue(ex.EntryType == EventType.StartHistorical || ex.EntryType == EventType.EndHistorical, "start or end historical");
+                    }
 					Assert.IsTrue(result,"Tick mismatch errors. See log file.");
 				}
 			} catch( Exception ex) {

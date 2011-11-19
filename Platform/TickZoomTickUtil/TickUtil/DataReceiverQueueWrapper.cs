@@ -5,6 +5,8 @@ namespace TickZoom.TickUtil
 {
     public class DataReceiverQueueWrapper : ReceiveEventQueue
     {
+        private static readonly Log log = Factory.Log.GetLogger(typeof (DataReceiverQueueWrapper));
+        private bool debug = log.IsDebugEnabled;
         private Pool<TickBinaryBox> tickPool;
         private TickQueue tickQueue;
         private SymbolInfo symbol;
@@ -41,13 +43,17 @@ namespace TickZoom.TickUtil
                 tickQueue.Enqueue(ref binary.TickBinary);
                 tickPool.Free(binary);
             }
-            else
+            else if( eventType == EventType.EndHistorical)
             {
                 var queueItem = new QueueItem();
                 queueItem.Symbol = item.Symbol.BinaryIdentifier;
                 queueItem.EventType = (int) eventType;
                 queueItem.EventDetail = item.EventDetail;
                 tickQueue.Enqueue( queueItem, utcTime);
+            }
+            else
+            {
+                if( debug) log.Debug("Ignoring event from Reader: " + eventType);
             }
         }
 
