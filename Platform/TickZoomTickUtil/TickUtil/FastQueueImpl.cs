@@ -99,7 +99,21 @@ namespace TickZoom.TickUtil
         int backupInitial = 20;
         long earliestUtcTime = long.MaxValue;
 		private Task inboundTask;
-        private Task outboundTask;
+        private struct TaskConnection
+        {
+            internal Task task;
+            internal int id;
+            internal void IncreaseOutbound()
+            {
+                task.IncreaseOutbound(id);
+            }
+
+            public void DecreaseOutbound()
+            {
+                task.DecreaseOutbound(id);
+            }
+        }
+        private List<TaskConnection> outboundTasks = new List<TaskConnection>();
         private int count;
 		
 		public long EarliestUtcTime {
@@ -186,27 +200,20 @@ namespace TickZoom.TickUtil
             }
 	    }
 
-	    private int outboundId;
         public void ConnectOutbound(Task task)
         {
             if (task == null)
             {
                 throw new ArgumentNullException("task cannot be null");
             }
-            if (outboundTask == null)
+            var found = outboundTasks.Find(x => x.task == task);
+            if( found.task == null)
             {
-                outboundTask = task;
-                task.ConnectOutbound(this, out outboundId);
-                if( IsFull)
-                {
-                    task.IncreaseOutbound(outboundId);
-                }
+                var connection = new TaskConnection();
+                connection.task = task;
+                outboundTasks.Add(connection);
+                task.ConnectOutbound(this, out connection.id);
             }
-            else if( outboundTask != task)
-            {
-                throw new ApplicationException("Attempt to connect more than one outbound task " + task + " to the queue but task " + outboundTask + " was already connected.");
-            }
-
         }
 
 	    private bool isBackingUp = false;
@@ -256,9 +263,12 @@ namespace TickZoom.TickUtil
                         inboundTask.UpdateUtcTime(inboundId, utcTime);
                     }
                 }
-                if (outboundTask != null && queue.Count >= maxSize)
+                if (queue.Count >= maxSize)
                 {
-                    outboundTask.IncreaseOutbound(outboundId);
+                    for( var i=0;i<outboundTasks.Count; i++)
+                    {
+                        outboundTasks[i].IncreaseOutbound();
+                    }
                 }
             }
             finally
@@ -407,7 +417,10 @@ namespace TickZoom.TickUtil
 	    	}
             if( priorCount >= maxSize && newCount < maxSize)
             {
-                outboundTask.DecreaseOutbound(outboundId);
+                for( var i=0;i<outboundTasks.Count; i++)
+                {
+                    outboundTasks[i].DecreaseOutbound();
+                }
             }
 	    	return true;
 	    }
@@ -537,25 +550,35 @@ namespace TickZoom.TickUtil
 				var age = TimeStamp.UtcNow.Internal - earliestUtcTime;
 				sb.Append(age);
 			}
-		    sb.Append(" locks( count=");
-			sb.Append(lockCount);
-		    sb.Append(" spins=");
-		    sb.Append(lockSpins*spinCycles);
-		    sb.Append(" average=");
-			sb.Append(average);
-			sb.Append(") enqueue( conflicts=");
-			sb.Append(enqueueConflicts);
-			sb.Append(" spins=");
-			sb.Append(enqueueSpins);
-			sb.Append(" sleeps=");
-			sb.Append(enqueueSleepCounter);
-			sb.Append(") dequeue( conflicts=");
-			sb.Append(dequeueConflicts);
-			sb.Append(" spins=");
-			sb.Append(dequeueSpins);
-			sb.Append(" sleeps=");
-			sb.Append(dequeueSleepCounter);
-			return sb.ToString();
+		    var node = queue.Last;
+            for( var i=0; node != null && i<5; node=node.Previous, i++)
+            {
+                sb.Append(", ");
+                sb.Append(node.Value.ToString());
+            }
+            if (false)
+            {
+
+                sb.Append(" locks( count=");
+                sb.Append(lockCount);
+                sb.Append(" spins=");
+                sb.Append(lockSpins*spinCycles);
+                sb.Append(" average=");
+                sb.Append(average);
+                sb.Append(") enqueue( conflicts=");
+                sb.Append(enqueueConflicts);
+                sb.Append(" spins=");
+                sb.Append(enqueueSpins);
+                sb.Append(" sleeps=");
+                sb.Append(enqueueSleepCounter);
+                sb.Append(") dequeue( conflicts=");
+                sb.Append(dequeueConflicts);
+                sb.Append(" spins=");
+                sb.Append(dequeueSpins);
+                sb.Append(" sleeps=");
+                sb.Append(dequeueSleepCounter);
+            }
+		    return sb.ToString();
 		}
 	    
 		public NodePool<FastQueueEntry<T>> NodePool {
