@@ -31,10 +31,11 @@ using TickZoom.Api;
 
 namespace TickZoom.TickUtil
 {
-    public class DataReceiverDefault : Receiver {
-	   	static readonly Log log = Factory.SysLog.GetLogger(typeof(DataReceiverDefault));
-	   	readonly bool debug = log.IsDebugEnabled;
-	    private TickQueue readQueue = new TickQueueImpl("DataReceiverDefault",1000);
+    public class DataReceiverDefault : Receiver
+    {
+        private Log log;
+        private readonly bool debug;
+        private TickQueue readQueue;
         Provider sender;
 	    private DataReceiverQueueWrapper wrapper;
 
@@ -55,8 +56,11 @@ namespace TickZoom.TickUtil
 		}
 		
 		public DataReceiverDefault(Provider sender, SymbolInfo symbol) {
+	   	    log = Factory.SysLog.GetLogger("DataReceiverDefault."+symbol.Symbol.StripInvalidPathChars());
+	   	    debug = log.IsDebugEnabled;
 			this.sender = sender;
-		    var tickPool = Factory.TickUtil.TickPool(symbol);
+            readQueue = new TickQueueImpl("DataReceiverDefault+" + symbol.Symbol.StripInvalidPathChars(), 1000);
+            var tickPool = Factory.TickUtil.TickPool(symbol);
             wrapper = new DataReceiverQueueWrapper(symbol,tickPool,readQueue);
 			readQueue.StartEnqueue = Start;
 		}

@@ -246,15 +246,16 @@ namespace TickZoom.TickUtil
                 if( trace) log.Trace("Enqueue " + item);
                 var node = NodePool.Create(new FastQueueEntry<T>(item, utcTime));
                 queue.AddFirst(node);
-                if (temp == 0)
-                {
-	            	this.earliestUtcTime = utcTime;
-	            	if( inboundTask != null) {
-	            		inboundTask.UpdateUtcTime(inboundId,utcTime);
-	            	}
-	            }
                 Interlocked.Increment(ref count);
-	           	if( inboundTask != null) inboundTask.IncreaseInbound(inboundId);
+                if (inboundTask != null)
+                {
+                    inboundTask.IncreaseInbound(inboundId);
+                    if (temp == 0)
+                    {
+                        this.earliestUtcTime = utcTime;
+                        inboundTask.UpdateUtcTime(inboundId, utcTime);
+                    }
+                }
                 if (outboundTask != null && queue.Count >= maxSize)
                 {
                     outboundTask.IncreaseOutbound(outboundId);
@@ -277,11 +278,11 @@ namespace TickZoom.TickUtil
 	    	}
 	    	if( inboundTask != null)
 	    	{
+                inboundTask.DecreaseInbound(inboundId);
                 if (tempCount == 0)
                 {
                     inboundTask.UpdateUtcTime(inboundId, earliestUtcTime);
                 }
-                inboundTask.DecreaseInbound(inboundId);
 	    	}
             SpinUnLock();
         }

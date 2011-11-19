@@ -40,9 +40,9 @@ namespace TickZoom.TickUtil
 		long maxCount = long.MaxValue;
 		SymbolInfo symbol = null;
 		long lSymbol = 0;
-		static readonly Log log = Factory.SysLog.GetLogger("TickZoom.TickUtil.Reader");
-		readonly bool debug = log.IsDebugEnabled;
-		readonly bool trace = log.IsDebugEnabled;
+	    private Log log;
+	    private bool debug;
+	    private bool trace;
 		bool quietMode = false;
 		long progressDivisor = 1;
 		private Elapsed sessionStart = new Elapsed(8, 0, 0);
@@ -209,8 +209,8 @@ namespace TickZoom.TickUtil
                     outboundQueue = receiver.GetQueue(symbol);
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
-                    diagnoseMetric = Diagnose.RegisterMetric("Reader-" + symbol);
-                    fileReaderTask = Factory.Parallel.Loop(this, OnException, FileReader);
+                    diagnoseMetric = Diagnose.RegisterMetric("Reader+" + symbol.Symbol.StripInvalidPathChars());
+                    fileReaderTask = Factory.Parallel.Loop("Reader+" + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
                     fileReaderTask.Scheduler = Scheduler.InputOutput;
                     outboundQueue.ConnectOutbound(fileReaderTask);
                     fileReaderTask.Start();
@@ -264,6 +264,9 @@ namespace TickZoom.TickUtil
 		
 		private bool PrepareTask()
 		{
+	        log = Factory.SysLog.GetLogger("TickZoom.TickUtil.Reader."+symbol.Symbol.StripInvalidPathChars());
+	        debug = log.IsDebugEnabled;
+	        trace = log.IsDebugEnabled;
 		    tickBoxPool = Factory.TickUtil.TickPool(symbol);
             for (int retry = 0; retry < 3; retry++)
             {
