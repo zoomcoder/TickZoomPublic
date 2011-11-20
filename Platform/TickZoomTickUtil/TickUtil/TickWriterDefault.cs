@@ -111,7 +111,8 @@ namespace TickZoom.TickUtil
 			}
 			          
     		log.Notice("TickWriter fileName: " + fileName);
-    		var path = Path.GetDirectoryName(fileName);
+    		var path = Path.GetFullPath(fileName);
+		    path = Path.GetDirectoryName(path);
     		if( path != null) {
     			Directory.CreateDirectory( path);
     		}

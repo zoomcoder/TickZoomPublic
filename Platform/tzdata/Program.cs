@@ -45,6 +45,7 @@ namespace TickZoom.TZData
 			commands["open"] = new Open();
 			commands["import"] = new Import();
             commands["export"] = new Export();
+            commands["alter"] = new Alter();
             commands["project"] = new Project();
 			
 			if( args.Length == 0) {

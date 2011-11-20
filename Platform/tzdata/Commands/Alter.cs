@@ -13,7 +13,7 @@ namespace TickZoom.TZData
         {
             if (args.Length != 1)
             {
-                Output("Migrate Usage:");
+                Output("Alter Usage:");
                 Output("tzdata " + Usage());
                 return;
             }
@@ -61,7 +61,7 @@ namespace TickZoom.TZData
                         Output("Unexpected QueueException: " + ex);
                     }
                 }
-                Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
+                Output(reader.Symbol + ": Altered " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
             }
             File.Move(file, file + ".back");
             File.Move(file + ".temp", file);
@@ -71,7 +71,7 @@ namespace TickZoom.TZData
         {
             List<string> lines = new List<string>();
             string name = Assembly.GetEntryAssembly().GetName().Name;
-            lines.Add(name + " migrate <file>");
+            lines.Add(name + " alter <file>");
             return lines.ToArray();
         }
     }
