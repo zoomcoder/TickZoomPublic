@@ -62,7 +62,6 @@ namespace TickZoom.Logging
 
         public void ConfigureUserLog()
         {
-            Console.Out.Write("UserLog from\n" + Environment.StackTrace);
             this.repositoryName = "Log";
             lock (repositoryLocker)
             {

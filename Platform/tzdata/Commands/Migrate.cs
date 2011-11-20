@@ -34,14 +34,13 @@ using TickZoom.Api;
 
 namespace TickZoom.TZData
 {
-
-	public class Migrate : Command
+    public class Migrate : Command
 	{
 		public override void Run(string[] args)
 		{
 			if( args.Length != 2) {
-				Console.Write("Migrate Usage:");
-				Console.Write("tzdata " + Usage());
+				Output("Migrate Usage:");
+                Output("tzdata " + Usage());
 				return;
 			}
 			MigrateFile(args[1],args[0]);
@@ -49,7 +48,7 @@ namespace TickZoom.TZData
 		
 		private void MigrateFile(string file, string symbol) {
 			if( File.Exists(file + ".back")) {
-				Console.WriteLine("A backup file already exists. Please delete it first at: " + file + ".back");
+                Output("A backup file already exists. Please delete it first at: " + file + ".back");
 				return;
 			}
 			using( var reader = Factory.TickUtil.TickReader()) 
@@ -85,7 +84,7 @@ namespace TickZoom.TZData
 						throw new ApplicationException("Unexpected QueueException: " + ex);
 					}
 				}
-				Console.WriteLine(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time );
+                Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
 			}
 			File.Move( file, file + ".back");
 			File.Move( file + ".temp", file);

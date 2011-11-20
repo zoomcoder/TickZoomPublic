@@ -201,6 +201,31 @@ namespace TickZoom.Utilities
         }
 
         [Test]
+        public void TestAlter()
+        {
+            string storageFolder = Factory.Settings["AppDataFolder"];
+            if (storageFolder == null)
+            {
+                throw new ApplicationException("Must set AppDataFolder property in app.config");
+            }
+            string origFile = storageFolder + @"\Test\\DataCache\AD.Test.tck";
+            string tempFile = origFile + ".temp";
+            string backupFile = origFile + ".back";
+            File.Delete(backupFile);
+            File.Delete(origFile);
+            string fileName = storageFolder + @"\Test\\DataCache\AD.Simulate.tck";
+            File.Copy(fileName, origFile);
+
+            string[] args = { origFile };
+
+            var command = new Alter();
+            command.Run(args);
+            Assert.IsTrue(File.Exists(origFile));
+            Assert.IsTrue(File.Exists(backupFile));
+            Assert.IsFalse(File.Exists(tempFile));
+        }
+
+        [Test]
 		public void TestMigrate()
 		{
 	       	string storageFolder = Factory.Settings["AppDataFolder"];

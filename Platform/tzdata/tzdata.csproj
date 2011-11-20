@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{B5CA9174-96DB-43D8-B4AB-230E44227D59}</ProjectGuid>
@@ -68,6 +68,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\Alter.cs" />
     <Compile Include="Commands\Export.cs" />
     <Compile Include="Commands\Import.cs" />
     <Compile Include="Commands\Project.cs" />

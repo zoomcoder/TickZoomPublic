@@ -352,8 +352,9 @@ namespace TickZoom.TickUtil
 			    var count = Interlocked.Read(ref writeCounter);
 			    var append = Interlocked.Read(ref appendCounter);
                 if( debug) log.Debug("Only " + count + " writes but " + append + " appends.");
-				if( !isInitialized) {
-					throw new ApplicationException("Please initialize TickWriter first.");
+				if( !isInitialized)
+				{
+				    return;
 				}
 				if( debug) log.Debug("Dispose()");
 				if( appendTask != null) {
