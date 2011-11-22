@@ -58,12 +58,15 @@ namespace TickZoom.FIX
 		private YieldMethod MainLoopMethod;
 	    private int heartbeatDelay = 1; 
         private ServerState fixState = ServerState.Startup;
-        private bool simulateDisconnect = false;
-        protected bool simulateSendOrderServerOffline = false;
-        protected bool simulateRecvOrderServerOffline = false;
-        private bool simulateOrderBlackHole = true;
-        private bool simulateReceiveFailed = false;
-        private bool simulateSendFailed = false;
+        private readonly int maxFailtures = 5;
+        private static readonly bool allTests = true;
+        private bool simulateDisconnect = allTests;
+        protected bool simulateSendOrderServerOffline = allTests;
+        protected bool simulateRecvOrderServerOffline = allTests;
+        private bool simulateOrderBlackHole = allTests;
+        private bool simulateReceiveFailed = allTests;
+        private bool simulateSendFailed = allTests;
+        private int simulateOrderBlackHoleCounter;
         private int simulateOrderBlackHoleFrequency = 20;
         private int simulateDisconnectFrequency = 50;
         private int simulateRecvOrderServerOfflineFrequency = 50;
@@ -692,23 +695,26 @@ namespace TickZoom.FIX
             switch (packetFIX.MessageType)
             {
                 case "G":
-                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency*symbolHandlers.Count) == 1)
+                    if (simulateOrderBlackHoleCounter < maxFailtures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        ++simulateOrderBlackHoleCounter;
                         return true;
                     }
                     break;
                 case "D":
-                    if (simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
+                    if (simulateOrderBlackHoleCounter < maxFailtures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        ++simulateOrderBlackHoleCounter;
                         return true;
                     }
                     break;
                 case "F":
-                    if (simulateOrderBlackHole && FixFactory != null && random.Next(3) == 1)
+                    if (simulateOrderBlackHoleCounter < maxFailtures && simulateOrderBlackHole && FixFactory != null && random.Next(3) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        ++simulateOrderBlackHoleCounter;
                         return true;
                     }
                     break;
@@ -994,7 +1000,8 @@ namespace TickZoom.FIX
 		}
 
 		protected volatile bool isDisposed = false;
-		public void Dispose()
+
+        public void Dispose()
 		{
 			Dispose(true);
 			GC.SuppressFinalize(this);

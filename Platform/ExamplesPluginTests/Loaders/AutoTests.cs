@@ -327,7 +327,7 @@ namespace Loaders
 			list.Add( spyQuoteDataOnly);
 			
 			var multiSymbolOrders = new AutoTestSettings {
-			    Mode = AutoTestMode.Default, 
+			    Mode = AutoTestMode.Historical, 
 			    Name = "MultiSymbolOrders",
 			    Loader = new ExampleOrdersLoader(),
 				Symbols = @"AD.1month, BO.1month, BP.1month, CC.1month, CD.1month, CL.1month,
@@ -345,8 +345,23 @@ namespace Loaders
 				Categories = { "MultiSymbolOrders" },
 			};
 			list.Add(multiSymbolOrders);
-			
-			return list.ToArray();
+
+            var tenSymbolOrders = new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
+                Name = "TenSymbolOrders",
+                Loader = new ExampleOrdersLoader(),
+                Symbols = @"CL.1month, ES.1month, GC.1month, EC.1month, BP.1month,
+                    NQ.1month, ER.1month, NG.1month, JY.1month, AD.1month",
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                EndTime = new TimeStamp(2010, 3, 3),
+                IntervalDefault = Intervals.Hour1,
+                Categories = { "MultiSymbolOrders" },
+            };
+            list.Add(tenSymbolOrders);
+
+            return list.ToArray();
 		}
 	}
 }

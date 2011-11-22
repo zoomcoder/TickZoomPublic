@@ -782,25 +782,28 @@ namespace TickZoom.Common
                 if (disposing)
                 {
                     disposeNeeded = true;
-                    if (cacheLocker.IsLocked)
+                    lock( snapshotLocker)
                     {
-                        return;
-                    }
-                    isDisposed = true;
-                    if (anySnapShotWritten)
-                    {
-                        if( IsBusy)
+                        if (cacheLocker.IsLocked || !writeFileResult.IsCompleted)
                         {
-                            WaitForSnapshot();
+                            return;
                         }
-                        else
+                        isDisposed = true;
+                        if (anySnapShotWritten)
                         {
-                            RequestSnapshot();
-                            TrySnapshot();
-                            WaitForSnapshot();
+                            if (IsBusy)
+                            {
+                                WaitForSnapshot();
+                            }
+                            else
+                            {
+                                RequestSnapshot();
+                                StartSnapShot();
+                                WaitForSnapshot();
+                            }
                         }
+                        TryClose();
                     }
-                    TryClose();
                 }
             }
         }

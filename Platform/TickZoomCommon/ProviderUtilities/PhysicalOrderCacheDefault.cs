@@ -109,12 +109,12 @@ namespace TickZoom.Common
 
         public void SyncPositions(Iterable<StrategyPosition> strategyPositions)
         {
-            if (debug)
+            if (trace)
             {
                 for (var node = strategyPositions.First; node != null; node = node.Next)
                 {
                     var sp = node.Value;
-                    log.Debug("Received strategy position. " + sp);
+                    log.Trace("Received strategy position. " + sp);
                 }
             }
             for (var current = strategyPositions.First; current != null; current = current.Next)

@@ -323,19 +323,19 @@ namespace TickZoom.Interceptors
 
 		private void ProcessOrdersInternal(Tick tick) {
 			if( isOpenTick && tick.Time > openTime) {
-				if( trace) {
-    				log.Trace( "ProcessOrders( " + symbol + ", " + tick + " ) [OpenTick]") ;
+				if( debug) {
+    				log.Debug( "ProcessOrders( " + symbol + ", " + tick + " ) [OpenTick]") ;
 				}
 				isOpenTick = false;
 			}
-            else if( verbose)
+            else if( debug)
 			{
-                log.Verbose("ProcessOrders( " + symbol + ", " + tick + " )");
+                log.Debug("ProcessOrders( " + symbol + ", " + tick + " )");
             }
 			if( symbol == null) {
 				throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
 			}
-            if( trace) log.Trace( "Orders: Market " + marketOrders.Count + ", Increase " + increaseOrders.Count + ", Decrease " + decreaseOrders.Count);
+            if( debug) log.Debug( "Orders: Market " + marketOrders.Count + ", Increase " + increaseOrders.Count + ", Decrease " + decreaseOrders.Count);
 			for( var node = marketOrders.First; node != null; node = node.Next) {
 				var order = node.Value;
 				OnProcessOrder(order, tick);
