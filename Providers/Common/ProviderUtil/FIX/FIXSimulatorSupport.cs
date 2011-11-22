@@ -62,8 +62,8 @@ namespace TickZoom.FIX
         protected bool simulateSendOrderServerOffline = false;
         protected bool simulateRecvOrderServerOffline = false;
         private bool simulateOrderBlackHole = true;
-        private bool simulateReceiveFailed = true;
-        private bool simulateSendFailed = true;
+        private bool simulateReceiveFailed = false;
+        private bool simulateSendFailed = false;
         private int simulateOrderBlackHoleFrequency = 20;
         private int simulateDisconnectFrequency = 50;
         private int simulateRecvOrderServerOfflineFrequency = 50;

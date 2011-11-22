@@ -110,6 +110,13 @@ namespace TickZoom.Api
                    (*state).reprocessPhysical > 0;
         }
 
+        private bool CheckOnlyOneFillLeft()
+        {
+            return (*state).positionChange > 0 || (*state).physicalOrders > 0 ||
+                   (*state).physicalFillsCreated == 1 || (*state).processPhysical > 0 ||
+                   (*state).reprocessPhysical > 0;
+        }
+
         public void CaptureState()
         {
             *rollback = *state;
@@ -438,6 +445,11 @@ namespace TickZoom.Api
         public bool IsProcessingOrders
         {
             get { return CheckProcessingOrders(); }
+        }
+
+        public bool IsOnlyOneFillLeft
+        {
+            get { return CheckOnlyOneFillLeft(); }
         }
 
         public bool SentProcessPhysicalOrders

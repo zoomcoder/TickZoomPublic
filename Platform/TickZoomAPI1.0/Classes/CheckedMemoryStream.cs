@@ -25,6 +25,8 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -157,32 +159,17 @@ namespace TickZoom.Api
 		public override bool CanRead {
 			get { return true; }
 		}
-		
-		TaskLock dataLock = new TaskLock();
-		string otherStack = null;
-		public override long Position {
-			get {
-				if( !dataLock.TryLock() ) {
-					Thread.Sleep(1000);
-					throw new ApplicationException("Two threads accessing memory position getter. Other thread stack:\n" + otherStack + "\nCurrent thread stack:");
-				}
-				try { 
-					return position;
-				} finally {
-					dataLock.Unlock();
-				}
+
+	    private Dictionary<string, int> getterStacks = new Dictionary<string, int>();
+	    private int counter = 0;
+        public override long Position
+        {
+			get
+			{
+				return position;
 			}
 			set {
-				if( !dataLock.TryLock() ) {
-					Thread.Sleep(1000);
-					throw new ApplicationException("Two threads accessing memory position setter. Other thread stack:\n" + otherStack + "\nCurrent thread stack:");
-				}
-				try { 
-					EnsureCapacity(position);
-					position = (int)value;
-				} finally {
-					dataLock.Unlock();
-				}
+                position = (int)value;
 			}
 		}
 		
