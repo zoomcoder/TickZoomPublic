@@ -784,7 +784,7 @@ namespace TickZoom.Common
                     disposeNeeded = true;
                     lock( snapshotLocker)
                     {
-                        if (cacheLocker.IsLocked || !writeFileResult.IsCompleted)
+                        if (cacheLocker.IsLocked || (writeFileResult != null  && !writeFileResult.IsCompleted))
                         {
                             return;
                         }
