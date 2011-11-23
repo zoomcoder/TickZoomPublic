@@ -212,8 +212,8 @@ namespace TickZoom.TickUtil
                     diagnoseMetric = Diagnose.RegisterMetric("Reader+" + symbol.Symbol.StripInvalidPathChars());
                     fileReaderTask = Factory.Parallel.Loop("Reader+" + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
                     fileReaderTask.Scheduler = Scheduler.InputOutput;
-                    outboundQueue.ConnectOutbound(fileReaderTask);
                     fileReaderTask.Start();
+                    outboundQueue.ConnectOutbound(fileReaderTask);
                     isStarted = true;
                 }
             }
