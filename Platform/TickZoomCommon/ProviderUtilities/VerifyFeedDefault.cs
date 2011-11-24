@@ -168,10 +168,10 @@ namespace TickZoom.Common
 						}
 					} else {
                         Thread.Sleep(100);
-                        if( queue.Count == 0 && SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
-                        {
-                            tickSync.RemoveTick();
-                        }
+                        //if( queue.Count == 0 && SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        //{
+                        //    tickSync.RemoveTick();
+                        //}
 					}
 				} catch (QueueException ex) {
 					if( HandleQueueException(ex)) {

@@ -256,6 +256,7 @@ namespace TickZoom.TickUtil
                 Interlocked.Increment(ref count);
                 if (inboundTask != null)
                 {
+                    if( trace) log.Trace("IncreaseInbound with count " + count + ", queue count " + queue.Count + ", previous count " + temp);
                     inboundTask.IncreaseInbound(inboundId);
                     if (temp == 0)
                     {
@@ -263,9 +264,10 @@ namespace TickZoom.TickUtil
                         inboundTask.UpdateUtcTime(inboundId, utcTime);
                     }
                 }
-                if (queue.Count >= maxSize)
+                if (count >= maxSize)
                 {
-                    for( var i=0;i<outboundTasks.Count; i++)
+                    if (trace) log.Trace("IncreaseOutbound with count " + count + ", queue count " + queue.Count + ", previous count " + temp);
+                    for (var i = 0; i < outboundTasks.Count; i++)
                     {
                         outboundTasks[i].IncreaseOutbound();
                     }
@@ -280,20 +282,30 @@ namespace TickZoom.TickUtil
 	    
 	    public void ReleaseCount() {
             while( !SpinLockNB());
-	    	var tempCount = Interlocked.Decrement(ref count);
+	        var priorCount = count;
+	    	var newCount = Interlocked.Decrement(ref count);
 	    	var tempQueueCount = queue.Count;
-            if( tempCount == 0) earliestUtcTime = long.MaxValue;
-	    	if( tempCount < tempQueueCount) {
-	    		throw new ApplicationException("Attempt to reduce FastQueue count less than internal queue: count " + tempCount + ", queue.Count " + tempQueueCount);
+            if( newCount == 0) earliestUtcTime = long.MaxValue;
+	    	if( newCount < tempQueueCount) {
+	    		throw new ApplicationException("Attempt to reduce FastQueue count less than internal queue: count " + newCount + ", queue.Count " + tempQueueCount);
 	    	}
 	    	if( inboundTask != null)
 	    	{
+                if( trace) log.Trace("DecreaseInbound with count = " + newCount);
                 inboundTask.DecreaseInbound(inboundId);
-                if (tempCount == 0)
+                if (newCount == 0)
                 {
                     inboundTask.UpdateUtcTime(inboundId, earliestUtcTime);
                 }
 	    	}
+            if (priorCount >= maxSize && newCount < maxSize)
+            {
+                if (trace) log.Trace("DecreaseOutbound with count " + newCount + ", previous count " + priorCount);
+                for (var i = 0; i < outboundTasks.Count; i++)
+                {
+                    outboundTasks[i].DecreaseOutbound();
+                }
+            }
             SpinUnLock();
         }
 	    
@@ -415,13 +427,6 @@ namespace TickZoom.TickUtil
             		maxLastBackup = 0;
             	}
 	    	}
-            if( priorCount >= maxSize && newCount < maxSize)
-            {
-                for( var i=0;i<outboundTasks.Count; i++)
-                {
-                    outboundTasks[i].DecreaseOutbound();
-                }
-            }
 	    	return true;
 	    }
 	    

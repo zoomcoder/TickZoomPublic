@@ -51,7 +51,7 @@ namespace TickZoom.MBTQuotes
 		protected readonly object symbolsRequestedLocker = new object();
 		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
 		private Socket socket;
-        private Task socketTask;
+        protected Task socketTask;
 		private string failedFile;
 		protected Receiver receiver;
 		private long retryDelay = 30; // seconds
@@ -84,6 +84,7 @@ namespace TickZoom.MBTQuotes
             RefreshLogLevel();
 	        log.Info(providerName+" Startup");
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
+		    socketTask.Scheduler = Scheduler.EarliestTime;
             RegenerateSocket();
             taskTimer = Factory.Parallel.CreateTimer(socketTask, TimerTask);
             socketTask.Start();
@@ -319,38 +320,35 @@ namespace TickZoom.MBTQuotes
 							}
 					        Message rawMessage;
 							var receivedMessage = false;
-                            while (Socket.ReceiveQueueCount > 0)
+                            if (Socket.TryGetMessage(out rawMessage))
                             {
-                                if (Socket.TryGetMessage(out rawMessage))
+								receivedMessage = true;
+                                var message = (MessageMbtQuotes) rawMessage;
+                                message.BeforeRead();
+                                if (trace)
                                 {
-									receivedMessage = true;
-                                    var message = (MessageMbtQuotes) rawMessage;
-                                    message.BeforeRead();
-                                    if (trace)
-                                    {
-                                        log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
-                                    }
-                                    if (message.MessageType == '9')
-                                    {
-                                        // Received the ping response.
-                                        if( trace) log.Trace("Ping successfully received."); 
-                                        isPingSent = false;
-                                    }
-                                    else
-                                    {
-                                        try
-                                        {
-                                            ReceiveMessage(message);
-                                            var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
-                                        }
-                                        catch( Exception ex)
-                                        {
-                                            var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
-                                            log.Error("Unable to process this message:\n" + loggingString, ex);
-                                        }
-                                    }
-                                    Socket.MessageFactory.Release(rawMessage);
+                                    log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
                                 }
+                                if (message.MessageType == '9')
+                                {
+                                    // Received the ping response.
+                                    if( trace) log.Trace("Ping successfully received."); 
+                                    isPingSent = false;
+                                }
+                                else
+                                {
+                                    try
+                                    {
+                                        ReceiveMessage(message);
+                                        var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
+                                    }
+                                    catch( Exception ex)
+                                    {
+                                        var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
+                                        log.Error("Unable to process this message:\n" + loggingString, ex);
+                                    }
+                                }
+                                Socket.MessageFactory.Release(rawMessage);
                             }
 							if( receivedMessage) {
 	                           	IncreaseRetryTimeout();

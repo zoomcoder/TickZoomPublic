@@ -179,6 +179,7 @@ namespace TickZoom.MBTQuotes
                 var messageText = new string(dataIn.ReadChars(Remaining));
                 log.Trace("ParseData(): " + messageText);
             }
+            _sendUtcTime = TimeStamp.UtcNow.Internal;
             data.Position = 2;
             fixed( byte *bptr = data.GetBuffer()) {
                 messageType = (char) *bptr;

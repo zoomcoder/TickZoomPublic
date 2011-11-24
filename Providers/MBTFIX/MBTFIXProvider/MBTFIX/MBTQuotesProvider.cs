@@ -414,7 +414,8 @@ namespace TickZoom.MBTQuotes
 	        	} else {
 	    	    	symbolHandler = Factory.Utility.SymbolHandler(symbol,receiver);
 	    	    	symbolHandlers.Add(symbol.BinaryIdentifier,symbolHandler);
-	    	    	symbolHandler.Start();
+                    receiver.GetQueue(symbol).ConnectOutbound(socketTask);
+                    symbolHandler.Start();
 	        	}
 			}
         }
@@ -432,6 +433,7 @@ namespace TickZoom.MBTQuotes
                 {
                     symbolHandler = Factory.Utility.SymbolHandler(symbol, receiver);
                     symbolOptionHandlers.Add(symbol.BinaryIdentifier, symbolHandler);
+                    receiver.GetQueue(symbol).ConnectOutbound(socketTask);
                     symbolHandler.Start();
                 }
             }
