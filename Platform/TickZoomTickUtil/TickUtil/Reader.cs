@@ -385,7 +385,6 @@ namespace TickZoom.TickUtil
 			lock (taskLocker) {
 				if (isDisposed)
 					return Yield.Terminate;
-				long position = dataIn.BaseStream.Position;
 				try {
 					if (!CancelPending && TryReadTick()) {
 

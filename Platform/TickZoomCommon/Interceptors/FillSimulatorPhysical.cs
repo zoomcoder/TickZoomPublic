@@ -323,14 +323,14 @@ namespace TickZoom.Interceptors
 
 		private void ProcessOrdersInternal(Tick tick) {
 			if( isOpenTick && tick.Time > openTime) {
-				if( debug) {
-    				log.Debug( "ProcessOrders( " + symbol + ", " + tick + " ) [OpenTick]") ;
+				if( trace) {
+    				log.Trace( "ProcessOrders( " + symbol + ", " + tick + " ) [OpenTick]") ;
 				}
 				isOpenTick = false;
 			}
-            else if( debug)
+            else if( trace)
 			{
-                log.Debug("ProcessOrders( " + symbol + ", " + tick + " )");
+                log.Trace("ProcessOrders( " + symbol + ", " + tick + " )");
             }
 			if( symbol == null) {
 				throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
