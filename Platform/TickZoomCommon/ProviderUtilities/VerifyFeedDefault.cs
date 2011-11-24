@@ -70,10 +70,10 @@ namespace TickZoom.Common
 		{
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-            queue.StartEnqueue = Start;
             tickPool =  Factory.TickUtil.TickPool(symbol);
             queue = Factory.TickUtil.EventQueue(symbol,"VerifyFeed+"+symbol);
-		}
+            queue.StartEnqueue = Start;
+        }
 
 		public void Start()
 		{
@@ -102,13 +102,13 @@ namespace TickZoom.Common
             var result = false;
             if( queue.TryDequeue(out eventItem))
             {
-                var eventType = (EventType) eventItem.EventType;
+                queue.ReleaseCount();
+                var eventType = (EventType)eventItem.EventType;
                 switch( eventType)
                 {
                     case EventType.Tick:
                         TickBinaryBox box = (TickBinaryBox)eventItem.EventDetail;
                         tickBinary = box.TickBinary;
-                        queue.ReleaseCount();
                         tickPool.Free(box);
                         result = true;
                         break;
