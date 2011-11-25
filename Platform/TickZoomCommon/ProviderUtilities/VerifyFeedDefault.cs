@@ -39,7 +39,6 @@ namespace TickZoom.Common
 		private readonly bool debug = log.IsDebugEnabled;
         private readonly bool trace = log.IsTraceEnabled;
         private readonly bool verbose = log.IsVerboseEnabled;
-		private volatile bool isRealTime = false;
 		private TickSync tickSync;
 		private volatile ReceiverState receiverState = ReceiverState.Ready;
 		private volatile BrokerState brokerState = BrokerState.Disconnected;
@@ -55,10 +54,6 @@ namespace TickZoom.Common
 		
 		public List<TickBinary> GetReceived() {
 			return received;
-		}
-
-		public EventQueue TickQueue {
-			get { return queue; }
 		}
 
 		public ReceiverState OnGetReceiverState(SymbolInfo symbol)
@@ -391,31 +386,24 @@ namespace TickZoom.Common
 			switch (ex.EntryType) {
 				case EventType.StartHistorical:
 					receiverState = ReceiverState.Historical;
-					isRealTime = false;
 					break;
 				case EventType.EndHistorical:
 					receiverState = ReceiverState.Ready;
-					isRealTime = false;
 					break;
 				case EventType.StartRealTime:
 					receiverState = ReceiverState.RealTime;
-					isRealTime = true;
 					break;
 				case EventType.EndRealTime:
 					receiverState = ReceiverState.Ready;
-					isRealTime = false;
 					break;
 				case EventType.StartBroker:
 					brokerState = BrokerState.Connected;
-					isRealTime = true;
 					break;
 				case EventType.EndBroker:
 					brokerState = BrokerState.Disconnected;
-					isRealTime = false;
 					break;
 				case EventType.Terminate:
 					receiverState = ReceiverState.Stop;
-					isRealTime = false;
 					return true;
 				default:
 					throw new ApplicationException("Unexpected QueueException: " + ex.EntryType);
@@ -555,7 +543,7 @@ namespace TickZoom.Common
 	    }
 	    
 		public bool IsRealTime {
-			get { return isRealTime; }
+			get { return receiverState == ReceiverState.RealTime; }
 		}
 		
 		volatile SymbolInfo customEventSymbol;
@@ -582,6 +570,15 @@ namespace TickZoom.Common
 			get { return pauseSeconds; }
 			set { pauseSeconds = value; }
 		}
+
+	    public void Clear()
+	    {
+	        receiverState = ReceiverState.Ready;
+            if( queue != null)
+            {
+                queue.Clear();
+            }
+	    }
 
 	    public ReceiveEventQueue GetQueue( SymbolInfo symbol)
 	    {

@@ -34,7 +34,7 @@ namespace TickZoom.Api
         //void AddWriter(Socket socket);
 		void Start();
 		string GetStats();
-		Task Task { get; }
+        //Task Task { get; }
         long SelectCount { get; }
 	    long ReceiveCounter { get; }
 	    long SendCounter { get; }

@@ -44,11 +44,11 @@ namespace TickZoom.Api
 		void StartTimeTheFeed();
 		int EndTimeTheFeed(int expectedTickCount, int timeoutSeconds);
 		Yield TimeTheFeedTask();
-		EventQueue TickQueue { get; }
 		bool IsRealTime { get; }
 		TickIO LastTick { get; }
 		bool KeepReceived { get; set; }
 		List<TickBinary> GetReceived();
 		int PauseSeconds { get; set; }
+	    void Clear();
 	}
 }

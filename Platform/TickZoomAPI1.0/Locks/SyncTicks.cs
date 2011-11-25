@@ -108,7 +108,14 @@ namespace TickZoom.Api
 		
 		public static bool Enabled {
 			get { return (*Directory.SyncTicksState).enabled; }
-            set { (*Directory.SyncTicksState).enabled = value; }
+            set
+            {
+                (*Directory.SyncTicksState).enabled = value;
+                if( !value)
+                {
+                    int x = 0;
+                }
+            }
 		}
 		
 		public static int MockTradeCount {

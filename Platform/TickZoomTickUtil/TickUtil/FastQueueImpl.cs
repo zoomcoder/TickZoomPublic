@@ -223,16 +223,17 @@ namespace TickZoom.TickUtil
             // If the queue is full, wait for an item to be removed
             if( queue == null ) return false;
             if( !disableBackupLogging) {
-	            if( queue.Count >= backupLevel) {
+	            if( count >= backupLevel) {
 	            	isBackingUp = true;
 	            	if( debug) log.Debug( name + " queue is backing up. Now " + queue.Count);
             	    backupLevel += backupIncrease;
 	            }
-    		    if( queue.Count > maxLastBackup) {
+                if (count > maxLastBackup)
+                {
     			    maxLastBackup = queue.Count;
     		    }
             }
-            if (queue.Count >= maxSize)
+            if (count >= maxSize)
             {
                 return false;
             }
@@ -245,20 +246,21 @@ namespace TickZoom.TickUtil
 	            		throw new QueueException(EventType.Terminate);
 		    		}
 	            }
-	            if( queue == null ) return false;
-	            var temp = queue.Count;
-	            if( temp>=maxSize) {
+                if (count >= maxSize)
+                {
 	            	return false;
 	            }
-                if( trace) log.Trace("Enqueue " + item);
+                if (queue == null) return false;
+                var priorCount = count;
+                if (trace) log.Trace("Enqueue " + item);
                 var node = NodePool.Create(new FastQueueEntry<T>(item, utcTime));
                 queue.AddFirst(node);
                 Interlocked.Increment(ref count);
                 if (inboundTask != null)
                 {
-                    if( trace) log.Trace("IncreaseInbound with count " + count + ", queue count " + queue.Count + ", previous count " + temp);
+                    if( trace) log.Trace("IncreaseInbound with count " + count + ", queue count " + queue.Count + ", previous count " + priorCount);
                     inboundTask.IncreaseInbound(inboundId);
-                    if (temp == 0)
+                    if (priorCount == 0)
                     {
                         this.earliestUtcTime = utcTime;
                         inboundTask.UpdateUtcTime(inboundId, utcTime);
@@ -266,7 +268,7 @@ namespace TickZoom.TickUtil
                 }
                 if (count >= maxSize)
                 {
-                    if (trace) log.Trace("IncreaseOutbound with count " + count + ", queue count " + queue.Count + ", previous count " + temp);
+                    if (trace) log.Trace("IncreaseOutbound with count " + count + ", queue count " + queue.Count + ", previous count " + priorCount);
                     for (var i = 0; i < outboundTasks.Count; i++)
                     {
                         outboundTasks[i].IncreaseOutbound();
