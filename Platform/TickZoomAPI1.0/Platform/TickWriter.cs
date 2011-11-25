@@ -48,5 +48,7 @@ namespace TickZoom.Api
 		TickQueue WriteQueue {
 			get;
 		}
+
+	    void Flush();
 	}
 }

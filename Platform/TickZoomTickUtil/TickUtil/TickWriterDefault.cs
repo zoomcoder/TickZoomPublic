@@ -219,7 +219,10 @@ namespace TickZoom.TickUtil
                     }
                     if (memory.Position > 5000)
                     {
-                        writeFileResult = writeFileAction.BeginInvoke(null, null);
+                        lock (asyncWriteLocker)
+                        {
+                            writeFileResult = writeFileAction.BeginInvoke(null, null);
+                        }
                     }
                     result = Yield.DidWork.Repeat;
 				}
@@ -251,6 +254,28 @@ namespace TickZoom.TickUtil
     		}
 		}
 
+        public void Flush()
+        {
+            lock (asyncWriteLocker)
+            {
+                var result = false;
+                if (writeFileResult == null)
+                {
+                    result = true;
+                }
+                else if (writeFileResult.IsCompleted)
+                {
+                    writeFileAction.EndInvoke(writeFileResult);
+                    writeFileResult = null;
+                    result = true;
+                }
+                if( result)
+                {
+                    writeFileResult = writeFileAction.BeginInvoke(null, null);
+                }
+            }
+        }
+
         private void CloseFile( FileStream fs)
         {
             if( fs != null) {
@@ -266,16 +291,13 @@ namespace TickZoom.TickUtil
             }
         }
 		
-		private void SetupHeader( MemoryStream memory) {
-			memory.GetBuffer()[0] = (byte) memory.Length;
-		}
-
 	    private long tickCount = 0;
 		private int origSleepSeconds = 3;
 		private int currentSleepSeconds = 3;
 	    private long writeCounter = 0;
 		private void WriteToFile() {
 			int errorCount = 0;
+            if( memory.Position == 0) return;
 			do {
 			    try { 
 					if( trace) log.Trace("Writing buffer size: " + memory.Position);
@@ -367,10 +389,20 @@ namespace TickZoom.TickUtil
                         {
                             Thread.Sleep(10);
                         }
-                        while (!writeQueue.TryEnqueue(EventType.Terminate, symbol))
+                        try
                         {
-							Thread.Sleep(1);
-						}
+                            while (!writeQueue.TryEnqueue(EventType.Terminate, symbol))
+                            {
+                                Thread.Sleep(1);
+                            }
+                        }
+                        catch( QueueException ex)
+                        {
+                            if( ex.EntryType != EventType.Terminate)
+                            {
+                                throw;
+                            }
+                        }
 					} else {
 						appendTask.Stop();
 					}
@@ -382,6 +414,7 @@ namespace TickZoom.TickUtil
                 count = Interlocked.Read(ref writeCounter);
                 append = Interlocked.Read(ref appendCounter);
                 if (debug) log.Debug("Only " + count + " writes before CompleteAsyncWrite but " + append + " appends.");
+			    Flush();
                 while (!CompleteAsyncWrite())
 			    {
 			        Thread.Sleep(100);

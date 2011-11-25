@@ -926,7 +926,22 @@ namespace TickZoom.FIX
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if (debug) log.Debug("Resending simulated FIX Message: " + fixMessage);
-            fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
+            try
+            {
+                fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
+            }
+            catch (QueueException ex)
+            {
+                if (ex.EntryType == EventType.Terminate)
+                {
+                    if (debug) log.Debug("fix packet queue returned queue exception " + ex.EntryType + ". Dropping message due to dispose.");
+
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         private bool SendMessageInternal( Message message)
@@ -986,7 +1001,22 @@ namespace TickZoom.FIX
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if( debug) log.Debug("Simulating FIX Message: " + fixMessage);
-            fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
+            try
+            {
+                fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
+            }
+            catch( QueueException ex)
+            {
+                if( ex.EntryType == EventType.Terminate)
+                {
+                    if( debug) log.Debug("fix packet queue returned queue exception " + ex.EntryType + ". Dropping message due to dispose.");
+
+                }
+                else
+                {
+                    throw;
+                }
+            }
             if (simulateSendOrderServerOffline && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Skipping sequence " + fixMessage.Sequence + " because >= send order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline. " + fixMessage);
