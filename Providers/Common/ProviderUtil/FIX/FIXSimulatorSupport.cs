@@ -101,6 +101,7 @@ namespace TickZoom.FIX
 		protected FastQueue<Message> quotePacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorQuote");
 		private Dictionary<long, FIXServerSymbolHandler> symbolHandlers = new Dictionary<long, FIXServerSymbolHandler>();
 		private bool isPlayBack = false;
+        private TrueTimer heartbeatTimer;
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
@@ -210,11 +211,35 @@ namespace TickZoom.FIX
 			    task.Scheduler = Scheduler.EarliestTime;
                 quotePacketQueue.ConnectInbound(task);
                 fixPacketQueue.ConnectInbound(task);
+			    heartbeatTimer = Factory.Parallel.CreateTimer(task, HeartbeatTimerEvent);
+                var startTime = TimeStamp.UtcNow;
+                startTime.AddSeconds(1);
+                heartbeatTimer.Start(startTime);
                 task.Start();
             }
         }
 
-		private void OnDisconnectFIX(Socket socket)
+        private Yield HeartbeatTimerEvent()
+        {
+            var currentTime = TimeStamp.UtcNow;
+            if (verbose) log.Verbose("Heartbeat occurred at " + currentTime);
+            if (isConnectionLost)
+            {
+                if (debug) log.Debug("FIX connection was lost, closing FIX socket.");
+                CloseFIXSocket();
+                return Yield.NoWork.Repeat;
+            }
+            if (fixState != ServerState.Startup)
+            {
+                OnHeartbeat();
+            }
+            currentTime.AddSeconds(1);
+            if( verbose) log.Verbose("Setting next heartbeat at " + currentTime);
+            heartbeatTimer.Start(currentTime);
+            return Yield.DidWork.Repeat;
+        }
+        
+        private void OnDisconnectFIX(Socket socket)
 		{
 			if (this.fixSocket == socket) {
 				log.Info("FIX socket disconnect: " + socket);
@@ -482,10 +507,6 @@ namespace TickZoom.FIX
 			if (isFIXSimulationStarted) {
 				if (!fixSocket.TryGetMessage(out _fixReadMessage))
 				{
-                    if( fixState != ServerState.Startup)
-                    {
-                        TryRequestHeartbeat(Factory.Parallel.TickCount);
-                    }
 				    return false;
 				}
                 var packetFIX = (MessageFIXT1_1)_fixReadMessage;
@@ -912,7 +933,7 @@ namespace TickZoom.FIX
         {
             if (fixSocket.TrySendMessage(message))
             {
-                IncreaseHeartbeat(Factory.Parallel.TickCount);
+                IncreaseHeartbeat();
                 if (trace) log.Trace("Local Write: " + message);
                 return true;
             }
@@ -934,19 +955,13 @@ namespace TickZoom.FIX
 			}
 		}
 
-        private long heartbeatTimer = long.MaxValue;
-		private void IncreaseHeartbeat(long currentTime) {
-			heartbeatTimer = currentTime;
-		    heartbeatTimer += heartbeatDelay*1000; // 30 seconds.
+		private void IncreaseHeartbeat()
+		{
+		    var timeStamp = TimeStamp.UtcNow;
+		    timeStamp.AddSeconds(1);
+            if (verbose) log.Verbose("Setting next heartbeat for " + timeStamp);
+            heartbeatTimer.Start(timeStamp);
 		}		
-
-		private void TryRequestHeartbeat(long currentTime) {
-            if (currentTime > heartbeatTimer)
-            {
-                IncreaseHeartbeat(currentTime);
-                OnHeartbeat();
-            }
-		}
 
         public void SendMessage(FIXTMessage1_1 fixMessage)
         {
@@ -972,7 +987,6 @@ namespace TickZoom.FIX
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if( debug) log.Debug("Simulating FIX Message: " + fixMessage);
             fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
-            IncreaseHeartbeat(Factory.Parallel.TickCount);
             if (simulateSendOrderServerOffline && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Skipping sequence " + fixMessage.Sequence + " because >= send order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline. " + fixMessage);
@@ -989,7 +1003,6 @@ namespace TickZoom.FIX
 			{
 				var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 				mbtMsg.AddHeader("1");
-				string message = mbtMsg.ToString();
 				if( trace) log.Trace("Requesting heartbeat: " + mbtMsg);
                 SendMessage(mbtMsg);
 			}
