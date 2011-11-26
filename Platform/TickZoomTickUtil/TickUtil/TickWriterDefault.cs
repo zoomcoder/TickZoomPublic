@@ -198,22 +198,22 @@ namespace TickZoom.TickUtil
                     {
                         break;
                     }
-					if( !writeQueue.TryDequeue(ref tick)) {
-						break;
-					}
-					writeQueue.ReleaseCount();
-					tickIO.Inject(tick);
-					if( trace) {
-						log.Trace("Writing to file: " + tickIO);
-					}
-                    if( !memoryLocker.TryLock())
+                    if (!memoryLocker.TryLock())
                     {
-                        throw new ApplicationException("memory locker already locked");
+                        break;
                     }
                     try
                     {
+                        if (!writeQueue.TryDequeue(ref tick))
+                        {
+    						break;
+	    				}
+		    			writeQueue.ReleaseCount();
+			    		tickIO.Inject(tick);
+				    	if( trace)  log.Trace("Writing to file: " + tickIO);
                         tickIO.ToWriter(memory);
-                    } finally
+                    }
+                    finally
                     {
                         memoryLocker.Unlock();
                     }
@@ -256,6 +256,7 @@ namespace TickZoom.TickUtil
 
         public void Flush()
         {
+            if( debug) log.Debug("Before flush write queue " + writeQueue.Count + ", memory " + memory.Position);
             lock (asyncWriteLocker)
             {
                 var result = false;
@@ -274,6 +275,11 @@ namespace TickZoom.TickUtil
                     writeFileResult = writeFileAction.BeginInvoke(null, null);
                 }
             }
+            while (!CompleteAsyncWrite())
+            {
+                Thread.Sleep(100);
+            }
+            if (debug) log.Debug("After flush write queue " + writeQueue.Count + ", memory " + memory.Position);
         }
 
         private void CloseFile( FileStream fs)
@@ -300,7 +306,7 @@ namespace TickZoom.TickUtil
             if( memory.Position == 0) return;
 			do {
 			    try { 
-					if( trace) log.Trace("Writing buffer size: " + memory.Position);
+					if( debug) log.Debug("Writing buffer size: " + memory.Position);
 			        using (memoryLocker.Using())
 			        {
                         fs.Write(memory.GetBuffer(), 0, (int)memory.Position);
@@ -414,7 +420,6 @@ namespace TickZoom.TickUtil
                 count = Interlocked.Read(ref writeCounter);
                 append = Interlocked.Read(ref appendCounter);
                 if (debug) log.Debug("Only " + count + " writes before CompleteAsyncWrite but " + append + " appends.");
-			    Flush();
                 while (!CompleteAsyncWrite())
 			    {
 			        Thread.Sleep(100);

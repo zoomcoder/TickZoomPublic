@@ -66,7 +66,7 @@ namespace TickZoom.Common
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
             tickPool =  Factory.TickUtil.TickPool(symbol);
-            queue = Factory.TickUtil.EventQueue(symbol,"VerifyFeed+"+symbol);
+            queue = Factory.TickUtil.EventQueue(symbol,"VerifyFeed");
             queue.StartEnqueue = Start;
         }
 
@@ -128,7 +128,7 @@ namespace TickZoom.Common
 				try { 
 					if( TryDequeueTick(ref tickBinary)) {
 						tickIO.Inject(tickBinary);
-						if (debug ) { // }&& countLog < 5) {
+						if (debug && countLog < 5) {
 							log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
 							countLog++;
 						}

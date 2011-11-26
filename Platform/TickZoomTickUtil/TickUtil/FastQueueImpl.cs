@@ -174,11 +174,15 @@ namespace TickZoom.TickUtil
 	    }
 	    
         public void Enqueue(T tick, long utcTime) {
+            if (count == 999 && name.Contains("SymbolManager"))
+            {
+                int x = 0;
+            }
             while (!TryEnqueue(tick, utcTime))
             {
                 if( IsFull)
                 {
-                    throw new ApplicationException("Enqueue failed for " + name + " with " + queue.Count + " items.");
+                    throw new ApplicationException("Enqueue failed for " + name + " with " + count + " items.");
                 }
             }
         }
@@ -302,7 +306,7 @@ namespace TickZoom.TickUtil
 	    	}
             if (priorCount >= maxSize && newCount < maxSize)
             {
-                if (trace) log.Trace("DecreaseOutbound with count " + newCount + ", previous count " + priorCount);
+                if (debug) log.Debug("DecreaseOutbound with count " + newCount + ", previous count " + priorCount);
                 for (var i = 0; i < outboundTasks.Count; i++)
                 {
                     outboundTasks[i].DecreaseOutbound();
