@@ -104,7 +104,7 @@ namespace TickZoom.Common
                     case EventType.Tick:
                         TickBinaryBox box = (TickBinaryBox)eventItem.EventDetail;
                         tickBinary = box.TickBinary;
-                        tickPool.Free(box);
+                        box.Free();
                         result = true;
                         break;
                     default:

@@ -28,7 +28,7 @@ namespace TickZoom.TickUtil
         private TickBinaryBox CreateInternal()
         {
             Interlocked.Increment(ref count);
-            var box = new TickBinaryBox();
+            var box = new TickBinaryBox(this);
             box.TickBinary.Id = Interlocked.Increment(ref nextTickId);
             return box;
         }
@@ -43,7 +43,9 @@ namespace TickZoom.TickUtil
             {
                 if( _items.Count > 0)
                 {
-                    return _items.Pop();
+                    var result = _items.Pop();
+                    result.ResetReference();
+                    return result;
                 }
             }
             return CreateInternal();

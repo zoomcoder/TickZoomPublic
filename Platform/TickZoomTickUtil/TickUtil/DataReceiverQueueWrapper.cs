@@ -41,7 +41,7 @@ namespace TickZoom.TickUtil
             {
                 var binary = (TickBinaryBox)item.EventDetail;
                 tickQueue.Enqueue(ref binary.TickBinary);
-                tickPool.Free(binary);
+                binary.Free();
             }
             else if( eventType == EventType.EndHistorical)
             {

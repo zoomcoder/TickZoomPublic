@@ -25,11 +25,41 @@
 #endregion
 
 using System;
+using System.Threading;
 
 namespace TickZoom.Api
 {
 	[CLSCompliant(false)]
-	public class TickBinaryBox {
+	public class TickBinaryBox
+	{
+	    private int referenceCount;
+	    private Pool<TickBinaryBox> pool;
 		public TickBinary TickBinary;
+        public TickBinaryBox( Pool<TickBinaryBox> pool)
+        {
+            this.pool = pool;
+            referenceCount = 1;
+        }
+        public void ResetReference()
+        {
+            referenceCount = 1;
+        }
+
+        public void AddReference()
+        {
+            if( referenceCount < 1)
+            {
+                throw new ApplicationException("Reference count less than 1");
+            }
+            Interlocked.Increment(ref referenceCount);
+        }
+        public void Free()
+        {
+            var value = Interlocked.Decrement(ref referenceCount);
+            if( value == 0)
+            {
+                pool.Free(this);
+            }
+        }
 	}
 }
