@@ -533,7 +533,7 @@ namespace TickZoom.Interceptors
                     {
                         ProcessSellLimitTrade(order, tick);
                     }
-                    else if (tick.IsQuote)
+                    else if (tick.IsQuote && limitOrderQuoteSimulation != LimitOrderQuoteSimulation.None)
                     {
                         ProcessSellLimitQuote(order, tick);
                     }
@@ -549,7 +549,7 @@ namespace TickZoom.Interceptors
                     {
                         ProcessBuyLimitTrade(order, tick);
                     }
-                    else if (tick.IsQuote)
+                    else if (tick.IsQuote && limitOrderQuoteSimulation != LimitOrderQuoteSimulation.None)
                     {
                         ProcessBuyLimitQuote(order, tick);
                     }
