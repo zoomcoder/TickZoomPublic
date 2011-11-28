@@ -306,7 +306,7 @@ namespace TickZoom.TickUtil
 	    	}
             if (priorCount >= maxSize && newCount < maxSize)
             {
-                if (debug) log.Debug("DecreaseOutbound with count " + newCount + ", previous count " + priorCount);
+                if (trace) log.Trace("DecreaseOutbound with count " + newCount + ", previous count " + priorCount);
                 for (var i = 0; i < outboundTasks.Count; i++)
                 {
                     outboundTasks[i].DecreaseOutbound();

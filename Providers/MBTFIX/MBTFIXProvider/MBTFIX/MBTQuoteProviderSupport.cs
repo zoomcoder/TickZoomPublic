@@ -340,7 +340,6 @@ namespace TickZoom.MBTQuotes
                                     try
                                     {
                                         ReceiveMessage(message);
-                                        var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
                                     }
                                     catch( Exception ex)
                                     {
