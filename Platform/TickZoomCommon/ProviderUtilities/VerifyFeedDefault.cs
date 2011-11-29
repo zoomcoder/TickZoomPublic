@@ -419,6 +419,8 @@ namespace TickZoom.Common
 			count = 0;
 			countLog = 0;
 			task = Factory.Parallel.Loop(this, OnException, TimeTheFeedTask);
+		    task.Scheduler = Scheduler.EarliestTime;
+            queue.ConnectInbound(task);
 			task.Start();
 		}
 		

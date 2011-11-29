@@ -209,11 +209,11 @@ namespace TickZoom.TickUtil
                     outboundQueue = receiver.GetQueue(symbol);
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
-                    diagnoseMetric = Diagnose.RegisterMetric("Reader+" + symbol.Symbol.StripInvalidPathChars());
-                    fileReaderTask = Factory.Parallel.Loop("Reader+" + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
+                    diagnoseMetric = Diagnose.RegisterMetric("Reader." + symbol.Symbol.StripInvalidPathChars());
+                    fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
                     fileReaderTask.Scheduler = Scheduler.InputOutput;
-                    fileReaderTask.Start();
                     outboundQueue.ConnectOutbound(fileReaderTask);
+                    fileReaderTask.Start();
                     isStarted = true;
                 }
             }

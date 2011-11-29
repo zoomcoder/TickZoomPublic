@@ -99,18 +99,28 @@ namespace TickZoom.TickUtil
         int backupInitial = 20;
         long earliestUtcTime = long.MaxValue;
 		private Task inboundTask;
-        private struct TaskConnection
+        private class TaskConnection
         {
             internal Task task;
             internal int id;
+            internal int outboundCount;
             internal void IncreaseOutbound()
             {
-                task.IncreaseOutbound(id);
+                var value = Interlocked.Increment(ref outboundCount);
+                task.IncreaseOutbound(id,value);
             }
 
             public void DecreaseOutbound()
             {
-                task.DecreaseOutbound(id);
+                if( outboundCount > 0)
+                {
+                    var value = Interlocked.Decrement(ref outboundCount);
+                    task.DecreaseOutbound(id,value);
+                }
+                else
+                {
+                    int x = 0;
+                }
             }
         }
         private List<TaskConnection> outboundTasks = new List<TaskConnection>();
@@ -154,8 +164,8 @@ namespace TickZoom.TickUtil
 			queue.Clear();
 			TickUtilFactoryImpl.AddQueue(this);
 	    }
-        
-		public override string ToString()
+
+	    public override string ToString()
 		{
 			return name;
 		}
@@ -174,7 +184,7 @@ namespace TickZoom.TickUtil
 	    }
 	    
         public void Enqueue(T tick, long utcTime) {
-            if (count == 999 && name.Contains("SymbolManager"))
+            if( count == 999 && name.Contains("ProviderQueue"))
             {
                 int x = 0;
             }
@@ -211,12 +221,16 @@ namespace TickZoom.TickUtil
                 throw new ArgumentNullException("task cannot be null");
             }
             var found = outboundTasks.Find(x => x.task == task);
-            if( found.task == null)
+            if( found == null || found.task == null)
             {
                 var connection = new TaskConnection();
                 connection.task = task;
                 outboundTasks.Add(connection);
                 task.ConnectOutbound(this, out connection.id);
+                if( IsFull)
+                {
+                    connection.IncreaseOutbound();
+                }
             }
         }
 
@@ -229,12 +243,12 @@ namespace TickZoom.TickUtil
             if( !disableBackupLogging) {
 	            if( count >= backupLevel) {
 	            	isBackingUp = true;
-	            	if( debug) log.Debug( name + " queue is backing up. Now " + queue.Count);
+	            	if( debug) log.Debug( name + " queue is backing up. Now " + count);
             	    backupLevel += backupIncrease;
 	            }
                 if (count > maxLastBackup)
                 {
-    			    maxLastBackup = queue.Count;
+    			    maxLastBackup = count;
     		    }
             }
             if (count >= maxSize)
@@ -266,13 +280,12 @@ namespace TickZoom.TickUtil
                     inboundTask.IncreaseInbound(inboundId);
                     if (priorCount == 0)
                     {
-                        this.earliestUtcTime = utcTime;
+                        earliestUtcTime = utcTime;
                         inboundTask.UpdateUtcTime(inboundId, utcTime);
                     }
                 }
                 if (count >= maxSize)
                 {
-                    if (trace) log.Trace("IncreaseOutbound with count " + count + ", queue count " + queue.Count + ", previous count " + priorCount);
                     for (var i = 0; i < outboundTasks.Count; i++)
                     {
                         outboundTasks[i].IncreaseOutbound();
