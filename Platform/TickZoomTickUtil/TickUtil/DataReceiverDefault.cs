@@ -49,10 +49,10 @@ namespace TickZoom.TickUtil
             return wrapper;
         }
         
-		private ReceiverState receiverState = ReceiverState.Ready;
+		private SymbolState symbolState = SymbolState.None;
 		
-		public ReceiverState OnGetReceiverState(SymbolInfo symbol) {
-			return receiverState;
+		public SymbolState OnGetReceiverState(SymbolInfo symbol) {
+			return symbolState;
 		}
 		
 		public DataReceiverDefault(Provider sender, SymbolInfo symbol) {

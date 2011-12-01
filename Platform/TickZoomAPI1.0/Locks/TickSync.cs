@@ -192,10 +192,10 @@ namespace TickZoom.Api
                 throw new ApplicationException("Tick counter was allowed to go over 1.");
             }
         }
-        public void RemoveTick()
+        public void RemoveTick(ref TickBinary tick)
         {
             var value = Interlocked.Decrement(ref (*state).ticks);
-            if (trace) log.Trace("RemoveTick(" + value + ") " + this);
+            if (trace) log.Trace("RemoveTick(" + value + "," + tick + ") " + this);
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref (*state).ticks);

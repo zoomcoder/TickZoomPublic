@@ -121,7 +121,7 @@ namespace TickZoom.Test
 		
 		public void VerifyConnected(VerifyFeed verify) {
 	  		var expectedBrokerState = BrokerState.Connected;
-	  		var expectedSymbolState = ReceiverState.RealTime;
+	  		var expectedSymbolState = SymbolState.RealTime;
 	  		var actualState = verify.VerifyState(expectedBrokerState, expectedSymbolState,600);
 	  		Assert.IsTrue(actualState,"Expected " + expectedBrokerState + " and " + expectedSymbolState);
 		}

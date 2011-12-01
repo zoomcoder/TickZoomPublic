@@ -157,7 +157,7 @@ namespace TickZoom.FIX
 		}
 		
 		private int FindSplitAt(MemoryStream buffer) {
-		    if( trace) log.Trace("Processing Keys: " + this);
+		    if( verbose) log.Verbose("Processing Keys: " + this);
 		    var position = (int) buffer.Position;
 		    var handle = GCHandle.Alloc(buffer.GetBuffer(), GCHandleType.Pinned);
 		    var beg = ptr = (byte*) handle.AddrOfPinnedObject() + position;
@@ -171,7 +171,7 @@ namespace TickZoom.FIX
 				    if( key == 10 ) {
 					    isComplete = true;
 				        position = (int) (ptr - beg);
-					    if( trace) log.Trace("Copying buffer at " + position);
+					    if( verbose) log.Verbose("Copying buffer at " + position);
 					    return position;
 				    }
 			    }

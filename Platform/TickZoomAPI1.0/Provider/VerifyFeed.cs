@@ -39,8 +39,8 @@ namespace TickZoom.Api
 		long Verify(int expectedCount, Action<TickIO, TickIO, long> assertTick, int timeout, Action action);
 		int VerifyPosition(int expectedPosition, int timeout);
 		int VerifyPosition(int expectedPosition, int timeout, Action action);
-        bool VerifyState(ReceiverState expectedSymbolState, int timeout);
-        bool VerifyState(BrokerState expectedBrokerState, ReceiverState expectedSymbolState, int timeout);
+        bool VerifyState(SymbolState expectedSymbolState, int timeout);
+        bool VerifyState(BrokerState expectedBrokerState, SymbolState expectedSymbolState, int timeout);
 		void StartTimeTheFeed();
 		int EndTimeTheFeed(int expectedTickCount, int timeoutSeconds);
 		Yield TimeTheFeedTask();

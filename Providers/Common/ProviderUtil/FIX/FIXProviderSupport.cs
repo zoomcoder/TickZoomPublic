@@ -109,7 +109,7 @@ namespace TickZoom.FIX
         	log.Info(providerName+" Startup");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
-		    socketTask.Scheduler = Scheduler.RoundRobin;
+		    socketTask.Scheduler = Scheduler.EarliestTime;
 			socketTask.Start();
             RegenerateSocket();
             string logRecoveryString = Factory.Settings["LogRecovery"];

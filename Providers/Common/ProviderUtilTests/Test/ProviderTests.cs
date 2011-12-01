@@ -272,7 +272,7 @@ namespace TickZoom.Test
 		  		
 		  		// Wait for it to switch out of real time or historical mode.
 		  		var expectedBrokerState = BrokerState.Disconnected;
-		  		var expectedSymbolState = ReceiverState.Ready;
+		  		var expectedSymbolState = SymbolState.None;
 		  		var actualState = verify.VerifyState(expectedBrokerState, expectedSymbolState,25000);
 		  		Assert.IsTrue(actualState,"after receiving a StopSymbol event, if your provider plugin was sending ticks then it must return either respond with an EndHistorical or EndRealTime event. If it has already sent one of those prior to the StopSymbol, then no reponse is required.");
 		  		

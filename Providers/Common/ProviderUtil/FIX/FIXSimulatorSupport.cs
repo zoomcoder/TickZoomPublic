@@ -99,7 +99,7 @@ namespace TickZoom.FIX
 		private MessageFactory _quoteMessageFactory;
 		private FastQueue<Message> fixPacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorFIX");
 		protected FastQueue<Message> quotePacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorQuote");
-		private Dictionary<long, FIXServerSymbolHandler> symbolHandlers = new Dictionary<long, FIXServerSymbolHandler>();
+		private Dictionary<long, SimulateSymbol> symbolHandlers = new Dictionary<long, SimulateSymbol>();
 		private bool isPlayBack = false;
         private TrueTimer heartbeatTimer;
 
@@ -598,7 +598,7 @@ namespace TickZoom.FIX
         public void SendSessionStatusOnline()
         {
             SendSessionStatus("2");
-            var handlers = new List<FIXServerSymbolHandler>();
+            var handlers = new List<SimulateSymbol>();
             using( symbolHandlersLocker.Using())
             {
                 if (debug) log.Debug("Flushing all fill queues.");
@@ -773,9 +773,16 @@ namespace TickZoom.FIX
             {
                 if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier))
                 {
-                    var symbolHandler = new FIXServerSymbolHandler(this, isPlayBack, symbol, onTick, onPhysicalFill,
-                                                                   onOrderReject);
-                    symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
+                    if( SyncTicks.Enabled)
+                    {
+                        var symbolHandler = new SimulateSymbolSyncTicks(this, symbol, onTick, onPhysicalFill, onOrderReject);
+                        symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
+                    }
+                    else
+                    {
+                        var symbolHandler = new SimulateSymbolPlayback(this, symbol, onTick, onPhysicalFill, onOrderReject);
+                        symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
+                    }
                 }
             }
             if (IsOrderServerOnline)
@@ -813,71 +820,71 @@ namespace TickZoom.FIX
         public int GetPosition(SymbolInfo symbol)
 		{
             // Don't lock. This call always wrapped in a locked using clause.
-            FIXServerSymbolHandler symbolHandler;
-            if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolHandler))
+            SimulateSymbol symbolSyncTicks;
+            if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolSyncTicks))
             {
-                return symbolHandler.ActualPosition;
+                return symbolSyncTicks.ActualPosition;
             }
             return 0;
 		}
 
         public void CreateOrder(CreateOrChangeOrder order)
         {
-            FIXServerSymbolHandler symbolHandler;
+            SimulateSymbol symbolSyncTicks;
             using (symbolHandlersLocker.Using())
             {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
             }
-            if( symbolHandler != null) {
-                symbolHandler.CreateOrder(order);
+            if( symbolSyncTicks != null) {
+                symbolSyncTicks.CreateOrder(order);
             }
         }
 
         public void TryProcessAdustments(CreateOrChangeOrder order)
         {
-            FIXServerSymbolHandler symbolHandler;
+            SimulateSymbol symbolSyncTicks;
             using (symbolHandlersLocker.Using())
             {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
             }
-            if (symbolHandler != null)
+            if (symbolSyncTicks != null)
             {
-                symbolHandler.TryProcessAdjustments();
+                symbolSyncTicks.TryProcessAdjustments();
             }
         }
 
         public void ChangeOrder(CreateOrChangeOrder order)
         {
-            FIXServerSymbolHandler symbolHandler;
+            SimulateSymbol symbolSyncTicks;
             using (symbolHandlersLocker.Using())
             {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
             }
-            if( symbolHandler != null) {
-                symbolHandler.ChangeOrder(order);
+            if( symbolSyncTicks != null) {
+                symbolSyncTicks.ChangeOrder(order);
             }
         }
 
         public void CancelOrder(CreateOrChangeOrder order)
         {
-            FIXServerSymbolHandler symbolHandler;
+            SimulateSymbol symbolSyncTicks;
             using (symbolHandlersLocker.Using())
             {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolHandler);
+                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
             }
-            if( symbolHandler != null) {
-                symbolHandler.CancelOrder(order);
+            if( symbolSyncTicks != null) {
+                symbolSyncTicks.CancelOrder(order);
             }
         }
 
         public CreateOrChangeOrder GetOrderById(SymbolInfo symbol, string clientOrderId) {
-            FIXServerSymbolHandler symbolHandler;
+            SimulateSymbol symbolSyncTicks;
             using (symbolHandlersLocker.Using())
             {
-                symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolHandler);
+                symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolSyncTicks);
             }
-            if( symbolHandler != null) {
-                return symbolHandler.GetOrderById(clientOrderId);
+            if( symbolSyncTicks != null) {
+                return symbolSyncTicks.GetOrderById(clientOrderId);
             }
             else
             {

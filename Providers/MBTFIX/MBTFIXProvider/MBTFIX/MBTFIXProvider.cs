@@ -279,9 +279,9 @@ namespace TickZoom.MBTFIX
 
         public override void OnStartSymbol(SymbolInfo symbol)
         {
-            if( ConnectionStatus == Status.Recovered)
+            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if (ConnectionStatus == Status.Recovered)
             {
-                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
                 algorithm.OrderAlgorithm.ProcessOrders();
                 if (algorithm.OrderAlgorithm.IsPositionSynced)
                 {
@@ -581,6 +581,7 @@ namespace TickZoom.MBTFIX
         private void PositionUpdate( MessageFIX4_4 packetFIX) {
 			if( packetFIX.MessageType == "AO") {
 				if(debug) log.Debug("PositionUpdate Complete.");
+                TryEndRecovery();
 			}
             else 
             {

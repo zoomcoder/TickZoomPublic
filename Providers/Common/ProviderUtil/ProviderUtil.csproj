@@ -93,7 +93,9 @@
     <Compile Include="FIX\FIXPretradeFilter.cs" />
     <Compile Include="FIX\FIXProviderSupport.cs" />
     <Compile Include="FIX\FIXSimulatorSupport.cs" />
-    <Compile Include="FIX\FIXServerSymbolHandler.cs" />
+    <Compile Include="FIX\SimulateSymbol.cs" />
+    <Compile Include="FIX\SimulateSymbolPlayback.cs" />
+    <Compile Include="FIX\SimulateSymbolSyncTicks.cs" />
     <Compile Include="FIX\FIXTBuffer.cs" />
     <Compile Include="FIX\FIXTFactory.cs" />
     <Compile Include="FIX\FIXTFactory1_1.cs" />

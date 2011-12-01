@@ -35,12 +35,12 @@ namespace TickZoom.Common
 {
 	public class VerifyFeedDefault : Receiver, VerifyFeed, IDisposable
 	{
-		private static readonly Log log = Factory.SysLog.GetLogger(typeof(VerifyFeed));
+        private static readonly Log log = Factory.SysLog.GetLogger(typeof(VerifyFeedDefault));
 		private readonly bool debug = log.IsDebugEnabled;
         private readonly bool trace = log.IsTraceEnabled;
         private readonly bool verbose = log.IsVerboseEnabled;
 		private TickSync tickSync;
-		private volatile ReceiverState receiverState = ReceiverState.Ready;
+		private volatile SymbolState symbolState = SymbolState.None;
 		private volatile BrokerState brokerState = BrokerState.Disconnected;
 		private Task task;
 		private static object taskLocker = new object();
@@ -56,9 +56,9 @@ namespace TickZoom.Common
 			return received;
 		}
 
-		public ReceiverState OnGetReceiverState(SymbolInfo symbol)
+		public SymbolState OnGetReceiverState(SymbolInfo symbol)
 		{
-			return receiverState;
+			return symbolState;
 		}
 
 		public VerifyFeedDefault(SymbolInfo symbol)
@@ -120,7 +120,6 @@ namespace TickZoom.Common
 			if (debug) log.Debug("Verify");
             long endTime = Factory.Parallel.TickCount + timeout * 1000;
 			count = 0;
-		    lastTick = Factory.TickUtil.TickIO();
 			while (Factory.Parallel.TickCount < endTime) {
 				if( propagateException != null) {
 					throw propagateException;
@@ -153,9 +152,9 @@ namespace TickZoom.Common
 							actionAlreadyRun = true;
 							action();
 						}
-                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
                         {
-                            tickSync.RemoveTick();
+                            tickSync.RemoveTick(ref tickBinary);
                         }
                         if (count >= expectedCount)
                         {
@@ -163,7 +162,7 @@ namespace TickZoom.Common
 						}
 					} else {
                         Thread.Sleep(100);
-                        //if( queue.Count == 0 && SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        //if (queue.Count == 0 && SyncTicks.Enabled && SymbolState == SymbolState.RealTime)
                         //{
                         //    tickSync.RemoveTick();
                         //}
@@ -201,9 +200,9 @@ namespace TickZoom.Common
                         }
                         count++;
 						lastTick.Copy(tickIO);
-                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
                         {
-                            tickSync.RemoveTick();
+                            tickSync.RemoveTick(ref tickBinary);
                         }
                         if (count >= expectedTicks)
                         {
@@ -221,7 +220,7 @@ namespace TickZoom.Common
 			return count;
 		}
 
-        public bool VerifyState(ReceiverState expectedSymbolState, int timeout)
+        public bool VerifyState(SymbolState expectedSymbolState, int timeout)
         {
             if (debug) log.Debug("VerifyState symbol " + expectedSymbolState + ", timeout " + timeout);
             long startTime = Factory.TickCount;
@@ -235,16 +234,18 @@ namespace TickZoom.Common
                 }
                 try
                 {
-                    if (!TryDequeueTick(ref binary))
+                    if (TryDequeueTick(ref binary))
                     {
-                        Thread.Sleep(100);
+                        tickIO.Inject(tickBinary);
+                        if (debug) log.Debug("Received tick " + tickIO);
+                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
+                        {
+                            tickSync.RemoveTick(ref binary);
+                        }
                     }
                     else
                     {
-                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
-                        {
-                            tickSync.RemoveTick();
-                        }
+                        Thread.Sleep(100);
                     }
                 }
                 catch (QueueException ex)
@@ -254,7 +255,7 @@ namespace TickZoom.Common
                         break;
                     }
                 }
-                if (receiverState == expectedSymbolState)
+                if (symbolState == expectedSymbolState)
                 {
                     return true;
                 }
@@ -262,7 +263,7 @@ namespace TickZoom.Common
             return false;
         }
 
-        public bool VerifyState(BrokerState expectedBrokerState, ReceiverState expectedSymbolState, int timeout)
+        public bool VerifyState(BrokerState expectedBrokerState, SymbolState expectedSymbolState, int timeout)
         {
 			if (debug) log.Debug("VerifyState broker " + expectedBrokerState + ", symbol " + expectedSymbolState + ", timeout " + timeout);
 			long startTime = Factory.TickCount;
@@ -274,19 +275,19 @@ namespace TickZoom.Common
 				}
 				try { 
 					if( !TryDequeueTick(ref binary)) {
-						Thread.Sleep(100);
-					} else {
-                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
                         {
-                            tickSync.RemoveTick();
+                            tickSync.RemoveTick(ref binary);
                         }
+					} else {
+                        Thread.Sleep(100);
                     }
 				} catch (QueueException ex) {
 					if( HandleQueueException(ex)) {
 						break;
 					}
 				}
-				if( brokerState == expectedBrokerState && receiverState == expectedSymbolState) {
+				if( brokerState == expectedBrokerState && symbolState == expectedSymbolState) {
 					return true;
 				}
 			}
@@ -311,9 +312,9 @@ namespace TickZoom.Common
 						} else {
 							Thread.Sleep(10);
 						}
-                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
                         {
-                            tickSync.RemoveTick();
+                            tickSync.RemoveTick(ref tickBinary);
                         }
                         if (count >= expectedCount)
                         {
@@ -358,9 +359,9 @@ namespace TickZoom.Common
 							actionAlreadyRun = true;
 							action();
 						}
-                        if (SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
                         {
-                            tickSync.RemoveTick();
+                            tickSync.RemoveTick(ref binary);
                         }
                     }
 				} catch (QueueException ex) {
@@ -385,16 +386,16 @@ namespace TickZoom.Common
 			log.Notice("QueueException: " + ex.EntryType + " with " + count + " ticks so far.");
 			switch (ex.EntryType) {
 				case EventType.StartHistorical:
-					receiverState = ReceiverState.Historical;
+					symbolState = SymbolState.Historical;
 					break;
 				case EventType.EndHistorical:
-					receiverState = ReceiverState.Ready;
+					symbolState = SymbolState.None;
 					break;
 				case EventType.StartRealTime:
-					receiverState = ReceiverState.RealTime;
+					symbolState = SymbolState.RealTime;
 					break;
 				case EventType.EndRealTime:
-					receiverState = ReceiverState.Ready;
+					symbolState = SymbolState.None;
 					break;
 				case EventType.StartBroker:
 					brokerState = BrokerState.Connected;
@@ -403,7 +404,7 @@ namespace TickZoom.Common
 					brokerState = BrokerState.Disconnected;
 					break;
 				case EventType.Terminate:
-					receiverState = ReceiverState.Stop;
+					symbolState = SymbolState.None;
 					return true;
 				default:
 					throw new ApplicationException("Unexpected QueueException: " + ex.EntryType);
@@ -479,9 +480,9 @@ namespace TickZoom.Common
 					if (count % 5000 == 0) {
 						log.Notice("Read " + count + " ticks");
 					}
-					if( SyncTicks.Enabled && receiverState == ReceiverState.RealTime)
+					if( SyncTicks.Enabled && symbolState == SymbolState.RealTime)
 					{
-					    tickSync.RemoveTick();
+					    tickSync.RemoveTick(ref tickBinary);
 					}
 					return Yield.DidWork.Repeat;
 				} catch (QueueException ex) {
@@ -545,7 +546,7 @@ namespace TickZoom.Common
 	    }
 	    
 		public bool IsRealTime {
-			get { return receiverState == ReceiverState.RealTime; }
+			get { return symbolState == SymbolState.RealTime; }
 		}
 		
 		volatile SymbolInfo customEventSymbol;
@@ -575,12 +576,34 @@ namespace TickZoom.Common
 
 	    public void Clear()
 	    {
-	        receiverState = ReceiverState.Ready;
             if( queue != null)
             {
-                queue.Clear();
+    			while( true) 
+                {
+                    try
+                    {
+                        if (TryDequeueTick(ref tickBinary))
+                        {
+                            tickIO.Inject(tickBinary);
+                            if( debug) log.Debug("Clearing out tick #" + count + " " + tickIO + " UTC " + tickIO.UtcTime);
+                            if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
+                            {
+                                tickSync.RemoveTick(ref tickBinary);
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    catch (QueueException ex)
+                    {
+                        HandleQueueException(ex);
+                    }
+                }
             }
-	    }
+            symbolState = SymbolState.None;
+        }
 
 	    public ReceiveEventQueue GetQueue( SymbolInfo symbol)
 	    {

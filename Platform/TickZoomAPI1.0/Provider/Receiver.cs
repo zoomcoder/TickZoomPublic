@@ -83,15 +83,14 @@ namespace TickZoom.Api
 	}
 	
 	public enum BrokerState {
+        None,
 		Disconnected,
 		Connected
 	}
 	
-	public enum ReceiverState {
-		Start,
-		Ready,
+	public enum SymbolState {
+		None,
 		Historical,
 		RealTime,
-		Stop
 	}
 }
