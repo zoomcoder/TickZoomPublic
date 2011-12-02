@@ -38,7 +38,6 @@ namespace TickZoom.Api
 	[CLSCompliant(false)]
 	public interface ProviderFactory {
 		void Release();
-		Provider AsyncProvider( Provider provider);
 		Provider InProcessProvider(string providerAssembly);
 		Provider RemoteProvider(string address, ushort port);
 		Provider ProviderProcess(string address, ushort port, string executableFileName);
