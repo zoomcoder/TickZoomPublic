@@ -366,7 +366,7 @@ namespace TickZoom.Interceptors
             {
                 if (!isOnline)
                 {
-                    if (debug) log.Debug("Unable to flush fill queue yet because isOnline is " + isOnline);
+                    if (verbose) log.Verbose("Unable to flush fill queue yet because isOnline is " + isOnline);
                     return;
                 }
                 while (fillQueue.Count > 0)

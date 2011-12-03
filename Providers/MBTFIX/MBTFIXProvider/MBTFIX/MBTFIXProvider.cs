@@ -74,14 +74,13 @@ namespace TickZoom.MBTFIX
         }
         private string fixDestination = "MBT";
 
-        public MBTFIXProvider(string name)
+        public MBTFIXProvider(string name) : base( name)
 		{
             log.Register(this);
 			log.Notice("Using config file name: " + name);
 			if( name.Contains(".config")) {
 				throw new ApplicationException("Please remove .config from config section name.");
 			}
-  			ConfigSection = name;
 		}
 		
 		public override void OnDisconnect() {

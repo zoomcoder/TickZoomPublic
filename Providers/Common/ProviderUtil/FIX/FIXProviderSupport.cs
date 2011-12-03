@@ -68,11 +68,12 @@ namespace TickZoom.FIX
 		private	string password;
 		private	string accountNumber;
 		public abstract void OnDisconnect();
-		public abstract void OnRetry();
+        public abstract void OnRetry();
 		public abstract bool OnLogin();
         public abstract void OnLogout();
         private string providerName;
-		private long heartbeatTimeout;
+        private TrueTimer retryTimer;
+        private TrueTimer heartbeatTimer;
 		private long heartbeatDelay;
 		private bool logRecovery = true;
         private string configFilePath;
@@ -82,6 +83,8 @@ namespace TickZoom.FIX
 	    private string appDataFolder;
         private TimeStamp lastMessageTime;
         private int remoteSequence = 1;
+        private SocketState lastSocketState = SocketState.New;
+        private Status lastConnectionStatus = Status.None;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
@@ -98,7 +101,7 @@ namespace TickZoom.FIX
             }
         }
 
-		public FIXProviderSupport()
+		public FIXProviderSupport(string name)
 		{
 		    this.providerName = GetType().Name;
             log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+providerName);
@@ -110,6 +113,8 @@ namespace TickZoom.FIX
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
 		    socketTask.Scheduler = Scheduler.EarliestTime;
+		    retryTimer = Factory.Parallel.CreateTimer(socketTask, RetryTimerEvent);
+            heartbeatTimer = Factory.Parallel.CreateTimer(socketTask, HeartBeatTimerEvent);
 			socketTask.Start();
             RegenerateSocket();
             string logRecoveryString = Factory.Settings["LogRecovery"];
@@ -118,6 +123,19 @@ namespace TickZoom.FIX
             if (appDataFolder == null)
             {
                 throw new ApplicationException("Sorry, AppDataFolder must be set.");
+            }
+            if (CheckFailedLoginFile())
+            {
+                Dispose();
+            }
+            else
+            {
+                configSection = name;
+                Initialize();
+                var startTime = TimeStamp.UtcNow;
+                startTime.AddSeconds(retryDelay);
+                retryTimer.Start( startTime);
+                log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
             }
         }
 		
@@ -129,6 +147,7 @@ namespace TickZoom.FIX
 			socket = Factory.Provider.Socket("MBTFIXSocket");
             socket.ReceiveQueue.ConnectInbound(socketTask);
 			socket.OnDisconnect = OnDisconnect;
+            socket.OnConnect = OnConnect;
 			socket.MessageFactory = new MessageFactoryFix44();
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
@@ -214,8 +233,39 @@ namespace TickZoom.FIX
                 connectionStatus = Status.Disconnected;
             }
 		}
-	
-		public bool IsInterrupted {
+
+        private void OnConnect(Socket socket)
+        {
+            if (!this.socket.Equals(socket))
+            {
+                log.Info("OnConnect( " + this.socket + " != " + socket + " ) - Ignored.");
+                return;
+            }
+            log.Info("OnConnect( " + socket + " ) ");
+            if (connectionStatus != Status.Connected)
+            {
+                connectionStatus = Status.Connected;
+                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            }
+            isResendComplete = true;
+            if (debug) log.Debug("Set resend complete: " + IsResendComplete);
+            using (OrderStore.BeginTransaction())
+            {
+                if (OnLogin())
+                {
+                    connectionStatus = Status.PendingLogin;
+                    if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+                    IncreaseRetryTimeout();
+                }
+                else
+                {
+                    RegenerateSocket();
+                }
+            }
+        }
+
+        public bool IsInterrupted
+        {
 			get {
 				return isDisposed || socket.State != SocketState.Connected;
 			}
@@ -263,8 +313,26 @@ namespace TickZoom.FIX
             get { return orderStore.IsBusy; }
         }
 
-	    private SocketState lastSocketState = SocketState.New;
-        private Status lastConnectionStatus = Status.None;
+        private Yield RetryTimerEvent()
+        {
+            log.Info("Connection Timeout");
+            SetupRetry();
+            retryDelay += retryIncrease;
+            retryDelay = Math.Min(retryDelay, retryMaximum);
+            return Yield.DidWork.Repeat;
+        }
+
+        private Yield HeartBeatTimerEvent()
+        {
+            var typeStr = connectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
+            log.Info(typeStr + ". Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
+            log.Error("FIXProvider " + typeStr);
+            SyncTicks.LogStatus();
+            SetupRetry();
+            IncreaseRetryTimeout();
+            return Yield.DidWork.Repeat;
+        }
+
         private Yield SocketTask()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
@@ -304,34 +372,9 @@ namespace TickZoom.FIX
                 switch (socket.State)
                 {
                     case SocketState.New:
-                        if (CheckFailedLoginFile())
-                        {
-                            return Yield.Terminate;
-                        }
-                        if (receiver != null)
-                        {
-                            Initialize();
-                            retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
-                            log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
-                            return Yield.DidWork.Repeat;
-                        }
-                        else
-                        {
-                            return Yield.NoWork.Repeat;
-                        }
+                        return Yield.NoWork.Repeat;
                     case SocketState.PendingConnect:
-                        if (Factory.Parallel.TickCount >= retryTimeout)
-                        {
-                            log.Info("Connection Timeout");
-                            SetupRetry();
-                            retryDelay += retryIncrease;
-                            retryDelay = Math.Min(retryDelay, retryMaximum);
-                            return Yield.DidWork.Repeat;
-                        }
-                        else
-                        {
-                            return Yield.NoWork.Repeat;
-                        }
+                        return Yield.NoWork.Repeat;
                     case SocketState.Connected:
                         if (connectionStatus == Status.New)
                         {
@@ -341,20 +384,6 @@ namespace TickZoom.FIX
                         }
                         switch (connectionStatus)
                         {
-                            case Status.Connected:
-                                isResendComplete = true;
-                                if (debug) log.Debug("Set resend complete: " + IsResendComplete);
-                                if (OnLogin())
-                                {
-                                    connectionStatus = Status.PendingLogin;
-                                    if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-                                    IncreaseRetryTimeout();
-                                }
-                                else
-                                {
-                                    RegenerateSocket();
-                                }
-                                return Yield.DidWork.Repeat;
                             case Status.PendingLogin:
                             case Status.PendingLogOut:
                             case Status.PendingRecovery:
@@ -363,16 +392,6 @@ namespace TickZoom.FIX
                                 {
                                     retryDelay = retryStart;
                                     log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
-                                }
-                                if (Factory.Parallel.TickCount >= heartbeatTimeout)
-                                {
-                                    var typeStr = connectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
-                                    log.Info(typeStr + ". Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
-                                    log.Error("FIXProvider " + typeStr);
-                                    SyncTicks.LogStatus();
-                                    SetupRetry();
-                                    IncreaseRetryTimeout();
-                                    return Yield.DidWork.Repeat;
                                 }
 
                                 MessageFIXT1_1 messageFIX = null;
@@ -486,25 +505,15 @@ namespace TickZoom.FIX
                             case Status.PendingRecovery:
                             case Status.Recovered:
                             case Status.PendingLogin:
-                                retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
+                                var startTime = TimeStamp.UtcNow;
+                                startTime.AddSeconds(retryDelay);
+                                retryTimer.Start(startTime);
                                 connectionStatus = Status.PendingRetry;
                                 if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
                                 retryDelay += retryIncrease;
                                 retryDelay = Math.Min(retryDelay, retryMaximum);
                                 return Yield.NoWork.Repeat;
                             case Status.PendingRetry:
-                                if (Factory.Parallel.TickCount >= retryTimeout)
-                                {
-                                    log.Info("Retry Time Elapsed");
-                                    OnRetry();
-                                    RegenerateSocket();
-                                    if (trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
-                                    return Yield.DidWork.Repeat;
-                                }
-                                else
-                                {
-                                    return Yield.NoWork.Repeat;
-                                }
                                 return Yield.NoWork.Repeat;
                             case Status.PendingLogOut:
                                 Dispose();
@@ -775,9 +784,15 @@ namespace TickZoom.FIX
             //return true;
         }
 
-		protected void IncreaseRetryTimeout() {
-			retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000L;
-			heartbeatTimeout = Factory.Parallel.TickCount + (long)heartbeatDelay * 1000L;
+		protected void IncreaseRetryTimeout()
+		{
+		    var currentTime = TimeStamp.UtcNow;
+		    var retryTime = currentTime;
+            retryTime.AddSeconds(retryDelay);
+			retryTimer.Start( retryTime);
+		    var heartbeatTime = currentTime;
+		    heartbeatTime.AddSeconds(heartbeatDelay);
+			heartbeatTimer.Start(heartbeatTime);
 		}
 		
 		protected abstract void OnStartRecovery();
@@ -785,8 +800,6 @@ namespace TickZoom.FIX
         protected abstract void OnFinishRecovery();
 
         protected abstract void ReceiveMessage(Message message);
-		
-		private long retryTimeout;
 		
 		private void OnException( Exception ex) {
 			// Attempt to propagate the exception.
@@ -1175,11 +1188,6 @@ namespace TickZoom.FIX
 		public FIXProviderSupport.Status ConnectionStatus {
 			get { return connectionStatus; }
 		}
-		
-		public string ConfigSection {
-			get { return configSection; }
-			set { configSection = value; }
-		}		
 		
 		public FIXTFactory FixFactory {
 			get { return fixFactory; }
