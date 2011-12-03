@@ -56,7 +56,8 @@ namespace TickZoom.Api
 		SymbolInfo Symbol { get; }
 		bool LogProgress { get; set; }
 		long MaxCount { get; set; }
-		bool QuietMode { get; set; }
+        long Count { get; }
+        bool QuietMode { get; set; }
 		bool BulkFileLoad { get; set; }
 		TickIO LastTick { get; }
 		void CloseAll();

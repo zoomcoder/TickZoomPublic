@@ -85,6 +85,7 @@ namespace TickZoom.FIX
         private int remoteSequence = 1;
         private SocketState lastSocketState = SocketState.New;
         private Status lastConnectionStatus = Status.None;
+        private FastQueue<PositionChangeDetail> positionChangeQueue;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
@@ -110,13 +111,14 @@ namespace TickZoom.FIX
             debug = log.IsDebugEnabled;
 			trace = log.IsTraceEnabled;
         	log.Info(providerName+" Startup");
+		    positionChangeQueue = Factory.TickUtil.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
 		    socketTask.Scheduler = Scheduler.EarliestTime;
 		    retryTimer = Factory.Parallel.CreateTimer(socketTask, RetryTimerEvent);
             heartbeatTimer = Factory.Parallel.CreateTimer(socketTask, HeartBeatTimerEvent);
+            positionChangeQueue.ConnectInbound(socketTask);
 			socketTask.Start();
-            RegenerateSocket();
             string logRecoveryString = Factory.Settings["LogRecovery"];
   			logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
             appDataFolder = Factory.Settings["AppDataFolder"];
@@ -132,6 +134,7 @@ namespace TickZoom.FIX
             {
                 configSection = name;
                 Initialize();
+                RegenerateSocket();
                 var startTime = TimeStamp.UtcNow;
                 startTime.AddSeconds(retryDelay);
                 retryTimer.Start( startTime);
@@ -158,7 +161,21 @@ namespace TickZoom.FIX
 				}
 				log.Trace(message);
 			}
-		}
+            // Initiate socket connection.
+            while (true)
+            {
+                try
+                {
+                    socket.Connect("127.0.0.1", port);
+                    if (debug) log.Debug("Requested Connect for " + socket);
+                    return;
+                }
+                catch (SocketErrorException ex)
+                {
+                    log.Error("Non fatal error while trying to connect: " + ex.Message);
+                }
+            }
+        }
 
 		protected void Initialize() {
         	try { 
@@ -179,17 +196,6 @@ namespace TickZoom.FIX
         	} catch( Exception ex) {
         		log.Error(ex.Message,ex);
         		throw;
-        	}
-        	// Initiate socket connection.
-        	while( true) {
-        		try { 
-					socket.Connect("127.0.0.1",port);
-					if( debug) log.Debug("Requested Connect for " + socket);
-                    return;
-        		} catch( SocketErrorException ex) {
-        			log.Error("Non fatal error while trying to connect: " + ex.Message);
-        			RegenerateSocket();
-        		}
         	}
         }
 		
@@ -242,11 +248,8 @@ namespace TickZoom.FIX
                 return;
             }
             log.Info("OnConnect( " + socket + " ) ");
-            if (connectionStatus != Status.Connected)
-            {
-                connectionStatus = Status.Connected;
-                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-            }
+            connectionStatus = Status.Connected;
+            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
             isResendComplete = true;
             if (debug) log.Debug("Set resend complete: " + IsResendComplete);
             using (OrderStore.BeginTransaction())
@@ -339,16 +342,12 @@ namespace TickZoom.FIX
 
             if (positionChangeQueue.Count > 0)
             {
-                using (positionChangeQueueLocker.Using())
+                using( OrderStore.BeginTransaction())
                 {
-                    if (positionChangeQueue.Count > 0)
-                    {
-                        using( OrderStore.BeginTransaction())
-                        {
-                            var positionChange = positionChangeQueue.Dequeue();
-                            PositionChange(positionChange);
-                        }
-                    }
+                    PositionChangeDetail positionChange;
+                    positionChangeQueue.Dequeue(out positionChange);
+                    positionChangeQueue.ReleaseCount();
+                    PositionChange(positionChange);
                 }
             }
 
@@ -376,14 +375,11 @@ namespace TickZoom.FIX
                     case SocketState.PendingConnect:
                         return Yield.NoWork.Repeat;
                     case SocketState.Connected:
-                        if (connectionStatus == Status.New)
-                        {
-                            connectionStatus = Status.Connected;
-                            if (debug) log.Debug("Connected with socket: " + socket);
-                            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-                        }
                         switch (connectionStatus)
                         {
+                            case Status.New:
+                            case Status.Connected:
+                                return Yield.NoWork.Repeat;
                             case Status.PendingLogin:
                             case Status.PendingLogOut:
                             case Status.PendingRecovery:
@@ -1032,10 +1028,7 @@ namespace TickZoom.FIX
                     case EventType.PositionChange:
                         var positionChange = (PositionChangeDetail)eventDetail;
                         if( debug) log.Debug("PositionChangeQueue has " + positionChangeQueue.Count + " items.");
-                        using( positionChangeQueueLocker.Using())
-                        {
-                            positionChangeQueue.Enqueue(positionChange);
-                        }
+                        positionChangeQueue.Enqueue(positionChange,TimeStamp.UtcNow.Internal);
                         break;
                     case EventType.Terminate:
                         Dispose();
@@ -1050,9 +1043,6 @@ namespace TickZoom.FIX
             }
 		}
 
-        private SimpleLock positionChangeQueueLocker = new SimpleLock();
-        private Queue<PositionChangeDetail> positionChangeQueue = new Queue<PositionChangeDetail>(1000);
-	    
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {
             if( !fixMsg.IsDuplicate)
             {

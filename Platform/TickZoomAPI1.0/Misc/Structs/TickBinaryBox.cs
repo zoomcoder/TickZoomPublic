@@ -40,6 +40,7 @@ namespace TickZoom.Api
             this.pool = pool;
             referenceCount = 1;
         }
+
         public void ResetReference()
         {
             referenceCount = 1;
@@ -53,6 +54,7 @@ namespace TickZoom.Api
             }
             Interlocked.Increment(ref referenceCount);
         }
+
         public void Free()
         {
             var value = Interlocked.Decrement(ref referenceCount);
@@ -60,6 +62,11 @@ namespace TickZoom.Api
             {
                 pool.Free(this);
             }
+        }
+
+        public override string ToString()
+        {
+            return "Reference " + referenceCount + " " + TickBinary;
         }
 	}
 }

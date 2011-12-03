@@ -77,28 +77,30 @@ namespace TickZoom.MBTQuotes
         private volatile bool debugDisconnect = false;
 	    private TrueTimer taskTimer;
 
-		public MBTQuoteProviderSupport()
+		public MBTQuoteProviderSupport(string name)
 		{
+		    configSection = name;
 			log = Factory.SysLog.GetLogger(typeof(MBTQuoteProviderSupport)+"."+GetType().Name);
 		    log.Register(this);
+            providerName = GetType().Name;
             RefreshLogLevel();
 	        log.Info(providerName+" Startup");
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
 		    socketTask.Scheduler = Scheduler.EarliestTime;
-            RegenerateSocket();
             taskTimer = Factory.Parallel.CreateTimer(socketTask, TimerTask);
             socketTask.Start();
 
-            TimeStamp currentTime;
-            do
-            {
-                currentTime = TimeStamp.UtcNow;
-                currentTime.AddSeconds(1);
-            } while (!taskTimer.Start(currentTime));
+            TimeStamp currentTime = TimeStamp.UtcNow;
+            currentTime.AddSeconds(1);
+		    taskTimer.Start(currentTime);
 
 	  		string logRecoveryString = Factory.Settings["LogRecovery"];
 	  		logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
-	    }
+            Initialize();
+            RegenerateSocket();
+            retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
+            log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
+        }
 		
 		private void RegenerateSocket() {
 			Socket old = socket;
@@ -107,7 +109,8 @@ namespace TickZoom.MBTQuotes
 			}
 			socket = Factory.Provider.Socket("MBTQuoteSocket");
 			socket.OnDisconnect = OnDisconnect;
-			socket.MessageFactory = new MessageFactoryMbtQuotes();
+            socket.OnConnect = OnConnect;
+            socket.MessageFactory = new MessageFactoryMbtQuotes();
 			socket.ReceiveQueue.ConnectInbound( socketTask);
 			if( debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
@@ -118,7 +121,21 @@ namespace TickZoom.MBTQuotes
 				}
 				log.Trace(message);
 			}
-		}
+            // Initiate socket connection.
+            while (true)
+            {
+                try
+                {
+                    socket.Connect(addrStr, port);
+                    log.Info("Requested Connect for " + socket);
+                    return;
+                }
+                catch (SocketErrorException ex)
+                {
+                    log.Error("Non fatal error while trying to connect: " + ex.Message);
+                }
+            }
+        }
 		
 		protected void Initialize() {
 	        try { 
@@ -140,17 +157,6 @@ namespace TickZoom.MBTQuotes
 	        	log.Error(ex.Message,ex);
 	        	throw;
 	        }
-        	// Initiate socket connection.
-        	while( true) {
-        		try { 
-					socket.Connect(addrStr,port);
-					log.Info("Requested Connect for " + socket);
-					return;
-        		} catch( SocketErrorException ex) {
-        			log.Error("Non fatal error while trying to connect: " + ex.Message);
-        			RegenerateSocket();
-        		}
-        	}
 		}
 		
 		public enum Status {
@@ -177,14 +183,31 @@ namespace TickZoom.MBTQuotes
 			log.Error(message + " " + logMessage + "\n" + packetString);
 			throw new ApplicationException(message + " " + logMessage);
 		}
-		
-		private void OnDisconnect( Socket socket) {
+
+        private void OnConnect(Socket socket)
+        {
+            if (!this.socket.Port.Equals(socket.Port))
+            {
+                log.Warn("OnConnect( " + this.socket + " != " + socket + " ) - Ignored.");
+                return;
+            }
+            log.Info("OnConnect( " + socket + " ) ");
+            connectionStatus = Status.Connected;
+            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            SendLogin();
+            connectionStatus = Status.PendingLogin;
+            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            IncreaseRetryTimeout();
+        }
+
+        private void OnDisconnect(Socket socket)
+        {
 			if( !this.socket.Port.Equals(socket.Port)) {
 				log.Warn("OnDisconnect( " + this.socket + " != " + socket + " ) - Ignored.");
 				return;
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
-		    log.Error("MBTQuoteProvider disconnected. Attempting to reconnected.");
+		    log.Error("MBTQuoteProvider disconnected. Attempting to reconnect.");
 			connectionStatus = Status.Disconnected;
 		    debugDisconnect = true;
             if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
@@ -232,12 +255,9 @@ namespace TickZoom.MBTQuotes
         private Yield TimerTask()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
-            TimeStamp currentTime;
-            do
-            {
-                currentTime = TimeStamp.UtcNow;
-                currentTime.AddSeconds(1);
-            } while (!taskTimer.Start(currentTime));
+            TimeStamp currentTime = TimeStamp.UtcNow;
+            currentTime.AddSeconds(1);
+            taskTimer.Start(currentTime);
             return SocketTask();
         }
 
@@ -261,14 +281,7 @@ namespace TickZoom.MBTQuotes
             switch (socket.State)
             {
 				case SocketState.New:
-					if( receiver != null && Factory.Parallel.TickCount > nextConnectTime) {
-						Initialize();
-						retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
-						log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
-						return Yield.DidWork.Repeat;
-					} else {
-						return Yield.NoWork.Repeat;
-					}
+    				return Yield.NoWork.Repeat;
 				case SocketState.PendingConnect:
 					if( Factory.Parallel.TickCount >= retryTimeout) {
                         log.Info("MBTQuoteProvider connect timed out. Retrying.");
@@ -279,16 +292,8 @@ namespace TickZoom.MBTQuotes
 						return Yield.NoWork.Repeat;
 					}
 				case SocketState.Connected:
-					if( connectionStatus == Status.New) {
-						connectionStatus = Status.Connected;
-						if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-					}
 					switch( connectionStatus) {
 						case Status.Connected:
-					        SendLogin();
-							connectionStatus = Status.PendingLogin;
-							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-							IncreaseRetryTimeout();
 							return Yield.DidWork.Repeat;
                         case Status.PendingLogin:
                             if( VerifyLogin())
@@ -666,11 +671,6 @@ namespace TickZoom.MBTQuotes
 			set { password = value; }
 		}
 		
-		public string ProviderName {
-			get { return providerName; }
-			set { providerName = value; }
-		}
-		
 		public long RetryStart {
 			get { return retryStart; }
 			set { retryStart = retryDelay = value; }
@@ -701,11 +701,6 @@ namespace TickZoom.MBTQuotes
 			get { return connectionStatus; }
 		}
 	    
-		public string ConfigSection {
-			get { return configSection; }
-			set { configSection = value; }
-		}
-        
 		public bool UseLocalTickTime {
 			get { return useLocalTickTime; }
 		}

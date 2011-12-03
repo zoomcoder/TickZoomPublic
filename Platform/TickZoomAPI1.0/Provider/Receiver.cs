@@ -55,7 +55,7 @@ namespace TickZoom.Api
         }
         public override string ToString()
         {
-            return Symbol + " " + (EventType) EventType;
+            return Symbol + " " + (EventType) EventType + " " + EventDetail;
         }
     }
 	

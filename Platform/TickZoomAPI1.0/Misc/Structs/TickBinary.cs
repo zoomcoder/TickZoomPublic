@@ -267,7 +267,7 @@ namespace TickZoom.Api
         public override string ToString()
         {
             var sb = new StringBuilder();
-            sb.Append("UtcTime " + UtcTime + ", ContentMask " + contentMask);
+            sb.Append("UtcTime " + new TimeStamp(UtcTime) + ", ContentMask " + contentMask);
             sb.Append(", Bid " + Bid + ", Ask " + Ask);
             sb.Append(", Price " + Price + ", Size " + Size);
             sb.Append(", Strike " + Strike + ", UtcOptionExpiration " + UtcOptionExpiration);

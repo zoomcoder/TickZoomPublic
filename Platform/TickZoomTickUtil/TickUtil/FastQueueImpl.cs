@@ -638,7 +638,7 @@ namespace TickZoom.TickUtil
 		}
 		
 		public bool IsFull {
-			get { return queue.Count >= maxSize; }
+			get { return count >= maxSize; }
 		}
 		
 		public bool IsEmpty {

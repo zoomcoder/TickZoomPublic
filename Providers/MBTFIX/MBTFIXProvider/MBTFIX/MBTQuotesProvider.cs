@@ -48,14 +48,12 @@ namespace TickZoom.MBTQuotes
         private Dictionary<long, SymbolHandler> symbolHandlers = new Dictionary<long, SymbolHandler>();
         private Dictionary<long, SymbolHandler> symbolOptionHandlers = new Dictionary<long, SymbolHandler>();	
 		
-		public MBTQuotesProvider(string name)
+		public MBTQuotesProvider(string name) : base( name)
 		{
 		    log.Register(this);
-			ProviderName = "MBTQuotesProvider";
 			if( name.Contains(".config")) {
 				throw new ApplicationException("Please remove .config from config section name.");
 			}
-			ConfigSection = name;
 			RetryStart = 1;
 			RetryIncrease = 1;
 			RetryMaximum = 30;

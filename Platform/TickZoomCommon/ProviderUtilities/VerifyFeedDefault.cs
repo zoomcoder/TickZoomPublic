@@ -225,7 +225,6 @@ namespace TickZoom.Common
             if (debug) log.Debug("VerifyState symbol " + expectedSymbolState + ", timeout " + timeout);
             long startTime = Factory.TickCount;
             count = 0;
-            TickBinary binary = new TickBinary();
             while (Factory.TickCount - startTime < timeout * 1000)
             {
                 if (propagateException != null)
@@ -234,13 +233,13 @@ namespace TickZoom.Common
                 }
                 try
                 {
-                    if (TryDequeueTick(ref binary))
+                    if (TryDequeueTick(ref tickBinary))
                     {
                         tickIO.Inject(tickBinary);
                         if (debug) log.Debug("Received tick " + tickIO);
                         if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
                         {
-                            tickSync.RemoveTick(ref binary);
+                            tickSync.RemoveTick(ref tickBinary);
                         }
                     }
                     else

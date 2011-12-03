@@ -256,7 +256,7 @@ namespace TickZoom.TickUtil
 		bool isDataRead = false;
 		bool isFirstTick = true;
 		long nextUpdate = 0;
-		int count = 0;
+	    private long count = 0;
 		protected volatile int tickCount = 0;
 		long start;
 		bool isTaskPrepared = false;
@@ -400,7 +400,7 @@ namespace TickZoom.TickUtil
 							nextUpdate = Factory.TickCount + 2000;
 						}
 
-						if (maxCount > 0 && count > maxCount) {
+						if (maxCount > 0 && Count > maxCount) {
 							if (debug)
 								log.Debug("Ending data read because count reached " + maxCount + " ticks.");
 							return Yield.DidWork.Invoke(SendFinishMethod);
@@ -411,8 +411,8 @@ namespace TickZoom.TickUtil
 						}
 
 						if (IsAtStart(tick)) {
-							count++;
-							if (debug && count < 10) {
+							count = Count + 1;
+							if (debug && Count < 10) {
 								log.Debug("Read a tick " + tickIO);
 							} else if (trace) {
 								log.Trace("Read a tick " + tickIO);
@@ -501,7 +501,7 @@ namespace TickZoom.TickUtil
 				}
 				long end = Factory.TickCount;
 				if (!quietMode) {
-					LogInfo("Processed " + count + " ticks in " + (end - start) + " ms.");
+					LogInfo("Processed " + Count + " ticks in " + (end - start) + " ms.");
 				}
 				try {
 					progressCallback("Processing complete.", dataIn.BaseStream.Length, dataIn.BaseStream.Length);
@@ -625,5 +625,10 @@ namespace TickZoom.TickUtil
 		public TickIO LastTick {
 			get { return tickIO; }
 		}
+
+	    public long Count
+	    {
+	        get { return count; }
+	    }
 	}
 }
