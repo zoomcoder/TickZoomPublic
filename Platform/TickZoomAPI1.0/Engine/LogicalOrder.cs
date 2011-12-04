@@ -123,8 +123,6 @@ namespace TickZoom.Api
             get;
         }
 
-        long Recency { get; }
-
         TimeStamp UtcChangeTime { get; }
 
         bool IsAutoCancel { get; }

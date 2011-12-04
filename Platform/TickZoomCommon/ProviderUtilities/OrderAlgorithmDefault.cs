@@ -70,6 +70,7 @@ namespace TickZoom.Common
         private long minimumTick;
         private List<MissingLevel> missingLevels = new List<MissingLevel>();
         private PhysicalOrderCache physicalOrderCache;
+        private long recency;
 
         public struct MissingLevel
         {
@@ -92,7 +93,32 @@ namespace TickZoom.Common
 			this.logicalOrders = new ActiveList<LogicalOrder>();
             this.physicalOrders = new ActiveList<CreateOrChangeOrder>();
 		    this.minimumTick = symbol.MinimumTick.ToLong();
+            if( debug) log.Debug("Starting recency " + recency);
 		}
+
+        public bool PositionChange( PositionChangeDetail positionChange, bool isRecovered)
+        {
+            if( positionChange.Recency < recency)
+            {
+                if( debug) log.Debug("PositionChange recency " + positionChange.Recency + " less than " + recency + " so ignoring.");
+                return false;
+            }
+            if (debug) log.Debug("PositionChange(" + positionChange + ")");
+            recency = positionChange.Recency;
+            SetDesiredPosition(positionChange.Position);
+            SetStrategyPositions(positionChange.StrategyPositions);
+            SetLogicalOrders(positionChange.Orders);
+            if (isRecovered)
+            {
+                TrySyncPosition(positionChange.StrategyPositions);
+                ProcessOrders();
+            }
+            else
+            {
+                if (debug) log.Debug("PositionChange event received while FIX was offline or recovering. Skipping SyncPosition and ProcessOrders.");
+            }
+            return true;
+        }
 		
 		private List<CreateOrChangeOrder> TryMatchId( Iterable<CreateOrChangeOrder> list, LogicalOrder logical)
 		{
@@ -1221,8 +1247,8 @@ namespace TickZoom.Common
                     {
                         if (debug) log.Debug("strategy position " + position + " differs from logical order position " + strategyPosition + " for " + logical);
                     }
-                    fill = new LogicalFillBinary(
-                        position, logical.Recency + 1, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
+                    ++recency;
+                    fill = new LogicalFillBinary( position, recency, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
                 }
                 else
                 {
@@ -1236,7 +1262,7 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Fill price: " + fill);
                 ProcessFill(fill, logical, isCompletePhysicalFill, physical.IsRealTime);
             }
-		}		
+		}
 
         private TaskLock performCompareLocker = new TaskLock();
 		private void PerformCompareProtected() {

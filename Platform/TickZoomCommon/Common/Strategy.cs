@@ -64,7 +64,6 @@ namespace TickZoom.Common
 		ExitStrategy exitStrategy;
 		FillManager preFillManager;
 		FillManager postFillManager;
-	    private long recency = 1;
 		
 		public Strategy()
 		{
@@ -396,11 +395,6 @@ namespace TickZoom.Common
             set { orderManager = value; }
         }
 
-        public long Recency
-        {
-            get { return Interlocked.Read(ref recency); }
-            set { Interlocked.Exchange(ref recency, value); }
-        }
     }
 	
 	/// <summary>

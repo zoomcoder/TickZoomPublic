@@ -1373,31 +1373,17 @@ namespace TickZoom.MBTFIX
         public override void PositionChange(PositionChangeDetail positionChange)
 		{
             var symbol = positionChange.Symbol;
-            int desiredPosition = positionChange.Position;
-            var inputOrders = positionChange.Orders;
-            var strategyPositions = positionChange.StrategyPositions;
 			if( debug) log.Debug( "PositionChange " + positionChange);
 			
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            algorithm.OrderAlgorithm.SetDesiredPosition(desiredPosition);
-            algorithm.OrderAlgorithm.SetStrategyPositions(strategyPositions);
-            algorithm.OrderAlgorithm.SetLogicalOrders(inputOrders);
-            if (!IsRecovered)
+            if( algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
             {
-                if (debug) log.Debug("PositionChange event received while FIX was offline or recovering. Skipping ProcessOrders. Current connection status is: " + ConnectionStatus);
-                return;
-            }
-            //if (!algorithm.IsPositionSynced)
-            //{
-            algorithm.OrderAlgorithm.TrySyncPosition(strategyPositions);
-            //}
-            algorithm.OrderAlgorithm.ProcessOrders();
-            if (algorithm.OrderAlgorithm.IsPositionSynced)
-            {
-                TrySendStartBroker(symbol);
+                if (algorithm.OrderAlgorithm.IsPositionSynced)
+                {
+                    TrySendStartBroker(symbol);
+                }
             }
 		}
-		
 		
 	    protected override void Dispose(bool disposing)
 	    {
@@ -1405,14 +1391,6 @@ namespace TickZoom.MBTFIX
            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	    }    
 	        
-		private int GetLogicalOrderId(int physicalOrderId) {
-        	int logicalOrderId;
-        	if( physicalToLogicalOrderMap.TryGetValue(physicalOrderId,out logicalOrderId)) {
-        		return logicalOrderId;
-        	} else {
-        		return 0;
-        	}
-		}
 		Dictionary<int,int> physicalToLogicalOrderMap = new Dictionary<int, int>();
 	        
 		public bool OnCreateBrokerOrder(CreateOrChangeOrder createOrChangeOrder)

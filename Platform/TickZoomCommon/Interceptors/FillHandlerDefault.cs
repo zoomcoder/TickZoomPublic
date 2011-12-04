@@ -88,15 +88,6 @@ namespace TickZoom.Interceptors
 				TryDrawTrade(filledOrder, fill);
                 if (trace) log.Trace("Changed strategy position to " + fill.Position + " because of fill.");
 				changePosition(strategy.Data.SymbolInfo,fill);
-                if( fill.Recency > strategy.Recency)
-                {
-                    strategy.Recency = fill.Recency;
-                    if (debug) log.Debug("strategy recency now " + strategy.Recency);
-                }
-                else
-                {
-                    if( debug) log.Debug("Fill recency " + fill.Recency + " less than or equal to strategy recency " + strategy.Recency + ". Probably an exit strategy order.");
-                }
 			} else {
 				throw new ApplicationException("A fill for order id: " + orderId + " was incorrectly routed to: " + strategyInterface.Name);
 			}

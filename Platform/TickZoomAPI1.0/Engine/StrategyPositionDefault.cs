@@ -10,19 +10,12 @@ namespace TickZoom.Api
         private int _id;
         private SymbolInfo _symbol;
         private long position;
-        private long recency;
 
         public StrategyPositionDefault(int id, SymbolInfo symbol)
         {
             this._id = id;
             this._symbol = symbol;
             if( trace) log.Trace("New StrategyPosition");
-        }
-
-        public long Recency
-        {
-            get { return recency; }
-            set { recency = value; }
         }
 
         public long ExpectedPosition
@@ -42,38 +35,26 @@ namespace TickZoom.Api
 
         public void SetExpectedPosition(long position)
         {
-            if (trace) log.Trace("SetExpectedPosition() strategy " + Id + " for " + Symbol + " position change from " + this.position + " to " + position + ". Recency " + this.recency + " to " + recency);
+            if (trace) log.Trace("SetExpectedPosition() strategy " + Id + " for " + Symbol + " position change from " + this.position + " to " + position + ".");
             this.position = position;
         }
 
-        public void TrySetPosition( long position, long recency)
+        public void TrySetPosition( long position)
         {
-            if (recency == 0L)
+            if (position != this.position)
             {
-                throw new InvalidOperationException("Recency must be non-zero.");
+                if (debug) log.Debug("Strategy " + _id + " for " + _symbol + " actual position changed from " + this.position + " to " + position + ".");
+                this.position = position;
             }
-            if (recency >= this.recency)
+            else
             {
-                if (position != this.position)
-                {
-                    if (debug) log.Debug("Strategy " + _id + " for " + _symbol + " actual position changed from " + this.position + " to " + position + ". Recency " + this.recency + " to " + recency);
-                    this.position = position;
-                }
-                else
-                {
-                    if (debug) log.Debug("Unchanged strategy " + _id + " for " + _symbol + ". Actual position " + this.position + ". Recency " + this.recency + " to " + recency);
-                }
-                this.recency = recency;
-            }
-            else if (position != this.position)
-            {
-                if (debug) log.Debug("Rejected change of strategy " + Id + " for " + Symbol + " actual position " + this.position + " to " + position + ".  Recency " + recency + " wasn't newer than " + this.recency);
+                if (debug) log.Debug("Unchanged strategy " + _id + " for " + _symbol + ". Actual position " + this.position + ".");
             }
         }
 
         public override string ToString()
         {
-            return "Strategy " + Id + ", " + _symbol + ", position " + position + ", recency " + recency;
+            return "Strategy " + Id + ", " + _symbol + ", position " + position ;
         }
     }
 }

@@ -126,7 +126,7 @@ namespace TickZoom.Common
                     strategyPosition = new StrategyPositionDefault(position.Id, position.Symbol);
                     this.strategyPositions.Add(position.Id, strategyPosition);
                 }
-                strategyPosition.TrySetPosition(position.ExpectedPosition, position.Recency);
+                strategyPosition.TrySetPosition(position.ExpectedPosition);
             }
         }
 

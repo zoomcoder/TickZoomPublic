@@ -34,23 +34,19 @@ namespace TickZoom.Api
 		private SymbolInfo symbol;
 		private int position;
 		private long utcTime;
-	    private long counter;
+	    private long recency;
 		private Iterable<LogicalOrder> orders;
 	    private Iterable<StrategyPosition> strategyPositions;
         private static long counterNext = 0;
 
-        public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime) : this( symbol, position, orders, strategyPositions, utcTime, Interlocked.Increment(ref counterNext))
-        {
-		}
-
-        public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime, long counter)
+        public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime, long recency)
         {
             this.symbol = symbol;
             this.position = position;
             this.orders = orders;
             this.strategyPositions = strategyPositions;
             this.utcTime = utcTime;
-            this.counter = counter;
+            this.recency = recency;
         }
 
         public int Position
@@ -75,15 +71,15 @@ namespace TickZoom.Api
 	        get { return strategyPositions; }
 	    }
 
-	    public long Counter
+	    public long Recency
 	    {
-	        get { return counter; }
-	        set { counter = value; }
+	        get { return recency; }
+	        set { recency = value; }
 	    }
 
         public override string ToString()
         {
-            return "Counter " + counter + ", "  + symbol + ", Position " + position + ", Orders " + orders.Count;
+            return "Recency " + recency + ", "  + symbol + ", Position " + position + ", Orders " + orders.Count;
         }
 	}
 }

@@ -141,7 +141,7 @@ namespace TickZoom.Test
 		private void ClearPositionInternal(Provider provider, VerifyFeed verify, int expectedPosition) {
   			if( SyncTicks.Enabled) tickSync.AddPositionChange();
 		    var strategyPositions = new ActiveList<StrategyPosition>();
-  			provider.SendEvent(verify,symbol,(int)EventType.PositionChange,new PositionChangeDetail(symbol,expectedPosition,orders,strategyPositions,TimeStamp.UtcNow.Internal));
+  			provider.SendEvent(verify,symbol,(int)EventType.PositionChange,new PositionChangeDetail(symbol,expectedPosition,orders,strategyPositions,TimeStamp.UtcNow.Internal,1L));
 		}
 
         public LogicalOrder CreateChange(StrategyInterface strategy, OrderType orderType, double price, int position, int strategyPosition)
@@ -249,7 +249,7 @@ namespace TickZoom.Test
 		public void SendOrders(Provider provider, VerifyFeed verify, int desiredPosition, int secondsDelay) {
   			if( SyncTicks.Enabled) tickSync.AddPositionChange();
             var strategyPositions = new ActiveList<StrategyPosition>();
-            provider.SendEvent(verify, symbol, (int)EventType.PositionChange, new PositionChangeDetail(symbol, desiredPosition, orders, strategyPositions, TimeStamp.UtcNow.Internal));
+            provider.SendEvent(verify, symbol, (int)EventType.PositionChange, new PositionChangeDetail(symbol, desiredPosition, orders, strategyPositions, TimeStamp.UtcNow.Internal,1L));
 		}
 		
 		public string ProviderAssembly {
