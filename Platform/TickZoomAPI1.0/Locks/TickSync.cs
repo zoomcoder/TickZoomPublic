@@ -203,12 +203,12 @@ namespace TickZoom.Api
             }
         }
 
-        public void AddPhysicalFill(PhysicalFill fill)
+        public void AddPhysicalFill(object fill)
         {
             RollbackPhysicalFills();
             var valueCreated = Interlocked.Increment(ref (*state).physicalFillsCreated);
             var valueWaiting = Interlocked.Increment(ref (*state).physicalFillsWaiting);
-            if (trace) log.Trace("AddPhysicalFill( Created " + valueCreated + ", Waiting " + valueWaiting + fill + "," + fill.Order + ") " + this);
+            if (trace) log.Trace("AddPhysicalFill( Created " + valueCreated + ", Waiting " + valueWaiting + ", Fill " + fill + ") " + this);
         }
 
         public void RollbackPhysicalFills()
@@ -275,14 +275,7 @@ namespace TickZoom.Api
             }
         }
 
-        public void AddPhysicalOrder()
-        {
-            var value = Interlocked.Increment(ref (*state).physicalOrders);
-            RollbackPhysicalOrders();
-            if (trace) log.Trace("AddPhysicalOrder( resent order? ) " + this);
-        }
-
-        public void AddPhysicalOrder(CreateOrChangeOrder order)
+        public void AddPhysicalOrder(object order)
         {
             var value = Interlocked.Increment(ref (*state).physicalOrders);
             RollbackPhysicalOrders();

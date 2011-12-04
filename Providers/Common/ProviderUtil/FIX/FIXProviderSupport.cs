@@ -135,10 +135,6 @@ namespace TickZoom.FIX
                 configSection = name;
                 Initialize();
                 RegenerateSocket();
-                var startTime = TimeStamp.UtcNow;
-                startTime.AddSeconds(retryDelay);
-                retryTimer.Start( startTime);
-                log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
             }
         }
 		
@@ -168,6 +164,10 @@ namespace TickZoom.FIX
                 {
                     socket.Connect("127.0.0.1", port);
                     if (debug) log.Debug("Requested Connect for " + socket);
+                    var startTime = TimeStamp.UtcNow;
+                    startTime.AddSeconds(retryDelay);
+                    retryTimer.Start(startTime);
+                    log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
                     return;
                 }
                 catch (SocketErrorException ex)
@@ -234,11 +234,28 @@ namespace TickZoom.FIX
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
             OnDisconnect();
-            if (connectionStatus != Status.PendingLogOut)
+            switch (connectionStatus)
             {
-                connectionStatus = Status.Disconnected;
+                case Status.Connected:
+                case Status.Disconnected:
+                case Status.New:
+                case Status.PendingRecovery:
+                case Status.Recovered:
+                case Status.PendingLogin:
+                case Status.PendingRetry:
+                    connectionStatus = Status.Disconnected;
+                    if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+                    RegenerateSocket();
+                    break;
+                case Status.PendingLogOut:
+                    Dispose();
+                    break;
+                default:
+                    log.Warn("Unexpected connection status when socket disconnected: " + connectionStatus + ". Shutting down the provider.");
+                    Dispose();
+                    break;
             }
-		}
+        }
 
         private void OnConnect(Socket socket)
         {
@@ -248,6 +265,7 @@ namespace TickZoom.FIX
                 return;
             }
             log.Info("OnConnect( " + socket + " ) ");
+            retryTimer.Cancel();
             connectionStatus = Status.Connected;
             if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
             isResendComplete = true;
@@ -258,7 +276,7 @@ namespace TickZoom.FIX
                 {
                     connectionStatus = Status.PendingLogin;
                     if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-                    IncreaseRetryTimeout();
+                    IncreaseHeartbeatTimeout();
                 }
                 else
                 {
@@ -332,7 +350,7 @@ namespace TickZoom.FIX
             log.Error("FIXProvider " + typeStr);
             SyncTicks.LogStatus();
             SetupRetry();
-            IncreaseRetryTimeout();
+            IncreaseHeartbeatTimeout();
             return Yield.DidWork.Repeat;
         }
 
@@ -479,7 +497,7 @@ namespace TickZoom.FIX
                                         Socket.MessageFactory.Release(messageFIX);
                                     }
                                     orderStore.IncrementUpdateCount();
-                                    IncreaseRetryTimeout();
+                                    IncreaseHeartbeatTimeout();
                                     return Yield.DidWork.Repeat;
                                 }
                                 else
@@ -501,9 +519,6 @@ namespace TickZoom.FIX
                             case Status.PendingRecovery:
                             case Status.Recovered:
                             case Status.PendingLogin:
-                                var startTime = TimeStamp.UtcNow;
-                                startTime.AddSeconds(retryDelay);
-                                retryTimer.Start(startTime);
                                 connectionStatus = Status.PendingRetry;
                                 if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
                                 retryDelay += retryIncrease;
@@ -780,13 +795,9 @@ namespace TickZoom.FIX
             //return true;
         }
 
-		protected void IncreaseRetryTimeout()
+		protected void IncreaseHeartbeatTimeout()
 		{
-		    var currentTime = TimeStamp.UtcNow;
-		    var retryTime = currentTime;
-            retryTime.AddSeconds(retryDelay);
-			retryTimer.Start( retryTime);
-		    var heartbeatTime = currentTime;
+		    var heartbeatTime = TimeStamp.UtcNow;
 		    heartbeatTime.AddSeconds(heartbeatDelay);
 			heartbeatTimer.Start(heartbeatTime);
 		}
@@ -1163,7 +1174,7 @@ namespace TickZoom.FIX
 		public long HeartbeatDelay {
 	    	get { return heartbeatDelay; }
 			set { heartbeatDelay = value;
-				IncreaseRetryTimeout();
+				IncreaseHeartbeatTimeout();
 			}
 		}
 		

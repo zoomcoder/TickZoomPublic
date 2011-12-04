@@ -101,11 +101,6 @@ namespace TickZoom.MBTFIX
 		public override void OnRetry() {
 		}
 
-        private void TrySendSynchronizeBroker()
-        {
-            //TrySend(EventType.SynchronizeBroker);
-        }
-
         private void TrySendStartBroker(SymbolInfo symbol)
         {
             var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
@@ -618,6 +613,11 @@ namespace TickZoom.MBTFIX
             {
                 var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
                 algorithm.OrderAlgorithm.ConfirmCreate(order, IsRecovered);
+            }
+            else if( SyncTicks.Enabled)
+            {
+                var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                tickSync.RemovePhysicalOrder(packetFIX.ClientOrderId);
             }
         }
 		

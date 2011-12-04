@@ -526,13 +526,13 @@ namespace TickZoom.MBTFIX
                     case "A":
                         var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
-                        tickSync.AddPhysicalOrder();
+                        tickSync.AddPhysicalOrder("resend");
                         break;
                     case "2":
                     case "1":
                         symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
                         tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
-                        //tickSync.AddPhysicalFill();
+                        tickSync.AddPhysicalFill("resend");
                         break;
                 }
                 
