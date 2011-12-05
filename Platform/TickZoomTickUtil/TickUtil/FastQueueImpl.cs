@@ -328,8 +328,8 @@ namespace TickZoom.TickUtil
             SpinUnLock();
         }
 	    
-	    public bool Dequeue(out T tick) {
-	    	return TryDequeue(out tick);
+	    public void Dequeue(out T tick) {
+            while (!TryDequeue(out tick)) ;
 	    }
 	    
 	    public bool Peek(out T tick) {

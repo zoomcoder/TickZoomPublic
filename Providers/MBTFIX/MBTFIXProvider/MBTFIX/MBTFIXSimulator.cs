@@ -151,20 +151,20 @@ namespace TickZoom.MBTFIX
 				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
 			} catch( ApplicationException) {
 				if( debug) log.Debug( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.");
-                OnRejectOrder(order,true,symbol + ": Cannot change order. Probably already filled or canceled." );
+                OnRejectOrder(order, true, symbol + ": Cannot change order. Probably already filled or canceled.");
 				return;
 			}
 		    order.OriginalOrder = origOrder;
 			if( order.Side != origOrder.Side) {
 				var message = symbol + ": Cannot change " + origOrder.Side + " to " + order.Side;
 				log.Error( message);
-				OnRejectOrder(order,false,message);
+                OnRejectOrder(order, false, message);
 				return;     
 			}
 			if( order.Type != origOrder.Type) {
 				var message = symbol + ": Cannot change " + origOrder.Type + " to " + order.Type;
 				log.Error( message);
-				OnRejectOrder(order,false,message);
+                OnRejectOrder(order, false, message);
 				return;     
 			}
 			ChangeOrder(order);
@@ -413,7 +413,7 @@ namespace TickZoom.MBTFIX
 		{
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
-			mbtMsg.SetClientOrderId( order.BrokerOrder.ToString());
+			mbtMsg.SetClientOrderId( order.BrokerOrder);
 			mbtMsg.SetOrderStatus("8");
 			mbtMsg.SetText(error);
             mbtMsg.SetSymbol(order.Symbol.Symbol);
@@ -538,6 +538,82 @@ namespace TickZoom.MBTFIX
                 
             }
             ResendMessageProtected(textMessage);
+        }
+
+        protected override void RemoveTickSync(MessageFIXT1_1 textMessage)
+        {
+            var mbtMsg = (MessageFIX4_4)textMessage;
+            if (SyncTicks.Enabled && mbtMsg.MessageType == "8")
+            {
+                switch (mbtMsg.OrderStatus)
+                {
+                    case "E":
+                    case "6":
+                    case "0":
+                        {
+                            var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                            var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                            tickSync.RemovePhysicalOrder("offline");
+                        }
+                        break;
+                    case "A":
+                        if( mbtMsg.ExecutionType == "D")
+                        {
+                            // Is it a Forex order?
+                            var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                            var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                            tickSync.RemovePhysicalOrder("offline");
+                        }
+                        break;
+                    case "2":
+                    case "1":
+                        {
+                            var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                            var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                            tickSync.RemovePhysicalFill("offline");
+                        }
+                        break;
+                }
+
+            }
+        }
+
+        protected override void RemoveTickSync(FIXTMessage1_1 textMessage)
+        {
+            var mbtMsg = (FIXMessage4_4) textMessage;
+            if (SyncTicks.Enabled && mbtMsg.Type == "8")
+            {
+                switch (mbtMsg.OrderStatus)
+                {
+                    case "E":
+                    case "6":
+                    case "0":
+                        {
+                            var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                            var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                            tickSync.RemovePhysicalOrder("offline");
+                        }
+                        break;
+                    case "A":
+                        if (mbtMsg.ExecutionType == "D")
+                        {
+                            // Is it a Forex order?
+                            var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                            var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                            tickSync.RemovePhysicalOrder("offline");
+                        }
+                        break;
+                    case "2":
+                    case "1":
+                        {
+                            var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
+                            var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
+                            tickSync.RemovePhysicalFill("offline");
+                        }
+                        break;
+                }
+
+            }
         }
 
         private void SendLogout()

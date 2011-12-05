@@ -43,9 +43,10 @@ namespace TickZoom.Api
         public int physicalFillsWaiting;
         public int physicalOrders;
         public int physicalFillSimulators;
+        public int switchBrokerState;
         public bool Compare(TickSyncState other)
         {
-            return ticks == other.ticks && positionChange == other.positionChange &&
+            return ticks == other.ticks && positionChange == other.positionChange && switchBrokerState == other.switchBrokerState &&
                    processPhysical == other.processPhysical && physicalFillsCreated == other.physicalFillsCreated &&
                    physicalFillsWaiting == other.physicalFillsWaiting &&
                    reprocessPhysical == other.reprocessPhysical && physicalOrders == other.physicalOrders;
@@ -87,7 +88,7 @@ namespace TickZoom.Api
         }
         private bool CheckCompletedInternal()
         {
-            return (*state).ticks == 0 && (*state).positionChange == 0 &&
+            return (*state).ticks == 0 && (*state).positionChange == 0 && (*state).switchBrokerState == 0 && 
                    (*state).physicalOrders == 0 && (*state).physicalFillsCreated == 0 &&
                    (*state).processPhysical == 0 && (*state).reprocessPhysical == 0;
         }
@@ -105,7 +106,7 @@ namespace TickZoom.Api
 
         private bool CheckProcessingOrders()
         {
-            return (*state).positionChange > 0 || (*state).physicalOrders > 0 ||
+            return (*state).positionChange > 0 || (*state).physicalOrders > 0 || (*state).switchBrokerState > 0 ||
                    (*state).physicalFillsCreated > 0 || (*state).processPhysical > 0 ||
                    (*state).reprocessPhysical > 0;
         }
@@ -156,6 +157,7 @@ namespace TickZoom.Api
             Interlocked.Exchange(ref (*state).processPhysical, 0);
             Interlocked.Exchange(ref (*state).reprocessPhysical, 0);
             Interlocked.Exchange(ref (*state).positionChange, 0);
+            Interlocked.Exchange(ref (*state).switchBrokerState, 0);
             Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
             Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
             Unlock();
@@ -180,7 +182,7 @@ namespace TickZoom.Api
 
         private string ToString(TickSyncState temp)
         {
-            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills Created " + temp.physicalFillsCreated + ", Fills Waiting " + temp.physicalFillsWaiting + ", Simulators " + temp.physicalFillSimulators;
+            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Changes " + temp.positionChange + ", Switch Broker " + temp.switchBrokerState + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills Created " + temp.physicalFillsCreated + ", Fills Waiting " + temp.physicalFillsWaiting + ", Simulators " + temp.physicalFillSimulators;
         }
 
         public void AddTick(Tick tick)
@@ -310,11 +312,29 @@ namespace TickZoom.Api
                 if (debug) log.Debug("PhysicalOrders counter was " + value + ". Incremented to " + temp);
             }
         }
-        public void AddPositionChange()
+
+        public void AddSwitchBrokerState(string description)
+        {
+            var value = Interlocked.Increment(ref (*state).switchBrokerState);
+            if (trace) log.Trace("AddSwitchBrokerState(" + description + ", " + value + ") " + this);
+        }
+
+        public void RemoveSwitchBrokerState(string description)
+        {
+            var value = Interlocked.Decrement(ref (*state).switchBrokerState);
+            if (trace) log.Trace("RemoveSwitchBrokerState(" + description + "," + value + ") " + this);
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref (*state).switchBrokerState);
+                if (debug) log.Debug("SwitchBrokerState counter was " + value + ". Incremented to " + temp);
+            }
+        }
+
+        public void AddPositionChange(string description)
         {
             var value = Interlocked.Increment(ref (*state).positionChange);
             RollbackPositionChange();
-            if (trace) log.Trace("AddPositionChange(" + value + ") " + this);
+            if (trace) log.Trace("AddPositionChange(" + description + ", " + value + ") " + this);
         }
 
         public void RollbackPositionChange()
@@ -326,10 +346,10 @@ namespace TickZoom.Api
             }
         }
 
-        public void RemovePositionChange()
+        public void RemovePositionChange(string description)
         {
             var value = Interlocked.Decrement(ref (*state).positionChange);
-            if (trace) log.Trace("RemovePositionChange(" + value + ") " + this);
+            if (trace) log.Trace("RemovePositionChange(" + description + "," + value + ") " + this);
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref (*state).positionChange);
@@ -415,9 +435,19 @@ namespace TickZoom.Api
             get { return (*state).physicalFillsWaiting > 0; }
         }
 
+        public bool SentPhysicalFillsCreated
+        {
+            get { return (*state).physicalFillsCreated > 0; }
+        }
+
         public bool SentPositionChange
         {
             get { return (*state).positionChange > 0; }
+        }
+
+        public bool SentSwtichBrokerState
+        {
+            get { return (*state).switchBrokerState > 0; }
         }
 
         public bool OnlyReprocessPhysicalOrders
@@ -450,5 +480,14 @@ namespace TickZoom.Api
             get { return (*state).processPhysical > 0; }
         }
 
+        public bool SentReprocessPhysicalOrders
+        {
+            get { return (*state).reprocessPhysical > 0; }
+        }
+
+        public bool SentPhyscialOrders
+        {
+            get { return (*state).physicalOrders > 0; }
+        }
     }
 }

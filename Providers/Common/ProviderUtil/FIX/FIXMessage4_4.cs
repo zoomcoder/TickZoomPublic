@@ -48,6 +48,7 @@ namespace TickZoom.FIX
         }
     }
 	public class FIXMessage4_4 : FIXTMessage1_1 {
+        private string executionType;
         protected string orderStatus;
 	    private string symbol;
         internal FIXMessage4_4(string sender, string destination)
@@ -194,6 +195,11 @@ namespace TickZoom.FIX
 	        get { return orderStatus;  }
 	    }
 
+	    public string ExecutionType
+	    {
+            get { return executionType;  }
+	    }
+
 	    public string Symbol
 	    {
 	        get { return symbol; }
@@ -266,11 +272,13 @@ namespace TickZoom.FIX
 		public void SetDestination(string value ) {
 			Append(100,value);
 		}
-		
-		/// <summary>
-		///	150 Execution type.
-		/// </summary>
-		public void SetExecutionType(string value ) {
+
+	    /// <summary>
+	    ///	150 Execution type.
+	    /// </summary>
+		public void SetExecutionType(string value )
+		{
+		    executionType = value;
 			Append(150,value);
 		}
 		

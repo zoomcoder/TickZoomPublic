@@ -71,6 +71,7 @@ namespace TickZoom.Common
         private List<MissingLevel> missingLevels = new List<MissingLevel>();
         private PhysicalOrderCache physicalOrderCache;
         private long recency;
+        private string name;
 
         public struct MissingLevel
         {
@@ -79,12 +80,13 @@ namespace TickZoom.Common
         }
 		
 		public OrderAlgorithmDefault(string name, SymbolInfo symbol, PhysicalOrderHandler brokerOrders, LogicalOrderCache logicalOrderCache, PhysicalOrderCache physicalOrderCache) {
-			this.log = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name );
+			log = Factory.SysLog.GetLogger(typeof(OrderAlgorithmDefault).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name );
             log.Register(this);
 			this.symbol = symbol;
 		    this.logicalOrderCache = logicalOrderCache;
 		    this.physicalOrderCache = physicalOrderCache;
-			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+		    this.name = name;
+			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.physicalOrderHandler = brokerOrders;
             this.canceledLogicals = new ActiveList<LogicalOrder>();
             this.originalLogicals = new ActiveList<LogicalOrder>();
@@ -101,6 +103,10 @@ namespace TickZoom.Common
             if( positionChange.Recency < recency)
             {
                 if( debug) log.Debug("PositionChange recency " + positionChange.Recency + " less than " + recency + " so ignoring.");
+                if( SyncTicks.Enabled)
+                {
+                    tickSync.RemovePositionChange(name);
+                }
                 return false;
             }
             if (debug) log.Debug("PositionChange(" + positionChange + ")");
@@ -1267,7 +1273,7 @@ namespace TickZoom.Common
         private TaskLock performCompareLocker = new TaskLock();
 		private void PerformCompareProtected() {
 			var count = Interlocked.Increment(ref recursiveCounter);
-		    var compareSucess = false;
+		    var compareSuccess = false;
 		    if( count == 1)
 		    {
 				while( recursiveCounter > 0)
@@ -1285,10 +1291,18 @@ namespace TickZoom.Common
                         // Is it still not synced?
                         if (isPositionSynced)
                         {
-                            compareSucess = PerformCompareInternal();
-                            if( debug) log.Debug("PerformCompareInternal() returned: " + compareSucess);
+                            compareSuccess = PerformCompareInternal();
+                            if( debug) log.Debug("PerformCompareInternal() returned: " + compareSuccess);
                             physicalOrderHandler.ProcessOrders();
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
+
+                            if (compareSuccess && SyncTicks.Enabled && !handleSimulatedExits)
+                            {
+                                if (tickSync.SentPositionChange && tickSync.IsSinglePhysicalFillSimulator)
+                                {
+                                    tickSync.RemovePositionChange(name);
+                                }
+                            }
                         }
                         else
                         {
@@ -1308,13 +1322,6 @@ namespace TickZoom.Common
 						Interlocked.Decrement( ref recursiveCounter);
                     }
 				}
-                if (SyncTicks.Enabled)
-                {
-                    if( compareSucess && tickSync.SentPositionChange && tickSync.IsSinglePhysicalFillSimulator)
-                    {
-                        tickSync.RemovePositionChange();
-                    }
-                }
             }
             else
 			{

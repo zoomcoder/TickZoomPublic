@@ -333,7 +333,6 @@ namespace TickZoom.MBTFIX
 		        UserName == packetFIX.Target &&
 		        "0" == packetFIX.Encryption)
 		    {
-		        RetryStart = RetryMaximum = packetFIX.HeartBeatInterval;
                 return true;
             }
             else
@@ -866,6 +865,7 @@ namespace TickZoom.MBTFIX
 			string orderStatus = packetFIX.OrderStatus;
             CreateOrChangeOrder order;
 		    bool removeOriginal = false;
+		    bool removeLogical = false;
 		    OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 			switch( orderStatus) {
 				case "8": // Rejected
@@ -875,8 +875,13 @@ namespace TickZoom.MBTFIX
                         rejectReason = true;
                         TrySendEndBroker();
                     }
-                    else if( packetFIX.Text.Contains("Cannot cancel order. Probably already filled or canceled.") ||
-                        packetFIX.Text.Contains("No such order"))
+                    else if( packetFIX.Text.Contains("Cannot cancel order. Probably already filled or canceled."))
+                    {
+                        rejectReason = true;
+                        removeOriginal = true;
+                        removeLogical = true;
+                    }
+			        else if( packetFIX.Text.Contains("No such order"))
                     {
                         rejectReason = true;
                         removeOriginal = true;
@@ -887,6 +892,7 @@ namespace TickZoom.MBTFIX
                         packetFIX.Text.Contains("General Order Replace Error"))
                     {
                         rejectReason = true;
+                        removeLogical = true;
                     }
 
                     OrderStore.RemoveOrder(packetFIX.ClientOrderId);
@@ -1024,11 +1030,15 @@ namespace TickZoom.MBTFIX
 		{
 		    var rejectReason = false;
 		    bool removeOriginal = false;
-		    if (packetFIX.Text.Contains("Cannot change order. Probably already filled or canceled.") ||
-		        packetFIX.Text.Contains("No such order"))
+		    bool removeLogical = false;
+		    if (packetFIX.Text.Contains("Cannot change order. Probably already filled or canceled."))
 		    {
 		        rejectReason = true;
 		        removeOriginal = true;
+		    }
+		    else if( packetFIX.Text.Contains("No such order"))
+		    {
+		        rejectReason = true;
 		    }
 		    else if (packetFIX.Text.Contains("Outside trading hours") ||
 		             packetFIX.Text.Contains("not accepted this session") ||
@@ -1038,10 +1048,14 @@ namespace TickZoom.MBTFIX
 		             packetFIX.Text.Contains("No position to close"))
 		    {
 		        rejectReason = true;
+		        removeLogical = true;
+		        removeOriginal = true;
 		    }
             else if (packetFIX.Text.Contains("Order Server Not Available"))
             {
                 rejectReason = true;
+                removeLogical = true;
+                removeOriginal = true;
                 TrySendEndBroker();
             }
 
