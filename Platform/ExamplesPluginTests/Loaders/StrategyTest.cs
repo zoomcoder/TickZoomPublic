@@ -304,62 +304,51 @@ namespace Loaders
 		    var filePaths = Directory.GetFiles(databaseFolder, "MBTFIXProvider.dat.*", SearchOption.TopDirectoryOnly);
             foreach( var path in filePaths)
             {
-                var errors = new List<Exception>();
-                var errorCount = 0;
-                while( errorCount < 30)
-                {
-                    try
-                    {
-                        log.Info("Deleting (" + errorCount + ") " + path);
-                        File.Delete(path);
-                        errors.Clear();
-                        break;
-                    }
-                    catch( Exception ex)
-                    {
-                        errors.Add(ex);
-                        Thread.Sleep(1000);
-                        errorCount++;
-                    }
-                }
-                if( errors.Count > 0)
-                {
-                    var ex = errors[errors.Count - 1];
-                    log.Error("Can't delete " + path, ex);
-                    throw new IOException("Can't delete " + path, ex);
-                }
+                DeleteFile(path);
             }
             var filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
-			File.Delete(filePath);
-            //filePath = Path.Combine(Factory.SysLog.LogFolder,"Trades.log");
-            //File.Delete(filePath);
-            //filePath = Path.Combine(Factory.SysLog.LogFolder,"BarData.log");
-            //File.Delete(filePath);
-            //filePath = Path.Combine(Factory.SysLog.LogFolder,"Stats.log");
-            //File.Delete(filePath);
-            //filePath = Path.Combine(Factory.SysLog.LogFolder,"Transactions.log");
-            //File.Delete(filePath);
-            //filePath = Path.Combine(Factory.SysLog.LogFolder,"MockProviderTransactions.log");
-            //File.Delete(filePath);
-		}
+            DeleteFile(filePath);
+        }
 		
 		private static void CleanupServerCache(string symbols) {
             if (symbols == null) return;
-			while( true) {
-				try {
-					string appData = Factory.Settings["AppDataFolder"];
-					var symbolStrings = symbols.Split(new char[] { ',' });
-					foreach( var fullSymbol in symbolStrings) {
-                        var symbolParts = fullSymbol.Split(new char[] { '.' });
-					    var symbol = symbolParts[0];
-						var symbolFile = symbol.Trim().StripInvalidPathChars();
-			 			File.Delete( appData + @"\Test\\ServerCache\" + symbolFile + ".tck");
-					}
-					break;
-				} catch( Exception) {
-				}
+			string appData = Factory.Settings["AppDataFolder"];
+			var symbolStrings = symbols.Split(new char[] { ',' });
+			foreach( var fullSymbol in symbolStrings) {
+                var symbolParts = fullSymbol.Split(new char[] { '.' });
+			    var symbol = symbolParts[0];
+				var symbolFile = symbol.Trim().StripInvalidPathChars();
+	 			DeleteFile( appData + @"\Test\\ServerCache\" + symbolFile + ".tck");
 			}
 		}
+
+        private static void DeleteFile(string path)
+        {
+            var errors = new List<Exception>();
+            var errorCount = 0;
+            while (errorCount < 30)
+            {
+                try
+                {
+                    log.Info("Deleting (" + errorCount + ") " + path);
+                    File.Delete(path);
+                    errors.Clear();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(ex);
+                    Thread.Sleep(1000);
+                    errorCount++;
+                }
+            }
+            if (errors.Count > 0)
+            {
+                var ex = errors[errors.Count - 1];
+                log.Error("Can't delete " + path, ex);
+                throw new IOException("Can't delete " + path, ex);
+            }
+        }
 		
 		[TestFixtureTearDown]
 		public virtual void EndStrategy()

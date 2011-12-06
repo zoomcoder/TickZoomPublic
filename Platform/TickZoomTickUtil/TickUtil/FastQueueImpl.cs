@@ -184,10 +184,6 @@ namespace TickZoom.TickUtil
 	    }
 	    
         public void Enqueue(T tick, long utcTime) {
-            if( count == 999 && name.Contains("ProviderQueue"))
-            {
-                int x = 0;
-            }
             while (!TryEnqueue(tick, utcTime))
             {
                 if( IsFull)
@@ -329,12 +325,19 @@ namespace TickZoom.TickUtil
         }
 	    
 	    public void Dequeue(out T tick) {
+            if( count == 0) throw new ApplicationException("Queue is empty");
             while (!TryDequeue(out tick)) ;
 	    }
 	    
-	    public bool Peek(out T tick) {
-	    	return TryPeekStruct(out tick);
+	    public void Peek(out T tick) {
+            if (count == 0) throw new ApplicationException("Queue is empty");
+            while (!TryPeekStruct(out tick)) ;
 	    }
+
+        public bool TryPeek( out T tick)
+        {
+            return TryPeekStruct(out tick);
+        }
 	    
 	    public bool TryPeekStruct(out T tick) {
 	    	FastQueueEntry<T> entry;

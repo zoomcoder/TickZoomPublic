@@ -64,8 +64,9 @@ namespace TickZoom.Api
         void Clear();
         void Dequeue(out T tick);
 	    bool TryDequeue(out T item);
-		bool Peek(out T tick);
+		void Peek(out T tick);
 	    void ReleaseCount();
+	    bool TryPeek( out T tick);
 	}
 
     public interface ReceiveEventQueue : ReceiveQueue<EventItem>

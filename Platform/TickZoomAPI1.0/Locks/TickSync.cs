@@ -65,6 +65,7 @@ namespace TickZoom.Api
         private SymbolInfo symbolInfo;
         private string symbol;
         private bool rollbackNeeded = false;
+        private TimeStamp lastAddTime = TimeStamp.UtcNow;
 
         internal TickSync(long symbolId, TickSyncState* tickSyncPtr)
         {
@@ -175,6 +176,21 @@ namespace TickZoom.Api
             if (trace) log.Trace("ForceClearOrders() " + this);
         }
 
+        public void TryHeartbeatReset()
+        {
+            //var currentTime = TimeStamp.UtcNow;
+            //var diff = currentTime - lastAddTime;
+            //if( diff.TotalMilliseconds > 800)
+            //{
+            //    Interlocked.Exchange(ref (*state).physicalOrders, 0);
+            //    Interlocked.Exchange(ref (*state).positionChange, 0);
+            //    Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
+            //    Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
+            //    Interlocked.Exchange(ref (*state).switchBrokerState, 0);
+            //    if (trace) log.Trace("TryHeartbeatReset() " + this);
+            //}
+        }
+
         public override string ToString()
         {
             return ToString(*state);
@@ -187,6 +203,7 @@ namespace TickZoom.Api
 
         public void AddTick(Tick tick)
         {
+            lastAddTime = TimeStamp.UtcNow; 
             var value = Interlocked.Increment(ref (*state).ticks);
             if (trace) log.Trace("AddTick(" + tick + ") " + this);
             if( value > 1)
@@ -207,6 +224,7 @@ namespace TickZoom.Api
 
         public void AddPhysicalFill(object fill)
         {
+            lastAddTime = TimeStamp.UtcNow; 
             RollbackPhysicalFills();
             var valueCreated = Interlocked.Increment(ref (*state).physicalFillsCreated);
             var valueWaiting = Interlocked.Increment(ref (*state).physicalFillsWaiting);
@@ -262,6 +280,7 @@ namespace TickZoom.Api
 
         public void AddPhysicalFillSimulator(string name)
         {
+            lastAddTime = TimeStamp.UtcNow; 
             var value = Interlocked.Increment(ref (*state).physicalFillSimulators);
             if (trace) log.Trace("AddPhysicalFillSimulator( " + name + ") " + this);
         }
@@ -279,6 +298,7 @@ namespace TickZoom.Api
 
         public void AddPhysicalOrder(object order)
         {
+            lastAddTime = TimeStamp.UtcNow; 
             var value = Interlocked.Increment(ref (*state).physicalOrders);
             RollbackPhysicalOrders();
             if (trace) log.Trace("AddPhysicalOrder(" + value + "," + order + ") " + this);
@@ -315,6 +335,7 @@ namespace TickZoom.Api
 
         public void AddSwitchBrokerState(string description)
         {
+            lastAddTime = TimeStamp.UtcNow; 
             var value = Interlocked.Increment(ref (*state).switchBrokerState);
             if (trace) log.Trace("AddSwitchBrokerState(" + description + ", " + value + ") " + this);
         }
@@ -332,6 +353,7 @@ namespace TickZoom.Api
 
         public void AddPositionChange(string description)
         {
+            lastAddTime = TimeStamp.UtcNow; 
             var value = Interlocked.Increment(ref (*state).positionChange);
             RollbackPositionChange();
             if (trace) log.Trace("AddPositionChange(" + description + ", " + value + ") " + this);
@@ -359,6 +381,7 @@ namespace TickZoom.Api
 
         public void AddProcessPhysicalOrders()
         {
+            lastAddTime = TimeStamp.UtcNow; 
             var value = Interlocked.Increment(ref (*state).processPhysical);
             RollbackProcessPhysicalOrders();
             if (trace) log.Trace("AddProcessPhysicalOrders(" + value + ") " + this);
@@ -393,6 +416,7 @@ namespace TickZoom.Api
 
         public void SetReprocessPhysicalOrders()
         {
+            lastAddTime = TimeStamp.UtcNow; 
             if ((*state).reprocessPhysical == 0)
             {
                 var value = Interlocked.Increment(ref (*state).reprocessPhysical);
@@ -402,6 +426,7 @@ namespace TickZoom.Api
 
         public void AddReprocessPhysicalOrders()
         {
+            lastAddTime = TimeStamp.UtcNow;
             var value = Interlocked.Increment(ref (*state).reprocessPhysical);
             RollbackReprocessPhysicalOrders();
             if (trace) log.Trace("AddReprocessPhysicalOrders(" + value + ") " + this);

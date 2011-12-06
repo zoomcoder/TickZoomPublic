@@ -674,12 +674,6 @@ namespace TickZoom.MBTFIX
                     quoteBuilders.Add(symbol.BinaryIdentifier, quoteBuilder);
                 }
             }
-            //var value = Interlocked.Increment(ref entryCounter);
-            //if( value > 1)
-            //{
-            //    throw new ApplicationException("Thread counter " + value + "\n" + Environment.StackTrace + "\n other stack trace \n" + otherStackTrace + "\n real stack trace \n");
-            //}
-            //otherStackTrace = Environment.StackTrace;
 			TickIO lastTick;
             using( lastTicksLocker.Using())
             {
@@ -689,10 +683,6 @@ namespace TickZoom.MBTFIX
                     lastTicks[symbol.BinaryIdentifier] = lastTick;
                 }
             }
-            //if( quoteBuilder.Length == 0)
-            //{
-            //    quoteBuilder.Append("Nothing");
-            //}
 		    quoteBuilder.Length = 0;
             if( tick.IsTrade) {
 				quoteBuilder.Append("3|"); // Trade
@@ -766,7 +756,6 @@ namespace TickZoom.MBTFIX
 			if( trace) log.Trace("Tick message: " + message);
 			quoteMessage.DataOut.Write(message.ToCharArray());
 			lastTick.Inject(tick.Extract());
-            //Interlocked.Decrement(ref entryCounter);
 		}
 		
 		private void CloseWithQuotesError(MessageMbtQuotes message, string textMessage) {

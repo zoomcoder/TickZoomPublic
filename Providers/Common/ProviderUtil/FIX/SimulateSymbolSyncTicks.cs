@@ -179,7 +179,7 @@ namespace TickZoom.FIX
             }
 			onTick( quoteMessage, Symbol, nextTick);
 			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
-			quoteMessage.SendUtcTime = nextTick.UtcTime.Internal;
+            quoteMessage.SendUtcTime = nextTick.UtcTime.Internal;
             return Yield.DidWork.Invoke(TryEnqueuePacket);
 		}
 
@@ -191,7 +191,7 @@ namespace TickZoom.FIX
 			}
 		    fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
-		    quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+            quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
             reader.ReadQueue.ReleaseCount();
             return Yield.DidWork.Return;
 		}

@@ -313,7 +313,10 @@ namespace TickZoom.MBTFIX
                     foreach( var kvp in orderAlgorithms)
                     {
                         var algo = kvp.Value;
-                        algo.OrderAlgorithm.CheckForPending();
+                        if( !algo.OrderAlgorithm.CheckForPending())
+                        {
+                            algo.OrderAlgorithm.ProcessHeartBeat();
+                        }
                     }
                 }
             }

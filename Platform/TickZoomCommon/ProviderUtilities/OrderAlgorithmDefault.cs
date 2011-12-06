@@ -1094,8 +1094,17 @@ namespace TickZoom.Common
 			return result;
 		}
 
-        public void CheckForPending()
+        public void ProcessHeartBeat()
         {
+            if( SyncTicks.Enabled)
+            {
+                tickSync.TryHeartbeatReset();
+            }
+        }
+
+        public bool CheckForPending()
+        {
+            var result = false;
             var expiryLimit = TimeStamp.UtcNow;
             if( SyncTicks.Enabled)
             {
@@ -1124,6 +1133,7 @@ namespace TickZoom.Common
                             origOrder.ReplacedBy = null;
                         }
                         cancelOrders.Add(order);
+                        result = true;
                     }
                     else if( Cancel(order))
                     {
@@ -1133,6 +1143,7 @@ namespace TickZoom.Common
                             log.Warn( "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " + diff.TotalSeconds + " seconds.");
                         }
                         order.ResetLastChange();
+                        result = true;
                     }
                 }
             }
@@ -1147,6 +1158,7 @@ namespace TickZoom.Common
                     }
                 }
             }
+            return result;
         }
 
         private LogicalOrder FindActiveLogicalOrder(long serialNumber)
@@ -1296,7 +1308,7 @@ namespace TickZoom.Common
                             physicalOrderHandler.ProcessOrders();
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
 
-                            if (compareSuccess && SyncTicks.Enabled && !handleSimulatedExits)
+                            if (SyncTicks.Enabled && !handleSimulatedExits)
                             {
                                 if (tickSync.SentPositionChange && tickSync.IsSinglePhysicalFillSimulator)
                                 {

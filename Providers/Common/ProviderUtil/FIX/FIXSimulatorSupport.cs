@@ -59,7 +59,7 @@ namespace TickZoom.FIX
 	    private int heartbeatDelay = 1; 
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailtures = 5;
-        private static readonly bool allTests = true;
+        private static readonly bool allTests = false;
         private bool simulateDisconnect = allTests;
         protected bool simulateSendOrderServerOffline = allTests;
         protected bool simulateRecvOrderServerOffline = allTests;
@@ -697,26 +697,6 @@ namespace TickZoom.FIX
                 var symbolBinary = kvp.Key;
                 var tickSync = SyncTicks.GetTickSync(symbolBinary);
                 tickSync.AddSwitchBrokerState(description);
-                while( tickSync.SentPhyscialOrders)
-                {
-                    tickSync.RemovePhysicalOrder(description);
-                }
-                while (tickSync.SentPhysicalFillsWaiting)
-                {
-                    tickSync.RemovePhysicalFill(description);
-                }
-                while( tickSync.SentProcessPhysicalOrders)
-                {
-                    tickSync.RemoveProcessPhysicalOrders();
-                }
-                while (tickSync.SentReprocessPhysicalOrders)
-                {
-                    tickSync.RemoveReprocessPhysicalOrders();
-                }
-                while (tickSync.SentPositionChange)
-                {
-                    tickSync.RemovePositionChange(description);
-                }
             }
         }
 

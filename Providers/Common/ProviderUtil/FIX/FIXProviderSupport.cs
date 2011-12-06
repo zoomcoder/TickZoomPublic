@@ -86,6 +86,7 @@ namespace TickZoom.FIX
         private SocketState lastSocketState = SocketState.New;
         private Status lastConnectionStatus = Status.None;
         private FastQueue<PositionChangeDetail> positionChangeQueue;
+        private FastQueue<MessageFIXT1_1> resendQueue;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
@@ -112,13 +113,15 @@ namespace TickZoom.FIX
 			trace = log.IsTraceEnabled;
         	log.Info(providerName+" Startup");
 		    positionChangeQueue = Factory.TickUtil.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
+            resendQueue = Factory.TickUtil.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
 		    socketTask.Scheduler = Scheduler.EarliestTime;
 		    retryTimer = Factory.Parallel.CreateTimer(socketTask, RetryTimerEvent);
             heartbeatTimer = Factory.Parallel.CreateTimer(socketTask, HeartBeatTimerEvent);
             positionChangeQueue.ConnectInbound(socketTask);
-			socketTask.Start();
+            resendQueue.ConnectInbound(socketTask);
+            socketTask.Start();
             string logRecoveryString = Factory.Settings["LogRecovery"];
   			logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
             appDataFolder = Factory.Settings["AppDataFolder"];
@@ -410,9 +413,28 @@ namespace TickZoom.FIX
 
                                 MessageFIXT1_1 messageFIX = null;
 
-                                if (connectionStatus != Status.PendingLogin && resendBuffer.TryGetValue(remoteSequence, out messageFIX))
+                                if (connectionStatus != Status.PendingLogin)
                                 {
-                                    resendBuffer.Remove(remoteSequence);
+                                    while (resendQueue.Count > 0)
+                                    {
+                                        MessageFIXT1_1 tempMessage;
+                                        resendQueue.Peek(out tempMessage);
+                                        if( tempMessage.Sequence == remoteSequence)
+                                        {
+                                            resendQueue.Dequeue(out messageFIX);
+                                            resendQueue.ReleaseCount();
+                                            break;
+                                        }
+                                        if( tempMessage.Sequence < remoteSequence)
+                                        {
+                                            resendQueue.Dequeue(out messageFIX);
+                                            resendQueue.ReleaseCount();
+                                        }
+                                        if( tempMessage.Sequence > remoteSequence)
+                                        {
+                                            break;
+                                        }
+                                    }
                                 }
 
                                 if (messageFIX == null)
@@ -624,7 +646,7 @@ namespace TickZoom.FIX
             }
             else if (connectionStatus == Status.PendingLogin)
             {
-                resendBuffer[messageFIX.Sequence] = messageFIX;
+                resendQueue.Enqueue(messageFIX, TimeStamp.UtcNow.Internal);
                 releaseFlag = false;
                 return true;
             }
@@ -653,10 +675,9 @@ namespace TickZoom.FIX
             }
         }
 
-        Dictionary<long,MessageFIXT1_1> resendBuffer = new Dictionary<long, MessageFIXT1_1>();
         private void HandleResend(int sequence, MessageFIXT1_1 messageFIX) {
             if (debug) log.Debug("Sequence is " + sequence + " but expected sequence is " + remoteSequence + ". Buffering message.");
-            resendBuffer[sequence] = messageFIX;
+            resendQueue.Enqueue(messageFIX, TimeStamp.UtcNow.Internal);
             if (isResendComplete)
             {
                 isResendComplete = false;
