@@ -287,6 +287,7 @@ namespace TickZoom.MBTQuotes
                         log.Info("MBTQuoteProvider connect timed out. Retrying.");
 						SetupRetry();
 						retryDelay += retryIncrease;
+                        IncreaseRetryTimeout();
 						return Yield.DidWork.Repeat;
 					} else {
 						return Yield.NoWork.Repeat;
