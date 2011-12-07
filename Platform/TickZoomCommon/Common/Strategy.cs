@@ -200,7 +200,7 @@ namespace TickZoom.Common
 		}
 		
 		public void OrderModified( LogicalOrder order) {
-			if( order.Status == OrderStatus.Active) {
+			if( order.IsActive) {
 				// Any change to an active order even if only 
 				// a price change means the list change.
 				IsActiveOrdersChanged = true;

@@ -41,7 +41,8 @@ namespace TickZoom.Api
 		NextBar,
         AutoCancel,
 		Active,
-	}
+        PartialFill,
+    }
 	
 	/// <summary>
 	/// Description of OrderCommon.
