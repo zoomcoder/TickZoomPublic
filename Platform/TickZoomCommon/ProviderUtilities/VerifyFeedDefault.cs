@@ -120,59 +120,71 @@ namespace TickZoom.Common
 			if (debug) log.Debug("Verify");
             long endTime = Factory.Parallel.TickCount + timeout * 1000;
 			count = 0;
-			while (Factory.Parallel.TickCount < endTime) {
-				if( propagateException != null) {
-					throw propagateException;
-				}
-				try { 
-					if( TryDequeueTick(ref tickBinary)) {
-						tickIO.Inject(tickBinary);
-						if (debug && countLog < 5) {
-							log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
-							countLog++;
-						}
-                        else if( trace)
-						{
-                            log.Trace("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
-                        }
-						startTime = Factory.TickCount;
-						count++;
-						if (count > 0)
-						{
-						    if( assertTick != null) {
-    							assertTick(tickIO, lastTick, symbol.BinaryIdentifier);
-						    }
-                            if (count % 5000 == 0)
-                            {
-                                log.Notice("Read " + count + " ticks");
-                            }
-                        }
-                        lastTick.Copy(tickIO);
-						if( !actionAlreadyRun && action != null) {
-							actionAlreadyRun = true;
-							action();
-						}
-                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
-                        {
-                            tickSync.RemoveTick(ref tickBinary);
-                        }
-                        if (count >= expectedCount)
-                        {
-							break;
-						}
-					} else {
-                        Thread.Sleep(100);
-                        //if (queue.Count == 0 && SyncTicks.Enabled && SymbolState == SymbolState.RealTime)
-                        //{
-                        //    tickSync.RemoveTick();
-                        //}
-					}
-				} catch (QueueException ex) {
-					if( HandleQueueException(ex)) {
-						break;
-					}
-				}
-			}
+		    do
+		    {
+		        if (propagateException != null)
+		        {
+		            throw propagateException;
+		        }
+		        try
+		        {
+		            if (TryDequeueTick(ref tickBinary))
+		            {
+		                tickIO.Inject(tickBinary);
+		                if (debug && countLog < 5)
+		                {
+		                    log.Debug("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+		                    countLog++;
+		                }
+		                else if (trace)
+		                {
+		                    log.Trace("Received a tick " + tickIO + " UTC " + tickIO.UtcTime);
+		                }
+		                startTime = Factory.TickCount;
+		                count++;
+		                if (count > 0)
+		                {
+		                    if (assertTick != null)
+		                    {
+		                        assertTick(tickIO, lastTick, symbol.BinaryIdentifier);
+		                    }
+		                    if (count%5000 == 0)
+		                    {
+		                        log.Notice("Read " + count + " ticks");
+		                    }
+		                }
+		                lastTick.Copy(tickIO);
+		                if (!actionAlreadyRun && action != null)
+		                {
+		                    actionAlreadyRun = true;
+		                    action();
+		                }
+		                if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
+		                {
+		                    tickSync.RemoveTick(ref tickBinary);
+		                }
+		                if (count >= expectedCount)
+		                {
+		                    break;
+		                }
+		            }
+		            else
+		            {
+		                Thread.Sleep(100);
+		                //if (queue.Count == 0 && SyncTicks.Enabled && SymbolState == SymbolState.RealTime)
+		                //{
+		                //    tickSync.RemoveTick();
+		                //}
+		            }
+		        }
+		        catch (QueueException ex)
+		        {
+		            if (HandleQueueException(ex))
+		            {
+		                break;
+		            }
+		        }
+		    } while (Factory.Parallel.TickCount < endTime);
 			return count;
 		}
 		
