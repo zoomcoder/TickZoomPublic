@@ -170,13 +170,20 @@ namespace TickZoom.TickUtil
 			return name;
 		}
 	    
-		private bool SpinLockNB() {
-        	for( int i=0; i<100000; i++) {
-        		if( spinLock.TryLock()) {
-        			return true;
-        		}
-        	}
-        	return false;
+		private bool SpinLock(string location)
+		{
+            while( true)
+            {
+                int spinLimit = 100000;
+                for (int i = 0; i < spinLimit; i++)
+                {
+                    if (spinLock.TryLock())
+                    {
+                        return true;
+                    }
+                }
+                log.Error("Lock spinned more than " + spinLimit + " times on " + name + " at " + location);
+            }
 	    }
 	    
 	    private void SpinUnLock() {
@@ -235,7 +242,6 @@ namespace TickZoom.TickUtil
 	    public bool TryEnqueue(T item, long utcTime)
 	    {
             // If the queue is full, wait for an item to be removed
-            if( queue == null ) return false;
             if( !disableBackupLogging) {
 	            if( count >= backupLevel) {
 	            	isBackingUp = true;
@@ -251,7 +257,7 @@ namespace TickZoom.TickUtil
             {
                 return false;
             }
-            if (!SpinLockNB()) return false;
+	        SpinLock("TryEnqueue");
             try { 
 	            if( isDisposed) {
 		    		if( exception != null) {
@@ -264,7 +270,6 @@ namespace TickZoom.TickUtil
                 {
 	            	return false;
 	            }
-                if (queue == null) return false;
                 var priorCount = count;
                 if (trace) log.Trace("Enqueue " + item);
                 var node = NodePool.Create(new FastQueueEntry<T>(item, utcTime));
@@ -295,8 +300,9 @@ namespace TickZoom.TickUtil
 	        return true;
 	    }
 	    
-	    public void ReleaseCount() {
-            while( !SpinLockNB());
+	    public void ReleaseCount()
+	    {
+	        SpinLock("ReleaseCount");
 	        var priorCount = count;
 	    	var newCount = Interlocked.Decrement(ref count);
 	    	var tempQueueCount = queue.Count;
@@ -325,8 +331,11 @@ namespace TickZoom.TickUtil
         }
 	    
 	    public void Dequeue(out T tick) {
-            if( count == 0) throw new ApplicationException("Queue is empty");
-            while (!TryDequeue(out tick)) ;
+            
+            if( !TryDequeue(out tick))
+            {
+                throw new ApplicationException("Queue is empty");    
+            }
 	    }
 	    
 	    public void Peek(out T tick) {
@@ -361,11 +370,12 @@ namespace TickZoom.TickUtil
 	    		}
             }
 	    	entry = default(FastQueueEntry<T>);
-	    	if( !isStarted) { 
-	    		if( !StartDequeue()) return false;
+	    	if( !isStarted)
+	    	{
+	    	    StartDequeue();
 	    	}
-	        if( queue == null || queue.Count==0) return false;
-	    	if( !SpinLockNB()) return false;
+	        if( queue.Count==0) return false;
+	        SpinLock("TryPeek");
 	    	try {
 	            if( isDisposed) {
 		    		if( exception != null) {
@@ -391,25 +401,18 @@ namespace TickZoom.TickUtil
 	            	throw new QueueException(EventType.Terminate);
 	    		}
             }
-	    	if( !isStarted) { 
-	    		if( !StartDequeue())
-	    		{
-                    item = default(T);
-                    return false;
-	    		}
+	    	if( !isStarted)
+	    	{
+	    	    StartDequeue();
 	    	}
-	        if( queue == null || queue.Count==0)
+	        if( queue.Count==0)
 	        {
                 item = default(T);
                 return false;
 	        }
 	        int priorCount;
 	        int newCount = 0;
-	    	if( !SpinLockNB())
-	    	{
-                item = default(T);
-                return false;
-	    	}
+	        SpinLock("TryDequeue");
 	    	try {
 	            if( isDisposed) {
 		    		if( exception != null) {
@@ -454,7 +457,7 @@ namespace TickZoom.TickUtil
 	    
 	    public void Clear() {
 	    	if( trace) log.Trace("Clear called");
-    		while( !SpinLockNB()) ;
+	        SpinLock("Clear");
 	    	if( !isDisposed) {
 		        queue.Clear();
 	    	    Interlocked.Exchange(ref count, 0);
@@ -488,8 +491,9 @@ namespace TickZoom.TickUtil
 	    		lock( disposeLocker) {
 		            isDisposed = true;   
 		            if (disposing) {
-				        if( queue!=null) {
-				    		while( !SpinLockNB()) ;
+				        if( queue!=null)
+				        {
+				            SpinLock("Dispose");
 				    		try {
 						    	inboundTask = null;
 						    	var next = queue.First;
@@ -529,17 +533,16 @@ namespace TickZoom.TickUtil
 			set { startEnqueue = value;	}
 		}
 	
-		private bool StartDequeue()
+		private void StartDequeue()
 		{
 			if( trace) log.Trace("StartDequeue called");
-			if( !SpinLockNB()) return false;
+		    SpinLock("StartDequeue");
 			isStarted = true;
 			if( StartEnqueue != null) {
 		    	if( trace) log.Trace("Calling StartEnqueue");
 				StartEnqueue();
 			}
 	        SpinUnLock();			
-	        return true;
 		}
 		
 		public int Timeout {
