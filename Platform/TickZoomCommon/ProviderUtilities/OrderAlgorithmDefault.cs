@@ -1361,10 +1361,6 @@ namespace TickZoom.Common
 
 			if( debug) log.Debug( "Matched fill with order: " + filledOrder);
 
-            if (filledOrder.SerialNumber == 56000000000356)
-            {
-                int x = 0;
-            }
 		    var strategyPosition = GetStrategyPosition(filledOrder);
             var orderPosition =
                 filledOrder.Type == OrderType.BuyLimit ||
@@ -1435,9 +1431,9 @@ namespace TickZoom.Common
                 originalLogicals.Remove(filledOrder);
                 CleanupAfterFill(filledOrder);
             }
-            catch (ApplicationException)
+            catch (ApplicationException ex)
             {
-
+                log.Warn("Ignoring execption and continuing: " + ex.Message, ex);
             }
             catch (ArgumentException ex)
             {
@@ -1473,12 +1469,14 @@ namespace TickZoom.Common
 				case TradeDirection.ExitStrategy:
 					cancelAllExits = true;
 					cancelAllExitStrategies = true;
-					cancelAllChanges = true;
+                    cancelAllEntries = true;
+                    cancelAllChanges = true;
 					clean = true;
 					break;
 				case TradeDirection.Reverse:
 					cancelAllReverse = true;
-					clean = true;
+                    cancelAllEntries = true;
+                    clean = true;
 					break;
 				default:
 					throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
