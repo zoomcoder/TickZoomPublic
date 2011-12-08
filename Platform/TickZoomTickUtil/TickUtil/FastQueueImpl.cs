@@ -180,7 +180,7 @@ namespace TickZoom.TickUtil
                         return true;
                     }
                 }
-                log.Error("Lock spinned more than " + spinLimit + " times on " + name + " at " + location + ". Locked from " + lockLocation);
+                if( debug) log.Debug("Lock spinned more than " + spinLimit + " times on " + name + " at " + location + ". Locked from " + lockLocation);
             }
 	    }
 	    
