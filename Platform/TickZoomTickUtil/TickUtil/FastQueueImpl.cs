@@ -117,10 +117,6 @@ namespace TickZoom.TickUtil
                     var value = Interlocked.Decrement(ref outboundCount);
                     task.DecreaseOutbound(id,value);
                 }
-                else
-                {
-                    int x = 0;
-                }
             }
         }
         private List<TaskConnection> outboundTasks = new List<TaskConnection>();
@@ -169,7 +165,8 @@ namespace TickZoom.TickUtil
 		{
 			return name;
 		}
-	    
+
+	    private string lockLocation;
 		private bool SpinLock(string location)
 		{
             while( true)
@@ -179,10 +176,11 @@ namespace TickZoom.TickUtil
                 {
                     if (spinLock.TryLock())
                     {
+                        lockLocation = location;
                         return true;
                     }
                 }
-                log.Error("Lock spinned more than " + spinLimit + " times on " + name + " at " + location);
+                log.Error("Lock spinned more than " + spinLimit + " times on " + name + " at " + location + ". Locked from " + lockLocation);
             }
 	    }
 	    
