@@ -59,16 +59,6 @@ namespace TickZoom.MBTFIX
 			base.OnConnectFIX(socket);
 		}
 		
-		public override void StartFIXSimulation()
-		{
-			base.StartFIXSimulation();
-		}
-	
-		public override void StartQuoteSimulation()
-		{
-			base.StartQuoteSimulation();
-		}
-		
 		public override void ParseFIXMessage(Message message)
 		{
 			var packetFIX = (MessageFIX4_4) message;

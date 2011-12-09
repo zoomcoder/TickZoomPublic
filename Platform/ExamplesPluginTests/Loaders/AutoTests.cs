@@ -348,7 +348,7 @@ namespace Loaders
 
             var tenSymbolOrders = new AutoTestSettings
             {
-                Mode = AutoTestMode.Historical,
+                Mode = AutoTestMode.Default,
                 Name = "TenSymbolOrders",
                 Loader = new ExampleOrdersLoader(),
                 Symbols = @"CL.1month, ES.1month, GC.1month, EC.1month, BP.1month,

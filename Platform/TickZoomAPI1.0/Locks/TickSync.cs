@@ -178,17 +178,17 @@ namespace TickZoom.Api
 
         public void TryHeartbeatReset()
         {
-            //var currentTime = TimeStamp.UtcNow;
-            //var diff = currentTime - lastAddTime;
-            //if( diff.TotalMilliseconds > 800)
-            //{
-            //    Interlocked.Exchange(ref (*state).physicalOrders, 0);
-            //    Interlocked.Exchange(ref (*state).positionChange, 0);
-            //    Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
-            //    Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
-            //    Interlocked.Exchange(ref (*state).switchBrokerState, 0);
-            //    if (trace) log.Trace("TryHeartbeatReset() " + this);
-            //}
+            var currentTime = TimeStamp.UtcNow;
+            var diff = currentTime - lastAddTime;
+            if (diff.TotalMilliseconds > 800)
+            {
+                Interlocked.Exchange(ref (*state).physicalOrders, 0);
+                Interlocked.Exchange(ref (*state).positionChange, 0);
+                Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
+                Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
+                Interlocked.Exchange(ref (*state).switchBrokerState, 0);
+                if (trace) log.Trace("TryHeartbeatReset() " + this);
+            }
         }
 
         public override string ToString()

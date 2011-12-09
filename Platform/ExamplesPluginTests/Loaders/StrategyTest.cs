@@ -147,7 +147,10 @@ namespace Loaders
 				case AutoTestMode.SimulateRealTime:
 					config.StarterName = "TestRealTimeStarter";
                     break;
-				case AutoTestMode.SimulateFIX:
+                case AutoTestMode.NegativeFIX:
+                    config.StarterName = "FIXNegativeStarter";
+                    break;
+                case AutoTestMode.SimulateFIX:
 					config.StarterName = "FIXSimulatorStarter";
                     break;			
 				case AutoTestMode.FIXPlayBack:
@@ -173,44 +176,21 @@ namespace Loaders
             config.Initialize();
     		return config;
 		}
-		
-		public Starter SetupStarter(AutoTestMode autoTestMode) {
-			Starter starter;
-			ushort servicePort = 6490;
-			switch( autoTestMode) {
-				case AutoTestMode.Historical:
-					starter = CreateStarterCallback();
-					break;
-				case AutoTestMode.SimulateRealTime:
-					starter = new TestRealTimeStarter();
-					starter.Port = servicePort;
-					break;
-				case AutoTestMode.SimulateFIX:
-					starter = new FIXSimulatorStarter();
-					starter.Port = servicePort;
-					break;			
-				case AutoTestMode.FIXPlayBack:
-					starter = new FIXPlayBackStarter();
-					starter.Port = servicePort;
-					break;			
-				case AutoTestMode.Design:
-					starter = new DesignStarter();
-					break;			
-				default:
-					throw new ApplicationException("AutoTestMode " + autoTestMode + " is unknown.");
-			}
-			
-			// Set run properties as in the GUI.
-			starter.ProjectProperties.Starter.StartTime = startTime;
-    		starter.ProjectProperties.Starter.EndTime = endTime;
-    		
-    		starter.DataFolder = "Test\\DataCache";
-    		starter.ProjectProperties.Starter.SetSymbols( Symbols);
-			starter.ProjectProperties.Starter.IntervalDefault = intervalDefault;
-    		starter.CreateChartCallback = new CreateChartCallback(HistoricalCreateChart);
-    		starter.ShowChartCallback = new ShowChartCallback(HistoricalShowChart);
-    		return starter;
-		}
+
+        public Starter SetupDesignStarter()
+        {
+            Starter starter = new DesignStarter();
+            // Set run properties as in the GUI.
+            starter.ProjectProperties.Starter.StartTime = startTime;
+            starter.ProjectProperties.Starter.EndTime = endTime;
+
+            starter.DataFolder = "Test\\DataCache";
+            starter.ProjectProperties.Starter.SetSymbols(Symbols);
+            starter.ProjectProperties.Starter.IntervalDefault = intervalDefault;
+            starter.CreateChartCallback = new CreateChartCallback(HistoricalCreateChart);
+            starter.ShowChartCallback = new ShowChartCallback(HistoricalShowChart);
+            return starter;
+        }
 			
 		public void MatchTestResultsOf( Type type) {
 			testFileName = type.Name;
@@ -380,11 +360,11 @@ namespace Loaders
             topModel = null;
             Factory.Log.Flush();
             Factory.SysLog.Flush();
-            if (testFailed)
-            {
-                log.Error("Exiting because one of the tests failed.");
-                Environment.Exit(1);
-            }
+            //if (testFailed)
+            //{
+            //    log.Error("Exiting because one of the tests failed.");
+            //    Environment.Exit(1);
+            //}
         }
 		
 		public class TransactionInfo {
@@ -1187,7 +1167,7 @@ namespace Loaders
 		    var result = false;
             try
             {
-                var starter = SetupStarter(AutoTestMode.Design);
+                var starter = SetupDesignStarter();
                 loaderInstance = GetLoaderInstance();
                 loaderInstance.OnInitialize(starter.ProjectProperties);
                 loaderInstance.OnLoad(starter.ProjectProperties);
@@ -1207,8 +1187,9 @@ namespace Loaders
 		}
 
    		public IEnumerable<SymbolInfo> GetSymbols() {
-			var starter = SetupStarter(AutoTestMode.Design);
-			foreach( var symbol in starter.ProjectProperties.Starter.SymbolProperties) {
+            var starter = SetupDesignStarter();
+            foreach (var symbol in starter.ProjectProperties.Starter.SymbolProperties)
+            {
    				yield return symbol;
 			}
 		}

@@ -52,7 +52,12 @@ namespace Loaders
 			if( (modesToRun & AutoTestMode.SimulateFIX) == AutoTestMode.SimulateFIX) {
 				AddDynamicTestFixtures(mainSuite,autoTestFixture, AutoTestMode.SimulateFIX);
 			}
-			if( (modesToRun & AutoTestMode.FIXPlayBack) == AutoTestMode.FIXPlayBack) {
+            if ((modesToRun & AutoTestMode.NegativeFIX) == AutoTestMode.NegativeFIX)
+            {
+                AddDynamicTestFixtures(mainSuite, autoTestFixture, AutoTestMode.NegativeFIX);
+            }
+            if ((modesToRun & AutoTestMode.FIXPlayBack) == AutoTestMode.FIXPlayBack)
+            {
 				AddDynamicTestFixtures(mainSuite,autoTestFixture, AutoTestMode.FIXPlayBack);
 			}
 			return mainSuite;
@@ -164,7 +169,12 @@ namespace Loaders
 				if( !result && CheckCanBuild(autoTestFixture, AutoTestMode.SimulateFIX)) {
 					result = true;
 				}
-				if( !result && CheckCanBuild(autoTestFixture, AutoTestMode.FIXPlayBack)) {
+                if (!result && CheckCanBuild(autoTestFixture, AutoTestMode.NegativeFIX))
+                {
+                    result = true;
+                }
+                if (!result && CheckCanBuild(autoTestFixture, AutoTestMode.FIXPlayBack))
+                {
 					result = true;
 				}
 			}

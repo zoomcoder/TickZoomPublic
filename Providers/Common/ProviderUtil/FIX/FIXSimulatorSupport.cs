@@ -59,13 +59,13 @@ namespace TickZoom.FIX
 	    private int heartbeatDelay = 1; 
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailtures = 5;
-        private static readonly bool allTests = false;
-        private bool simulateDisconnect = allTests;
-        protected bool simulateSendOrderServerOffline = allTests;
-        protected bool simulateRecvOrderServerOffline = allTests;
-        private bool simulateOrderBlackHole = allTests;
-        private bool simulateReceiveFailed = allTests;
-        private bool simulateSendFailed = allTests;
+        private bool allTests;
+        private bool simulateDisconnect;
+        protected bool simulateSendOrderServerOffline;
+        protected bool simulateRecvOrderServerOffline;
+        private bool simulateOrderBlackHole;
+        private bool simulateReceiveFailed;
+        private bool simulateSendFailed;
         private int simulateOrderBlackHoleCounter;
         private int simulateOrderBlackHoleFrequency = 20;
         private int simulateDisconnectFrequency = 50;
@@ -106,14 +106,30 @@ namespace TickZoom.FIX
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
 		    var randomSeed = new Random().Next(int.MaxValue);
-            if( randomSeed != 1234)
-            {
-                Console.WriteLine("Random seed for fix simulator:" + randomSeed);
-                log.Info("Random seed for fix simulator:" + randomSeed);
-            }
-            random = new Random(randomSeed);
+		    if (randomSeed != 1234)
+		    {
+		        Console.WriteLine("Random seed for fix simulator:" + randomSeed);
+		        log.Info("Random seed for fix simulator:" + randomSeed);
+		    }
+		    random = new Random(randomSeed);
 		    log.Register(this);
-			isPlayBack = !string.IsNullOrEmpty(mode) && mode == "PlayBack";
+		    switch (mode)
+		    {
+		        case "PlayBack":
+		            isPlayBack = true;
+		            break;
+                case "Negative":
+		            allTests = true;
+		            break;
+                default:
+		            break;
+		    }
+            simulateDisconnect = false;
+            simulateSendOrderServerOffline = false;
+            simulateRecvOrderServerOffline = false;
+            simulateOrderBlackHole = false;
+            simulateReceiveFailed = allTests;
+            simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
 			this._quoteMessageFactory = _quoteMessageFactory;
 			ListenToFIX(fixPort);
