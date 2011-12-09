@@ -218,14 +218,14 @@ namespace TickZoom.MBTFIX
                         GetAlgorithm(symbolId);
                     }
                 }
-                if( SyncTicks.Enabled)
-                {
-                    foreach (var order in OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew))
-                    {
-                        var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
-                        tickSync.AddPhysicalOrder(order);
-                    }
-                }
+                //if( SyncTicks.Enabled)
+                //{
+                //    foreach (var order in OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew))
+                //    {
+                //        var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
+                //        tickSync.AddPhysicalOrder(order);
+                //    }
+                //}
                 if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.OrdersToString());
                 if (debug) log.Debug("Recovered symbol positions from snapshot:\n" + OrderStore.SymbolPositionsToString());
@@ -481,11 +481,11 @@ namespace TickZoom.MBTFIX
             var openOrders = GetOpenOrders();
             if( string.IsNullOrEmpty(openOrders))
             {
-                if( debug) log.Debug("Found 0 open orders.");
+                if( debug) log.Debug("Found 0 open orders prior to sync.");
             }
             else
             {
-			    if( debug) log.Debug("Recovered Open Orders:\n" + openOrders);
+                if (debug) log.Debug("Orders prior to sync:\n" + openOrders);
             }
 			MessageFIXT1_1.IsQuietRecovery = false;
             foreach( var kvp in orderAlgorithms)
