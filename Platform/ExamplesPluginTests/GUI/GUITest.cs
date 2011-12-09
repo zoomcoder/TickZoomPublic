@@ -306,10 +306,9 @@ namespace Other
                     TickBinary tick1 = new TickBinary();
 					try {
 						int count = 0;
-						while(true) {
-							while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
-							reader1.ReadQueue.ReleaseCount();
-							TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
+						while(true)
+						{
+						    if( !reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(10); }
 							count++;
 						}
 					} catch( QueueException ex) {
@@ -325,11 +324,10 @@ namespace Other
 					bool result = true;
 					try {
 						int count = 0;
-						while(true) {
-							while(!reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(1); }
-							reader1.ReadQueue.ReleaseCount();
-							while(!reader2.ReadQueue.TryDequeue(ref tick2)) { Thread.Sleep(1); }
-							reader2.ReadQueue.ReleaseCount();
+						while(true)
+						{
+						    reader1.ReadQueue.Dequeue(ref tick1);
+						    reader2.ReadQueue.Dequeue(ref tick2);
 							TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
 							TimeStamp ts2 = new TimeStamp(tick2.UtcTime);
 							if( !ts1.Equals(ts2)) {

@@ -44,7 +44,6 @@ namespace TickZoom.TZData
                     while (true)
                     {
                         reader.ReadQueue.Dequeue(ref tickBinary);
-                        reader.ReadQueue.ReleaseCount();
                         tickIO.Inject(tickBinary);
                         tickIO.IsSimulateTicks = false;
                         while (!writer.TryAdd(tickIO))

@@ -133,7 +133,7 @@ namespace TickZoom.FIX
                     log.Info("Simulator found empty read queue at tick " + tickCounter + ", initial count " + initialCount + ". Recent counts:");
                     if( trace) log.Trace("Recent counts:\n"+sb);
                 }
-			    reader.ReadQueue.Dequeue(ref binary);
+			    reader.ReadQueue.Peek(ref binary);
 			    if( Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref binary);
                 alreadyEmpty = false;
 				tickCounter++;
@@ -192,7 +192,8 @@ namespace TickZoom.FIX
 		    fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
             quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
-            reader.ReadQueue.ReleaseCount();
+            var binary = default(TickBinary);
+            reader.ReadQueue.Dequeue(ref binary);
             return Yield.DidWork.Return;
 		}
 

@@ -97,7 +97,6 @@ namespace TickZoom.Common
             var result = false;
             if( queue.TryDequeue(out eventItem))
             {
-                queue.ReleaseCount();
                 var eventType = (EventType)eventItem.EventType;
                 switch( eventType)
                 {

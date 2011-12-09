@@ -83,13 +83,13 @@ namespace TickZoom.TickUtil
 	    public void Enqueue(EventType entryType, string error)
 	    {
 	    	if( !TryEnqueue(entryType, error)) {
-	    		throw new ApplicationException("Enqueue failed.");
+	    		throw new ApplicationException("queue is full");
 	    	}
 	    }
 	    
 	    public bool TryEnqueue(EventType entryType, string error)
 	    {
-        	QueueItem item = new QueueItem();
+        	var item = new QueueItem();
 	    	item.EventType = (int) entryType;
 	    	return TryEnqueue(item,TimeStamp.UtcNow.Internal);
 	    }
@@ -97,10 +97,7 @@ namespace TickZoom.TickUtil
 	    public void Dequeue(ref TickBinary tick)
 	    {
 	    	while( !TryDequeue(ref tick)) {
-	    		if( IsEmpty)
-	    		{
-	    		    throw new ApplicationException("Queue is empy");
-	    		}
+	    		Thread.Sleep(1);
 	    	}
 	    }
 	    
@@ -110,7 +107,6 @@ namespace TickZoom.TickUtil
 	    	bool result = TryDequeue(out item);
 	    	if( result) {
 	    		if( item.EventType != (int) EventType.Tick) {
-	    			ReleaseCount();
 		    		string symbol;
 		    		if( item.Symbol != 0) {
 		    			symbol = item.Symbol.ToSymbol();
@@ -124,7 +120,41 @@ namespace TickZoom.TickUtil
 		    }
 	    	return result;
 	    }
-	    
+
+        public void Peek(ref TickBinary tick)
+        {
+            if (!TryPeek(ref tick))
+            {
+                throw new ApplicationException("Queue is empy");
+            }
+        }
+
+	    public bool TryPeek(ref TickBinary tick)
+        {
+            var item = new QueueItem();
+            bool result = TryPeek(out item);
+            if (result)
+            {
+                if (item.EventType != (int)EventType.Tick)
+                {
+                    string symbol;
+                    if (item.Symbol != 0)
+                    {
+                        symbol = item.Symbol.ToSymbol();
+                    }
+                    else
+                    {
+                        symbol = "";
+                    }
+                    throw new QueueException((EventType)item.EventType, symbol);
+                }
+                else
+                {
+                    tick = item.Tick;
+                }
+            }
+            return result;
+        }
     }
 	
 }

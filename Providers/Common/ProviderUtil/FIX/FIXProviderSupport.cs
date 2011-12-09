@@ -367,7 +367,6 @@ namespace TickZoom.FIX
                 {
                     PositionChangeDetail positionChange;
                     positionChangeQueue.Dequeue(out positionChange);
-                    positionChangeQueue.ReleaseCount();
                     PositionChange(positionChange);
                 }
             }
@@ -422,13 +421,11 @@ namespace TickZoom.FIX
                                         if( tempMessage.Sequence == remoteSequence)
                                         {
                                             resendQueue.Dequeue(out messageFIX);
-                                            resendQueue.ReleaseCount();
                                             break;
                                         }
                                         if( tempMessage.Sequence < remoteSequence)
                                         {
                                             resendQueue.Dequeue(out messageFIX);
-                                            resendQueue.ReleaseCount();
                                         }
                                         if( tempMessage.Sequence > remoteSequence)
                                         {

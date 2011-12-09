@@ -126,7 +126,6 @@ namespace TickZoom.Utilities
 			       		while( ! queue.TryDequeue( ref binary)) {
 			       			Thread.Sleep(1);
 			       		}
-						queue.ReleaseCount();
 			       		lineCount++;
 						tickIO.Inject(binary);
 						sb.Length = 0;

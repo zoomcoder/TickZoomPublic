@@ -141,9 +141,6 @@ namespace TickZoom.TZData
 			do {
 				try {
 					result = queue.TryDequeue(ref binary);
-					if( result) {
-						queue.ReleaseCount();
-					}
 				} catch( QueueException ex) {
 					// Ignore any other events.
 					if( ex.EntryType == EventType.EndHistorical) {

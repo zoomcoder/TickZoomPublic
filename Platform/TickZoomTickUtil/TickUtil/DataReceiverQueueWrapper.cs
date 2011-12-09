@@ -29,11 +29,6 @@ namespace TickZoom.TickUtil
             tickQueue.Clear();
         }
 
-        public void ReleaseCount()
-        {
-            tickQueue.ReleaseCount();
-        }
-
         public void Enqueue(EventItem item, long utcTime)
         {
             var eventType = (EventType) item.EventType;
@@ -95,6 +90,11 @@ namespace TickZoom.TickUtil
         public bool IsFull
         {
             get { return tickQueue.IsFull; }
+        }
+
+        public bool IsEmpty
+        {
+            get { return tickQueue.IsEmpty; }
         }
 
         public SymbolInfo Symbol

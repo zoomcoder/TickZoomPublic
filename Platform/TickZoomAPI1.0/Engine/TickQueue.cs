@@ -39,5 +39,7 @@ namespace TickZoom.Api
     	void Enqueue(ref TickBinary binary);
     	bool TryEnqueue(ref TickBinary binary);
 	    bool TryEnqueue(EventType entryType, SymbolInfo symbol);
+        void Peek(ref TickBinary tick);
+        bool TryPeek(ref TickBinary tick);
     }
 }

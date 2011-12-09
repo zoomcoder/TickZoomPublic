@@ -84,7 +84,6 @@ namespace TickZoom.TZData
 					while( !inputQueue.TryDequeue(ref tickBinary)) {
 						Thread.Sleep(1);
 					}
-					inputQueue.ReleaseCount();
 					tickIO.Inject(tickBinary);
 					
 					if( tickIO.Time >= startTime) {

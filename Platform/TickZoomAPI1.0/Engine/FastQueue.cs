@@ -45,10 +45,9 @@ namespace TickZoom.Api
 	    void SetException(Exception ex);
 		bool IsStarted { get; }
 		int Capacity { get; }
-	    bool IsFull {
-	    	get;
-	    }
-		void ConnectInbound(Task task);
+	    bool IsFull { get; }
+        bool IsEmpty { get; }
+        void ConnectInbound(Task task);
 	    void ConnectOutbound(Task task);
 	}
 
@@ -65,7 +64,6 @@ namespace TickZoom.Api
         void Dequeue(out T tick);
 	    bool TryDequeue(out T item);
 		void Peek(out T tick);
-	    void ReleaseCount();
 	    bool TryPeek( out T tick);
 	}
 

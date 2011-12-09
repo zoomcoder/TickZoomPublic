@@ -154,7 +154,7 @@ namespace TickZoom.FIX
                     if (trace) log.Trace("Recent counts:\n" + sb);
                 }
                 queueCounts.Add(reader.ReadQueue.Count);
-                if (reader.ReadQueue.TryDequeue(ref binary))
+                if (reader.ReadQueue.TryPeek(ref binary))
                 {
                     if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref binary);
                     alreadyEmpty = false;
@@ -286,7 +286,8 @@ namespace TickZoom.FIX
             fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
             if (trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
             quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
-            reader.ReadQueue.ReleaseCount();
+            var binary = default(TickBinary);
+            reader.ReadQueue.Dequeue(ref binary);
             tickStatus = TickStatus.Sent;
             return Yield.DidWork.Return;
         }

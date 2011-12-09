@@ -189,12 +189,9 @@ namespace TickZoom.TickUtil
 	    }
 	    
         public void Enqueue(T tick, long utcTime) {
-            while (!TryEnqueue(tick, utcTime))
+            if(!TryEnqueue(tick, utcTime))
             {
-                if( IsFull)
-                {
-                    throw new ApplicationException("Enqueue failed for " + name + " with " + count + " items.");
-                }
+                throw new ApplicationException("Enqueue failed for " + name + " with " + count + " items.");
             }
         }
 
@@ -298,25 +295,25 @@ namespace TickZoom.TickUtil
 	        return true;
 	    }
 	    
-	    public void ReleaseCount()
-	    {
-	        SpinLock("ReleaseCount");
-	        var priorCount = count;
-	    	var newCount = Interlocked.Decrement(ref count);
-	    	var tempQueueCount = queue.Count;
-            if( newCount == 0) earliestUtcTime = long.MaxValue;
-	    	if( newCount < tempQueueCount) {
-	    		throw new ApplicationException("Attempt to reduce FastQueue count less than internal queue: count " + newCount + ", queue.Count " + tempQueueCount);
-	    	}
-	    	if( inboundTask != null)
-	    	{
-                if( trace) log.Trace("DecreaseInbound with count = " + newCount);
+        private void ReleaseCountInternal()
+        {
+            var priorCount = count;
+            var newCount = Interlocked.Decrement(ref count);
+            var tempQueueCount = queue.Count;
+            if (newCount == 0) earliestUtcTime = long.MaxValue;
+            if (newCount < tempQueueCount)
+            {
+                throw new ApplicationException("Attempt to reduce FastQueue count less than internal queue: count " + newCount + ", queue.Count " + tempQueueCount);
+            }
+            if (inboundTask != null)
+            {
+                if (trace) log.Trace("DecreaseInbound with count = " + newCount);
                 inboundTask.DecreaseInbound(inboundId);
                 if (newCount == 0)
                 {
                     inboundTask.UpdateUtcTime(inboundId, earliestUtcTime);
                 }
-	    	}
+            }
             if (priorCount >= maxSize && newCount < maxSize)
             {
                 if (trace) log.Trace("DecreaseOutbound with count " + newCount + ", previous count " + priorCount);
@@ -325,7 +322,6 @@ namespace TickZoom.TickUtil
                     outboundTasks[i].DecreaseOutbound();
                 }
             }
-            SpinUnLock();
         }
 	    
 	    public void Dequeue(out T tick) {
@@ -338,7 +334,10 @@ namespace TickZoom.TickUtil
 	    
 	    public void Peek(out T tick) {
             if (count == 0) throw new ApplicationException("Queue is empty");
-            while (!TryPeekStruct(out tick)) ;
+            if( !TryPeekStruct(out tick))
+            {
+                throw new ApplicationException("Queue is empty.");
+            }
 	    }
 
         public bool TryPeek( out T tick)
@@ -382,7 +381,7 @@ namespace TickZoom.TickUtil
 		            	throw new QueueException(EventType.Terminate);
 		    		}
 	            }
-		        if( queue == null || queue.Count==0) return false;
+		        if( queue.Count==0) return false;
 		        entry = queue.Last.Value;
 	    	} finally {
 	            SpinUnLock();
@@ -419,7 +418,7 @@ namespace TickZoom.TickUtil
 		            	throw new QueueException(EventType.Terminate);
 		    		}
 	            }
-		        if( queue == null || queue.Count==0)
+		        if( queue.Count==0)
 		        {
                     item = default(T);
                     return false;
@@ -439,6 +438,7 @@ namespace TickZoom.TickUtil
 		        NodePool.Free(last);
 	            newCount = queue.Count;
                 earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
+                ReleaseCountInternal();
 	    	} finally {
 	            SpinUnLock();
 	    	}

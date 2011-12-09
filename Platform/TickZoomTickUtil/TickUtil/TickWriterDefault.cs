@@ -208,7 +208,6 @@ namespace TickZoom.TickUtil
                         {
     						break;
 	    				}
-		    			writeQueue.ReleaseCount();
 			    		tickIO.Inject(tick);
 				    	if( trace)  log.Trace("Writing to file: " + tickIO);
                         tickIO.ToWriter(memory);

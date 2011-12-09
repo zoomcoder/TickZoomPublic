@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using TickZoom.Api;
 
 namespace TickZoom.TZData
@@ -80,7 +81,7 @@ namespace TickZoom.TZData
                     while (true)
                     {
                         queue.Dequeue(ref tickBinary);
-                        queue.ReleaseCount();
+
                         tickIO.Inject(tickBinary);
                         if (tickIO.UtcTime > endTime)
                         {

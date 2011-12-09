@@ -412,7 +412,6 @@ namespace TickZoom.FIX
 			}
 			if( trace) log.Trace("ProcessFIXPackets( " + fixPacketQueue.Count + " packets in queue.)");
 			if( fixPacketQueue.TryDequeue(out _fixWriteMessage)) {
-                fixPacketQueue.ReleaseCount();
 				return true;
 			} else {
 				return false;
@@ -489,7 +488,6 @@ namespace TickZoom.FIX
 			}
 			if( trace) log.Trace("ProcessQuotePackets( " + quotePacketQueue.Count + " packets in queue.)");
 			if( quotePacketQueue.TryDequeue(out _quoteWriteMessage)) {
-				QuotePacketQueue.ReleaseCount();
 				return true;
 			} else {
 				return false;
