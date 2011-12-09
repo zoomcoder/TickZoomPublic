@@ -60,6 +60,7 @@ namespace TickZoom.FIX
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailtures = 5;
         private bool allTests;
+        private int simulateDisconnectCounter;
         private bool simulateDisconnect;
         protected bool simulateSendOrderServerOffline;
         protected bool simulateRecvOrderServerOffline;
@@ -125,10 +126,10 @@ namespace TickZoom.FIX
                 default:
 		            break;
 		    }
-            simulateDisconnect = false;
+            simulateDisconnect = allTests;
             simulateSendOrderServerOffline = false;
             simulateRecvOrderServerOffline = false;
-            simulateOrderBlackHole = allTests;
+            simulateOrderBlackHole = false;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
@@ -258,8 +259,8 @@ namespace TickZoom.FIX
                     Factory.Parallel.StackTrace();
                     throw new ApplicationException("HeartBeat response was never received.");
                 }
-                OnHeartbeat();
                 isHeartbeatPending = true;
+                OnHeartbeat();
             }
             currentTime.AddSeconds(1);
             if (verbose) log.Verbose("Setting next heartbeat at " + currentTime);
@@ -735,7 +736,7 @@ namespace TickZoom.FIX
                 RemoveTickSync(packetFIX);
                 return true;
             }
-            if (simulateDisconnect && FixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
+            if (simulateDisconnectCounter < maxFailtures && simulateDisconnect && FixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
             {
                 if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= receive disconnect sequence " + nextRecvDisconnectSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + packetFIX);
@@ -745,6 +746,7 @@ namespace TickZoom.FIX
                 // This will test the message recovery.)
                 SwitchBrokerState("disconnect");
                 isConnectionLost = true;
+                ++simulateDisconnectCounter;
                 return true;
             }
             if (simulateReceiveFailed && FixFactory != null && random.Next(50) == 1)
@@ -1047,7 +1049,7 @@ namespace TickZoom.FIX
                 RemoveTickSync(fixMessage);
                 return;
             }
-            if (simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)
+            if (simulateDisconnectCounter > maxFailtures && simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)
             {
                 if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= send disconnect sequence " + nextSendDisconnectSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
@@ -1055,11 +1057,17 @@ namespace TickZoom.FIX
                 if (trace) log.Trace("Set next disconnect sequence for send = " + nextSendDisconnectSequence);
                 SwitchBrokerState("disconnect");
                 isConnectionLost = true;
+                ++simulateDisconnectCounter;
                 return;
             }
             if (simulateSendFailed && IsRecovered && random.Next(50) == 4)
             {
                 if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message. " + fixMessage);
+                if (debug) log.Debug("Message type is: " + fixMessage.Type);
+                if (fixMessage.Type == "1")
+                {
+                    isHeartbeatPending = false;
+                }
                 return;
             }
             var writePacket = fixSocket.MessageFactory.Create();
