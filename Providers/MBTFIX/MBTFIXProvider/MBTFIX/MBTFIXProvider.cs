@@ -85,7 +85,7 @@ namespace TickZoom.MBTFIX
 		
 		public override void OnDisconnect() {
             HeartbeatDelay = int.MaxValue;
-		    OrderStore.RequestSnapshot();
+		    OrderStore.ForceSnapshot();
             var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
             if( SyncTicks.Enabled)
             {

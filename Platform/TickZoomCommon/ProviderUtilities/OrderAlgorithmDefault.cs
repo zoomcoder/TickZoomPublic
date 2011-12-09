@@ -1138,7 +1138,7 @@ namespace TickZoom.Common
                                       diff.TotalSeconds + " seconds.";
                         if( SyncTicks.Enabled)
                         {
-                            //tickSync.RemoveBlackHole(order.BrokerOrder);
+                            tickSync.RemoveBlackHole(order.BrokerOrder);
                             log.Info(message);
                         }
                         else
@@ -1158,11 +1158,11 @@ namespace TickZoom.Common
                     if (SyncTicks.Enabled)
                     {
                         tickSync.RemovePhysicalOrder(order);
-                        //tickSync.RemoveBlackHole(order.BrokerOrder);
+                        tickSync.RemoveBlackHole(order.BrokerOrder);
                     }
                 }
             }
-            return result;
+            return list.Count > 0;
         }
 
         private LogicalOrder FindActiveLogicalOrder(long serialNumber)
@@ -1298,13 +1298,6 @@ namespace TickZoom.Common
                             if (debug) log.Debug("PerformCompare ignored. Position not yet synced. " + extra);
                         }
 
-                        if (SyncTicks.Enabled)
-                        {
-                            tickSync.RollbackPhysicalOrders();
-                            tickSync.RollbackPositionChange();
-                            tickSync.RollbackProcessPhysicalOrders();
-                            tickSync.RollbackReprocessPhysicalOrders();
-                        }
 					}
                     finally {
 						Interlocked.Decrement( ref recursiveCounter);

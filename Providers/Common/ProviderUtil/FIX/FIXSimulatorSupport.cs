@@ -260,9 +260,9 @@ namespace TickZoom.FIX
                     Factory.Parallel.StackTrace();
                     throw new ApplicationException("HeartBeat response was never received.");
                 }
-                OnHeartbeat();
                 isHeartbeatPending = TimeStamp.UtcNow;
                 isHeartbeatPending.AddMilliseconds(1500);
+                OnHeartbeat();
             }
             currentTime.AddSeconds(1);
             if (verbose) log.Verbose("Setting next heartbeat at " + currentTime);
@@ -776,10 +776,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
-                        //var message = (MessageFIX4_4)packetFIX;
-                        //var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        //var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        //tickSync.AddBlackHole(message.ClientOrderId);
+                        var message = (MessageFIX4_4) packetFIX;
+                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -788,10 +788,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
-                        //var message = (MessageFIX4_4)packetFIX;
-                        //var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        //var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        //tickSync.AddBlackHole(message.ClientOrderId);
+                        var message = (MessageFIX4_4)packetFIX;
+                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -800,10 +800,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
-                        //var message = (MessageFIX4_4)packetFIX;
-                        //var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        //var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        //tickSync.AddBlackHole(message.ClientOrderId);
+                        var message = (MessageFIX4_4)packetFIX;
+                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -1077,6 +1077,10 @@ namespace TickZoom.FIX
             if (simulateSendFailed && IsRecovered && random.Next(50) == 4)
             {
                 if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message. " + fixMessage);
+                if( fixMessage.Type == "1")
+                {
+                    isHeartbeatPending = TimeStamp.MaxValue;
+                }
                 if (debug) log.Debug("Message type is: " + fixMessage.Type);
                 return;
             }

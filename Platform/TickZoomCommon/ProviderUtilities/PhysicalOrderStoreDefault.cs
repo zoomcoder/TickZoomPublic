@@ -164,12 +164,11 @@ namespace TickZoom.Common
             snapshotNeeded = true;
         }
 
-        private string lastSnapshotTrace;
         private void StartSnapShot()
         {
             lock( snapshotLocker)
             {
-                while(writeFileResult != null)
+                if(writeFileResult != null)
                 {
                     if (writeFileResult.IsCompleted)
                     {
@@ -178,12 +177,12 @@ namespace TickZoom.Common
                     }
                     else
                     {
-                        throw new ApplicationException("Snapshot still in progress. Last snapshot started from:\n" + lastSnapshotTrace + "\nEnd of previous stack trace.");
+                        if( debug) log.Debug("StartSnapshot() Snapshot already in progress.");
+                        return;
                     }
                 }
                 if( writeFileResult == null)
                 {
-                    lastSnapshotTrace = Environment.StackTrace;
                     writeFileResult = writeFileAction.BeginInvoke(null, null);
                     updateCount = 0;
                 }
@@ -772,6 +771,31 @@ namespace TickZoom.Common
             this.localSequence = localSequence;
         }
 
+        public void ForceSnapshot()
+        {
+            if (cacheLocker.IsLocked || (writeFileResult != null && !writeFileResult.IsCompleted))
+            {
+                if (debug) log.Debug("ForceSnapshot() - snapshot write already in progress.");
+                return;
+            }
+            if (anySnapShotWritten)
+            {
+                if (IsBusy)
+                {
+                    if (debug) log.Debug("ForceSnapshot() - snapshot already started...");
+                    WaitForSnapshot();
+                }
+                else
+                {
+                    if (debug) log.Debug("ForceSnapshot() - starting snapshot now...");
+                    RequestSnapshot();
+                    StartSnapShot();
+                    WaitForSnapshot();
+                }
+                if (debug) log.Debug("ForceSnapshot() - snapshot complete.");
+            }
+        }
+
         private volatile bool isDisposed = false;
         protected override void Dispose(bool disposing)
         {
@@ -784,24 +808,8 @@ namespace TickZoom.Common
                     disposeNeeded = true;
                     lock( snapshotLocker)
                     {
-                        if (cacheLocker.IsLocked || (writeFileResult != null  && !writeFileResult.IsCompleted))
-                        {
-                            return;
-                        }
+                        ForceSnapshot();
                         isDisposed = true;
-                        if (anySnapShotWritten)
-                        {
-                            if (IsBusy)
-                            {
-                                WaitForSnapshot();
-                            }
-                            else
-                            {
-                                RequestSnapshot();
-                                StartSnapShot();
-                                WaitForSnapshot();
-                            }
-                        }
                         TryClose();
                     }
                 }

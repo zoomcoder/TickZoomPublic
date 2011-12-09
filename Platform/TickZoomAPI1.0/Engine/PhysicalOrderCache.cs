@@ -39,6 +39,7 @@ namespace TickZoom.Api
         int LocalSequence { get; }
         void RequestSnapshot();
         void WaitForSnapshot();
+        void ForceSnapshot();
         bool Recover();
         void UpdateLocalSequence(int localSequence);
         void UpdateRemoteSequence(int remoteSequence);
