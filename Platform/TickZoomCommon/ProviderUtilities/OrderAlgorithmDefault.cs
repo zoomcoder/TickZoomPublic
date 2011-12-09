@@ -64,7 +64,6 @@ namespace TickZoom.Common
 		private bool handleSimulatedExits = false;
 		private int sentPhysicalOrders = 0;
 		private TickSync tickSync;
-		private Dictionary<long,long> filledOrders = new Dictionary<long,long>();
 	    private LogicalOrderCache logicalOrderCache;
         private bool isPositionSynced = false;
         private long minimumTick;
@@ -1063,11 +1062,6 @@ namespace TickZoom.Common
                 int count = originalLogicals == null ? 0 : originalLogicals.Count;
                 log.Trace("SetLogicalOrders() order count = " + count);
             }
-            if (CheckForFilledOrders(inputLogicals))
-            {
-                if (debug) log.Debug("Found already filled orders in position change event. Ignoring until recent fills get posted.");
-                return;
-            }
             logicalOrderCache.SetActiveOrders(inputLogicals);
             bufferedLogicals.Clear();
             bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
@@ -1193,14 +1187,6 @@ namespace TickZoom.Common
 		    return null;
 		}
 
-        private void TryCleanCanceledLogicals()
-        {
-            //if( canceledLogicals.Count > 100)
-            //{
-            //    canceledLogicals.RemoveFirst();
-            //}
-        }
-		
 		public void ProcessFill( PhysicalFill physical) {
             if (debug) log.Debug("ProcessFill() physical: " + physical);
             var beforePosition = physicalOrderCache.GetActualPosition(symbol);
@@ -1427,7 +1413,6 @@ namespace TickZoom.Common
             try
             {
                 if (debug) log.Debug("Marking order id " + filledOrder.Id + " as completely filled.");
-                filledOrders.Add(filledOrder.SerialNumber, TimeStamp.UtcNow.Internal);
                 originalLogicals.Remove(filledOrder);
                 CleanupAfterFill(filledOrder);
             }
@@ -1482,7 +1467,6 @@ namespace TickZoom.Common
 					throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
 			}
 			if( clean) {
-                TryCleanCanceledLogicals();
 			    for (var current = originalLogicals.First; current != null; current = current.Next)
 			    {
 			        var order = current.Value;
@@ -1532,22 +1516,6 @@ namespace TickZoom.Common
             return sentPhysicalOrders;
 		}
 
-		private bool CheckForFilledOrders(Iterable<LogicalOrder> orders) {
-            if( orders == null) return false;
-		    var next = orders.First;
-		    for (var current = next; current != null; current = next)
-		    {
-		        next = current.Next;
-		        var logical = current.Value;
-				var binaryTime = 0L;
-				if( filledOrders.TryGetValue( logical.SerialNumber, out binaryTime)) {
-					if( debug) log.Debug("Found already filled order: " + logical);
-				   	return true;
-				}
-			}
-			return false;
-		}
-		
 		private int recursiveCounter;
 		private bool PerformCompareInternal()
 		{
@@ -1657,21 +1625,13 @@ namespace TickZoom.Common
         {
             if (bufferedLogicalsChanged)
             {
-                if (CheckForFilledOrders(bufferedLogicals))
+                if (debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
+                originalLogicals.Clear();
+                if (bufferedLogicals != null)
                 {
-                    if (debug) log.Debug("Found already filled orders in position change event. Ignoring until recent fills get posted.");
-                    bufferedLogicalsChanged = false;
+                    originalLogicals.AddLast(bufferedLogicals);
                 }
-                else
-                {
-                    if (debug) log.Debug("Buffered logicals were updated so refreshing original logicals list ...");
-                    originalLogicals.Clear();
-                    if (bufferedLogicals != null)
-                    {
-                        originalLogicals.AddLast(bufferedLogicals);
-                    }
-                    bufferedLogicalsChanged = false;
-                }
+                bufferedLogicalsChanged = false;
             }
         }
 
