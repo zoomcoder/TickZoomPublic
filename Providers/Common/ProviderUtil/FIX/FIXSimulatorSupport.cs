@@ -102,6 +102,7 @@ namespace TickZoom.FIX
 		private Dictionary<long, SimulateSymbol> symbolHandlers = new Dictionary<long, SimulateSymbol>();
 		private bool isPlayBack = false;
         private TrueTimer heartbeatTimer;
+        private bool isHeartbeatPending = false;
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
@@ -127,7 +128,7 @@ namespace TickZoom.FIX
             simulateDisconnect = false;
             simulateSendOrderServerOffline = false;
             simulateRecvOrderServerOffline = false;
-            simulateOrderBlackHole = false;
+            simulateOrderBlackHole = allTests;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
@@ -136,29 +137,32 @@ namespace TickZoom.FIX
 			ListenToQuotes(quotesPort);
 			MainLoopMethod = MainLoop;
             if( debug) log.Debug("Starting FIX Simulator.");
-            if( !simulateDisconnect)
+            if( allTests)
             {
-                log.Error("SimulateDisconnect is disabled.");
-            }
-            if (!simulateSendOrderServerOffline)
-            {
-                log.Error("SimulateSendOrderServerOffline is disabled.");
-            }
-            if (!simulateRecvOrderServerOffline)
-            {
-                log.Error("SimulateRecvOrderServerOffline is disabled.");
-            }
-            if (!simulateReceiveFailed)
-            {
-                log.Error("SimulateReceiveFailed is disabled.");
-            }
-            if (!simulateOrderBlackHole)
-            {
-                log.Error("SimulateOrderBlackHole is disabled.");
-            }
-            if (!simulateSendFailed)
-            {
-                log.Error("SimulateSendFailed is disabled.");
+                if (!simulateDisconnect)
+                {
+                    log.Error("SimulateDisconnect is disabled.");
+                }
+                if (!simulateSendOrderServerOffline)
+                {
+                    log.Error("SimulateSendOrderServerOffline is disabled.");
+                }
+                if (!simulateRecvOrderServerOffline)
+                {
+                    log.Error("SimulateRecvOrderServerOffline is disabled.");
+                }
+                if (!simulateReceiveFailed)
+                {
+                    log.Error("SimulateReceiveFailed is disabled.");
+                }
+                if (!simulateOrderBlackHole)
+                {
+                    log.Error("SimulateOrderBlackHole is disabled.");
+                }
+                if (!simulateSendFailed)
+                {
+                    log.Error("SimulateSendFailed is disabled.");
+                }
             }
         }
 
@@ -247,7 +251,15 @@ namespace TickZoom.FIX
             }
             if (fixState != ServerState.Startup)
             {
+                if( isHeartbeatPending)
+                {
+                    log.Error("HeartBeat response was never received.\n" + Factory.Parallel.GetStats());
+                    log.Error("All stack traces follow...");
+                    Factory.Parallel.StackTrace();
+                    throw new ApplicationException("HeartBeat response was never received.");
+                }
                 OnHeartbeat();
+                isHeartbeatPending = true;
             }
             currentTime.AddSeconds(1);
             if (verbose) log.Verbose("Setting next heartbeat at " + currentTime);
@@ -530,6 +542,7 @@ namespace TickZoom.FIX
                 var packetFIX = (MessageFIXT1_1)_fixReadMessage;
                 IncreaseHeartbeat();
                 if (debug) log.Debug("Received FIX message: " + packetFIX);
+			    isHeartbeatPending = false;
                 try
                 {
                     switch( fixState)
@@ -1022,7 +1035,7 @@ namespace TickZoom.FIX
 		private void IncreaseHeartbeat()
 		{
 		    var timeStamp = TimeStamp.UtcNow;
-		    timeStamp.AddSeconds(1);
+		    timeStamp.AddSeconds(HeartbeatDelay);
             if (verbose) log.Verbose("Setting next heartbeat for " + timeStamp);
             heartbeatTimer.Start(timeStamp);
 		}		

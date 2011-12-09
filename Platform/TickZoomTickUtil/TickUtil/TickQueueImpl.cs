@@ -97,7 +97,10 @@ namespace TickZoom.TickUtil
 	    public void Dequeue(ref TickBinary tick)
 	    {
 	    	while( !TryDequeue(ref tick)) {
-	    		Thread.Sleep(1);
+	    		if( IsEmpty)
+	    		{
+	    		    throw new ApplicationException("Queue is empy");
+	    		}
 	    	}
 	    }
 	    
