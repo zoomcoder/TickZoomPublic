@@ -245,18 +245,6 @@ namespace Loaders
 				IntervalDefault = Intervals.Minute1,
             });
 			
-			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.Historical,
-			    Name = "LimitChangeTest",
-			    Loader = new LimitChangeOffsetDisabledLoader(),
-				Symbols = primarySymbol,
-				StoreKnownGood = storeKnownGood,
-				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
-				EndTime = new TimeStamp( 2009, 6, 10),
-				IntervalDefault = Intervals.Minute1,
-			});
-
             list.Add(new AutoTestSettings
             {
                 Mode = AutoTestMode.Default,

@@ -69,7 +69,6 @@ namespace TickZoom.Symbols
 	    private FIXSimulationType fixSimulationType;
         private LimitOrderQuoteSimulation _limitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
 	    private LimitOrderTradeSimulation _limitOrderTradeSimulation = LimitOrderTradeSimulation.TradeTouch;
-	    private bool _offsetTooLateToCancel = true;
 	    private OptionChain optionChain = OptionChain.None;
 
 		public SymbolProperties Copy()
@@ -280,12 +279,6 @@ namespace TickZoom.Symbols
 	    {
 	        get { return fixSimulationType; }
 	        set { fixSimulationType = value; }
-	    }
-
-	    public bool OffsetTooLateToCancel
-	    {
-	        get { return _offsetTooLateToCancel; }
-	        set { _offsetTooLateToCancel = value; }
 	    }
 
 	    public OptionChain OptionChain

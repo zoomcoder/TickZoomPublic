@@ -299,11 +299,5 @@ namespace TickZoom.Api
         /// </summary>
 	    FIXSimulationType FixSimulationType{ get; }
 
-        /// <summary>
-        /// Will the order algorithm issues adjustment orders to correct fills that come
-        /// after an attempt to cancel that same order?
-        /// </summary>
-        bool OffsetTooLateToCancel{ get; }
-
 	}
 }

@@ -54,7 +54,6 @@ namespace TickZoom.Common
         private SimpleLock bufferedLogicalsLocker = new SimpleLock();
         private volatile bool bufferedLogicalsChanged = false;
 		private ActiveList<LogicalOrder> bufferedLogicals;
-        private ActiveList<LogicalOrder> canceledLogicals;
         private ActiveList<LogicalOrder> originalLogicals;
 		private ActiveList<LogicalOrder> logicalOrders;
         private ActiveList<CreateOrChangeOrder> physicalOrders;
@@ -87,7 +86,6 @@ namespace TickZoom.Common
 		    this.name = name;
 			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.physicalOrderHandler = brokerOrders;
-            this.canceledLogicals = new ActiveList<LogicalOrder>();
             this.originalLogicals = new ActiveList<LogicalOrder>();
 			this.bufferedLogicals = new ActiveList<LogicalOrder>();
             this.originalPhysicals = new ActiveList<CreateOrChangeOrder>();
@@ -1065,7 +1063,6 @@ namespace TickZoom.Common
             logicalOrderCache.SetActiveOrders(inputLogicals);
             bufferedLogicals.Clear();
             bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
-            canceledLogicals.AddLast(logicalOrderCache.ActiveOrders);
             bufferedLogicalsChanged = true;
             if (debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ")");
         }
@@ -1172,47 +1169,14 @@ namespace TickZoom.Common
             return null;
         }
 
-        private LogicalOrder FindHistoricalLogicalOrder(long serialNumber) {
-            for (var current = canceledLogicals.Last; current != null; current = current.Previous)
-            {
-                var order = current.Value;
-				if( order.SerialNumber == serialNumber) {
-                    return order;
-                }
-            }
-            while( canceledLogicals.Count > 20)
-            {
-                canceledLogicals.RemoveFirst();
-            }
-		    return null;
-		}
-
 		public void ProcessFill( PhysicalFill physical) {
             if (debug) log.Debug("ProcessFill() physical: " + physical);
+            var adjustment = physical.Order.LogicalOrderId == 0;
             var beforePosition = physicalOrderCache.GetActualPosition(symbol);
 		    physicalOrderCache.IncreaseActualPosition(symbol, physical.Size);
             if (debug) log.Debug("Updating actual position from " + beforePosition + " to " + physicalOrderCache.GetActualPosition(symbol) + " from fill size " + physical.Size);
 			var isCompletePhysicalFill = physical.RemainingSize == 0;
-            var isFilledAfterCancel = false;
             TryFlushBufferedLogicals();
-            var logical = FindActiveLogicalOrder(physical.Order.LogicalSerialNumber);
-            if( logical == null)
-            {
-                logical = FindHistoricalLogicalOrder(physical.Order.LogicalSerialNumber);
-                if( logical != null)
-                {
-                    if (debug) log.Debug("Logical order already in canceled list: " + logical);
-                    isFilledAfterCancel = true;
-                }
-            }
-            else
-            {
-                if( logical.Price.ToLong() != physical.Order.Price.ToLong())
-                {
-                    if (debug) log.Debug("Already canceled because physical order price " + physical.Order.Price + " dffers from logical order price " + logical);
-                    isFilledAfterCancel = true;
-                }
-            }
 
 		    if( isCompletePhysicalFill) {
 				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
@@ -1237,39 +1201,60 @@ namespace TickZoom.Common
 				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
 			}
 
+            if( adjustment) {
+                if (debug) log.Debug("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
+                if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
+                if (debug) log.Debug("Performing extra compare.");
+                PerformCompareProtected();
+                TryRemovePhysicalFill(physical);
+                return;
+            }
+
+            var isFilledAfterCancel = false;
+
+            var logical = FindActiveLogicalOrder(physical.Order.LogicalSerialNumber);
+            if( logical == null)
+            {
+                if (debug) log.Debug("Logical order not found. So logical was already canceled: " + physical );
+                isFilledAfterCancel = true;
+            }
+            else
+            {
+                if( logical.Price.ToLong() != physical.Order.Price.ToLong())
+                {
+                    if (debug) log.Debug("Already canceled because physical order price " + physical.Order.Price + " dffers from logical order price " + logical);
+                    isFilledAfterCancel = true;
+                }
+            }
+
             if (debug) log.Debug("isFilledAfterCancel " + isFilledAfterCancel + ", OffsetTooLateToCancel " + physical.Order.OffsetTooLateToCancel);
-            if (isFilledAfterCancel && physical.Order.OffsetTooLateToCancel)
+            if (isFilledAfterCancel)
             {
                 if (debug) log.Debug("Will sync positions because fill from order already canceled: " + physical.Order.ReplacedBy);
                 SyncPosition();
                 TryRemovePhysicalFill(physical);
-            } else {
-    		    LogicalFillBinary fill;
-                if( logical != null) {
-                    desiredPosition += physical.Size;
-                    var strategyPosition = GetStrategyPosition(logical);
-                    if (debug) log.Debug("Adjusting symbol position to desired " + desiredPosition + ", physical fill was " + physical.Size);
-                    var position = strategyPosition + physical.Size;
-                    if (debug) log.Debug("Creating logical fill with position " + position + " from strategy position " + strategyPosition);
-                    if (position != strategyPosition)
-                    {
-                        if (debug) log.Debug("strategy position " + position + " differs from logical order position " + strategyPosition + " for " + logical);
-                    }
-                    ++recency;
-                    fill = new LogicalFillBinary( position, recency, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
-                }
-                else
-                {
-                    if( debug) log.Debug("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
-                    if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
-                    if (debug) log.Debug("Performing extra compare.");
-                    PerformCompareProtected();
-                    TryRemovePhysicalFill(physical);
-                    return;
-                }
-                if (debug) log.Debug("Fill price: " + fill);
-                ProcessFill(fill, logical, isCompletePhysicalFill, physical.IsRealTime);
+                return;
+            } 
+
+            if( logical == null)
+            {
+                throw new InvalidOperationException("Logical cannot be null");
             }
+
+		    LogicalFillBinary fill;
+            desiredPosition += physical.Size;
+            var strategyPosition = GetStrategyPosition(logical);
+            if (debug) log.Debug("Adjusting symbol position to desired " + desiredPosition + ", physical fill was " + physical.Size);
+            var position = strategyPosition + physical.Size;
+            if (debug) log.Debug("Creating logical fill with position " + position + " from strategy position " + strategyPosition);
+            if (position != strategyPosition)
+            {
+                if (debug) log.Debug("strategy position " + position + " differs from logical order position " + strategyPosition + " for " + logical);
+            }
+            ++recency;
+            fill = new LogicalFillBinary(position, recency, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
+            if (debug) log.Debug("Fill price: " + fill);
+            ProcessFill(fill, logical, isCompletePhysicalFill, physical.IsRealTime);
 		}
 
         private TaskLock performCompareLocker = new TaskLock();
