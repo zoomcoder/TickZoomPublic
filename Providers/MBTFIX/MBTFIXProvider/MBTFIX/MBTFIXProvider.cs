@@ -1011,22 +1011,14 @@ namespace TickZoom.MBTFIX
 		public void ProcessFill( SymbolInfo symbol, LogicalFillBinary fill)
 		{
 		    var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if( symbolAlgorithm.IsBrokerStarted)
+            if( !symbolAlgorithm.IsBrokerStarted)
             {
-                if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
-                var queue = receiver.GetQueue(symbol);
-                var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
-                queue.Enqueue(item, fill.UtcTime.Internal);
+                if (debug) log.Debug("Broker offline but sending fill anyway for " + symbol + " to receiver: " + fill);
             }
-            else
-            {
-                if (debug) log.Debug("Broker offline so fill not sent for " + symbol + " to receiver: " + fill);
-                if( SyncTicks.Enabled)
-                {
-                    var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                    tickSync.RemovePhysicalFillWaiting(fill);
-                }
-            }
+		    if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
+            var queue = receiver.GetQueue(symbol);
+            var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
+            queue.Enqueue(item, fill.UtcTime.Internal);
 		}
 
 		public void RejectOrder( MessageFIX4_4 packetFIX)

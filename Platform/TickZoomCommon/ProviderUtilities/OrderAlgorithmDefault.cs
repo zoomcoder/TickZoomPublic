@@ -1138,7 +1138,7 @@ namespace TickZoom.Common
                                       diff.TotalSeconds + " seconds.";
                         if( SyncTicks.Enabled)
                         {
-                            tickSync.RemoveBlackHole(order.BrokerOrder);
+                            //tickSync.RemoveBlackHole(order.BrokerOrder);
                             log.Info(message);
                         }
                         else
@@ -1158,7 +1158,7 @@ namespace TickZoom.Common
                     if (SyncTicks.Enabled)
                     {
                         tickSync.RemovePhysicalOrder(order);
-                        tickSync.RemoveBlackHole(order.BrokerOrder);
+                        //tickSync.RemoveBlackHole(order.BrokerOrder);
                     }
                 }
             }

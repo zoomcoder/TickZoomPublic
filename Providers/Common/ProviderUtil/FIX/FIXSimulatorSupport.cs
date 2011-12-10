@@ -129,7 +129,7 @@ namespace TickZoom.FIX
             simulateDisconnect = allTests;
             simulateSendOrderServerOffline = false;
             simulateRecvOrderServerOffline = false;
-            simulateOrderBlackHole = allTests;
+            simulateOrderBlackHole = false;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
@@ -776,6 +776,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
+                        //var message = (MessageFIX4_4)packetFIX;
+                        //var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        //var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        //tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -784,10 +788,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
-                        var message = (MessageFIX4_4)packetFIX;
-                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        tickSync.AddBlackHole(message.ClientOrderId);
+                        //var message = (MessageFIX4_4)packetFIX;
+                        //var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        //var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        //tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -796,10 +800,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
-                        var message = (MessageFIX4_4)packetFIX;
-                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        tickSync.AddBlackHole(message.ClientOrderId);
+                        //var message = (MessageFIX4_4)packetFIX;
+                        //var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        //var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        //tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
