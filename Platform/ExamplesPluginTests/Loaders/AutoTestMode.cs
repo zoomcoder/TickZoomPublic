@@ -39,6 +39,6 @@ namespace Loaders
         TestNegativeFIX = 0x8,
         FIXPlayBack = 0x16,
 		Design = 0x32,
-        Default = Historical | SimulateFIX,
+        Default = Historical | SimulateFIX | TestNegativeFIX,
 	}
 }
