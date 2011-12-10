@@ -103,7 +103,7 @@ namespace TickZoom.FIX
 		private Dictionary<long, SimulateSymbol> symbolHandlers = new Dictionary<long, SimulateSymbol>();
 		private bool isPlayBack = false;
         private TrueTimer heartbeatTimer;
-        private bool isHeartbeatPending = false;
+        private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
@@ -129,7 +129,7 @@ namespace TickZoom.FIX
             simulateDisconnect = allTests;
             simulateSendOrderServerOffline = false;
             simulateRecvOrderServerOffline = false;
-            simulateOrderBlackHole = false;
+            simulateOrderBlackHole = allTests;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
@@ -252,15 +252,17 @@ namespace TickZoom.FIX
             }
             if (fixState != ServerState.Startup)
             {
-                if( isHeartbeatPending)
+                var now = TimeStamp.UtcNow;
+                if( now > isHeartbeatPending)
                 {
                     log.Error("HeartBeat response was never received.\n" + Factory.Parallel.GetStats());
                     log.Error("All stack traces follow...");
                     Factory.Parallel.StackTrace();
                     throw new ApplicationException("HeartBeat response was never received.");
                 }
-                isHeartbeatPending = true;
                 OnHeartbeat();
+                isHeartbeatPending = TimeStamp.UtcNow;
+                isHeartbeatPending.AddMilliseconds(1500);
             }
             currentTime.AddSeconds(1);
             if (verbose) log.Verbose("Setting next heartbeat at " + currentTime);
@@ -541,7 +543,7 @@ namespace TickZoom.FIX
                 var packetFIX = (MessageFIXT1_1)_fixReadMessage;
                 IncreaseHeartbeat();
                 if (debug) log.Debug("Received FIX message: " + packetFIX);
-			    isHeartbeatPending = false;
+			    isHeartbeatPending = TimeStamp.MaxValue;
                 try
                 {
                     switch( fixState)
@@ -782,6 +784,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
+                        var message = (MessageFIX4_4)packetFIX;
+                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -790,6 +796,10 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
+                        var message = (MessageFIX4_4)packetFIX;
+                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
+                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
+                        tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -1064,10 +1074,6 @@ namespace TickZoom.FIX
             {
                 if (debug) log.Debug("Skipping send of sequence # " + fixMessage.Sequence + " to simulate lost message. " + fixMessage);
                 if (debug) log.Debug("Message type is: " + fixMessage.Type);
-                if (fixMessage.Type == "1")
-                {
-                    isHeartbeatPending = false;
-                }
                 return;
             }
             var writePacket = fixSocket.MessageFactory.Create();

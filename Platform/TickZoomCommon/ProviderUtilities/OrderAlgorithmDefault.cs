@@ -1132,10 +1132,18 @@ namespace TickZoom.Common
                     }
                     else if( Cancel(order))
                     {
+
                         var diff = TimeStamp.UtcNow - lastChange;
-                        if( !SyncTicks.Enabled)
+                        var message = "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " +
+                                      diff.TotalSeconds + " seconds.";
+                        if( SyncTicks.Enabled)
                         {
-                            log.Warn( "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " + diff.TotalSeconds + " seconds.");
+                            tickSync.RemoveBlackHole(order.BrokerOrder);
+                            log.Info(message);
+                        }
+                        else
+                        {
+                            log.Warn(message);
                         }
                         order.ResetLastChange();
                         result = true;
@@ -1150,6 +1158,7 @@ namespace TickZoom.Common
                     if (SyncTicks.Enabled)
                     {
                         tickSync.RemovePhysicalOrder(order);
+                        tickSync.RemoveBlackHole(order.BrokerOrder);
                     }
                 }
             }
