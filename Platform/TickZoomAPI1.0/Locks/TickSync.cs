@@ -157,6 +157,7 @@ namespace TickZoom.Api
             if (diff.TotalMilliseconds > 800)
             {
                 Interlocked.Exchange(ref (*state).physicalOrders, 0);
+                Interlocked.Exchange(ref (*state).blackHoleOrders, 0);
                 Interlocked.Exchange(ref (*state).positionChange, 0);
                 Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
                 Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);

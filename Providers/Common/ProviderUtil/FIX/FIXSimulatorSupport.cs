@@ -129,7 +129,7 @@ namespace TickZoom.FIX
             simulateDisconnect = allTests;
             simulateSendOrderServerOffline = false;
             simulateRecvOrderServerOffline = false;
-            simulateOrderBlackHole = false;
+            simulateOrderBlackHole = allTests;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
