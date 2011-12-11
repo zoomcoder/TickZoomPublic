@@ -43,7 +43,7 @@ namespace TickZoom.FIX
             this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             reader = Factory.TickUtil.TickReader();
             reader.Initialize("Test\\MockProviderData", symbolString);
-            fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false);
+            fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true);
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
             queueTask = Factory.Parallel.Loop("SimulateSymbolPlayback-" + symbolString, OnException, ProcessQueue);

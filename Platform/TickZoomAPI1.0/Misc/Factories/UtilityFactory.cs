@@ -43,10 +43,10 @@ namespace TickZoom.Api
 		VerifyFeed VerifyFeed(SymbolInfo symbol);
 		FillHandler FillHandler();
 		FillHandler FillHandler(StrategyInterface strategy);
-		FillSimulator FillSimulator(string name, SymbolInfo symbol, bool createSimulatedFills);
+		FillSimulator FillSimulator(string name, SymbolInfo symbol, bool createSimulatedFills, bool createActualFills);
 		BreakPointInterface BreakPoint();
 		PositionInterface Position(ModelInterface model);
-		PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order, bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime);
+		PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order, bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime, bool isActual);
 		StrategyInterface Strategy();
 	    PhysicalOrderCache PhyscalOrderCache();
 	}

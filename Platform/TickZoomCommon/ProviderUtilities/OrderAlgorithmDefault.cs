@@ -1261,7 +1261,7 @@ namespace TickZoom.Common
                 if (debug) log.Debug("strategy position " + position + " differs from logical order position " + strategyPosition + " for " + logical);
             }
             ++recency;
-            fill = new LogicalFillBinary(position, recency, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated);
+            fill = new LogicalFillBinary(position, recency, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated, physical.IsActual);
             if (debug) log.Debug("Fill price: " + fill);
             ProcessFill(fill, logical, isCompletePhysicalFill, physical.IsRealTime);
 		}

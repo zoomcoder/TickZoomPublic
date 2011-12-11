@@ -1667,7 +1667,7 @@ namespace Orders
                            physical.Type == OrderType.BuyMarket
                                ? physical.Size
                                : -physical.Size;
-                var fill = Factory.Utility.PhysicalFill(size, physical.Price, TimeStamp.UtcNow, TimeStamp.UtcNow, physical, false, size, size, 0, true);
+                var fill = Factory.Utility.PhysicalFill(size, physical.Price, TimeStamp.UtcNow, TimeStamp.UtcNow, physical, false, size, size, 0, true, true);
                 orders.activeOrders.Remove(physical);
                 orderAlgorithm.ProcessFill(fill);
             }

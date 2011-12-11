@@ -87,8 +87,10 @@ namespace TickZoom.Interceptors
         private static int maxPartialFillsPerOrder = 1;
 	    private volatile bool isOnline = false;
 	    private string name;
+        private SimpleLock flushQueueLocker = new SimpleLock();
+        private bool createActualFills;
 
-        public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills)
+        public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills, bool createActualFills)
 		{
 			this.symbol = symbol;
             this.name = name;
@@ -99,6 +101,7 @@ namespace TickZoom.Interceptors
 			this.createSimulatedFills = createSimulatedFills;
 			this.log = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
             this.log.Register(this);
+            this.createActualFills = createActualFills;
 		}
 
 		private bool hasCurrentTick = false;
@@ -358,8 +361,7 @@ namespace TickZoom.Interceptors
             }
 		}
 
-        private SimpleLock flushQueueLocker = new SimpleLock();
-        public void FlushFillQueue()
+	    public void FlushFillQueue()
         {
             if( !flushQueueLocker.TryLock()) return;
             try
@@ -785,7 +787,7 @@ namespace TickZoom.Interceptors
             //if( onPositionChange != null) {
             //    onPositionChange( actualPosition);
             //}
-			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills, totalSize, cumulativeSize, remainingSize, false);
+			var fill = new PhysicalFillDefault(size,price,time,utcTime,order,createSimulatedFills, totalSize, cumulativeSize, remainingSize, false, createActualFills);
             if (debug) log.Debug("Enqueuing fill (online: " + isOnline + "): " + fill);
 		    var wrapper = new FillWrapper
 		                      {

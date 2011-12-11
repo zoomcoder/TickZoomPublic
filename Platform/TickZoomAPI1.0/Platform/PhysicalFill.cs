@@ -40,5 +40,6 @@ namespace TickZoom.Api
         int CumulativeSize { get; }
         int RemainingSize { get; }
         bool IsRealTime { get; }
+        bool IsActual { get; }
     }
 }

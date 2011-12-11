@@ -42,9 +42,10 @@ namespace TickZoom.Interceptors
 	    private int cumulativeSize;
 	    private int remainingSize;
 	    private bool isRealTime;
+	    private bool isActual;
 
 	    public PhysicalFillDefault(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order,
-	                               bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime)
+	                               bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime, bool isActual)
         {
 			this.size = size;
 			this.price = price;
@@ -56,6 +57,7 @@ namespace TickZoom.Interceptors
 	        this.cumulativeSize = cumulativeSize;
 	        this.remainingSize = remainingSize;
 	        this.isRealTime = isRealTime;
+	        this.isActual = isActual;
         }
 		
 		public override string ToString()
@@ -114,6 +116,11 @@ namespace TickZoom.Interceptors
 	    public bool IsRealTime
 	    {
 	        get { return isRealTime; }
+	    }
+
+	    public bool IsActual
+	    {
+	        get { return isActual; }
 	    }
 	}
 }
