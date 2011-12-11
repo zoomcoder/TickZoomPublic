@@ -262,7 +262,7 @@ namespace TickZoom.FIX
                     throw new ApplicationException("HeartBeat response was never received.");
                 }
                 isHeartbeatPending = TimeStamp.UtcNow;
-                isHeartbeatPending.AddMilliseconds(1500);
+                isHeartbeatPending.AddSeconds(5);
                 OnHeartbeat();
             }
             currentTime.AddSeconds(1);

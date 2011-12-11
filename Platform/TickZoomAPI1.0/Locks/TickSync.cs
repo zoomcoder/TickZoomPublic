@@ -67,6 +67,7 @@ namespace TickZoom.Api
         private string symbol;
         private bool rollbackNeeded = false;
         private TimeStamp lastAddTime = TimeStamp.UtcNow;
+        private Action changeCallBack;
 
         internal TickSync(long symbolId, TickSyncState* tickSyncPtr)
         {
@@ -100,6 +101,14 @@ namespace TickZoom.Api
         private bool CheckOnlyReprocessOrders()
         {
             return (*state).physicalOrders == 0 && (*state).blackHoleOrders == 0 && (*state).reprocessPhysical > 0;
+        }
+
+        private void Changed()
+        {
+            if( changeCallBack != null)
+            {
+                changeCallBack();
+            }
         }
 
         private bool CheckProcessingOrders()
@@ -163,6 +172,7 @@ namespace TickZoom.Api
                 Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
                 Interlocked.Exchange(ref (*state).switchBrokerState, 0);
                 if (trace) log.Trace("TryHeartbeatReset() " + this);
+                Changed();
             }
         }
 
@@ -195,6 +205,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).ticks);
                 if (debug) log.Debug("Tick counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void AddPhysicalFill(object fill)
@@ -220,6 +231,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).physicalFillsWaiting);
                 if (debug) log.Debug("physicalFillsWaiting counter was " + valueWaiting + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void RemovePhysicalFillWaiting(object fill)
@@ -231,6 +243,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).physicalFillsWaiting);
                 if (debug) log.Debug("physicalFillsWaiting counter was " + valueWaiting + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void AddPhysicalFillSimulator(string name)
@@ -267,7 +280,9 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).physicalOrders);
                 if (debug) log.Debug("PhysicalOrders counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
+
         public void RemovePhysicalOrder()
         {
             var value = Interlocked.Decrement(ref (*state).physicalOrders);
@@ -277,6 +292,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).physicalOrders);
                 if (debug) log.Debug("PhysicalOrders counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void AddBlackHole(object order)
@@ -295,6 +311,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).blackHoleOrders);
                 if (debug) log.Debug("BlockHoles counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void RemoveBlackHole()
@@ -306,6 +323,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).blackHoleOrders);
                 if (debug) log.Debug("BlockHoles counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void AddSwitchBrokerState(string description)
@@ -324,6 +342,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).switchBrokerState);
                 if (debug) log.Debug("SwitchBrokerState counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void AddPositionChange(string description)
@@ -342,6 +361,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).positionChange);
                 if (debug) log.Debug("PositionChange counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void AddProcessPhysicalOrders()
@@ -349,6 +369,7 @@ namespace TickZoom.Api
             lastAddTime = TimeStamp.UtcNow; 
             var value = Interlocked.Increment(ref (*state).processPhysical);
             if (trace) log.Trace("AddProcessPhysicalOrders(" + value + ") " + this);
+            Changed();
         }
 
         public void RemoveProcessPhysicalOrders()
@@ -360,6 +381,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).processPhysical);
                 if( debug) log.Debug("ProcessPhysical counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public void SetReprocessPhysicalOrders()
@@ -370,6 +392,7 @@ namespace TickZoom.Api
                 var value = Interlocked.Increment(ref (*state).reprocessPhysical);
                 if (trace) log.Trace("SetReprocessPhysicalOrders(" + value + ") " + this);
             }
+            Changed();
         }
 
         public void AddReprocessPhysicalOrders()
@@ -377,6 +400,7 @@ namespace TickZoom.Api
             lastAddTime = TimeStamp.UtcNow;
             var value = Interlocked.Increment(ref (*state).reprocessPhysical);
             if (trace) log.Trace("AddReprocessPhysicalOrders(" + value + ") " + this);
+            Changed();
         }
 
         public void RemoveReprocessPhysicalOrders()
@@ -388,6 +412,7 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).reprocessPhysical);
                 if (debug) log.Debug("ReprocessPhysical counter was " + value + ". Incremented to " + temp);
             }
+            Changed();
         }
 
         public bool SentPhysicalFillsWaiting
@@ -448,6 +473,12 @@ namespace TickZoom.Api
         public bool SentBlackHole
         {
             get { return (*state).blackHoleOrders > 0; }
+        }
+
+        public Action ChangeCallBack
+        {
+            get { return changeCallBack; }
+            set { changeCallBack = value; }
         }
     }
 }

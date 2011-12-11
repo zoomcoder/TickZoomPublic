@@ -78,7 +78,8 @@ namespace TickZoom.FIX
 			reader.ReadQueue.ConnectInbound( queueTask);
             fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();
-			latency = new LatencyMetric("SimulateSymbolSyncTicks-"+symbolString.StripInvalidPathChars());
+		    tickSync.ChangeCallBack = TickSyncChangedEvent;
+            latency = new LatencyMetric("SimulateSymbolSyncTicks-" + symbolString.StripInvalidPathChars());
 			reader.ReadQueue.StartEnqueue();
 		    initialCount = reader.ReadQueue.Count;
 		    diagnoseMetric = Diagnose.RegisterMetric("Simulator");
@@ -97,6 +98,17 @@ namespace TickZoom.FIX
                 if (trace) log.Trace("Locked tickSync for " + Symbol);
             }
             return Yield.DidWork.Invoke(DequeueTick);
+        }
+
+        private void TickSyncChangedEvent()
+        {
+            if( tickSync.Completed || tickSync.OnlyProcessPhysicalOrders || tickSync.OnlyReprocessPhysicalOrders)
+            {
+                if( queueTask.IsPaused)
+                {
+                    queueTask.Resume();
+                }
+            }
         }
 
         private void TryCompleteTick()
@@ -194,6 +206,7 @@ namespace TickZoom.FIX
             quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
             var binary = default(TickBinary);
             reader.ReadQueue.Dequeue(ref binary);
+            queueTask.Pause();            
             return Yield.DidWork.Return;
 		}
 
@@ -204,7 +217,6 @@ namespace TickZoom.FIX
 
         private void OnException(Exception ex)
         {
-			// Attempt to propagate the exception.
 			log.Error("Exception occurred", ex);
 			Dispose();
 		}
