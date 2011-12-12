@@ -128,8 +128,8 @@ namespace TickZoom.FIX
 		            break;
 		    }
             simulateDisconnect = allTests;
-            simulateSendOrderServerOffline = false;
-            simulateRecvOrderServerOffline = false;
+            simulateSendOrderServerOffline = allTests;
+            simulateRecvOrderServerOffline = allTests;
             simulateOrderBlackHole = allTests;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
