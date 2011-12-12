@@ -69,12 +69,12 @@ namespace TickZoom.Common
             if( fs != null && fs.CanWrite) return true;
             var list = new List<Exception>();
             var errorCount = 0;
-            while( errorCount < 3 && !isDisposed)
+            while( errorCount < 3)
             {
                 try
                 {
                     fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
-                    log.Info("Opened " + databasePath);
+                    log.Warn("Opened " + databasePath);
                     snapshotLength = fs.Length;
                     return true;
                 }
@@ -152,7 +152,6 @@ namespace TickZoom.Common
 
         private void TryStartSnapshot()
         {
-            if (isDisposed) return;
             if (updateCount > 100)
             {
                 StartSnapShot();
@@ -359,10 +358,6 @@ namespace TickZoom.Common
 
                     SnapShot();
                 }
-                if( disposeNeeded)
-                {
-                    Dispose();
-                }
             }
             catch (Exception ex)
             {
@@ -525,10 +520,6 @@ namespace TickZoom.Common
                 log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
                          ", Size = " + memory.Length + ". File Size = " + snapshotLength);
             }
-            if (isDisposed)
-            {
-                TryClose();
-            }
         }
 
         private void SnapshotReadAll(string filePath)
@@ -576,7 +567,7 @@ namespace TickZoom.Common
             if (fs != null)
             {
                 fs.Close();
-                log.Info("Closed " + databasePath);
+                log.Warn("Closed " + databasePath);
             }
         }
 
@@ -800,16 +791,15 @@ namespace TickZoom.Common
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            if (!isDisposed)
+            if (disposing)
             {
-                log.Info("Dispose()");
-                if (disposing)
+                if (!isDisposed)
                 {
-                    disposeNeeded = true;
+                    isDisposed = true;
+                    log.Warn("Dispose()");
                     lock( snapshotLocker)
                     {
                         ForceSnapshot();
-                        isDisposed = true;
                         TryClose();
                     }
                 }
