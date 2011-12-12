@@ -907,17 +907,11 @@ namespace TickZoom.MBTFIX
                     {
                         ResetFromPending(packetFIX.OriginalClientOrderId);
                     }
-                    if (order != null)
-                    {
-                        var algo = GetAlgorithm(order.Symbol.BinaryIdentifier);
-                        algo.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
-                    }
-                    else if( SyncTicks.Enabled )
-                    {
-                        var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        tickSync.RemovePhysicalOrder();
-                    }
+
+                    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                    var algo = GetAlgorithm(symbol.BinaryIdentifier);
+                    algo.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
+
                     if (!rejectReason && IsRecovered)
                     {
 						var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
@@ -1066,17 +1060,9 @@ namespace TickZoom.MBTFIX
 
             CreateOrChangeOrder order;
             OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
-            if (order != null)
-            {
-                var algo = GetAlgorithm(order.Symbol.BinaryIdentifier);
-                algo.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
-            }
-            else if( SyncTicks.Enabled )
-            {
-                var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                tickSync.RemovePhysicalOrder(order);
-            }
+		    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+            var algo = GetAlgorithm(symbol.BinaryIdentifier);
+            algo.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
 		}
 		
 		private static readonly char[] DOT_SEPARATOR = new char[] { '.' };

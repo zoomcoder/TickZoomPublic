@@ -326,6 +326,7 @@ namespace Loaders
             {
                 var ex = errors[errors.Count - 1];
                 log.Error("Can't delete " + path, ex);
+                Factory.Parallel.StackTrace();
                 throw new IOException("Can't delete " + path, ex);
             }
         }

@@ -1754,22 +1754,26 @@ namespace TickZoom.Common
         public void RejectOrder(CreateOrChangeOrder order, bool removeOriginal, bool isRealTime)
         {
             if (debug) log.Debug("RejectOrder(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            physicalOrderCache.RemoveOrder(order.BrokerOrder);
-            var origOrder = order.OriginalOrder;
-            if (origOrder != null)
+            CreateOrChangeOrder origOrder = null;
+            if( order != null)
             {
-                origOrder.ReplacedBy = null;
-                if (removeOriginal)
+                physicalOrderCache.RemoveOrder(order.BrokerOrder);
+                origOrder = order.OriginalOrder;
+                if (origOrder != null)
                 {
-                    if( origOrder.OriginalOrder != null)
+                    origOrder.ReplacedBy = null;
+                    if (removeOriginal)
                     {
-                        origOrder.OriginalOrder.ReplacedBy = null;
+                        if (origOrder.OriginalOrder != null)
+                        {
+                            origOrder.OriginalOrder.ReplacedBy = null;
+                        }
+                        physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
                     }
-                    physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
-                }
-                else if (origOrder.OrderState == OrderState.Pending)
-                {
-                    origOrder.OrderState = OrderState.Active;
+                    else if (origOrder.OrderState == OrderState.Pending)
+                    {
+                        origOrder.OrderState = OrderState.Active;
+                    }
                 }
             }
             if (isRealTime)
