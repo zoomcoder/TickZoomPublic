@@ -104,9 +104,13 @@ namespace TickZoom.FIX
         {
             if( tickSync.Completed || tickSync.OnlyProcessPhysicalOrders || tickSync.OnlyReprocessPhysicalOrders)
             {
-                if( queueTask.IsPaused)
+                try
                 {
                     queueTask.Resume();
+                }
+                catch( ApplicationException ex)
+                {
+                    if( debug) log.Debug("Unable to resume task: " + ex.Message);
                 }
             }
         }
