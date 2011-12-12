@@ -145,7 +145,6 @@ namespace TickZoom.Api
         long MicroCount { get; }
         long RoundRobinCounter { get; }
         long EarliestCounter { get; }
-        long AnalyzePoint { get; }
         long TimerCount { get; }
 	    int ThreadCount { get; }
 	    void ReleaseIOTasks();

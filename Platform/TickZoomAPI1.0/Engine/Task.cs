@@ -33,9 +33,8 @@ namespace TickZoom.Api
 		None = 0,
 		RoundRobin = 1,
 		EarliestTime = 2,
-		Activity = 4,
-        InputOutput = 8,
-        QualityOfService = RoundRobin | EarliestTime | Activity, 
+        InputOutput = 4,
+        QualityOfService = RoundRobin | EarliestTime, 
 	}
 
     public enum QueueDirection
@@ -56,7 +55,6 @@ namespace TickZoom.Api
 		/// task that is blocked to prod the higher task to clean
 		/// out the queue.
 		/// </summary>
-		void Boost();
 		void IncreaseInbound(int id);
         void DecreaseInbound(int id);
 		void UpdateUtcTime(int source,long utcTime);

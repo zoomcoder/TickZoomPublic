@@ -1029,6 +1029,10 @@ namespace TickZoom.FIX
                     {
                         socket.Dispose();
                     }
+                    if( heartbeatTimer != null)
+                    {
+                        heartbeatTimer.Cancel();
+                    }
                     if( orderStore != null)
                     {
                         orderStore.Dispose();

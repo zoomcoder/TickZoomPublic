@@ -43,7 +43,6 @@ namespace TickZoom.Api
 	    public int Sends;
 	    public int RoundRobin;
 	    public int Earliest;
-	    public int Analyze;
 	    public int Simulator;
         public int TimerCount;
     }
@@ -122,7 +121,6 @@ namespace TickZoom.Api
             var sendCounter = Factory.Provider.Manager.SendCounter;
 		    var receiveCounter = Factory.Provider.Manager.ReceiveCounter;
 		    var tryReadCounter = Interlocked.Read(ref TryReadCounter);
-            var analyze = (int) Factory.Parallel.AnalyzePoint;
 		    var simulator = simulatorCount;
             var timerCount = (int)Factory.Parallel.TimerCount;
             var entry = new LatencyLogEntry
@@ -138,7 +136,6 @@ namespace TickZoom.Api
                 RoundRobin = (int) (roundRobinCounter - lastRoundRobinCount),
                 Earliest = (int) (earliestCounter - lastEarliestCount),
                 // - lastEarliestCount),
-                Analyze = analyze,
                 Simulator = (int) (simulator - lastSimulatorCount),
                 TimerCount = timerCount,
 			};
@@ -193,7 +190,7 @@ namespace TickZoom.Api
                         var tickTimeStr = tickTime + "." + tickTime.Microseconds;
                         var time = new TimeStamp(entry.UtcTime).TimeOfDay;
                         var timeStr = time + "." + time.Microseconds;
-                        sb.AppendLine(entry.Count + ": " + entry.Id + " => " + tickTimeStr + " at " + timeStr + " latency " + latency + "us, selects " + entry.Selects + ", send " + entry.Sends + ", receive " + entry.Receives + ", (try " + entry.TryReceive + "), roundR " + entry.RoundRobin + ", earliest " + entry.Earliest + ", analyze " + entry.Analyze + ", simulator " + entry.Simulator + ", timers " + entry.TimerCount);
+                        sb.AppendLine(entry.Count + ": " + entry.Id + " => " + tickTimeStr + " at " + timeStr + " latency " + latency + "us, selects " + entry.Selects + ", send " + entry.Sends + ", receive " + entry.Receives + ", (try " + entry.TryReceive + "), roundR " + entry.RoundRobin + ", earliest " + entry.Earliest + ", simulator " + entry.Simulator + ", timers " + entry.TimerCount);
                         if (i % 2000 == 0)
                         {
                             log.Info("Up to " + i + "\n" + sb);
