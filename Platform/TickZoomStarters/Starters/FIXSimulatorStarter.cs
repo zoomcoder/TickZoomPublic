@@ -36,7 +36,6 @@ namespace TickZoom.Starters
 		public FIXSimulatorStarter() {
 			SyncTicks.Enabled = true;
 			ConfigurationManager.AppSettings.Set("ProviderAddress","InProcess");
-			ProjectProperties.Engine.SimulateRealTime = true;
 		}
 		
 		public override void Run(ModelLoaderInterface loader)

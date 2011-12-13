@@ -224,11 +224,6 @@ namespace TickZoom.Api
     		set;
     	}
     	
-    	bool SimulateRealTime {
-    		get;
-    		set;
-    	}
-    	
     	void Release();
     	
 	}

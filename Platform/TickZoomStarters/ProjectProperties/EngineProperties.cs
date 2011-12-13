@@ -45,7 +45,6 @@ namespace TickZoom.Properties
 		}
 		
 		bool enableTickFilter = false;
-		bool simulateRealTime = false;
 		
 		public bool EnableTickFilter {
 			get { return enableTickFilter; }
@@ -104,11 +103,6 @@ namespace TickZoom.Properties
 		public override string ToString()
 		{
 			return "";
-		}
-		
-		public bool SimulateRealTime {
-			get { return simulateRealTime; }
-			set { simulateRealTime = value; }
 		}
 	}
 }

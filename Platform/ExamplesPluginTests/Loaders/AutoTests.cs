@@ -209,6 +209,20 @@ namespace Loaders
             list.Add(new AutoTestSettings
             {
                 Mode = AutoTestMode.Default,
+                Name = "MixedWithInactiveSymbol",
+                Loader = new ExampleMixedLoader(),
+                Symbols = primarySymbol + ",EUR/USD,USD/CHF,AUD/CAD",
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                StartTime = new TimeStamp(1800, 1, 1),
+                EndTime = new TimeStamp(2009, 6, 10),
+                IntervalDefault = Intervals.Minute1,
+                Categories = { "Failed" },
+            });
+
+            list.Add(new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
                 Name = "ExampleLimitOrder",
                 Loader = new ExampleLimitOrderLoader(),
                 Symbols = "USD/CHF",

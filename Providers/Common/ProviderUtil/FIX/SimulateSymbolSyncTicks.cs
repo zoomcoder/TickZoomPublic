@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using System.IO;
 using System.Text;
 using System.Threading;
 using TickZoom.Api;
@@ -67,22 +68,29 @@ namespace TickZoom.FIX
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.onTick = onTick;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
-			reader = Factory.TickUtil.TickReader();
-			reader.Initialize("Test\\MockProviderData", symbolString);
-			fillSimulator = Factory.Utility.FillSimulator( "FIX", Symbol, false, true);
-			FillSimulator.OnPhysicalFill = onPhysicalFill;
-			FillSimulator.OnRejectOrder = onRejectOrder;
-			tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
-			queueTask = Factory.Parallel.Loop("SimulateSymbolSyncTicks-"+symbolString, OnException, ProcessQueue);
-			queueTask.Scheduler = Scheduler.EarliestTime;
-			reader.ReadQueue.ConnectInbound( queueTask);
-            fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
-            queueTask.Start();
-		    tickSync.ChangeCallBack = TickSyncChangedEvent;
+            fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true);
+            FillSimulator.OnPhysicalFill = onPhysicalFill;
+            FillSimulator.OnRejectOrder = onRejectOrder;
+            tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
             latency = new LatencyMetric("SimulateSymbolSyncTicks-" + symbolString.StripInvalidPathChars());
-			reader.ReadQueue.StartEnqueue();
-		    initialCount = reader.ReadQueue.Count;
-		    diagnoseMetric = Diagnose.RegisterMetric("Simulator");
+            diagnoseMetric = Diagnose.RegisterMetric("Simulator");
+            reader = Factory.TickUtil.TickReader();
+            try
+            {
+                reader.Initialize("Test\\MockProviderData", symbolString);
+                queueTask = Factory.Parallel.Loop("SimulateSymbolSyncTicks-" + symbolString, OnException, ProcessQueue);
+                queueTask.Scheduler = Scheduler.EarliestTime;
+                reader.ReadQueue.ConnectInbound(queueTask);
+                fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
+                queueTask.Start();
+                reader.ReadQueue.StartEnqueue();
+                initialCount = reader.ReadQueue.Count;
+                tickSync.ChangeCallBack = TickSyncChangedEvent;
+            }
+           catch( FileNotFoundException ex)
+           {
+               log.Info("File for symbol " + symbolString + " not found: " + ex.Message);
+           }
 		}
 
         private Yield ProcessQueue()

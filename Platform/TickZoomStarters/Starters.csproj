@@ -80,7 +80,6 @@
     <Compile Include="Starters\OptimizeStarter.cs" />
     <Compile Include="Starters\RealTimeStarterBase.cs" />
     <Compile Include="Starters\StarterCommon.cs" />
-    <Compile Include="Starters\TestRealTimeStarter.cs" />
     <Compile Include="Symbols\SymbolCategory.cs" />
     <Compile Include="Symbols\SymbolDictionary.cs" />
     <Compile Include="Symbols\SymbolFactoryImpl.cs" />

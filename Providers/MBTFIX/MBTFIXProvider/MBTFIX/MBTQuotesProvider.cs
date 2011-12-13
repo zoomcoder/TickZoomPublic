@@ -133,7 +133,8 @@ namespace TickZoom.MBTQuotes
                     }
                     // Filter Form T trades which are belatedly entered at the last close price
                     // later on the next day with sales type 30031 or condition 29.
-                    if( message.SalesType != 30031 && message.Condition != 29)
+                    // Also eliminate condition 53 which is an average trade price for the day.
+                    if( message.SalesType != 30031 && message.Condition != 29 && message.Condition != 53)
                     {
                         TimeAndSalesUpdate(message);
                     }

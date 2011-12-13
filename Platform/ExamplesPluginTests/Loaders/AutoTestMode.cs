@@ -34,11 +34,10 @@ namespace Loaders
 	public enum AutoTestMode {
 		None = 0x0,
 		Historical = 0x1,
-        SimulateRealTime = 0x2,
-		SimulateFIX = 0x4,
-        TestNegativeFIX = 0x8,
-        FIXPlayBack = 0x16,
-		Design = 0x32,
+		SimulateFIX = 0x2,
+        TestNegativeFIX = 0x4,
+        FIXPlayBack = 0x8,
+		Design = 0x16,
         Default = Historical | SimulateFIX | TestNegativeFIX,
 	}
 }

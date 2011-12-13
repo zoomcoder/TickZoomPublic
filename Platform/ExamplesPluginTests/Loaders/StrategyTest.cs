@@ -144,9 +144,6 @@ namespace Loaders
 				case AutoTestMode.Historical:
 					config.StarterName = "HistoricalStarter";
 					break;
-				case AutoTestMode.SimulateRealTime:
-					config.StarterName = "TestRealTimeStarter";
-                    break;
                 case AutoTestMode.TestNegativeFIX:
                     config.StarterName = "FIXNegativeStarter";
                     break;
@@ -255,9 +252,7 @@ namespace Loaders
 	    		LoadBarData();
 	    		LoadStats();
 	    		LoadFinalStats();
-	    		if( autoTestMode == AutoTestMode.SimulateRealTime) {
-		    		LoadReconciliation();
-	    		}
+	    		LoadReconciliation();
 			} catch( Exception ex) {
 				log.Error("Setup error.", ex);
 				throw;
