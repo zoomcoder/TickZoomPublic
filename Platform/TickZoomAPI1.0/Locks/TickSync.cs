@@ -37,6 +37,7 @@ namespace TickZoom.Api
         public long symbolBinaryId;
         public int ticks;
         public int positionChange;
+        public int waitingMatch;
         public int processPhysical;
         public int reprocessPhysical;
         public int physicalFillsCreated;
@@ -45,15 +46,6 @@ namespace TickZoom.Api
         public int blackHoleOrders;
         public int physicalFillSimulators;
         public int switchBrokerState;
-        public bool Compare(TickSyncState other)
-        {
-            return ticks == other.ticks && positionChange == other.positionChange && switchBrokerState == other.switchBrokerState &&
-                   processPhysical == other.processPhysical && physicalFillsCreated == other.physicalFillsCreated &&
-                   physicalFillsWaiting == other.physicalFillsWaiting &&
-                   reprocessPhysical == other.reprocessPhysical && physicalOrders == other.physicalOrders &&
-                   blackHoleOrders == other.blackHoleOrders;
-
-        }
     }
 
     public unsafe class TickSync
@@ -90,6 +82,7 @@ namespace TickZoom.Api
         private bool CheckCompletedInternal()
         {
             return (*state).ticks == 0 && (*state).positionChange == 0 && (*state).switchBrokerState == 0 &&
+                   (*state).waitingMatch == 0 && 
                    (*state).physicalOrders == 0 && (*state).blackHoleOrders == 0 && (*state).physicalFillsCreated == 0 &&
                    (*state).processPhysical == 0 && (*state).reprocessPhysical == 0;
         }
@@ -113,7 +106,7 @@ namespace TickZoom.Api
 
         private bool CheckProcessingOrders()
         {
-            return (*state).positionChange > 0 || (*state).physicalOrders > 0 || (*state).blackHoleOrders > 0 || 
+            return (*state).positionChange > 0 || (*state).waitingMatch > 0 || (*state).physicalOrders > 0 || (*state).blackHoleOrders > 0 || 
                     (*state).switchBrokerState > 0 || (*state).physicalFillsCreated > 0 || (*state).processPhysical > 0 ||
                    (*state).reprocessPhysical > 0;
         }
@@ -152,6 +145,7 @@ namespace TickZoom.Api
             Interlocked.Exchange(ref (*state).processPhysical, 0);
             Interlocked.Exchange(ref (*state).reprocessPhysical, 0);
             Interlocked.Exchange(ref (*state).positionChange, 0);
+            Interlocked.Exchange(ref (*state).waitingMatch, 0);
             Interlocked.Exchange(ref (*state).switchBrokerState, 0);
             Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
             Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
@@ -168,6 +162,7 @@ namespace TickZoom.Api
                 Interlocked.Exchange(ref (*state).physicalOrders, 0);
                 Interlocked.Exchange(ref (*state).blackHoleOrders, 0);
                 Interlocked.Exchange(ref (*state).positionChange, 0);
+                Interlocked.Exchange(ref (*state).waitingMatch, 0);
                 Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
                 Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
                 Interlocked.Exchange(ref (*state).switchBrokerState, 0);
@@ -364,6 +359,25 @@ namespace TickZoom.Api
             Changed();
         }
 
+        public void AddWaitingMatch(string description)
+        {
+            lastAddTime = TimeStamp.UtcNow;
+            var value = Interlocked.Increment(ref (*state).waitingMatch);
+            if (trace) log.Trace("AddWaitingMatch(" + description + ", " + value + ") " + this);
+        }
+
+        public void RemoveWaitingMatch(string description)
+        {
+            var value = Interlocked.Decrement(ref (*state).waitingMatch);
+            if (trace) log.Trace("RemoveWaitingMatch(" + description + "," + value + ") " + this);
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref (*state).waitingMatch);
+                if (debug) log.Debug("WaitingMatch counter was " + value + ". Incremented to " + temp);
+            }
+            Changed();
+        }
+
         public void AddProcessPhysicalOrders()
         {
             lastAddTime = TimeStamp.UtcNow; 
@@ -428,6 +442,11 @@ namespace TickZoom.Api
         public bool SentPositionChange
         {
             get { return (*state).positionChange > 0; }
+        }
+
+        public bool SentWaitingMatch
+        {
+            get { return (*state).waitingMatch > 0; }
         }
 
         public bool SentSwtichBrokerState

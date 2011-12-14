@@ -61,7 +61,6 @@ namespace TickZoom.Common
 		private int desiredPosition;
 		private Action<SymbolInfo,LogicalFillBinary> onProcessFill;
 		private bool handleSimulatedExits = false;
-		private int sentPhysicalOrders = 0;
 		private TickSync tickSync;
 	    private LogicalOrderCache logicalOrderCache;
         private bool isPositionSynced = false;
@@ -114,7 +113,11 @@ namespace TickZoom.Common
             if (isRecovered)
             {
                 TrySyncPosition(positionChange.StrategyPositions);
-                ProcessOrders();
+                var match = PerformCompareProtected();
+                if( !match && SyncTicks.Enabled)
+                {
+                    tickSync.AddWaitingMatch("PositionChange");
+                }
             }
             else
             {
@@ -184,7 +187,6 @@ namespace TickZoom.Common
                 TryAddPhysicalOrder(cancelOrder);
                 if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
                 {
-                    sentPhysicalOrders++;
                     result = true;
                 }
                 else
@@ -209,11 +211,7 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
                 TryAddPhysicalOrder(createOrChange);
                 physicalOrderCache.SetOrder(createOrChange);
-                if (physicalOrderHandler.OnChangeBrokerOrder(createOrChange))
-                {
-                    sentPhysicalOrders++;
-                }
-                else
+                if (!physicalOrderHandler.OnChangeBrokerOrder(createOrChange))
                 {
                     physicalOrderCache.RemoveOrder(createOrChange.BrokerOrder);
                     TryRemovePhysicalOrder(createOrChange);
@@ -244,11 +242,7 @@ namespace TickZoom.Common
             }
             TryAddPhysicalOrder(physical);
             physicalOrderCache.SetOrder(physical);
-            if (physicalOrderHandler.OnCreateBrokerOrder(physical))
-            {
-                sentPhysicalOrders++;
-            }
-            else
+            if (!physicalOrderHandler.OnCreateBrokerOrder(physical))
             {
                 physicalOrderCache.RemoveOrder(physical.BrokerOrder);
                 TryRemovePhysicalOrder(physical);
@@ -978,11 +972,6 @@ namespace TickZoom.Common
 
         public void TrySyncPosition(Iterable<StrategyPosition> strategyPositions)
         {
-            //if (isPositionSynced)
-            //{
-            //    if (debug) log.Debug("TrySyncPosition() ignore. Position already synced.");
-            //    return;
-            //}
             physicalOrderCache.SyncPositions(strategyPositions);
             SyncPosition();
         }
@@ -1267,7 +1256,7 @@ namespace TickZoom.Common
 		}
 
         private TaskLock performCompareLocker = new TaskLock();
-		private void PerformCompareProtected() {
+		private bool PerformCompareProtected() {
 			var count = Interlocked.Increment(ref recursiveCounter);
 		    var compareSuccess = false;
 		    if( count == 1)
@@ -1308,6 +1297,14 @@ namespace TickZoom.Common
 			{
 			    if( debug) log.Debug( "Skipping ProcesOrders. RecursiveCounter " + count + "\n" + tickSync);
 			}
+            if( compareSuccess && SyncTicks.Enabled)
+            {
+                if( tickSync.SentWaitingMatch)
+                {
+                    tickSync.RemoveWaitingMatch("PerformCompare");
+                }
+            }
+		    return compareSuccess;
 		}
 		private long nextOrderId = 1000000000;
 		private bool useTimeStampId = true;
@@ -1498,9 +1495,8 @@ namespace TickZoom.Common
 		
 		public int ProcessOrders() {
             if (debug) log.Debug("ProcessOrders()");
-            sentPhysicalOrders = 0;
 			PerformCompareProtected();
-            return sentPhysicalOrders;
+            return 0;
 		}
 
 		private int recursiveCounter;
