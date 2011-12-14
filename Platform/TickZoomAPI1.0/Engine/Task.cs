@@ -33,8 +33,7 @@ namespace TickZoom.Api
 		None = 0,
 		RoundRobin = 1,
 		EarliestTime = 2,
-        InputOutput = 4,
-        QualityOfService = RoundRobin | EarliestTime, 
+        InputOutput = 4
 	}
 
     public enum QueueDirection

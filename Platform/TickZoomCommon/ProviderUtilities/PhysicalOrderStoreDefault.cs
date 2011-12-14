@@ -520,6 +520,10 @@ namespace TickZoom.Common
                 log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
                          ", Size = " + memory.Length + ". File Size = " + snapshotLength);
             }
+            if( isDisposed)
+            {
+                TryClose();
+            }
         }
 
         private void SnapshotReadAll(string filePath)

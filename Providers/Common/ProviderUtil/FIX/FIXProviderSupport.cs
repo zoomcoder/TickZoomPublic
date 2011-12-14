@@ -117,8 +117,8 @@ namespace TickZoom.FIX
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
 			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
 		    socketTask.Scheduler = Scheduler.EarliestTime;
-		    retryTimer = Factory.Parallel.CreateTimer(socketTask, RetryTimerEvent);
-            heartbeatTimer = Factory.Parallel.CreateTimer(socketTask, HeartBeatTimerEvent);
+		    retryTimer = Factory.Parallel.CreateTimer("Retry",socketTask, RetryTimerEvent);
+            heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat",socketTask, HeartBeatTimerEvent);
             positionChangeQueue.ConnectInbound(socketTask);
             resendQueue.ConnectInbound(socketTask);
             socketTask.Start();
@@ -1024,6 +1024,7 @@ namespace TickZoom.FIX
 	            	if( debug) log.Debug("Dispose()");
 	            	if( socketTask != null) {
 		            	socketTask.Stop();
+                        socketTask.Join();
 	            	}
                     if (socket != null)
                     {
@@ -1031,9 +1032,13 @@ namespace TickZoom.FIX
                     }
                     if( heartbeatTimer != null)
                     {
-                        heartbeatTimer.Cancel();
+                        heartbeatTimer.Dispose();
                     }
-                    if( orderStore != null)
+                    if (retryTimer != null)
+                    {
+                        retryTimer.Dispose();
+                    }
+                    if (orderStore != null)
                     {
                         orderStore.Dispose();
                     }

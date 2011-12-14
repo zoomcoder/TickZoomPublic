@@ -208,7 +208,7 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Default,
+                Mode = AutoTestMode.None,
                 Name = "MixedWithInactiveSymbol",
                 Loader = new ExampleMixedLoader(),
                 Symbols = primarySymbol + ",EUR/USD,USD/CHF,AUD/CAD",

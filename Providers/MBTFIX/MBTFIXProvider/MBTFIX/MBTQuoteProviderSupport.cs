@@ -87,7 +87,7 @@ namespace TickZoom.MBTQuotes
 	        log.Info(providerName+" Startup");
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
 		    socketTask.Scheduler = Scheduler.EarliestTime;
-            taskTimer = Factory.Parallel.CreateTimer(socketTask, TimerTask);
+            taskTimer = Factory.Parallel.CreateTimer("Task",socketTask, TimerTask);
             socketTask.Start();
 
             TimeStamp currentTime = TimeStamp.UtcNow;
@@ -614,7 +614,7 @@ namespace TickZoom.MBTQuotes
 	            	}
                     if (taskTimer != null)
                     {
-                        taskTimer.Cancel();
+                        taskTimer.Dispose();
                         if (debug) log.Debug("Stopped task timer.");
                     }
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;

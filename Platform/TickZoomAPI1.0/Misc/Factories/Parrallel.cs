@@ -118,7 +118,7 @@ namespace TickZoom.Api
 		RealTime
 	}
 	
-	public interface TrueTimer {
+	public interface TrueTimer : IDisposable {
 		bool Start( TimeStamp startTime);
 		void Cancel();
 		TimeStamp StartTime { get; }
@@ -130,7 +130,7 @@ namespace TickZoom.Api
 		void Yield();
 		void Sleep(int millis);
 		string GetStats();
-		TrueTimer CreateTimer(Task task, YieldMethod timerAction);
+		TrueTimer CreateTimer(string name, Task task, YieldMethod timerAction);
 		void SetMode( ParallelMode mode);
 		ParallelMode Mode {
 			get;

@@ -47,7 +47,7 @@ namespace TickZoom.FIX
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
             queueTask = Factory.Parallel.Loop("SimulateSymbolPlayback-" + symbolString, OnException, ProcessQueue);
-            tickTimer = Factory.Parallel.CreateTimer(queueTask, PlayBackTick);
+            tickTimer = Factory.Parallel.CreateTimer("Tick",queueTask, PlayBackTick);
             queueTask.Scheduler = Scheduler.EarliestTime;
             reader.ReadQueue.ConnectInbound(queueTask);
             fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
@@ -333,6 +333,10 @@ namespace TickZoom.FIX
                     if (reader != null)
                     {
                         reader.Dispose();
+                    }
+                    if( tickTimer != null)
+                    {
+                        tickTimer.Dispose();
                     }
                     if (fillSimulator != null)
                     {

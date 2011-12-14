@@ -57,8 +57,7 @@ namespace TickZoom.FIX
         private int initialCount;
         private bool alreadyEmpty = false;
         private TickIO currentTick = Factory.TickUtil.TickIO();
-		
-		
+	
 		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,
 		    Action<Message,SymbolInfo,Tick> onTick,
@@ -110,16 +109,14 @@ namespace TickZoom.FIX
 
         private void TickSyncChangedEvent()
         {
-            if( tickSync.Completed || tickSync.OnlyProcessPhysicalOrders || tickSync.OnlyReprocessPhysicalOrders)
+            if (tickSync.Completed || tickSync.OnlyProcessPhysicalOrders || tickSync.OnlyReprocessPhysicalOrders)
             {
-                try
-                {
-                    queueTask.Resume();
-                }
-                catch( ApplicationException ex)
-                {
-                    if( debug) log.Debug("Unable to resume task: " + ex.Message);
-                }
+                if (trace) log.Trace("TickSyncChangedEvent(" + symbol + ") resuming task.");
+                queueTask.Resume();
+            }
+            else
+            {
+                if (trace) log.Trace("TickSyncChangedEvent(" + symbol + ") not ready to resume task.");
             }
         }
 
@@ -218,8 +215,9 @@ namespace TickZoom.FIX
             quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
             var binary = default(TickBinary);
             reader.ReadQueue.Dequeue(ref binary);
-            queueTask.Pause();            
-            return Yield.DidWork.Return;
+            queueTask.Pause();
+            TickSyncChangedEvent();            
+		    return Yield.DidWork.Return;
 		}
 
         public void TryProcessAdjustments()

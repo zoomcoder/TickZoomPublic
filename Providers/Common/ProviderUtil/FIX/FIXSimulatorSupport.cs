@@ -233,7 +233,7 @@ namespace TickZoom.FIX
 			    task.Scheduler = Scheduler.EarliestTime;
                 quotePacketQueue.ConnectInbound(task);
                 fixPacketQueue.ConnectInbound(task);
-			    heartbeatTimer = Factory.Parallel.CreateTimer(task, HeartbeatTimerEvent);
+			    heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
                 var startTime = TimeStamp.UtcNow;
                 startTime.AddSeconds(1);
                 heartbeatTimer.Start(startTime);
