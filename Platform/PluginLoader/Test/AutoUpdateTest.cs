@@ -27,6 +27,7 @@
 
 using System;
 using System.IO;
+using System.Reflection;
 using NUnit.Framework;
 using TickZoom.Api;
 using TickZoom.Update;
@@ -39,7 +40,7 @@ namespace TickZoom.Utilities
 	public class AutoUpdateTest
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        private string testVersion = "1.2.38.38678";
+        private string testVersion = "1.2.51.51756";
 		private string appData;
 		private string dllFolder;
 		[TestFixtureSetUp]
@@ -188,6 +189,8 @@ namespace TickZoom.Utilities
 			}
 			string dllFile = dllFolder + "TickZoomEngine-"+updater.CurrentVersion+".dll";
 			Assert.IsTrue(File.Exists(dllFile));
+		    var assemblyName = AssemblyName.GetAssemblyName(dllFile);
+		    Assert.AreEqual(assemblyName.Version, new Version(testVersion));
 			dllFile = dllFolder + "ProviderCommon-"+updater.CurrentVersion+".dll";
 			Assert.IsTrue(File.Exists(dllFile));
 		}

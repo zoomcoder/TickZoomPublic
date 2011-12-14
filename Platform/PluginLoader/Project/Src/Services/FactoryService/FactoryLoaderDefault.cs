@@ -45,33 +45,18 @@ namespace TickZoom.Update
 		private static object locker = new object();
 		private static readonly Version currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
 		private bool debugFlag = false;
+	    private long uniqueFolderNumber = TimeStamp.UtcNow.Internal;
 
 		public FactoryLoaderDefault()
 		{
 			Assembly.GetExecutingAssembly().GetName().Version = new Version();
-			string path = GetShadowCopyFolder();
+		    CleanShadowCopyFolders();
 			string[] args = Environment.GetCommandLineArgs();
 			foreach( var arg in args) {
 				if( arg == "--debug" || arg == "-d") {
 					debugFlag = true;
 					break;
 				}
-			}
-			if (Directory.Exists(path)) {
-				long startTime = Environment.TickCount;
-				bool isDeleted = false;
-				while (!isDeleted && Environment.TickCount - startTime < 2000) {
-					try {
-						Directory.Delete(path, true);
-						isDeleted = true;
-					} catch (Exception ex) {
-						LogMsg("warning: error removing shadow copy folder: " + GetShadowCopyFolder() + ": " + ex.Message);
-						Thread.Sleep(500);
-					}
-				}
-			}
-			if (!Directory.Exists(path)) {
-				Directory.CreateDirectory(path);
 			}
 		}
 		StringBuilder logMessage = new StringBuilder();
@@ -119,14 +104,60 @@ namespace TickZoom.Update
 			return obj;
 		}
 
-		private string GetExecutablePath()
+		private static string GetExecutablePath()
 		{
-			return Path.GetDirectoryName(Assembly.GetExecutingAssembly().CodeBase).Replace("file:\\", "");
+		    var codeBase = Assembly.GetExecutingAssembly().CodeBase;
+			return Path.GetDirectoryName(codeBase).Replace("file:\\", "");
 		}
+
+        private void CleanShadowCopyFolders()
+        {
+            var path = GetExecutablePath() + Path.DirectorySeparatorChar + "ShadowCopy" + Path.DirectorySeparatorChar;
+            try
+            {
+                var files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        File.Delete(file);
+                    }
+                    catch( IOException ex)
+                    {
+                        continue;
+                    }
+                    catch( UnauthorizedAccessException)
+                    {
+                        continue;
+                    }
+                }
+                var folders = Directory.GetDirectories(path, "*", SearchOption.AllDirectories);
+                foreach (var folder in folders)
+                {
+                    try
+                    {
+                        Directory.Delete(folder);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                }
+            }
+            catch( DirectoryNotFoundException)
+            {
+                return;
+            }
+        }
 
 		private string GetShadowCopyFolder()
 		{
-			return GetExecutablePath() + Path.DirectorySeparatorChar + "ShadowCopy" + Path.DirectorySeparatorChar + System.Diagnostics.Process.GetCurrentProcess().ProcessName + Path.DirectorySeparatorChar;
+			var path = GetExecutablePath() + Path.DirectorySeparatorChar + "ShadowCopy" + Path.DirectorySeparatorChar + uniqueFolderNumber + Path.DirectorySeparatorChar;
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+		    return path;
 		}
 
 		private object Load(string path, Type type, string partialName, bool runUpdate, params object[] args)
