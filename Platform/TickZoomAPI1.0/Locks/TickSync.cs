@@ -57,7 +57,6 @@ namespace TickZoom.Api
         private TickSyncState* state;
         private SymbolInfo symbolInfo;
         private string symbol;
-        private bool rollbackNeeded = false;
         private TimeStamp lastAddTime = TimeStamp.UtcNow;
         private Action changeCallBack;
 

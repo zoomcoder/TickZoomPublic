@@ -102,7 +102,6 @@ namespace TickZoom.FIX
 		private FastQueue<Message> fixPacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorFIX");
 		protected FastQueue<Message> quotePacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorQuote");
 		private Dictionary<long, SimulateSymbol> symbolHandlers = new Dictionary<long, SimulateSymbol>();
-		private bool isPlayBack = false;
         private TrueTimer heartbeatTimer;
         private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;
 
@@ -119,7 +118,6 @@ namespace TickZoom.FIX
 		    switch (mode)
 		    {
 		        case "PlayBack":
-		            isPlayBack = true;
 		            break;
                 case "Negative":
 		            allTests = true;

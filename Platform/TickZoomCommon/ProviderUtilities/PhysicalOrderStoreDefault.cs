@@ -14,7 +14,7 @@ namespace TickZoom.Common
         private volatile bool trace;
         private volatile bool debug;
         private volatile bool anySnapShotWritten = false;
-        public void RefreshLogLevel()
+        public override void RefreshLogLevel()
         {
             if (log != null)
             {
@@ -331,21 +331,6 @@ namespace TickZoom.Common
                     }
                 }
             }
-        }
-
-        public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
-        {
-            AssertAtomic();
-            var result = new ActiveList<CreateOrChangeOrder>();
-            var list = GetOrders((o) => o.Symbol == symbol);
-            foreach (var order in list)
-            {
-                if (order.OrderState != OrderState.Filled)
-                {
-                    result.AddLast(order);
-                }
-            }
-            return result;
         }
 
         private void SnapShotHandler()

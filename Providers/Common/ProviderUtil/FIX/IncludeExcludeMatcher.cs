@@ -7,7 +7,6 @@ namespace TickZoom.FIX
         private readonly Log log;
         private volatile bool trace;
         private volatile bool debug;
-        private volatile bool verbose;
         public virtual void RefreshLogLevel()
         {
             if (log != null)

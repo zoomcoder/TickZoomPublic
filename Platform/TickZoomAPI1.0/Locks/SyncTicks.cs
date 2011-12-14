@@ -111,10 +111,6 @@ namespace TickZoom.Api
             set
             {
                 (*Directory.SyncTicksState).enabled = value;
-                if( !value)
-                {
-                    int x = 0;
-                }
             }
 		}
 		

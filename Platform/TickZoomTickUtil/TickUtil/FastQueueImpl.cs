@@ -584,28 +584,6 @@ namespace TickZoom.TickUtil
                 sb.Append(", ");
                 sb.Append(node.Value.ToString());
             }
-            if (false)
-            {
-
-                sb.Append(" locks( count=");
-                sb.Append(lockCount);
-                sb.Append(" spins=");
-                sb.Append(lockSpins*spinCycles);
-                sb.Append(" average=");
-                sb.Append(average);
-                sb.Append(") enqueue( conflicts=");
-                sb.Append(enqueueConflicts);
-                sb.Append(" spins=");
-                sb.Append(enqueueSpins);
-                sb.Append(" sleeps=");
-                sb.Append(enqueueSleepCounter);
-                sb.Append(") dequeue( conflicts=");
-                sb.Append(dequeueConflicts);
-                sb.Append(" spins=");
-                sb.Append(dequeueSpins);
-                sb.Append(" sleeps=");
-                sb.Append(dequeueSleepCounter);
-            }
 		    return sb.ToString();
 		}
 	    

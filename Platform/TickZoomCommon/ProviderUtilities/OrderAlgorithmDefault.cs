@@ -1089,7 +1089,6 @@ namespace TickZoom.Common
 
         public bool CheckForPending()
         {
-            var result = false;
             var expiryLimit = TimeStamp.UtcNow;
             if( SyncTicks.Enabled)
             {
@@ -1118,7 +1117,6 @@ namespace TickZoom.Common
                             origOrder.ReplacedBy = null;
                         }
                         cancelOrders.Add(order);
-                        result = true;
                     }
                     else if( Cancel(order))
                     {
@@ -1136,7 +1134,6 @@ namespace TickZoom.Common
                             log.Warn(message);
                         }
                         order.ResetLastChange();
-                        result = true;
                     }
                 }
             }
@@ -1591,10 +1588,6 @@ namespace TickZoom.Common
             while (extraLogicals.Count > 0)
             {
                 var logical = extraLogicals[0];
-                if (logical.SerialNumber == 24000000000010)
-                {
-                    int x = 0;
-                }
                 if( !ProcessExtraLogical(logical))
                 {
                     if (debug) log.Debug("Extra logical order: " + logical);

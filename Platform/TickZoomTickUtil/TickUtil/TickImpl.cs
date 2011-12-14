@@ -52,20 +52,10 @@ namespace TickZoom.TickUtil
 		private static readonly bool trace = log.IsTraceEnabled;
 		private static readonly bool debug = log.IsDebugEnabled;
         private static readonly bool verbose = log.IsVerboseEnabled;
-        private bool isCompressStarted;
-		private long pricePrecision;
-		private int priceDecimals;
 		private DaylightSavings dst;
 
 		byte dataVersion;
 		TickBinary binary;
-        long lastOptionExpiration;
-        long lastStrike;
-        long lastBid;
-		long lastAsk;
-		long lastPrice;
-		int lastSize;
-		TickBinary lastBinary;
 		TimeStamp localTime;
 	    private TickSerializer tickSerializer;
 

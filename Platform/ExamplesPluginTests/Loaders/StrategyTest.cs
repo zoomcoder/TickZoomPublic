@@ -93,7 +93,9 @@ namespace Loaders
 			this.startTime = testSettings.StartTime;
 			this.endTime = testSettings.EndTime;
 			this.relativeEndTime = testSettings.RelativeEndTime;
- 			this.testFileName = testSettings.Name;
+		    this.testFileName = string.IsNullOrEmpty(testSettings.KnownGoodName)
+		                            ? testSettings.Name
+		                            : testSettings.KnownGoodName;
  			this.intervalDefault = testSettings.IntervalDefault;
 			createStarterCallback = CreateStarter;
             StaticGlobalFlags.isWriteFinalStats = false;
@@ -189,10 +191,6 @@ namespace Loaders
             return starter;
         }
 			
-		public void MatchTestResultsOf( Type type) {
-			testFileName = type.Name;
-		}
-		
 		[TestFixtureSetUp]
 		public virtual void RunStrategy() {
 			log.Notice("Beginning RunStrategy()");

@@ -43,13 +43,15 @@ namespace Loaders
 		public string name;
 		public ModelLoaderInterface loader;
 		public string symbols;
-		public bool storeKnownGood;
+	    public string knownGoodName;
+        public bool storeKnownGood;
 		public bool showCharts;
 		public TimeStamp startTime;
 		public TimeStamp endTime;
 		public Elapsed relativeEndTime;
 		public Interval intervalDefault;
 		public IList<string> categories;
+
 	}
 	public class AutoTestSettings {
 		AutoTestSettingsBinary binary;
@@ -80,8 +82,15 @@ namespace Loaders
 			get { return binary.mode; }
 			set { binary.mode = value; }
 		}
-		
-		public string Name {
+
+        public string KnownGoodName
+        {
+            get { return binary.knownGoodName; }
+            set { binary.knownGoodName = value; }
+        }
+
+        public string Name
+        {
 			get { return binary.name; }
 			set { binary.name = value; }
 		}

@@ -13,7 +13,7 @@ namespace TickZoom.Common
         private volatile bool info;
         private volatile bool trace;
         private volatile bool debug;
-        public void RefreshLogLevel()
+        public virtual void RefreshLogLevel()
         {
             if (log != null)
             {

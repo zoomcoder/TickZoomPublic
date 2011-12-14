@@ -25,7 +25,6 @@ namespace TickZoom.TickUtil
         private bool isCompressStarted;
         private long pricePrecision;
         private int priceDecimals;
-        private DaylightSavings dst;
 
         long lastOptionExpiration;
         long lastStrike;

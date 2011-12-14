@@ -161,7 +161,6 @@ namespace TickZoom.Api
 		}
 
 	    private Dictionary<string, int> getterStacks = new Dictionary<string, int>();
-	    private int counter = 0;
         public override long Position
         {
 			get

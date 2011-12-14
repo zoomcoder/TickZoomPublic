@@ -37,7 +37,6 @@ namespace TickZoom.Api
 	    private long recency;
 		private Iterable<LogicalOrder> orders;
 	    private Iterable<StrategyPosition> strategyPositions;
-        private static long counterNext = 0;
 
         public PositionChangeDetail(SymbolInfo symbol, int position, Iterable<LogicalOrder> orders, Iterable<StrategyPosition> strategyPositions, long utcTime, long recency)
         {
