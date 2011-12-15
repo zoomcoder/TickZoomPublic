@@ -1766,10 +1766,6 @@ namespace TickZoom.Common
                         }
                         physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
                     }
-                    else if (origOrder.OrderState == OrderState.Pending)
-                    {
-                        origOrder.OrderState = OrderState.Active;
-                    }
                 }
             }
             if (isRealTime)

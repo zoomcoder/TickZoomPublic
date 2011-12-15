@@ -61,7 +61,8 @@ namespace TickZoom.Common
 	public class CreateOrChangeOrderDefault : CreateOrChangeOrder
 	{
 	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (CreateOrChangeOrderDefault));
-	    private PhysicalOrderBinary binary;
+	    private static readonly bool debug = log.IsDebugEnabled;
+        private PhysicalOrderBinary binary;
 		
         public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
         {
@@ -277,6 +278,10 @@ namespace TickZoom.Common
                 {
                     binary.orderState = value;
                     binary.lastStateChange = TimeStamp.UtcNow;
+                    if( binary.orderState == OrderState.Pending)
+                    {
+                        if( debug) log.Debug("Order Changed to Pending: " + this);
+                    }
                 }
             }
 		}
