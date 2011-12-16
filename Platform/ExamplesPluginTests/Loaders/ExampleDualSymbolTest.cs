@@ -35,7 +35,7 @@ using TickZoom.Transactions;
 namespace Loaders
 {
 	[TestFixture]
-	public class ExampleDualSymbolTest : StrategyTest
+	public class ExampleDualSymbolTest : StrategyBaseTest
 	{
 		#region SetupTest
 		Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

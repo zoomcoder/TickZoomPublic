@@ -44,7 +44,7 @@ using PostSharp.Extensibility;
 namespace Loaders
 {
 	[TestFixture]
-	public class TradeOnlySimpleTest : StrategyTest
+	public class TradeOnlySimpleTest : StrategyBaseTest
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(TradeOnlySimpleTest));
 		#region SetupTest

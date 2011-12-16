@@ -208,11 +208,13 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.None,
+                Mode = AutoTestMode.SimulateFIX,
                 Name = "MixedWithInactiveSymbol",
                 Loader = new ExampleMixedLoader(),
                 Symbols = primarySymbol + ",EUR/USD,USD/CHF,AUD/CAD",
                 StoreKnownGood = storeKnownGood,
+                KnownGoodName = "ExampleMixedTest",
+                IgnoreMissingKnownGood = true,
                 ShowCharts = showCharts,
                 StartTime = new TimeStamp(1800, 1, 1),
                 EndTime = new TimeStamp(2009, 6, 10),

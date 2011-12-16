@@ -35,7 +35,7 @@ using TickZoom.Starters;
 namespace Loaders
 {
 	[TestFixture]
-	public class ExampleSimulatedTest : StrategyTest
+	public class ExampleSimulatedTest : StrategyBaseTest
 	{
 		Log log = Factory.SysLog.GetLogger(typeof(ExampleSimulatedTest));
 		#region SetupTest

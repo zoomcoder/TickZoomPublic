@@ -40,7 +40,7 @@ using ZedGraph;
 namespace MockProvider
 {
 	[TestFixture]
-	public class TestException : StrategyTest {
+	public class TestException : StrategyBaseTest {
 		
 		public TestException() {
 			ConfigurationManager.AppSettings.Set("ProviderAddress","InProcess");

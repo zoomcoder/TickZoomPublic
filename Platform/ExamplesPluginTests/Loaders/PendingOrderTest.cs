@@ -10,7 +10,7 @@ namespace Loaders
     public class PendingOrderTest 
     {
         Log log = Factory.SysLog.GetLogger(typeof(PendingOrderTest));
-        private StrategyTest strategyTest;
+        private StrategyBaseTest strategyBaseTest;
         public PendingOrderTest()
         {
             var settings = new AutoTestSettings
@@ -25,7 +25,7 @@ namespace Loaders
                                    EndTime = new TimeStamp(2009, 6, 10),
                                    IntervalDefault = Intervals.Minute1,
                                };
-            strategyTest = new StrategyTest( settings);
+            strategyBaseTest = new StrategyBaseTest( settings);
         }
 
         [TestFixtureSetUp]
@@ -34,7 +34,7 @@ namespace Loaders
             Assert.Ignore();
             try
             {
-                strategyTest.RunStrategy();
+                strategyBaseTest.RunStrategy();
             }
             catch (Exception ex)
             {

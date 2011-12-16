@@ -51,6 +51,7 @@ namespace Loaders
 		public Elapsed relativeEndTime;
 		public Interval intervalDefault;
 		public IList<string> categories;
+	    public bool ignoreMissingKnownGood;
 
 	}
 	public class AutoTestSettings {
@@ -134,5 +135,11 @@ namespace Loaders
 			get { return binary.relativeEndTime; }
 			set { binary.relativeEndTime = value; }
 		}
-	}
+
+        public bool IgnoreMissingKnownGood
+        {
+            get { return binary.ignoreMissingKnownGood; }
+            set { binary.ignoreMissingKnownGood = value; }
+        }
+    }
 }

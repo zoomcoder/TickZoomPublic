@@ -35,7 +35,7 @@ using TickZoom.Examples;
 namespace Loaders
 {
 	[TestFixture]
-	public class MarketOrderTest : StrategyTest
+	public class MarketOrderTest : StrategyBaseTest
 	{
 		Log log = Factory.SysLog.GetLogger(typeof(MarketOrderTest));
 		Strategy strategy;

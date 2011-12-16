@@ -37,12 +37,12 @@ using ZedGraph;
 namespace Loaders
 {
 	[TestFixture]
-	public class ExampleReversalTradeOnlyTest : StrategyTest
+	public class ExampleReversalTradeOnlyBaseTest : StrategyBaseTest
 	{
 		#region SetupTest
-		Log log = Factory.SysLog.GetLogger(typeof(ExampleReversalTradeOnlyTest));
+		Log log = Factory.SysLog.GetLogger(typeof(ExampleReversalTradeOnlyBaseTest));
 		protected Strategy strategy;
-		public ExampleReversalTradeOnlyTest() {
+		public ExampleReversalTradeOnlyBaseTest() {
 			Symbols = "/ESH0";
 		}
 		

@@ -50,9 +50,9 @@ namespace Loaders
 {
 	public delegate Starter CreateStarterCallback();
 	
-	public class StrategyTest
+	public class StrategyBaseTest
 	{
-		static readonly Log log = Factory.SysLog.GetLogger(typeof(StrategyTest));
+		static readonly Log log = Factory.SysLog.GetLogger(typeof(StrategyBaseTest));
 		readonly bool debug = log.IsDebugEnabled;
 		private ModelLoaderInterface loader;
 		private string testFileName;
@@ -84,7 +84,7 @@ namespace Loaders
 		private long realTimeOffset;
         private StarterConfig config;
 
-		public StrategyTest( AutoTestSettings testSettings ) {
+		public StrategyBaseTest( AutoTestSettings testSettings ) {
 			this.autoTestMode = testSettings.Mode;
 			this.loader = testSettings.Loader;
 			this.symbols = testSettings.Symbols;
@@ -102,7 +102,7 @@ namespace Loaders
 		    FillSimulatorPhysical.MaxPartialFillsPerOrder = 10;
 		}
 		
-		public StrategyTest() {
+		public StrategyBaseTest() {
  			testFileName = GetType().Name;
 			createStarterCallback = CreateStarter;
 			StartGUIThread();

@@ -35,7 +35,7 @@ using TickZoom.Examples;
 namespace Loaders
 {
 	[TestFixture]
-	public class TradeOnlyLimitOrderTest : StrategyTest
+	public class TradeOnlyLimitOrderTest : StrategyBaseTest
 	{
 		Log log = Factory.SysLog.GetLogger(typeof(TradeOnlyLimitOrderTest));
 		ExampleOrderStrategy strategy;

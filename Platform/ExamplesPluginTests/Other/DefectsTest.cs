@@ -47,7 +47,7 @@ using TickZoom.Starters;
 namespace Other
 {
 	[TestFixture]
-	public class DefectsTest : StrategyTest
+	public class DefectsTest : StrategyBaseTest
 	{
 	    string storageFolder;
 		Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

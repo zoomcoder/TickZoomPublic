@@ -109,7 +109,7 @@ namespace Other
                 config.SymbolList = "IBM,GBP/USD";
                 StarterConfigView form;
                 StartGUI(config, out form);
-                StrategyTest.CleanupFiles(config.SymbolList);
+                StrategyBaseTest.CleanupFiles(config.SymbolList);
                 config.DefaultPeriod = 10;
                 config.DefaultBarUnit = BarUnit.Tick.ToString();
                 config.ModelLoader = "Example: Reversal Multi-Symbol";
@@ -137,7 +137,7 @@ namespace Other
 	            StarterConfigView form;
 	            StartGUI(config, out form);
 				config.SymbolList = "IBM,GBP/USD";
-                StrategyTest.CleanupFiles(config.SymbolList);
+                StrategyBaseTest.CleanupFiles(config.SymbolList);
                 config.DefaultPeriod = 10;
 				config.DefaultBarUnit = BarUnit.Tick.ToString();
 				config.ModelLoader = "Example: Reversal Multi-Symbol";
@@ -165,7 +165,7 @@ namespace Other
 		public void TestGUIRealTimeDemo()
 		{
 			Assert.Ignore();
-            StrategyTest.CleanupFiles(null);
+            StrategyBaseTest.CleanupFiles(null);
             try
             {
                 while (true)
@@ -212,7 +212,7 @@ namespace Other
 			try {
 				config.WaitComplete(2);
 				config.SymbolList = "IBM";
-                StrategyTest.CleanupFiles(config.SymbolList);
+                StrategyBaseTest.CleanupFiles(config.SymbolList);
                 config.DefaultPeriod = 10;
 				config.DefaultBarUnit = BarUnit.Second.ToString();
 				config.ModelLoader = "Example: Breakout Reversal";
@@ -245,7 +245,7 @@ namespace Other
 		{
 			var config = CreateSimulateConfig();
 			config.SymbolList = "IBM,GBP/USD";
-            StrategyTest.CleanupFiles(config.SymbolList);
+            StrategyBaseTest.CleanupFiles(config.SymbolList);
             config.DefaultPeriod = 10;
 			config.DefaultBarUnit = BarUnit.Tick.ToString();
 			config.ModelLoader = "Example: Reversal Multi-Symbol";
@@ -287,7 +287,7 @@ namespace Other
 	            StarterConfigView form;
 	            StartGUI(config, out form);
 				config.SymbolList = "/ESZ9";
-                StrategyTest.CleanupFiles(config.SymbolList);
+                StrategyBaseTest.CleanupFiles(config.SymbolList);
                 config.DefaultPeriod = 1;
 				config.DefaultBarUnit = BarUnit.Minute.ToString();
 				config.EndDateTime = DateTime.UtcNow;

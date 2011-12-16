@@ -36,7 +36,7 @@ namespace Loaders
 	[SuiteBuilder]
 	public class DynamicTestSuite : ISuiteBuilder
 	{
-		Type userFixtureType = typeof(StrategyTest);
+		Type userFixtureType = typeof(StrategyBaseTest);
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(DynamicTestSuite));
 		public Test BuildFrom(Type type)
 		{
@@ -78,7 +78,7 @@ namespace Loaders
 		}
 			
 		private void AddStrategyTestCases(NUnitTestFixture fixture, AutoTestSettings testSettings) {
-			var strategyTest = (StrategyTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
+			var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
 			foreach( var modelName in strategyTest.GetModelNames()) {
 				var paramaterizedTest = new ParameterizedMethodSuite(modelName);
 				foreach( var category in testSettings.Categories) {
@@ -122,7 +122,7 @@ namespace Loaders
 		}
 				           
 		private void AddSymbolTestCases(NUnitTestFixture fixture, AutoTestSettings testSettings) {
-			var strategyTest = (StrategyTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
+			var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
 			foreach( var symbol in strategyTest.GetSymbols()) {
 				var paramaterizedTest = new ParameterizedMethodSuite(symbol.Symbol);
 				foreach( var category in testSettings.Categories) {
@@ -177,8 +177,8 @@ namespace Loaders
 			foreach( var testSettings in autoTestFixture.GetAutoTestSettings() ) {
 				if( (testSettings.Mode & autoTestMode) != autoTestMode) continue;
 				testSettings.Mode = autoTestMode;
-				var userFixtureType = typeof(StrategyTest);
-				var strategyTest = (StrategyTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
+				var userFixtureType = typeof(StrategyBaseTest);
+				var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
 				foreach( var modelName in strategyTest.GetModelNames()) {
 					result = true; // If at least one entry.
 					break;
