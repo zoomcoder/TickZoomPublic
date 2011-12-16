@@ -108,10 +108,15 @@ namespace TickZoom.TickUtil
 			var filePath = dataFolder + "\\" + folderOrfile;
 			if (Directory.Exists(filePath)) {
 				fileName = filePath + "\\" + symbolFile.StripInvalidPathChars() + ".tck";
-			} else if (File.Exists(folderOrfile)) {
+			}
+            else if (File.Exists(folderOrfile)) {
 				fileName = folderOrfile;
-			} else {
-				throw new ApplicationException("Requires either a file or folder to read data. Tried both " + folderOrfile + " and " + filePath);
+			}
+            else
+			{
+                Directory.CreateDirectory(filePath);
+                fileName = filePath + "\\" + symbolFile.StripInvalidPathChars() + ".tck";
+                //throw new ApplicationException("Requires either a file or folder to read data. Tried both " + folderOrfile + " and " + filePath);
 			}
 			CheckFileExtension();
 			PrepareTask();

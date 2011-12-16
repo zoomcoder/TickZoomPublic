@@ -461,7 +461,6 @@ namespace TickZoom.Symbols
       <symbol name=""/ESU0"" />
       <symbol name=""/NQU0"" />
       <symbol name=""/ESH1""/>
-      <symbol name=""/ESH2""/>
       <symbol name=""TestException"" />
       <symbol name=""TestPending"" />
       <category name=""TradeOnly"">
@@ -741,6 +740,7 @@ namespace TickZoom.Symbols
                 <property name=""LimitOrderQuoteSimulation"" value=""OppositeQuoteTouch"" />
                 <property name=""LimitOrderTradeSimulation"" value=""None"" />
               </symbol>
+              <symbol name=""/ESH2""/>
         </category>
         <category name=""Emini NASDAQ Symbol NQ variants"">
           <property name=""FullPointValue"" value=""20"" />

@@ -49,6 +49,7 @@ namespace TickZoom.MBTFIX
         {
             public bool IsBrokerStarted;
             public OrderAlgorithm OrderAlgorithm;
+            public ReceiveEventQueue Queue;
         }
 
         public override void RefreshLogLevel()
@@ -122,9 +123,16 @@ namespace TickZoom.MBTFIX
         {
 			lock( symbolsRequestedLocker) {
                 if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
-			    var queue = receiver.GetQueue(symbol);
-			    var item = new EventItem(symbol, (int) type);
-			    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                SymbolAlgorithm algorithm;
+                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                {
+                    var item = new EventItem(symbol, (int)type);
+                    algorithm.Queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                }
+                else
+                {
+                    log.Info("TrySend " + type + " for " + symbol + " but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+                }
             }
 		}
 
@@ -145,7 +153,7 @@ namespace TickZoom.MBTFIX
                         if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
                         continue;
                     }
-			        var queue = receiver.GetQueue(symbol);
+				    var queue = algorithm.Queue;
 			        var item = new EventItem(symbol, (int)EventType.EndBroker);
 				    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
 				    algorithm.IsBrokerStarted = false;
@@ -215,7 +223,7 @@ namespace TickZoom.MBTFIX
                     orderAlgorithms.Clear();
                     foreach( var symbolId in symbolIds)
                     {
-                        GetAlgorithm(symbolId);
+                        CreateAlgorithm(symbolId);
                     }
                 }
                 //if( SyncTicks.Enabled)
@@ -273,7 +281,7 @@ namespace TickZoom.MBTFIX
 
         public override void OnStartSymbol(SymbolInfo symbol)
         {
-            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            var algorithm = CreateAlgorithm(symbol.BinaryIdentifier);
             if (ConnectionStatus == Status.Recovered)
             {
                 algorithm.OrderAlgorithm.ProcessOrders();
@@ -592,9 +600,25 @@ namespace TickZoom.MBTFIX
                     log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
                     return;
                 }
-                var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                if (debug) log.Debug("PositionUpdate for " + symbolInfo + ": MBT actual =" + position + ", TZ actual=" + algorithm.OrderAlgorithm.ActualPosition);
+                SymbolInfo symbol;
+                try
+                {
+                    symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
+                }
+                catch
+                {
+                    log.Info("PositionUpdate. But " + packetFIX.Symbol + " was not found in symbol dictionary.");
+                    return;
+                }
+                SymbolAlgorithm algorithm;
+                if( TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                {
+                    if (debug) log.Debug("PositionUpdate for " + symbolInfo + ": MBT actual =" + position + ", TZ actual=" + algorithm.OrderAlgorithm.ActualPosition);
+                }
+                else
+                {
+                    log.Info("PositionUpdate for " + symbolInfo + ": MBT actual =" + position + " but symbol was not requested. Ignoring.");
+                }
             }
 		}
 
@@ -603,8 +627,15 @@ namespace TickZoom.MBTFIX
             var order = UpdateOrder(packetFIX, OrderState.PendingNew, null);
             if (order != null)
             {
-                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                algorithm.OrderAlgorithm.ConfirmActive(order, IsRecovered);
+                SymbolAlgorithm algorithm;
+                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                {
+                    algorithm.OrderAlgorithm.ConfirmActive(order, IsRecovered);
+                }
+                else
+                {
+                    log.Info("ConfirmActive but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+                }
             }
         }
 
@@ -613,8 +644,15 @@ namespace TickZoom.MBTFIX
             var order = UpdateOrder(packetFIX, OrderState.Active, null);
             if (order != null)
             {
-                var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-                algorithm.OrderAlgorithm.ConfirmCreate(order, IsRecovered);
+                SymbolAlgorithm algorithm;
+                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                {
+                    algorithm.OrderAlgorithm.ConfirmCreate(order, IsRecovered);
+                }
+                else
+                {
+                    log.Info("ConfirmCreate but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+                }
             }
             else if( SyncTicks.Enabled)
             {
@@ -695,8 +733,15 @@ namespace TickZoom.MBTFIX
                         order = ReplaceOrder(packetFIX);
                         if (order != null)
                         {
-                            var algorithm = GetAlgorithm(order.Symbol.BinaryIdentifier);
-                            algorithm.OrderAlgorithm.ConfirmChange(order, IsRecovered);
+                            SymbolAlgorithm algorithm;
+                            if (TryGetAlgorithm(order.Symbol.BinaryIdentifier, out algorithm))
+                            {
+                                algorithm.OrderAlgorithm.ConfirmChange(order, IsRecovered);
+                            }
+                            else
+                            {
+                                log.Info("ConfirmChange but OrderAlgorithm not found for " + order.Symbol + ". Ignoring.");
+                            }
                         }
                         else if (IsRecovered)
                         {
@@ -710,7 +755,12 @@ namespace TickZoom.MBTFIX
                         }
                         {
                             var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                            var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
+                            SymbolAlgorithm algorithm;
+                            if (!TryGetAlgorithm(symbolInfo.BinaryIdentifier, out algorithm))
+                            {
+                                log.Info("Order Canceled but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
+                                break;
+                            }
                             CreateOrChangeOrder clientOrder;
                             if (!OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out clientOrder))
                             {
@@ -882,7 +932,6 @@ namespace TickZoom.MBTFIX
                     {
                         rejectReason = true;
                         removeOriginal = true;
-                        removeLogical = true;
                     }
 			        else if( packetFIX.Text.Contains("No such order"))
                     {
@@ -895,7 +944,6 @@ namespace TickZoom.MBTFIX
                         packetFIX.Text.Contains("General Order Replace Error"))
                     {
                         rejectReason = true;
-                        removeLogical = true;
                     }
 
                     OrderStore.RemoveOrder(packetFIX.ClientOrderId);
@@ -909,8 +957,14 @@ namespace TickZoom.MBTFIX
                     }
 
                     var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                    var algo = GetAlgorithm(symbol.BinaryIdentifier);
-                    algo.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
+                    SymbolAlgorithm algorithm;
+                    if (!TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                    {
+                        log.Info("Cancel rejected but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+                        break;
+                    }
+
+                    algorithm.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
 
                     if (!rejectReason && IsRecovered)
                     {
@@ -958,7 +1012,12 @@ namespace TickZoom.MBTFIX
 			if( debug ) log.Debug("SendFill( " + packetFIX.ClientOrderId + ")");
 			var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
 			var timeZone = new SymbolTimeZone(symbolInfo);
-            var algorithm = GetAlgorithm(symbolInfo.BinaryIdentifier);
+            SymbolAlgorithm algorithm;
+            if (!TryGetAlgorithm(symbolInfo.BinaryIdentifier, out algorithm))
+            {
+                log.Info("Fill received but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
+                return;
+            }
             var fillPosition = packetFIX.LastQuantity * SideToSign(packetFIX.Side);
             if (GetSymbolStatus(symbolInfo))
             {
@@ -1010,7 +1069,7 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Broker offline but sending fill anyway for " + symbol + " to receiver: " + fill);
             }
 		    if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
-            var queue = receiver.GetQueue(symbol);
+		    var queue = symbolAlgorithm.Queue;
             var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
             queue.Enqueue(item, fill.UtcTime.Internal);
 		}
@@ -1061,8 +1120,15 @@ namespace TickZoom.MBTFIX
             CreateOrChangeOrder order;
             OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 		    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-            var algo = GetAlgorithm(symbol.BinaryIdentifier);
-            algo.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
+            SymbolAlgorithm algorithm;
+            if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+            {
+                algorithm.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
+            }
+            else
+            {
+                log.Info("RejectOrder but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+            }
 		}
 		
 		private static readonly char[] DOT_SEPARATOR = new char[] { '.' };
@@ -1327,18 +1393,7 @@ namespace TickZoom.MBTFIX
             return order;
         }
 
-        private SymbolAlgorithm GetAlgorithm(string clientOrderId)
-        {
-			CreateOrChangeOrder origOrder;
-			try {
-				origOrder = OrderStore.GetOrderById(clientOrderId);
-			} catch( ApplicationException) {
-				throw new ApplicationException("Unable to find physical order by client id: " + clientOrderId);
-			}
-			return GetAlgorithm( origOrder.Symbol.BinaryIdentifier);
-		}
-		
-		private SymbolAlgorithm GetAlgorithm(long symbol) {
+		private SymbolAlgorithm CreateAlgorithm(long symbol) {
             SymbolAlgorithm symbolAlgorithm;
 			lock( orderAlgorithmsLocker) {
                 if (!orderAlgorithms.TryGetValue(symbol, out symbolAlgorithm))
@@ -1347,14 +1402,38 @@ namespace TickZoom.MBTFIX
 				    var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
 					var algorithm = Factory.Utility.OrderAlgorithm( "mbtfix", symbolInfo, this, orderCache, OrderStore);
                     symbolAlgorithm = new SymbolAlgorithm {OrderAlgorithm = algorithm};
+                    symbolAlgorithm.Queue = receiver.GetQueue(symbolInfo);
 					orderAlgorithms.Add(symbol,symbolAlgorithm);
 					algorithm.OnProcessFill = ProcessFill;
 				}
 			}
 			return symbolAlgorithm;
 		}
-		
-		private bool RemoveOrderHandler(long symbol) {
+
+        private bool TryGetAlgorithm(long symbol, out SymbolAlgorithm algorithm)
+        {
+            SymbolAlgorithm symbolAlgorithm;
+            lock (orderAlgorithmsLocker)
+            {
+                return orderAlgorithms.TryGetValue(symbol, out algorithm);
+            }
+        }
+
+        private SymbolAlgorithm GetAlgorithm(long symbol)
+        {
+            SymbolAlgorithm symbolAlgorithm;
+            lock (orderAlgorithmsLocker)
+            {
+                if (!orderAlgorithms.TryGetValue(symbol, out symbolAlgorithm))
+                {
+                    throw new ApplicationException("OrderAlgorirhm was not found for " + Factory.Symbol.LookupSymbol(symbol));
+                }
+            }
+            return symbolAlgorithm;
+        }
+
+        private bool RemoveOrderHandler(long symbol)
+        {
 			lock( orderAlgorithmsLocker) {
 				if( orderAlgorithms.ContainsKey(symbol)) {
 					orderAlgorithms.Remove(symbol);
