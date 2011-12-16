@@ -447,11 +447,6 @@ namespace TickZoom.Symbols
     <property name=""TimeAndSales"" value=""ActualTrades"" />
     <property name=""QuoteType"" value=""Level1"" />
     <category name=""Testing"">
-      <symbol name=""ES"">
-        <property name=""UseSyntheticLimits"" value=""false"" />
-        <property name=""UseSyntheticStops"" value=""false"" />
-        <property name=""UseSyntheticMarkets"" value=""false"" />
-      </symbol>
       <symbol name=""KC"">
 	    <property name=""TimeZone"" value=""Eastern Standard Time"" />
 	    <property name=""MinimumTick"" value=""0.05"" />
@@ -466,6 +461,7 @@ namespace TickZoom.Symbols
       <symbol name=""/ESU0"" />
       <symbol name=""/NQU0"" />
       <symbol name=""/ESH1""/>
+      <symbol name=""/ESH2""/>
       <symbol name=""TestException"" />
       <symbol name=""TestPending"" />
       <category name=""TradeOnly"">
@@ -627,6 +623,7 @@ namespace TickZoom.Symbols
 	    <property name=""SessionStart"" value=""18:00:00"" />
 	    <property name=""SessionEnd"" value=""17:15:00"" />
               <symbol name=""GC""/>
+              <symbol name=""/GCG2""/>
         </category>
         <category name=""CME currency 125k variants"">
           <property name=""FullPointValue"" value=""125000"" />
@@ -753,6 +750,7 @@ namespace TickZoom.Symbols
 	    <property name=""SessionStart"" value=""15:30:00"" />
 	    <property name=""SessionEnd"" value=""15:15:00"" />
          	    <symbol name=""NQ""/>
+         	    <symbol name=""/NQH2""/>
         </category>
         <category name=""Full size S and P 400 MidCap variants"">
           <property name=""FullPointValue"" value=""500"" />

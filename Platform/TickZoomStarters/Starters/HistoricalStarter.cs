@@ -108,9 +108,6 @@ namespace TickZoom.Starters
     	<additivity value=""false"" />
 	<appender-ref ref=""BarDataLogAppender"" />
     </logger>
-    <logger name=""TickZoom.Common"">
-        <level value=""INFO"" />
-    </logger>
     <logger name=""TickZoom.FIX"">
         <level value=""DEBUG"" />
     </logger>
@@ -119,33 +116,6 @@ namespace TickZoom.Starters
     </logger>
     <logger name=""TickZoom.MBTQuotes"">
         <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.Engine.SymbolReceiver"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.ProviderService"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Engine.EngineKernel"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Internals.OrderGroup"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Internals.OrderManager"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Engine.SymbolController"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Interceptors.FillSimulatorPhysical"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Interceptors.FillHandlerDefault"">
-        <level value=""INFO"" />
-    </logger>
-    <logger name=""TickZoom.Common.OrderAlgorithmDefault"">
-        <level value=""INFO"" />
     </logger>
  </log4net>
 </configuration>
