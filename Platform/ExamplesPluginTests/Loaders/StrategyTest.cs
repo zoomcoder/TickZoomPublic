@@ -83,6 +83,10 @@ namespace Loaders
 		private AutoTestMode autoTestMode = AutoTestMode.Historical;
 		private long realTimeOffset;
         private StarterConfig config;
+        private bool ignoreMissingKnownGood;
+        private Thread guiThread;
+        private Execute execute;
+        private int testFinshedTimeout;
 
 		public StrategyBaseTest( AutoTestSettings testSettings ) {
 			this.autoTestMode = testSettings.Mode;
@@ -93,6 +97,7 @@ namespace Loaders
 			this.startTime = testSettings.StartTime;
 			this.endTime = testSettings.EndTime;
 			this.relativeEndTime = testSettings.RelativeEndTime;
+		    this.testFinshedTimeout = testSettings.TestFinishedTimeout;
 		    this.testFileName = string.IsNullOrEmpty(testSettings.KnownGoodName)
 		                            ? testSettings.Name
 		                            : testSettings.KnownGoodName;
@@ -112,9 +117,7 @@ namespace Loaders
 			return new HistoricalStarter();			
 		}
 
-		private Thread guiThread;
-		private Execute execute;
-		public void StartGUIThread() {
+	    public void StartGUIThread() {
 			var isRunning = false;
 			guiThread = new Thread( () => {
 			    Thread.CurrentThread.Name = "GUIThread";
@@ -141,6 +144,7 @@ namespace Loaders
 			config.ServicePort = 6490;
     		config.EndDateTime = endTime.DateTime;
 			config.StartDateTime = startTime.DateTime;
+		    config.TestFinishedTimeout = testFinshedTimeout;
 			
 			switch( autoTestMode) {
 				case AutoTestMode.Historical:

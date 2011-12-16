@@ -52,6 +52,7 @@ namespace TickZoom.Properties
 		ChartProperties chartProperties;
 		EngineProperties engineProperties;
 		string[] symbolArray;
+	    private int testFinishedTimeout;
 		
 		List<SymbolProperties> symbolInfo = new List<SymbolProperties>();
 		
@@ -126,5 +127,11 @@ namespace TickZoom.Properties
 		public string[] SymbolArray {
 			get { return symbolArray; }
 		}
+
+	    public int TestFinishedTimeout
+	    {
+	        get { return testFinishedTimeout; }
+	        set { testFinishedTimeout = value; }
+	    }
 	}
 }

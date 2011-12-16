@@ -66,7 +66,8 @@ namespace TickZoom.Presentation
         private string providerAssembly;
         private bool autoUpdate;
         private Starter starter;
-
+        private string starterName;
+        private int testFinishedTimeout;
         
 		public bool AutoUpdate {
 			get { return autoUpdate; }
@@ -164,8 +165,6 @@ namespace TickZoom.Presentation
             { "FIX Negative Testing", "FIXNegativeStarter"},
             { "Realtime Operation (Demo or Live)", "RealTimeStarter"},
         };
-
-        private string starterName;
 
         public List<string> StarterNameValues
         {
@@ -934,6 +933,7 @@ namespace TickZoom.Presentation
             starterInstance.ProjectProperties.ConfigFile = projectConfig;
             starterInstance.ProjectProperties.Starter.StartTime = (TimeStamp) startDateTime;
             starterInstance.ProjectProperties.Starter.EndTime = (TimeStamp)endDateTime;
+            starterInstance.ProjectProperties.Starter.TestFinishedTimeout = TestFinishedTimeout;
             starterInstance.BackgroundWorker = commandWorker;
             starterInstance.DataFolder = dataSubFolder;
             if (!disableCharting)
@@ -978,8 +978,18 @@ namespace TickZoom.Presentation
  		public Starter Starter {
 			get { return starter; }
 		}
-        
-       #endregion Methods
+
+        public int TestFinishedTimeout
+        {
+            get { return testFinishedTimeout; }
+            set
+            {
+                NotifyOfPropertyChange(() => TestFinishedTimeout);
+                testFinishedTimeout = value;
+            }
+        }
+
+        #endregion Methods
 
     }
 }

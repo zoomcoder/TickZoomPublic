@@ -52,6 +52,7 @@ namespace Loaders
 		public Interval intervalDefault;
 		public IList<string> categories;
 	    public bool ignoreMissingKnownGood;
+	    public int testFinishedTimeout;
 
 	}
 	public class AutoTestSettings {
@@ -140,6 +141,12 @@ namespace Loaders
         {
             get { return binary.ignoreMissingKnownGood; }
             set { binary.ignoreMissingKnownGood = value; }
+        }
+
+        public int TestFinishedTimeout
+        {
+            get { return binary.testFinishedTimeout; }
+            set { binary.testFinishedTimeout = value; }
         }
     }
 }

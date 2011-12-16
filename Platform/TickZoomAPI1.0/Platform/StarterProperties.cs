@@ -67,7 +67,9 @@ namespace TickZoom.Api
 		string Symbols {
 			set;
 		}
-		
-		void CopyProperties(object obj);
+
+	    int TestFinishedTimeout { get; set; }
+
+	    void CopyProperties(object obj);
 	}
 }

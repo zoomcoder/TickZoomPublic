@@ -223,8 +223,10 @@ namespace TickZoom.Api
     		get;
     		set;
     	}
-    	
-    	void Release();
+
+	    int TestFinishedTimeout { get; set; }
+
+	    void Release();
     	
 	}
 }

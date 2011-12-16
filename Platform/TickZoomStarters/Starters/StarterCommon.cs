@@ -181,6 +181,7 @@ namespace TickZoom.Starters
                 engine.EndCount = EndCount;
                 engine.StartTime = ProjectProperties.Starter.StartTime;
                 engine.EndTime = ProjectProperties.Starter.EndTime;
+                engine.TestFinishedTimeout = ProjectProperties.Starter.TestFinishedTimeout;
 
                 if (CancelPending) return;
 
