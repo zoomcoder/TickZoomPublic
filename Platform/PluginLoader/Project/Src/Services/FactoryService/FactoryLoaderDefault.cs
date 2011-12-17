@@ -346,14 +346,14 @@ namespace TickZoom.Update
 		
 	    public bool AutoUpdate(BackgroundWorker bw) {
 	    	bool retVal = false;
-			AutoUpdate updater = new AutoUpdate();
-			updater.BackgroundWorker = bw;
-			
-			if( updater.UpdateAll() ) {
-				retVal = true;
-			}
+			var updater = new AutoUpdate();
+            updater.BackgroundWorker = bw;
+
+            if (updater.UpdateAll())
+            {
+                retVal = true;
+            }
    			return retVal;
 		}
-		
 	}
 }

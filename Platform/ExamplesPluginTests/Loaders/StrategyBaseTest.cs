@@ -318,6 +318,11 @@ namespace Loaders
                     errors.Clear();
                     break;
                 }
+                catch (DirectoryNotFoundException)
+                {
+                    errors.Clear();
+                    break;
+                }
                 catch (Exception ex)
                 {
                     errors.Add(ex);
@@ -364,11 +369,11 @@ namespace Loaders
             topModel = null;
             Factory.Log.Flush();
             Factory.SysLog.Flush();
-            //if (testFailed)
-            //{
-            //    log.Error("Exiting because one of the tests failed.");
-            //    Environment.Exit(1);
-            //}
+            if (testFailed)
+            {
+                log.Error("Exiting because one of the tests failed.");
+                Environment.Exit(1);
+            }
         }
 		
         public class TransactionInfo {

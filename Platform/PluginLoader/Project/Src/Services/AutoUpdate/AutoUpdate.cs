@@ -34,10 +34,11 @@ namespace TickZoom.Update
 			currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
 			autoUpdateDirectory = Factory.Settings["AppDataFolder"] +
 				Path.DirectorySeparatorChar + "AutoUpdate";
-			LoadUserKey();
 		}
-		
-		private void LoadUserKey() {
+
+		private bool LoadUserKey()
+		{
+		    var result = false;
 			string appDataFolder = Factory.Settings["AppDataFolder"];
 			userKeyPath = appDataFolder + @"\" + userKeyFile;
 			try {
@@ -47,15 +48,21 @@ namespace TickZoom.Update
 				userKey = userKey.Replace("-----END RSA PRIVATE KEY-----","");
 		        Regex r = new Regex(@"\s+");
 		        userKey = r.Replace(userKey, @"");
+			    result = true;
 			} catch( Exception ex) {
 				userKey = "";
 				message = "User key problem: " + ex.Message + " Please consider upgrading.";
 				log.Notice( message);
 			}
+		    return result;
 		}
 		
 		public bool UpdateAll() {
 			bool retVal = false;
+            if( !LoadUserKey())
+            {
+                return false;
+            }
 			string[] allVersions = GetFileList();
 			log.Notice( "Attempting AutoUpdate...");
             if (allVersions == null) return false;
