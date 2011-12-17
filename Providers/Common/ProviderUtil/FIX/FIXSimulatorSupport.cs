@@ -211,7 +211,7 @@ namespace TickZoom.FIX
 			StartFIXSimulation();
 			TryInitializeTask();
 			fixSocket.ReceiveQueue.ConnectInbound( task);
-            fixSocket.ConnectSend(task);
+            fixSocket.SendQueue.ConnectOutbound(task);
 		}
 
 		protected virtual void OnConnectQuotes(Socket socket)
@@ -222,7 +222,7 @@ namespace TickZoom.FIX
 			StartQuoteSimulation();
 			TryInitializeTask();
 			quoteSocket.ReceiveQueue.ConnectInbound( task);
-            quoteSocket.ConnectSend(task);
+            quoteSocket.SendQueue.ConnectOutbound(task);
 		}
 		
 		private void TryInitializeTask() {

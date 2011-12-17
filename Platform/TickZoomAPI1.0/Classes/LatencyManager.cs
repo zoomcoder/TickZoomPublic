@@ -115,11 +115,11 @@ namespace TickZoom.Api
                 alreadyShowedLog = false;
             }
             var showLog = tickCount > 100 && latency > 20000;
-            var selectCount = Factory.Provider.Manager.SelectCount;
+            var selectCount = Factory.Provider.ManagerTCP.SelectCount;
 		    var roundRobinCounter = Factory.Parallel.RoundRobinCounter;
 		    var earliestCounter = Factory.Parallel.EarliestCounter;
-            var sendCounter = Factory.Provider.Manager.SendCounter;
-		    var receiveCounter = Factory.Provider.Manager.ReceiveCounter;
+            var sendCounter = Factory.Provider.ManagerTCP.SendCounter;
+		    var receiveCounter = Factory.Provider.ManagerTCP.ReceiveCounter;
 		    var tryReadCounter = Interlocked.Read(ref TryReadCounter);
 		    var simulator = simulatorCount;
             var timerCount = (int)Factory.Parallel.TimerCount;
