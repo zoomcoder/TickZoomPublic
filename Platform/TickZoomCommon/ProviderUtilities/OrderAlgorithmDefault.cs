@@ -101,6 +101,7 @@ namespace TickZoom.Common
                 if( debug) log.Debug("PositionChange recency " + positionChange.Recency + " less than " + recency + " so ignoring.");
                 if( SyncTicks.Enabled)
                 {
+                    tickSync.AddWaitingMatch("StalePositionChange");
                     tickSync.RemovePositionChange(name);
                 }
                 return false;
