@@ -29,13 +29,15 @@ using System;
 namespace TickZoom.Api
 {
 	public enum SocketState {
+        None = 0,
 		New,
 		PendingConnect,
 		Connected,
+	    Bound,
         Listening,
         Closing,
         Disconnected,
-		Closed
+		Closed,
 	}
 	
 	[CLSCompliant(false)]
@@ -53,5 +55,6 @@ namespace TickZoom.Api
 		Action<Socket> OnDisconnect { get; set; }
 		FastQueue<Message> ReceiveQueue { get; }
         FastQueue<Message> SendQueue { get; }
+	    uint Handle { get; }
 	}
 }

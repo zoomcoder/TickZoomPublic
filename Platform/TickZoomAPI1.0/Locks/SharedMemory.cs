@@ -25,6 +25,7 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -35,8 +36,31 @@ namespace TickZoom.Api
     {
         private IntPtr handle;
         private IntPtr baseAddress = IntPtr.Zero;
-        public SharedMemory(string name, long size)
+        private static SimpleLock locker = new SimpleLock();
+        private static Dictionary<string,SharedMemory> shares = new Dictionary<string, SharedMemory>();
+        private string name;
+
+        public static SharedMemory Create(string name, long size)
         {
+            using( locker.Using())
+            {
+                SharedMemory share;
+                if (shares.TryGetValue(name, out share))
+                {
+                    return share;
+                }
+                else
+                {
+                    share = new SharedMemory(name, size);
+                    shares.Add(name, share);
+                    return share;
+                }
+            }
+        }
+
+        private SharedMemory(string name, long size)
+        {
+            this.name = name;
             handle = NativeMappedFile.CreateFileMapping(NativeMappedFile.INVALID_HANDLE,
                                                                NativeMappedFile.NULL_HANDLE,
                                                                (int)NativeMappedFile.MapProtection.ReadWrite,
@@ -81,7 +105,11 @@ namespace TickZoom.Api
                 isDisposed = true;
                 lock (taskLocker)
                 {
-                    NativeMappedFile.CloseHandle(handle);
+                    using (locker.Using())
+                    {
+                        shares.Remove(name);
+                        NativeMappedFile.CloseHandle(handle);
+                    }
                 }
             }
         }

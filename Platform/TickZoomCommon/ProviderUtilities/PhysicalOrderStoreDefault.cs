@@ -74,7 +74,6 @@ namespace TickZoom.Common
                 try
                 {
                     fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
-                    log.Warn("Opened " + databasePath);
                     snapshotLength = fs.Length;
                     return true;
                 }
@@ -556,7 +555,6 @@ namespace TickZoom.Common
             if (fs != null)
             {
                 fs.Close();
-                log.Warn("Closed " + databasePath);
             }
         }
 

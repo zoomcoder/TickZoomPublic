@@ -277,6 +277,10 @@ namespace TickZoom.TickUtil
                     if (priorCount == 0)
                     {
                         earliestUtcTime = utcTime;
+                        if( utcTime == 0)
+                        {
+                            int x = 0;
+                        }
                         inboundTask.UpdateUtcTime(inboundId, utcTime);
                     }
                 }

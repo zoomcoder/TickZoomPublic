@@ -38,7 +38,7 @@ namespace TickZoom.Api
 
         public TickSyncDirectory()
         {
-            directoryInfo = new SharedMemory("TickSyncInfo", sizeof(SyncTicksState));
+            directoryInfo = SharedMemory.Create("TickSyncInfo", sizeof(SyncTicksState));
             syncTicksState = (SyncTicksState*) directoryInfo.BaseAddress;
         }
 
@@ -82,14 +82,14 @@ namespace TickZoom.Api
         {
             // store 2 X sizeof sync state to hold rollback state.
                  
-            var page = new SharedMemory("TickSyncMemory" + value, sizeof(TickSyncState) * 2 * pageSize);
+            var page = SharedMemory.Create("TickSyncMemory" + value, sizeof(TickSyncState) * 2 * pageSize);
             pages.Add(page);
         }
 
         public void AddPage()
         {
             var value = Interlocked.Increment(ref (*SyncTicksState).pageCount);
-            var page = new SharedMemory("TickSyncMemory" + value, sizeof (TickSyncState)*pageSize*2);
+            var page = SharedMemory.Create("TickSyncMemory" + value, sizeof (TickSyncState)*pageSize*2);
             pages.Add(page);
         }
     }
