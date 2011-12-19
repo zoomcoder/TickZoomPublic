@@ -216,7 +216,7 @@ namespace TickZoom.TickUtil
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader." + symbol.Symbol.StripInvalidPathChars());
                     fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
-                    fileReaderTask.Scheduler = Scheduler.InputOutput;
+                    fileReaderTask.Scheduler = Scheduler.RoundRobin;
                     outboundQueue.ConnectOutbound(fileReaderTask);
                     fileReaderTask.Start();
                     isStarted = true;
@@ -387,6 +387,7 @@ namespace TickZoom.TickUtil
 
 		private Yield FileReader()
 		{
+            if (outboundQueue.IsFull) return Yield.NoWork.Repeat;
 			lock (taskLocker) {
 				if (isDisposed)
 					return Yield.Terminate;
