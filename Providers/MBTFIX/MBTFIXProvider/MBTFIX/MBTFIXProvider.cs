@@ -972,7 +972,7 @@ namespace TickZoom.MBTFIX
                         log.Info("Cancel rejected but original order not found for " + packetFIX.ClientOrderId + ". Ignoring.");
                         if (SyncTicks.Enabled)
                         {
-                            throw new ApplicationException("CancelReject w/o symbol field causes problems.");
+                            log.Warn("CancelReject w/o symbol field causes problems.");
                         }
                     }
 
