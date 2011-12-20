@@ -1408,13 +1408,25 @@ namespace TickZoom.MBTFIX
 			lock( orderAlgorithmsLocker) {
                 if (!orderAlgorithms.TryGetValue(symbol, out symbolAlgorithm))
                 {
-					var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-				    var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
-					var algorithm = Factory.Utility.OrderAlgorithm( "mbtfix", symbolInfo, this, orderCache, OrderStore);
-                    symbolAlgorithm = new SymbolAlgorithm {OrderAlgorithm = algorithm};
-                    symbolAlgorithm.Queue = receiver.GetQueue(symbolInfo);
-					orderAlgorithms.Add(symbol,symbolAlgorithm);
-					algorithm.OnProcessFill = ProcessFill;
+                    var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
+                    ReceiveEventQueue queue = null;
+                    try
+                    {
+                        queue = receiver.GetQueue(symbolInfo);
+                    }
+                    catch( ApplicationException ex)
+                    {
+                        log.Warn("Skipping " + symbolInfo + " because " + ex.Message);
+                    }
+                    if( queue != null)
+                    {
+                        var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
+                        var algorithm = Factory.Utility.OrderAlgorithm("mbtfix", symbolInfo, this, orderCache, OrderStore);
+                        symbolAlgorithm = new SymbolAlgorithm { OrderAlgorithm = algorithm };
+                        symbolAlgorithm.Queue = queue;
+                        orderAlgorithms.Add(symbol, symbolAlgorithm);
+                        algorithm.OnProcessFill = ProcessFill;
+                    }
 				}
 			}
 			return symbolAlgorithm;
