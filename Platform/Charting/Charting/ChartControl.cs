@@ -1415,8 +1415,8 @@ namespace TickZoom.Charting
 		{
 			try {
                 if (verbose) log.Verbose("refreshTick()");
-			    var form = this.FindForm();
-                if (form.Visible && form.WindowState != FormWindowState.Minimized)
+			    var form = FindForm();
+                if (form != null && form.Visible && form.WindowState != FormWindowState.Minimized)
                 {
                     if (tickUpdate)
                     {
