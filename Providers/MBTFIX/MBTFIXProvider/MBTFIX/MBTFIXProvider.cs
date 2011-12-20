@@ -956,15 +956,25 @@ namespace TickZoom.MBTFIX
                         ResetFromPending(packetFIX.OriginalClientOrderId);
                     }
 
-                    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                    SymbolAlgorithm algorithm;
-                    if (!TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                    if( order != null)
                     {
-                        log.Info("Cancel rejected but OrderAlgorithm not found for " + symbol + ". Ignoring.");
-                        break;
+                        var symbol = order.Symbol;
+                        SymbolAlgorithm algorithm;
+                        if (!TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                        {
+                            log.Info("Cancel rejected but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+                            break;
+                        }
+                        algorithm.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
                     }
-
-                    algorithm.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
+                    else
+                    {
+                        log.Info("Cancel rejected but original order not found for " + packetFIX.ClientOrderId + ". Ignoring.");
+                        if (SyncTicks.Enabled)
+                        {
+                            throw new ApplicationException("CancelReject w/o symbol field causes problems.");
+                        }
+                    }
 
                     if (!rejectReason && IsRecovered)
                     {

@@ -421,7 +421,7 @@ namespace TickZoom.MBTFIX
             mbtMsg.SetOriginalClientOrderId(origClientOrderId);
             mbtMsg.SetOrderStatus("8");
             mbtMsg.SetText(error);
-            mbtMsg.SetSymbol(symbol);
+            //mbtMsg.SetSymbol(symbol);
             mbtMsg.SetTransactTime(TimeStamp.UtcNow);
             mbtMsg.AddHeader("9");
             if (trace) log.Trace("Sending reject cancel." + mbtMsg);
