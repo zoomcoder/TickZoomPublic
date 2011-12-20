@@ -248,7 +248,9 @@ namespace TickZoom.FIX
                 case Status.PendingRetry:
                     connectionStatus = Status.Disconnected;
                     if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
-                    RegenerateSocket();
+                    var startTime = TimeStamp.UtcNow;
+                    startTime.AddSeconds(retryDelay);
+                    retryTimer.Start(startTime);
                     break;
                 case Status.PendingLogOut:
                     Dispose();
@@ -340,9 +342,9 @@ namespace TickZoom.FIX
         private Yield RetryTimerEvent()
         {
             log.Info("Connection Timeout");
-            SetupRetry();
             retryDelay += retryIncrease;
             retryDelay = Math.Min(retryDelay, retryMaximum);
+            SetupRetry();
             return Yield.DidWork.Repeat;
         }
 
