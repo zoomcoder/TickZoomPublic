@@ -231,7 +231,7 @@ namespace TickZoom.FIX
 			    task.Scheduler = Scheduler.EarliestTime;
                 quotePacketQueue.ConnectInbound(task);
                 fixPacketQueue.ConnectInbound(task);
-			    heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
+                heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
                 var startTime = TimeStamp.UtcNow;
                 startTime.AddSeconds(1);
                 heartbeatTimer.Start(startTime);
@@ -1002,22 +1002,7 @@ namespace TickZoom.FIX
             writePacket.DataOut.Write(message.ToCharArray());
             writePacket.SendUtcTime = TimeStamp.UtcNow.Internal;
             if (debug) log.Debug("Resending simulated FIX Message: " + fixMessage);
-            try
-            {
-                fixPacketQueue.Enqueue(writePacket, writePacket.SendUtcTime);
-            }
-            catch (QueueException ex)
-            {
-                if (ex.EntryType == EventType.Terminate)
-                {
-                    if (debug) log.Debug("fix packet queue returned queue exception " + ex.EntryType + ". Dropping message due to dispose.");
-
-                }
-                else
-                {
-                    throw;
-                }
-            }
+            SendMessageInternal(writePacket);
         }
 
         private bool SendMessageInternal( Message message)
@@ -1030,6 +1015,7 @@ namespace TickZoom.FIX
             }
             else
             {
+                log.Error("Failed to Write: " + message);
                 return false;
             }
         }

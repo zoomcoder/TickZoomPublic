@@ -132,6 +132,11 @@ namespace TickZoom.Api
 				return logManager;
 			}
 		}
+
+	    public static bool ParallelInitialized
+	    {
+	        get { return parallel != null;  }
+	    }
 		
 		public static Parallel Parallel {
 			get {

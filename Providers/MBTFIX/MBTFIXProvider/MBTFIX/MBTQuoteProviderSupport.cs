@@ -112,7 +112,8 @@ namespace TickZoom.MBTQuotes
             socket.OnConnect = OnConnect;
             socket.MessageFactory = new MessageFactoryMbtQuotes();
 			socket.ReceiveQueue.ConnectInbound( socketTask);
-			if( debug) log.Debug("Created new " + socket);
+            socket.SendQueue.ConnectOutbound( socketTask);
+            if (debug) log.Debug("Created new " + socket);
 			connectionStatus = Status.New;
 			if( trace) {
 				string message = "Generated socket: " + socket;
@@ -295,7 +296,7 @@ namespace TickZoom.MBTQuotes
 				case SocketState.Connected:
 					switch( connectionStatus) {
 						case Status.Connected:
-							return Yield.DidWork.Repeat;
+                            return Yield.DidWork.Repeat;
                         case Status.PendingLogin:
                             if( VerifyLogin())
                             {

@@ -198,11 +198,12 @@ namespace TickZoom.MBTFIX
             if (SyncTicks.Enabled)
             {
                 HeartbeatDelay = int.MaxValue;
+                RetryDelay = 1;
             }
             else
             {
-                HeartbeatDelay = int.MaxValue;
-                //HeartbeatDelay = 40;
+                HeartbeatDelay = 40;
+                RetryDelay = 30;
             }
         }
 

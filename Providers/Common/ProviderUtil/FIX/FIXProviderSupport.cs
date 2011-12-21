@@ -76,7 +76,6 @@ namespace TickZoom.FIX
         private TrueTimer heartbeatTimer;
 		private long heartbeatDelay;
 		private bool logRecovery = true;
-        private string configFilePath;
         private string configSection;
         private bool useLocalFillTime = true;
 		private FIXTFactory fixFactory;
@@ -148,6 +147,7 @@ namespace TickZoom.FIX
 			}
 			socket = Factory.Provider.Socket("MBTFIXSocket");
             socket.ReceiveQueue.ConnectInbound(socketTask);
+            socket.SendQueue.ConnectOutbound(socketTask);
 			socket.OnDisconnect = OnDisconnect;
             socket.OnConnect = OnConnect;
 			socket.MessageFactory = new MessageFactoryFix44();
@@ -168,9 +168,9 @@ namespace TickZoom.FIX
                     socket.Connect("127.0.0.1", port);
                     if (debug) log.Debug("Requested Connect for " + socket);
                     var startTime = TimeStamp.UtcNow;
-                    startTime.AddSeconds(retryDelay);
+                    startTime.AddSeconds(RetryDelay);
                     retryTimer.Start(startTime);
-                    log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
+                    log.Info("Connection will timeout and retry in " + RetryDelay + " seconds.");
                     return;
                 }
                 catch (SocketErrorException ex)
@@ -249,7 +249,7 @@ namespace TickZoom.FIX
                     connectionStatus = Status.Disconnected;
                     if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
                     var startTime = TimeStamp.UtcNow;
-                    startTime.AddSeconds(retryDelay);
+                    startTime.AddSeconds(RetryDelay);
                     retryTimer.Start(startTime);
                     break;
                 case Status.PendingLogOut:
@@ -342,8 +342,8 @@ namespace TickZoom.FIX
         private Yield RetryTimerEvent()
         {
             log.Info("Connection Timeout");
-            retryDelay += retryIncrease;
-            retryDelay = Math.Min(retryDelay, retryMaximum);
+            RetryDelay += retryIncrease;
+            RetryDelay = Math.Min(RetryDelay, retryMaximum);
             SetupRetry();
             return Yield.DidWork.Repeat;
         }
@@ -406,10 +406,10 @@ namespace TickZoom.FIX
                             case Status.PendingLogOut:
                             case Status.PendingRecovery:
                             case Status.Recovered:
-                                if (retryDelay != retryStart)
+                                if (RetryDelay != retryStart)
                                 {
-                                    retryDelay = retryStart;
-                                    log.Info("(retryDelay reset to " + retryDelay + " seconds.)");
+                                    RetryDelay = retryStart;
+                                    log.Info("(retryDelay reset to " + RetryDelay + " seconds.)");
                                 }
 
                                 MessageFIXT1_1 messageFIX = null;
@@ -541,9 +541,9 @@ namespace TickZoom.FIX
                             case Status.Recovered:
                             case Status.PendingLogin:
                                 connectionStatus = Status.PendingRetry;
-                                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
-                                retryDelay += retryIncrease;
-                                retryDelay = Math.Min(retryDelay, retryMaximum);
+                                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + RetryDelay + " seconds.");
+                                RetryDelay += retryIncrease;
+                                RetryDelay = Math.Min(RetryDelay, retryMaximum);
                                 return Yield.NoWork.Repeat;
                             case Status.PendingRetry:
                                 return Yield.NoWork.Repeat;
@@ -875,7 +875,6 @@ namespace TickZoom.FIX
         public abstract void OnStopSymbol(SymbolInfo symbol);
 	        
         private void LoadProperties(string configFilePath) {
-        	this.configFilePath = configFilePath;
 	        log.Notice("Using section " + configSection + " in file: " + configFilePath);
 	        var configFile = new ConfigFile(configFilePath);
         	configFile.AssureValue("EquityDemo/UseLocalFillTime","true");
@@ -1185,11 +1184,6 @@ namespace TickZoom.FIX
 			set { providerName = value; }
 		}
 		
-		public long RetryStart {
-			get { return retryStart; }
-			set { retryStart = retryDelay = value; }
-		}
-		
 		public long RetryIncrease {
 			get { return retryIncrease; }
 			set { retryIncrease = value; }
@@ -1240,5 +1234,10 @@ namespace TickZoom.FIX
 	        get { return isResendComplete; }
 	    }
 
-	}
+        public long RetryDelay
+        {
+            get { return retryDelay; }
+            set { retryDelay = value; }
+        }
+    }
 }
