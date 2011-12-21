@@ -1079,6 +1079,8 @@ namespace TickZoom.Charting
 				setLayout();
 				// Calculate the Axis Scale Ranges
 				dataGraph.AxisChange();
+   			    var form = FindForm();
+   			    form.Text = symbol.Symbol;
 				isDrawn = true;		
    			} catch (Exception ex) {
    				log.Error("ERROR: DrawChart ", ex);
