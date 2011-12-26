@@ -80,6 +80,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TickUtil\ActiveMultiQueue.cs" />
+    <Compile Include="TickUtil\ActiveQueue.cs" />
     <Compile Include="TickUtil\DataReceiverDefault.cs" />
     <Compile Include="TickUtil\DataReceiverQueueWrapper.cs" />
     <Compile Include="TickUtil\EventQueueImpl.cs" />
