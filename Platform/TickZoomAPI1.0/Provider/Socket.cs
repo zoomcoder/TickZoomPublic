@@ -35,6 +35,7 @@ namespace TickZoom.Api
 		Connected,
 	    Bound,
         Listening,
+	    Shutdown,
         Closing,
         Disconnected,
 		Closed,
