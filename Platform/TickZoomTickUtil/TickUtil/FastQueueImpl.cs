@@ -67,24 +67,13 @@ namespace TickZoom.TickUtil
 		private Log instanceLog;
 		private bool disableBackupLogging = false;
 		string name;
-		long lockSpins = 0;
-		long lockCount = 0;
-		long enqueueSpins = 0;
-		long dequeueSpins = 0;
-		int enqueueSleepCounter = 0;
-		int dequeueSleepCounter = 0;
 		long enqueueConflicts = 0;
 		long dequeueConflicts = 0;
-        SimpleLock spinLock = new SimpleLock();
 	    readonly int spinCycles = 1000;
 	    int timeout = 30000; // milliseconds
-        private SimpleLock nodePoolLocker = new SimpleLock();
         private NodePool<FastQueueEntry<T>> nodePool;
-        private static SimpleLock queuePoolLocker = new SimpleLock();
-        private static Pool<Queue<FastQueueEntry<T>>> queuePool;
         private ActiveList<FastQueueEntry<T>> queue;
 	    volatile bool terminate = false;
-	    int processorCount = Environment.ProcessorCount;
 		bool isStarted = false;
 		bool isPaused = false;
 		StartEnqueue startEnqueue;
@@ -106,7 +95,7 @@ namespace TickZoom.TickUtil
             internal int outboundCount;
             internal void IncreaseOutbound()
             {
-                var value = Interlocked.Increment(ref outboundCount);
+                var value = ++outboundCount;
                 task.IncreaseOutbound(id,value);
             }
 
@@ -114,7 +103,7 @@ namespace TickZoom.TickUtil
             {
                 if( outboundCount > 0)
                 {
-                    var value = Interlocked.Decrement(ref outboundCount);
+                    var value = --outboundCount;
                     task.DecreaseOutbound(id,value);
                 }
             }
@@ -166,35 +155,12 @@ namespace TickZoom.TickUtil
 			return name;
 		}
 
-	    private string lockLocation;
-		private bool SpinLock(string location)
-		{
-            while( true)
-            {
-                int spinLimit = 100000;
-                for (int i = 0; i < spinLimit; i++)
-                {
-                    if (spinLock.TryLock())
-                    {
-                        lockLocation = location;
-                        return true;
-                    }
-                }
-                if( debug) log.Debug("Lock spinned more than " + spinLimit + " times on " + name + " at " + location + ". Locked from " + lockLocation);
-            }
-	    }
-	    
-	    private void SpinUnLock() {
-        	spinLock.Unlock();
-	    }
-	    
         public void Enqueue(T tick, long utcTime) {
             if(!TryEnqueue(tick, utcTime))
             {
                 throw new ApplicationException("Enqueue failed for " + name + " with " + count + " items.");
             }
         }
-
 	    private int inboundId;
 	    public void ConnectInbound(Task task)
 	    {
@@ -252,49 +218,42 @@ namespace TickZoom.TickUtil
             {
                 return false;
             }
-	        SpinLock("TryEnqueue");
-            try { 
-	            if( isDisposed) {
-		    		if( exception != null) {
-		    			throw new ApplicationException("Enqueue failed.",exception);
-		    		} else {
-	            		throw new QueueException(EventType.Terminate);
-		    		}
-	            }
-                if (count >= maxSize)
+            if( isDisposed) {
+	    		if( exception != null) {
+	    			throw new ApplicationException("Enqueue failed.",exception);
+	    		} else {
+            		throw new QueueException(EventType.Terminate);
+	    		}
+            }
+            if (count >= maxSize)
+            {
+            	return false;
+            }
+            var priorCount = count;
+            if (trace) log.Trace("Enqueue " + item);
+            var node = NodePool.Create(new FastQueueEntry<T>(item, utcTime));
+            queue.AddFirst(node);
+	        ++count;
+            if (inboundTask != null)
+            {
+                if( trace) log.Trace("IncreaseInbound with count " + count + ", queue count " + queue.Count + ", previous count " + priorCount);
+                inboundTask.IncreaseInbound(inboundId);
+                if (priorCount == 0)
                 {
-	            	return false;
-	            }
-                var priorCount = count;
-                if (trace) log.Trace("Enqueue " + item);
-                var node = NodePool.Create(new FastQueueEntry<T>(item, utcTime));
-                queue.AddFirst(node);
-                Interlocked.Increment(ref count);
-                if (inboundTask != null)
-                {
-                    if( trace) log.Trace("IncreaseInbound with count " + count + ", queue count " + queue.Count + ", previous count " + priorCount);
-                    inboundTask.IncreaseInbound(inboundId);
-                    if (priorCount == 0)
+                    earliestUtcTime = utcTime;
+                    if( utcTime == 0)
                     {
-                        earliestUtcTime = utcTime;
-                        if( utcTime == 0)
-                        {
-                            int x = 0;
-                        }
-                        inboundTask.UpdateUtcTime(inboundId, utcTime);
+                        int x = 0;
                     }
-                }
-                if (count >= maxSize)
-                {
-                    for (var i = 0; i < outboundTasks.Count; i++)
-                    {
-                        outboundTasks[i].IncreaseOutbound();
-                    }
+                    inboundTask.UpdateUtcTime(inboundId, utcTime);
                 }
             }
-            finally
+            if (count >= maxSize)
             {
-	            SpinUnLock();
+                for (var i = 0; i < outboundTasks.Count; i++)
+                {
+                    outboundTasks[i].IncreaseOutbound();
+                }
             }
 	        return true;
 	    }
@@ -302,7 +261,7 @@ namespace TickZoom.TickUtil
         private void ReleaseCountInternal()
         {
             var priorCount = count;
-            var newCount = Interlocked.Decrement(ref count);
+            var newCount = --count;
             var tempQueueCount = queue.Count;
             if (newCount == 0) earliestUtcTime = long.MaxValue;
             if (newCount < tempQueueCount)
@@ -376,20 +335,15 @@ namespace TickZoom.TickUtil
 	    	    StartDequeue();
 	    	}
 	        if( queue.Count==0) return false;
-	        SpinLock("TryPeek");
-	    	try {
-	            if( isDisposed) {
-		    		if( exception != null) {
-		    			throw new ApplicationException("Dequeue failed.",exception);
-		    		} else {
-		            	throw new QueueException(EventType.Terminate);
-		    		}
-	            }
-		        if( queue.Count==0) return false;
-		        entry = queue.Last.Value;
-	    	} finally {
-	            SpinUnLock();
-	    	}
+            if( isDisposed) {
+	    		if( exception != null) {
+	    			throw new ApplicationException("Dequeue failed.",exception);
+	    		} else {
+	            	throw new QueueException(EventType.Terminate);
+	    		}
+            }
+	        if( queue.Count==0) return false;
+	        entry = queue.Last.Value;
             return true;
 	    }
 	    
@@ -413,39 +367,34 @@ namespace TickZoom.TickUtil
 	        }
 	        int priorCount;
 	        int newCount = 0;
-	        SpinLock("TryDequeue");
-	    	try {
-	            if( isDisposed) {
-		    		if( exception != null) {
-		    			throw new ApplicationException("Dequeue failed.",exception);
-		    		} else {
-		            	throw new QueueException(EventType.Terminate);
-		    		}
-	            }
-		        if( queue.Count==0)
-		        {
-                    item = default(T);
-                    return false;
-		        }
-	            if( count > queue.Count) {
-		        	throw new ApplicationException("Attempt to dequeue another item before calling ReleaseCount() for previously dequeued item. count " + count + ", queue.Count " + queue.Count);
-	            }
-                if (count < queue.Count)
-                {
-                    throw new ApplicationException("Called ReleaseCount() too many times before dequeuing next item. count " + count + ", queue.Count " + queue.Count);
-                }
-                priorCount = queue.Count;
-		        var last = queue.Last;
-		        item = last.Value.Entry;
-                if (trace) log.Trace("Dequeue " + item);
-                queue.Remove(last);
-		        NodePool.Free(last);
-	            newCount = queue.Count;
-                earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
-                ReleaseCountInternal();
-	    	} finally {
-	            SpinUnLock();
-	    	}
+            if( isDisposed) {
+	    		if( exception != null) {
+	    			throw new ApplicationException("Dequeue failed.",exception);
+	    		} else {
+	            	throw new QueueException(EventType.Terminate);
+	    		}
+            }
+	        if( queue.Count==0)
+	        {
+                item = default(T);
+                return false;
+	        }
+            if( count > queue.Count) {
+	        	throw new ApplicationException("Attempt to dequeue another item before calling ReleaseCount() for previously dequeued item. count " + count + ", queue.Count " + queue.Count);
+            }
+            if (count < queue.Count)
+            {
+                throw new ApplicationException("Called ReleaseCount() too many times before dequeuing next item. count " + count + ", queue.Count " + queue.Count);
+            }
+            priorCount = queue.Count;
+	        var last = queue.Last;
+	        item = last.Value.Entry;
+            if (trace) log.Trace("Dequeue " + item);
+            queue.Remove(last);
+	        NodePool.Free(last);
+            newCount = queue.Count;
+            earliestUtcTime = queue.Count == 0 ? long.MaxValue : queue.Last.Value.utcTime;
+            ReleaseCountInternal();
  			if( newCount == 0) {
             	if( isBackingUp) {
             		isBackingUp = false;
@@ -459,12 +408,10 @@ namespace TickZoom.TickUtil
 	    
 	    public void Clear() {
 	    	if( trace) log.Trace("Clear called");
-	        SpinLock("Clear");
 	    	if( !isDisposed) {
 		        queue.Clear();
-	    	    Interlocked.Exchange(ref count, 0);
+	    	    count = 0;
 	    	}
-	        SpinUnLock();
 	    }
 	    
 	    public void Flush() {
@@ -495,18 +442,13 @@ namespace TickZoom.TickUtil
 		            if (disposing) {
 				        if( queue!=null)
 				        {
-				            SpinLock("Dispose");
-				    		try {
-						    	inboundTask = null;
-						    	var next = queue.First;
-						    	for( var node = next; node != null; node = next) {
-						    		next = node.Next;
-						    		queue.Remove(node);
-						    		NodePool.Free(node);
-						    	}
-				    		} finally {
-						        SpinUnLock();
-				    		}
+					    	inboundTask = null;
+					    	var next = queue.First;
+					    	for( var node = next; node != null; node = next) {
+					    		next = node.Next;
+					    		queue.Remove(node);
+					    		NodePool.Free(node);
+					    	}
 				        }
 		            }
 	    		}
@@ -538,13 +480,11 @@ namespace TickZoom.TickUtil
 		private void StartDequeue()
 		{
 			if( trace) log.Trace("StartDequeue called");
-		    SpinLock("StartDequeue");
 			isStarted = true;
 			if( StartEnqueue != null) {
 		    	if( trace) log.Trace("Calling StartEnqueue");
 				StartEnqueue();
 			}
-	        SpinUnLock();			
 		}
 		
 		public int Timeout {
@@ -571,7 +511,6 @@ namespace TickZoom.TickUtil
 		}
 		
 		public string GetStats() {
-			var average = lockCount == 0 ? 0 : ((lockSpins*spinCycles)/lockCount);
 			var sb = new StringBuilder();
 			sb.Append("Queue Name=");
 			sb.Append(name);
@@ -594,31 +533,14 @@ namespace TickZoom.TickUtil
 		public NodePool<FastQueueEntry<T>> NodePool {
 	    	get {
                 if( nodePool == null) {
-					using(nodePoolLocker.Using()) {
-	    				if( nodePool == null) {
-	    					nodePool = new NodePool<FastQueueEntry<T>>();
-	    				}
-	    			}
+    				if( nodePool == null) {
+    					nodePool = new NodePool<FastQueueEntry<T>>();
+    				}
                 }
                 return nodePool;
 	    	}
 		}
 
-		public static Pool<Queue<FastQueueEntry<T>>> QueuePool {
-	    	get {
-                if( queuePool == null) {
-                    using (queuePoolLocker.Using())
-                    {
-                        if (queuePool == null)
-                        {
-	    					queuePool = Factory.TickUtil.Pool<Queue<FastQueueEntry<T>>>();
-	    				}
-	    			}
-				}
-	    		return queuePool;
-	    	}
-		}
-		
 		public int Capacity {
 			get { return maxSize; }
 		}
