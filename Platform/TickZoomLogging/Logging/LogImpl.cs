@@ -638,7 +638,7 @@ namespace TickZoom.Logging
 				Level = level, 
 				Message = message.ToString(),
 				ThreadName = Thread.CurrentThread.Name,
-				TimeStamp = TimeStamp.UtcNow.DateTime,
+                TimeStamp = Factory.ParallelInitialized ? Factory.Parallel.UtcNow.DateTime : TimeStamp.UtcNow.DateTime,
 				ExceptionString = exceptionString,
 			};
 			return data;

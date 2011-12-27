@@ -147,6 +147,7 @@ namespace TickZoom.Api
         long EarliestCounter { get; }
         long TimerCount { get; }
 	    int ThreadCount { get; }
+	    TimeStamp UtcNow { get; }
 	    void ReleaseIOTasks();
 	    void ExcuteAsync( Action asyncAction);
 	    void StackTrace();

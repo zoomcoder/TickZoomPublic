@@ -182,7 +182,7 @@ namespace TickZoom.Api
 
         public void AddTick(Tick tick)
         {
-            lastAddTime = TimeStamp.UtcNow; 
+            lastAddTime = Factory.Parallel.UtcNow; 
             var value = Interlocked.Increment(ref (*state).ticks);
             if (trace) log.Trace("AddTick(" + tick + ") " + this);
             if( value > 1)
@@ -379,7 +379,7 @@ namespace TickZoom.Api
 
         public void AddProcessPhysicalOrders()
         {
-            lastAddTime = TimeStamp.UtcNow; 
+            lastAddTime = Factory.Parallel.UtcNow; 
             var value = Interlocked.Increment(ref (*state).processPhysical);
             if (trace) log.Trace("AddProcessPhysicalOrders(" + value + ") " + this);
             Changed();
@@ -399,7 +399,7 @@ namespace TickZoom.Api
 
         public void SetReprocessPhysicalOrders()
         {
-            lastAddTime = TimeStamp.UtcNow; 
+            lastAddTime = Factory.Parallel.UtcNow; 
             if ((*state).reprocessPhysical == 0)
             {
                 var value = Interlocked.Increment(ref (*state).reprocessPhysical);
@@ -410,7 +410,7 @@ namespace TickZoom.Api
 
         public void AddReprocessPhysicalOrders()
         {
-            lastAddTime = TimeStamp.UtcNow;
+            lastAddTime = Factory.Parallel.UtcNow;
             var value = Interlocked.Increment(ref (*state).reprocessPhysical);
             if (trace) log.Trace("AddReprocessPhysicalOrders(" + value + ") " + this);
             Changed();

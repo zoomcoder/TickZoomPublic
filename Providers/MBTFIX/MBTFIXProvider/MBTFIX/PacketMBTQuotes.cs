@@ -67,7 +67,7 @@ namespace TickZoom.MBTQuotes
 
         public MessageMbtQuotes()
         {
-            var currentTime = TimeStamp.UtcNow;
+            var currentTime = Factory.Parallel.UtcNow;
             century = currentTime.Year / 100 * 100;
             dataIn = new BinaryReader(data, Encoding.ASCII);
             dataOut = new BinaryWriter(data, Encoding.ASCII);
@@ -179,7 +179,7 @@ namespace TickZoom.MBTQuotes
                 var messageText = new string(dataIn.ReadChars(Remaining));
                 log.Trace("ParseData(): " + messageText);
             }
-            _sendUtcTime = TimeStamp.UtcNow.Internal;
+            _sendUtcTime = Factory.Parallel.UtcNow.Internal;
             data.Position = 2;
             fixed( byte *bptr = data.GetBuffer()) {
                 messageType = (char) *bptr;

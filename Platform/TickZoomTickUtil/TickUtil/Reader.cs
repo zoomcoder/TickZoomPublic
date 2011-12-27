@@ -271,7 +271,7 @@ namespace TickZoom.TickUtil
 		{
 	        log = Factory.SysLog.GetLogger("TickZoom.TickUtil.Reader."+symbol.Symbol.StripInvalidPathChars());
 	        debug = log.IsDebugEnabled;
-	        trace = log.IsDebugEnabled;
+	        trace = log.IsTraceEnabled;
 		    tickBoxPool = Factory.TickUtil.TickPool(symbol);
             for (int retry = 0; retry < 3; retry++)
             {
