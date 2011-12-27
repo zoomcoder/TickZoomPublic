@@ -82,8 +82,8 @@ namespace TickZoom.Api
 
         bool IsPaused { get; }
 
-        void IncreaseOutbound(int id, int expectedOutbound);
-        void DecreaseOutbound(int id, int expectedOutbound);
+        void IncreaseOutbound(int id);
+        void DecreaseOutbound(int id);
 	    unsafe void ConnectOutbound(Queue queue, out int outboundId);
 	}
 }

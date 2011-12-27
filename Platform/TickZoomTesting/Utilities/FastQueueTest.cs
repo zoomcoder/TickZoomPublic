@@ -132,7 +132,7 @@ namespace TickZoom.Utilities
             }
             ++readCounter;
             var iterations = 10000000L;
-            //iterations = 1000000000L;
+            iterations = 1000000000L;
             if( readCounter > iterations)
             {
                 return Yield.Terminate;

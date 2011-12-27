@@ -94,7 +94,7 @@ namespace TickZoom.TickUtil
             internal void IncreaseOutbound()
             {
                 var value = ++outboundCount;
-                task.IncreaseOutbound(id,value);
+                task.IncreaseOutbound(id);
             }
 
             public void DecreaseOutbound()
@@ -102,7 +102,7 @@ namespace TickZoom.TickUtil
                 if( outboundCount > 0)
                 {
                     var value = --outboundCount;
-                    task.DecreaseOutbound(id,value);
+                    task.DecreaseOutbound(id);
                 }
             }
         }
