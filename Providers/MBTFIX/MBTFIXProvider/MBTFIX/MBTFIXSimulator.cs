@@ -27,6 +27,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading;
 
@@ -51,6 +52,7 @@ namespace TickZoom.MBTFIX
 		
 		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes()) {
 		    log.Register(this);
+            InitializeSnippets();
 		}
 
         protected override void OnConnectFIX(Socket socket)
@@ -647,107 +649,317 @@ namespace TickZoom.MBTFIX
 			return Yield.DidWork.Repeat;
 		}
 
-        private Dictionary<long, StringBuilder> quoteBuilders = new Dictionary<long, StringBuilder>();
         private SimpleLock quoteBuildersLocker = new SimpleLock();
-        private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
+        //private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
         private SimpleLock lastTicksLocker = new SimpleLock();
+        private TickIO[] lastTicks = new TickIO[1024];
 
-		private void OnTick( Message quoteMessage, SymbolInfo symbol, Tick tick)
+	    private byte[][] tradeSnippetBytes;
+	    private string[] tradeSnippets;
+        private byte[][] quoteSnippetBytes;
+        private string[] quoteSnippets;
+        public unsafe void InitializeSnippets()
+        {
+            tradeSnippets = new[] {
+                               "3|2026=USD;1003=",
+                               // symbol
+                               ";2037=0;2085=.144;2048=00/00/2009;2049=00/00/2009;2002=",
+                               // price
+                               ";2007=",
+                               // size
+                               ";2050=0;",
+                               // bid
+                               "2051=0;",
+                               // ask
+                               "2052=00/00/2010;",
+                               // bid size;
+                               "2053=00/00/2010;",
+                               // ask size;
+                               "2008=0.0;2056=0.0;2009=0.0;2057=0;2010=0.0;2058=1;2011=0.0;2012=6828928;2013=20021;2014=",                           
+                               // time of day
+                           };
+            tradeSnippetBytes = new byte[tradeSnippets.Length][];
+            for( var i=0; i<tradeSnippets.Length;i++)
+            {
+                tradeSnippetBytes[i] = new byte[tradeSnippets[i].Length];
+                for( var pos=0; pos<tradeSnippets[i].Length; pos++)
+                {
+                    tradeSnippetBytes[i][pos] = (byte) tradeSnippets[i][pos];
+                }
+            }
+            quoteSnippets = new[] {
+                               "1|2026=USD;1003=",
+                               // symbol
+                               ";2037=0;2085=.144;2048=00/00/2009;2049=00/00/2009;2050=0;",
+                               // bid, 
+                               "2051=0;",
+                               // ask
+			                   "2052=00/00/2010;",
+                               // bid size, 
+                               "2053=00/00/2010;",
+                               // ask size
+			                   "2008=0.0;2056=0.0;2009=0.0;2057=0;2010=0.0;2058=1;2011=0.0;2012=6828928;2013=20021;2014=",
+                               // time of day.
+                           };
+            quoteSnippetBytes = new byte[quoteSnippets.Length][];
+            for (var i = 0; i < quoteSnippets.Length; i++)
+            {
+                quoteSnippetBytes[i] = new byte[quoteSnippets[i].Length];
+                for (var pos = 0; pos < quoteSnippets[i].Length; pos++)
+                {
+                    quoteSnippetBytes[i][pos] = (byte)quoteSnippets[i][pos];
+                }
+            }
+        }
+
+        private byte[] bytebuffer = new byte[64];
+        private int ConvertPriceToBytes(long value)
+        {
+            var pos = 0;
+            var anydigit = false;
+            for( var i=0; i<9 && value>0L; i++)
+            {
+                var digit = value%10;
+                value /= 10;
+                if (digit > 0L || anydigit)
+                {
+                    anydigit = true;
+                    bytebuffer[pos] = (byte) ('0' + digit);
+                    pos++;
+                }
+            }
+            if( pos > 0)
+            {
+                bytebuffer[pos] = (byte) '.';
+                pos++;
+                if( value == 0L)
+                {
+                    bytebuffer[pos] = (byte)'0';
+                    pos++;
+                }
+            }
+            while( value > 0)
+            {
+                var digit = value%10;
+                value /= 10;
+                bytebuffer[pos] = (byte) ('0' + digit);
+                pos++;
+            }
+            return pos;
+        }
+
+        private unsafe void OnTick(Message quoteMessage, SymbolInfo symbol, Tick tick)
 		{
             if (trace) log.Trace("Sending tick: " + tick);
-            StringBuilder quoteBuilder;
-            using( quoteBuildersLocker.Using())
+            if( symbol.BinaryIdentifier > lastTicks.Length)
             {
-                if (!quoteBuilders.TryGetValue(symbol.BinaryIdentifier, out quoteBuilder))
-                {
-                    quoteBuilder = new StringBuilder(256);
-                    quoteBuilders.Add(symbol.BinaryIdentifier, quoteBuilder);
-                }
+                Array.Resize(ref lastTicks, lastTicks.Length * 2);
             }
-			TickIO lastTick;
-            using( lastTicksLocker.Using())
+		    var lastTick = lastTicks[symbol.BinaryIdentifier];
+            if( lastTick == null)
             {
-                if (!lastTicks.TryGetValue(symbol.BinaryIdentifier, out lastTick))
-                {
-                    lastTick = Factory.TickUtil.TickIO();
-                    lastTicks[symbol.BinaryIdentifier] = lastTick;
-                }
+                lastTicks[symbol.BinaryIdentifier] = lastTick = Factory.TickUtil.TickIO();
             }
-		    quoteBuilder.Length = 0;
-            if( tick.IsTrade) {
-				quoteBuilder.Append("3|"); // Trade
-			} else {
-				quoteBuilder.Append("1|"); // Level 1
-			}
-			quoteBuilder.Append("2026=USD;"); //Currency
-			quoteBuilder.Append("1003="); //Symbol
-			quoteBuilder.Append(symbol.Symbol);
-			quoteBuilder.Append(';');
-			quoteBuilder.Append("2037=0;"); //Open Interest
-			quoteBuilder.Append("2085=.144;"); //Unknown
-			quoteBuilder.Append("2048=00/00/2009;"); //Unknown
-			quoteBuilder.Append("2049=00/00/2009;"); //Unknown
-			if( tick.IsTrade) {
-				quoteBuilder.Append("2002="); //Last Trade.
-				quoteBuilder.Append(tick.Price);
-				quoteBuilder.Append(';');
-				quoteBuilder.Append("2007=");
-				quoteBuilder.Append(tick.Size);
-				quoteBuilder.Append(';');
-			}
-			quoteBuilder.Append("2050=0;"); //Unknown
-			if( tick.lBid != lastTick.lBid) {
-				quoteBuilder.Append("2003="); // Last Bid
-				quoteBuilder.Append(tick.Bid);
-				quoteBuilder.Append(';');
-			}
-			quoteBuilder.Append("2051=0;"); //Unknown
-			if( tick.lAsk != lastTick.lAsk) {
-				quoteBuilder.Append("2004="); //Last Ask 
-				quoteBuilder.Append(tick.Ask);
-				quoteBuilder.Append(';');
-			}
-			quoteBuilder.Append("2052=00/00/2010;"); //Unknown
-			var askSize = Math.Max((int)tick.AskLevel(0),1);
-			if( askSize != lastTick.AskLevel(0)) {
-				quoteBuilder.Append("2005="); 
-				quoteBuilder.Append(askSize);
-				quoteBuilder.Append(';');
-			}
-			var bidSize = Math.Max((int)tick.BidLevel(0),1);
-			quoteBuilder.Append("2053=00/00/2010;"); //Unknown
-			if( bidSize != lastTick.BidLevel(0)) {
-				quoteBuilder.Append("2006=");
-				quoteBuilder.Append(bidSize);
-				quoteBuilder.Append(';');
-			}
-			quoteBuilder.Append("2008=0.0;"); // Yesterday Close
-			quoteBuilder.Append("2056=0.0;"); // Unknown
-			quoteBuilder.Append("2009=0.0;"); // High today
-			quoteBuilder.Append("2057=0;"); // Unknown
-			quoteBuilder.Append("2010=0.0"); // Low today
-			quoteBuilder.Append("2058=1;"); // Unknown
-			quoteBuilder.Append("2011=0.0;"); // Open Today
-			quoteBuilder.Append("2012=6828928;"); // Volume Today
-			quoteBuilder.Append("2013=20021;"); // Up/Down Tick
-			quoteBuilder.Append("2014="); // Time
-			quoteBuilder.Append(tick.UtcTime.TimeOfDay);
-			quoteBuilder.Append(".");
-			quoteBuilder.Append(tick.UtcTime.Microsecond);
-			quoteBuilder.Append(';');
-			quoteBuilder.Append("2015=");
-			quoteBuilder.Append(tick.UtcTime.Month.ToString("00"));
-			quoteBuilder.Append('/');
-			quoteBuilder.Append(tick.UtcTime.Day.ToString("00"));
-			quoteBuilder.Append('/');
-			quoteBuilder.Append(tick.UtcTime.Year);
-			quoteBuilder.Append('\n');
-			var message = quoteBuilder.ToString();
-			if( trace) log.Trace("Tick message: " + message);
-			quoteMessage.DataOut.Write(message.ToCharArray());
-			lastTick.Inject(tick.Extract());
+            //quoteBuilder.Length = 0;
+            var buffer = quoteMessage.Data.GetBuffer();
+            var position = quoteMessage.Data.Position;
+            quoteMessage.Data.SetLength(1024);
+            if( tick.IsTrade)
+            {
+                var index = 0;
+                var snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                // Symbol
+                var value = symbol.Symbol.ToCharArray();
+                for( var i=0; i<value.Length; i++)
+                {
+                    buffer[position] = (byte) value[i];
+                    ++position;
+                }
+
+                ++index; snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet,0,buffer,position,snippet.Length);
+                position += snippet.Length;
+
+                // Price
+                var len = ConvertPriceToBytes(tick.lPrice);
+                var pos = len;
+                for (var i = 0; i < len; i++)
+                {
+                    buffer[position] = (byte) bytebuffer[--pos];
+                    ++position;
+                }
+
+                ++index; snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                // Size
+                value = tick.Size.ToString().ToCharArray();
+                for (var i = 0; i < value.Length; i++)
+                {
+                    buffer[position] = (byte)value[i];
+                    ++position;
+                }
+
+                ++index; snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                // Bid
+                if (tick.lBid != lastTick.lBid)
+                {
+                    value = ("2003=" + tick.Bid + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                // Ask
+                if (tick.lAsk != lastTick.lAsk)
+                {
+                    value = ("2004=" + tick.Ask + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                // Ask size
+                var askSize = Math.Max((int)tick.AskLevel(0), 1);
+                if (askSize != lastTick.AskLevel(0))
+                {
+                    value = ("2005=" + askSize + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                // Bid size
+                var bidSize = Math.Max((int)tick.BidLevel(0), 1);
+                if (bidSize != lastTick.BidLevel(0))
+                {
+                    value = ("2006=" + bidSize + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = tradeSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+            }
+            else
+            {
+                var index = 0;
+                var snippet = quoteSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                var value = symbol.Symbol.ToCharArray();
+                for (var i = 0; i < value.Length; i++)
+                {
+                    buffer[position] = (byte)value[i];
+                    ++position;
+                }
+
+                ++index; snippet = quoteSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                if (tick.lBid != lastTick.lBid)
+                {
+                    value = ("2003=" + tick.Bid + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = quoteSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                if (tick.lAsk != lastTick.lAsk)
+                {
+                    value = ("2004=" + tick.Ask + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = quoteSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                var askSize = Math.Max((int)tick.AskLevel(0), 1);
+			    if( askSize != lastTick.AskLevel(0)) {
+                    value = ("2005=" + askSize + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = quoteSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+
+                var bidSize = Math.Max((int)tick.BidLevel(0), 1);
+			    if( bidSize != lastTick.BidLevel(0)) {
+                    value = ("2006=" + bidSize + ";").ToCharArray();
+                    for (var i = 0; i < value.Length; i++)
+                    {
+                        buffer[position] = (byte)value[i];
+                        ++position;
+                    }
+                }
+
+                ++index; snippet = quoteSnippetBytes[index];
+                Array.Copy(snippet, 0, buffer, position, snippet.Length);
+                position += snippet.Length;
+            }
+
+            var strValue = (tick.UtcTime.TimeOfDay + "." + tick.UtcTime.Microsecond + ";2015=" + tick.UtcTime.Month.ToString("00") +
+                "/" + tick.UtcTime.Day.ToString("00") + "/" + tick.UtcTime.Year + "\n").ToCharArray();
+            for (var i = 0; i < strValue.Length; i++)
+            {
+                buffer[position] = (byte)strValue[i];
+                ++position;
+            }
+
+            //if( trace) log.Trace("Tick message: " + message);
+            quoteMessage.Data.Position = position;
+            quoteMessage.Data.SetLength(position);
+            lastTick.Inject(tick.Extract());
 		}
-		
+
 		private void CloseWithQuotesError(MessageMbtQuotes message, string textMessage) {
 		}
 		
