@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using NUnit.Framework;
@@ -11,7 +12,6 @@ namespace TickZoom.Utilities
     {
         private ActiveQueue<FastQueueEntry<int>> list;
         private int nextValue = 0;
-        private volatile bool stopThread = false;
         private Exception threadException;
         private int addCounter;
         private long removeCounter;
@@ -24,7 +24,6 @@ namespace TickZoom.Utilities
         [SetUp]
         public void Setup()
         {
-            stopThread = false;
             list = new ActiveQueue<FastQueueEntry<int>>();
             nextValue = 0;
             addCounter = 0;
@@ -131,11 +130,7 @@ namespace TickZoom.Utilities
                 list.Enqueue(new FastQueueEntry<int>(nextValue,0L));
                 ++nextValue;
             }
-            var readThread = new Thread(ReadFromListLoop);
-            readThread.Start();
-            Thread.Sleep(5000);
-            stopThread = true;
-            readThread.Join();
+            ReadFromList2();
             if (threadException != null)
             {
                 throw new Exception("Thread failed: ", threadException);
@@ -153,66 +148,41 @@ namespace TickZoom.Utilities
                 ++addCounter;
             }
 
-            var addThread = new Thread(AddToListLoop);
-            addThread.Name = "Test Adding";
-            var readThread = new Thread(ReadFromListLoop);
-            readThread.Name = "Test Reading";
-            addThread.Start();
-            readThread.Start();
-            Thread.Sleep(5000);
-            stopThread = true;
-            addThread.Join();
-            readThread.Join();
             if (threadException != null)
             {
                 throw new Exception("Thread failed: ", threadException);
             }
+
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+            for (var i = 0L; i < 10000L; i++)
+            {
+                for( var j=0; j<1000; j++)
+                {
+                    AddToList();
+                }
+                ReadFromList2();
+            }
+            var elapsed = stopWatch.ElapsedMilliseconds;
+
             Assert.Less(readFailureCounter, 5, "read failure");
-            Assert.Greater(readCounter, 1000000, "read counter");
-            Assert.Greater(addCounter, 4000, "add counter");
             Console.Out.WriteLine("readFailure " + readFailureCounter);
             Console.Out.WriteLine("readCounter " + readCounter);
             Console.Out.WriteLine("addCounter " + addCounter);
             Console.Out.WriteLine("removeCounter " + removeCounter);
             Console.Out.WriteLine("maxListCount " + maxListCount);
             Console.Out.WriteLine("final count " + list.Count);
+            Console.Out.WriteLine("Elapsed time " + elapsed + "ms");
+            Console.Out.WriteLine("Items per ms " + (readCounter/elapsed));
         }
 
-        public void AddToListLoop()
-        {
-            try
-            {
-                while (!stopThread)
-                {
-                    AddToList();
-                }
-            }
-            catch (Exception ex)
-            {
-                Interlocked.Exchange(ref threadException, ex);
-            }
-        }
 
-        public void ReadFromListLoop()
+        public bool ReadFromList2()
         {
-            try
-            {
-                while (!stopThread)
-                {
-                    ReadFromList2();
-                }
-            }
-            catch (Exception ex)
-            {
-                Interlocked.Exchange(ref threadException, ex);
-            }
-        }
-
-        public void ReadFromList2()
-        {
+            var result = false;
             if (list.Count == 0)
             {
-                return;
+                return result;
             }
             else
             {
@@ -224,8 +194,10 @@ namespace TickZoom.Utilities
                         Assert.AreEqual(readCounter, item.Entry);
                     }
                     ++readCounter;
+                    result = true;
                 }
             }
+            return result;
         }
 
         public void AddToList()

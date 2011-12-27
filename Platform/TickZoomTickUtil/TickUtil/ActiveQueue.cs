@@ -8,8 +8,6 @@ namespace TickZoom.TickUtil
         private int capacity;
         private T[] queue;
         private int count;
-        internal int EnqueueCount;
-        internal int DequeueCount;
         private int head;
         private int tail;
 
@@ -49,7 +47,7 @@ namespace TickZoom.TickUtil
             {
                 head = 0;
             }
-            EnqueueCount = Interlocked.Increment(ref count);
+            ++count;
             return true;
         }
 
@@ -82,7 +80,7 @@ namespace TickZoom.TickUtil
             {
                 tail = 0;
             }
-            DequeueCount = Interlocked.Decrement(ref count);
+            --count;
             return true;
         }
 
