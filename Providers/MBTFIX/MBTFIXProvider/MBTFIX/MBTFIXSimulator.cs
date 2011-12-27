@@ -946,7 +946,7 @@ namespace TickZoom.MBTFIX
                 position += snippet.Length;
             }
 
-            var strValue = (tick.UtcTime.TimeOfDay + "." + tick.UtcTime.Microsecond + ";2015=" + tick.UtcTime.Month.ToString("00") +
+            var strValue = (tick.UtcTime.TimeOfDay + "." + tick.UtcTime.Microsecond.ToString("000") + ";2015=" + tick.UtcTime.Month.ToString("00") +
                 "/" + tick.UtcTime.Day.ToString("00") + "/" + tick.UtcTime.Year + "\n").ToCharArray();
             for (var i = 0; i < strValue.Length; i++)
             {
@@ -954,7 +954,11 @@ namespace TickZoom.MBTFIX
                 ++position;
             }
 
-            //if( trace) log.Trace("Tick message: " + message);
+            if( trace)
+            {
+                var message = Encoding.ASCII.GetString(buffer, 0, (int)position);
+                log.Trace("Tick message: " + message);
+            }
             quoteMessage.Data.Position = position;
             quoteMessage.Data.SetLength(position);
             lastTick.Inject(tick.Extract());

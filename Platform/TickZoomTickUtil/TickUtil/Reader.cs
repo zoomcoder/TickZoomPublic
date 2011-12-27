@@ -216,8 +216,12 @@ namespace TickZoom.TickUtil
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader." + symbol.Symbol.StripInvalidPathChars());
                     fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
-                    fileReaderTask.Scheduler = Scheduler.RoundRobin;
+                    fileReaderTask.Scheduler = Scheduler.EarliestTime;
+                    var tempQueue = Factory.TickUtil.FastQueue<int>(symbol + " Reader Nominal Queue");
+                    var tempConnectionId = 0;
+                    fileReaderTask.ConnectInbound(tempQueue, out tempConnectionId);
                     outboundQueue.ConnectOutbound(fileReaderTask);
+                    fileReaderTask.IncreaseInbound(tempConnectionId);
                     fileReaderTask.Start();
                     isStarted = true;
                 }
