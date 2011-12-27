@@ -72,34 +72,36 @@ namespace TickZoom.Api
 				return this;
 			}
 		}
-		
+
+	    private static Yield blank;
 		public static Yield Terminate {
-			get {
-				Yield yield = new Yield();
+			get
+			{
+			    Yield yield = blank;
 				yield.Status = YieldStatus.Terminate;
 				return yield;
 			}
 		}
 		
 		public static Yield Pause {
-			get {
-				Yield yield = new Yield();
+			get
+			{
+			    Yield yield = blank;
 				yield.Status = YieldStatus.Pause;
 				return yield;
 			}
 		}
 		
 		public static Yield DidWork {
-			get {
-				return new Yield();
-			}
+			get { return blank; }
 		}
 		
 		public static Yield NoWork {
-			get {
-				return new Yield {
-					IsIdle = true,
-				};
+			get
+			{
+			    var yield = blank;
+			    yield.IsIdle = true;
+			    return yield;
 			}
 		}
 	}

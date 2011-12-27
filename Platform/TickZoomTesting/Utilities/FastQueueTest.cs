@@ -131,7 +131,9 @@ namespace TickZoom.Utilities
                 Assert.AreEqual(readCounter, item);
             }
             ++readCounter;
-            if( readCounter > 1000000000L)
+            var iterations = 1000000L;
+            iterations = 1000000000L;
+            if( readCounter > iterations)
             {
                 return Yield.Terminate;
             }
