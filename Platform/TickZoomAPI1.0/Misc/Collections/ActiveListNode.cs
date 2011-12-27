@@ -24,7 +24,7 @@ namespace TickZoom.Api
             {
                 throw new InvalidOperationException("list");
             }
-            Interlocked.Exchange(ref this.list, list);
+            this.list = list;
             item = value;
         }
 
@@ -33,7 +33,7 @@ namespace TickZoom.Api
             // Keep next or prev unless this is the last or first node, respectively.
             // That way a read loop may continue to loop to the next (or prev) item
             // even if this one got deleted.
-            Interlocked.Exchange(ref this.list, null);
+            this.list = null;
         }
 
         // Properties
