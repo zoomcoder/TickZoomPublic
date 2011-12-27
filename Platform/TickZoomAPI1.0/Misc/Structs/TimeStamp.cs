@@ -66,7 +66,7 @@ namespace TickZoom.Api
 		public const long MicrosecondsPerDay = 86400000000L;
 		public const long MillisecondsPerDay = 86400000L;
 		public const long DateTimeToTimeStampAdjust = 59926435200000750L;
-		public const string DefaultFormatStr = "yyyy-MM-dd HH:mm:ss.fff.uuu";
+		public const string DefaultFormatStr = "yyyy-MM-dd HH:mm:ss.fffuuu";
 		
 		public void Assign( int year, int month, int day, int hour, int minute, int second, int millis) {
 			Interlocked.Exchange(ref _timeStamp, CalendarDateTotimeStamp( year, month, day, hour, minute, second, millis, 0));
@@ -231,82 +231,173 @@ namespace TickZoom.Api
             }
 		}
 		
-	    private static int Occurrences(string text, char chr)
-	    {
-	        // Loop through all instances of the string 'text'.
-	        int count = 0;
-	        int i = 0;
-	        while ((i = text.IndexOf(chr, i)) != -1)
-	        {
-	            i ++;
-	            count++;
-	        }
-	        return count;
-	    }
 
-		public TimeStamp( string timeString) {
-	    	timeString = timeString.Replace("  "," ").Trim();
-			int spaceCount = Occurrences(timeString,' ');
-			int hypenCount = Occurrences(timeString,'-');
-			int slashCount = Occurrences(timeString,'/');
-			char[] dateTimeSeparator;
-			char[] dateSeparator;
-			if( hypenCount == 2) {
-				dateSeparator = new char[] {'-'};
-			} else if( slashCount == 2) {
-				dateSeparator = new char[] {'/'};
-			} else {
-				dateSeparator = null;
-			}
-			if( spaceCount == 1) {
-				dateTimeSeparator = new char[] {' '};
-			} else if( hypenCount == 1) {
-				dateTimeSeparator = new char[] {'-'};
-			} else {
-				dateTimeSeparator = null;
-			}
-			string[] strings = dateTimeSeparator != null ? timeString.Split(dateTimeSeparator) : new string[] { timeString };
-			string date = strings[0];
-			int hour=0, minute=0, second=0, millis=0, micros=0;
-			if( strings.Length > 1) {
-				string time = strings[1];
-				strings = time.Split(new char[] {':'});
-				hour = ToInt32(strings[0]);
-				minute = ToInt32(strings[1]);
-                if( strings.Length > 2)
+        private static void Error(string timeString, int pos)
+        {
+            throw new ApplicationException("Unexpected date time char '" + timeString[pos] + "' in " + timeString + " at position " + pos + ".");
+        }
+
+		public TimeStamp( string timeString)
+		{
+            if( timeString.Length < 6) throw new ApplicationException("String too short to be any valid date and time.");
+		    int spaceCount = 0,
+		        hyphenCount = 0,
+		        slashCount = 0,
+		        hyphenPos = 0,
+		        spacePos = 0,
+		        startPos = 0,
+		        endPos = timeString.Length;
+		    var start = true;
+            // Trim whitespace from the end.
+            for( var i=timeString.Length-1; i>=0; i--)
+            {
+                var chr = timeString[i];
+                if( char.IsWhiteSpace(chr))
                 {
-                    strings = strings[2].Split(new char[] { '.' });
-                    second = ToInt32(strings[0]);
-                    if (strings.Length > 1)
+                    endPos--;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            // Analyze the string.
+	        for( var i=0; i<endPos; i++)
+	        {
+                var chr = timeString[i];
+                if( start && char.IsWhiteSpace(chr))
+                {
+                    startPos ++;
+                    continue;
+                }
+	            start = false;
+	            switch( timeString[i])
+	            {
+                    case ' ':
+	                    spaceCount++;
+                        if( spacePos == 0)
+                        {
+                            spacePos = i;
+                        }
+	                    break;
+                    case '-':
+	                    hyphenCount++;
+                        if( hyphenPos == 0)
+                        {
+                            hyphenPos = i;
+                        }
+	                    break;
+                    case '/':
+                        slashCount++;
+                        break;
+                }
+	        }
+			int dateEndPos;
+			char dateSeparator;
+			if( hyphenCount == 2)
+			{
+			    dateSeparator = '-';
+			}
+            else if( slashCount == 2)
+			{
+			    dateSeparator = '/';
+			}
+            else
+			{
+			    dateSeparator = (char)0;
+			}
+			if( spaceCount == 1)
+			{
+			    dateEndPos = spacePos;
+			}
+            else if( hyphenCount == 1)
+            {
+                dateEndPos = hyphenPos;
+            }
+            else
+            {
+                dateEndPos = 0;
+            }
+			int hour=0, minute=0, second=0, millis=0, micros=0;
+			if( dateEndPos > 0)
+			{
+			    var timePos = dateEndPos + 1;
+			    hour = (timeString[timePos++] - '0')*10 + (timeString[timePos++] - '0');
+                if( timeString[timePos] != ':') Error( timeString, timePos);
+                timePos++; // skip the :
+                minute = (timeString[timePos++] - '0') * 10 + (timeString[timePos++] - '0');
+                if( timePos+3 <= endPos)
+                {
+                    if (timeString[timePos] != ':') Error(timeString, timePos);
+                    timePos++;
+                    second = (timeString[timePos++] - '0') * 10 + (timeString[timePos++] - '0');
+                    if (timePos + 4 <= endPos)
                     {
-                        millis = ToInt32(strings[1]);
-                    }
-                    if (strings.Length > 2)
-                    {
-                        micros = ToInt32(strings[2]);
+                        if (timeString[timePos] != '.') Error(timeString, timePos);
+                        timePos++;
+                        millis = (timeString[timePos++] - '0') * 100 + (timeString[timePos++] - '0') * 10 + (timeString[timePos++] - '0');
+                        if (timePos + 3 <= endPos)
+                        {
+                            if (timeString[timePos] == '.') timePos++;
+                            micros = (timeString[timePos++] - '0') * 100 + (timeString[timePos++] - '0') * 10 + (timeString[timePos++] - '0');
+                        }
                     }
                 }
 			}
-			if( dateSeparator != null) {
-				strings = date.Split(dateSeparator);
-			} else {
-				if( date.Length == 8) {
-					strings = new string[3];
-					strings[0] = date.Substring(0,4);
-					strings[1] = date.Substring(4,2);
-					strings[2] = date.Substring(6,2);
-				} else {
-					throw new ApplicationException("Unknown date separator for " + timeString);
-				}
+            else
+			{
+			    dateEndPos = endPos;
 			}
-			int year = ToInt32(strings[0]);
-			int month = ToInt32(strings[1]);
-			int day = ToInt32(strings[2]);
-			if( day > 1000) {
-				month = ToInt32(strings[0]);
-				day = ToInt32(strings[1]);
-				year = ToInt32(strings[2]);
-			}
+		    int year = 1970;
+		    int month = 5;
+		    int day = 14;
+		    var datePos = startPos;
+            if (timeString[startPos + 4] == dateSeparator)
+            {
+                // Starts wth 4 digit year.
+                year = (timeString[datePos++] - '0')*1000 + (timeString[datePos++] - '0')*100 +
+                       (timeString[datePos++] - '0')*10 + (timeString[datePos++] - '0');
+                if (timeString[datePos] != dateSeparator) Error(timeString, datePos);
+                datePos++;
+                month = (timeString[datePos++] - '0')*10 + (timeString[datePos++] - '0');
+                if (timeString[datePos] != dateSeparator) Error(timeString, datePos);
+                datePos++;
+                day = (timeString[datePos++] - '0')*10 + (timeString[datePos++] - '0');
+            }
+            else if (timeString[startPos + 2] == dateSeparator)
+            {
+                // Starts with either 2 digit year or 2 digit month
+                year = (timeString[datePos++] - '0')*10 + (timeString[datePos++] - '0');
+                if (timeString[datePos] != dateSeparator) Error(timeString, datePos);
+                datePos++;
+                month = (timeString[datePos++] - '0')*10 + (timeString[datePos++] - '0');
+                if (timeString[datePos] != dateSeparator) Error(timeString, datePos);
+                datePos++;
+                if (datePos + 4 <= dateEndPos)
+                {
+                    // Four digits left so must be the year last.
+                    day = month;
+                    month = year;
+                    year = (timeString[datePos++] - '0')*1000 + (timeString[datePos++] - '0')*100 +
+                           (timeString[datePos++] - '0')*10 + (timeString[datePos++] - '0');
+                }
+            }
+            else if (datePos + 8 == dateEndPos)
+            {
+                // Starts wth 4 digit year.
+                year = (timeString[datePos++] - '0') * 1000 + (timeString[datePos++] - '0') * 100 +
+                       (timeString[datePos++] - '0') * 10 + (timeString[datePos++] - '0');
+                month = (timeString[datePos++] - '0') * 10 + (timeString[datePos++] - '0');
+                day = (timeString[datePos++] - '0') * 10 + (timeString[datePos++] - '0');
+                if( month > 12 || day > 31 || month <= 0 || day <= 0)
+                {
+                    datePos -= 8;
+                    month = (timeString[datePos++] - '0') * 10 + (timeString[datePos++] - '0');
+                    day = (timeString[datePos++] - '0') * 10 + (timeString[datePos++] - '0');
+                    year = (timeString[datePos++] - '0') * 1000 + (timeString[datePos++] - '0') * 100 +
+                           (timeString[datePos++] - '0') * 10 + (timeString[datePos++] - '0');
+                }
+            }
 			_timeStamp = CalendarDateTotimeStamp( year, month, day, hour, minute, second, millis, micros);
 			if( Month != month || Year != year || Day != day || Hour != hour || Minute != minute || Second != second || Millisecond != millis) {
 				throw new ApplicationException("Invalid date for " + timeString);

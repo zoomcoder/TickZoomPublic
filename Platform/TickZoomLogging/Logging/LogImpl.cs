@@ -245,7 +245,6 @@ namespace TickZoom.Logging
 				lock( locker) {
         			if( symbolMap == null) {
         				ConvertSymbols();
-        				ConvertTimes();
         			}
         		}
 			}
