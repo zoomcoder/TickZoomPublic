@@ -49,9 +49,8 @@ namespace TickZoom.Api
 		void Join();
 		void Pause();
 		void Resume();
-		void IncreaseInbound(int id);
-        void DecreaseInbound(int id);
-		void UpdateUtcTime(int source,long utcTime);
+        void IncreaseInbound(int id, long earliestUtcTime);
+        void DecreaseInbound(int id, long earliestUtcTime);
 		void ConnectInbound(Queue queue, out int inboundId);
 		bool HasActivity {
 			get;

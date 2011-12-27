@@ -221,7 +221,7 @@ namespace TickZoom.TickUtil
                     var tempConnectionId = 0;
                     fileReaderTask.ConnectInbound(tempQueue, out tempConnectionId);
                     outboundQueue.ConnectOutbound(fileReaderTask);
-                    fileReaderTask.IncreaseInbound(tempConnectionId);
+                    fileReaderTask.IncreaseInbound(tempConnectionId,0L);
                     fileReaderTask.Start();
                     isStarted = true;
                 }

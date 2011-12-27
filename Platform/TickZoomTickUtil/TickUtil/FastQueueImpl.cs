@@ -215,12 +215,11 @@ namespace TickZoom.TickUtil
             if (inboundTask != null)
             {
                 if( trace) log.Trace("IncreaseInbound with count " + queue.Count);
-                inboundTask.IncreaseInbound(inboundId);
                 if (count == 1)
                 {
                     earliestUtcTime = utcTime;
-                    inboundTask.UpdateUtcTime(inboundId, utcTime);
                 }
+                inboundTask.IncreaseInbound(inboundId,earliestUtcTime);
             }
             if (count >= maxSize)
             {
@@ -307,11 +306,7 @@ namespace TickZoom.TickUtil
             if (inboundTask != null)
             {
                 if (trace) log.Trace("DecreaseInbound with count = " + count);
-                inboundTask.DecreaseInbound(inboundId);
-                if (count== 0)
-                {
-                    inboundTask.UpdateUtcTime(inboundId, earliestUtcTime);
-                }
+                inboundTask.DecreaseInbound(inboundId, earliestUtcTime);
             }
             if (count + 1 == maxSize)
             {
