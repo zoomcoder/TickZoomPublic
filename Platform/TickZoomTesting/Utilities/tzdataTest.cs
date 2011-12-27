@@ -89,7 +89,7 @@ namespace TickZoom.Utilities
 	       	var sb = new StringBuilder();
 	       	filter.Output = sb.WriteLine;
 	       	filter.Run(args);
-		    string expectedOutput = "USD_JPY: 10113 ticks.\r\nFrom 2005-05-05 07:01:17.187.000 to 2005-05-10 07:00:07.355.000\r\n0 duplicates elimated.\r\n";
+		    string expectedOutput = "USD_JPY: 10113 ticks.\r\nFrom 2005-05-05 07:01:17.187000 to 2005-05-10 07:00:07.355000\r\n0 duplicates elimated.\r\n";
 			string output = sb.ToString();
 			Assert.AreEqual(expectedOutput,output);			
 		}
@@ -262,8 +262,8 @@ namespace TickZoom.Utilities
 		        "Symbol: /ESH0\r\nVersion: 8" + Environment.NewLine +
 		        "Ticks: 15683" + Environment.NewLine +
 		        "Trade Only: 15683" + Environment.NewLine +
-		        "From: 2010-02-16 16:49:28.769.000 (local), 2010-02-16 21:49:28.769.000 (UTC)" + Environment.NewLine +
-		        "  To: 2010-02-16 16:59:56.140.000 (local), 2010-02-16 21:59:56.140.000 (UTC)" + Environment.NewLine +
+		        "From: 2010-02-16 16:49:28.769000 (local), 2010-02-16 21:49:28.769000 (UTC)" + Environment.NewLine +
+		        "  To: 2010-02-16 16:59:56.140000 (local), 2010-02-16 21:59:56.140000 (UTC)" + Environment.NewLine +
 		        "Prices duplicates: 14489" + Environment.NewLine;
             string output = query.ToString();
 			Assert.AreEqual(expectedOutput,output);			

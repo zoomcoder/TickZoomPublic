@@ -134,11 +134,9 @@
     <Compile Include="TradingFramework\StrategyTest.cs" />
     <Compile Include="TradingFramework\TradeStatsTest.cs" />
     <Compile Include="Utilities\ActiveListTest.cs" />
-    <Compile Include="Utilities\ActiveMultiQueueTest.cs" />
     <Compile Include="Utilities\ActiveQueueTest.cs" />
     <Compile Include="Utilities\FastQueueTest.cs" />
     <Compile Include="Utilities\ISINTest.cs" />
-    <Compile Include="Utilities\MultiCoreActiveQueueTest.cs" />
     <Compile Include="Utilities\MultiCoreSameClassTest.cs" />
     <Compile Include="Utilities\MultiCoreTest.cs" />
     <Compile Include="Utilities\SymbolTest.cs" />
