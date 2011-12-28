@@ -64,7 +64,8 @@ namespace TickZoom.TickUtil
 	    private readonly Log log;
 	    private bool debug;
 	    private bool trace;
-		private Log instanceLog;
+        private bool verbose;
+        private Log instanceLog;
 		private bool disableBackupLogging = false;
 		string name;
 		long enqueueConflicts = 0;
@@ -125,6 +126,7 @@ namespace TickZoom.TickUtil
 		    log = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name.ToString().StripInvalidPathChars());
 		    debug = log.IsDebugEnabled;
 		    trace = log.IsTraceEnabled;
+            verbose = log.IsVerboseEnabled;
             //if( !string.IsNullOrEmpty(nameString)) {
             //    if( nameString.Contains("-Receive")) {
 	        		backupLevel = backupInitial = 900;
@@ -206,7 +208,7 @@ namespace TickZoom.TickUtil
             		throw new QueueException(EventType.Terminate);
 	    		}
             }
-            if (trace) log.Trace("Enqueue " + item);
+            if (verbose) log.Verbose("Enqueue " + item);
             if( !queue.TryEnqueue(new FastQueueEntry<T>(item, utcTime)))
 	        {
 	            return false;
@@ -214,7 +216,7 @@ namespace TickZoom.TickUtil
 	        var count = queue.Count;
             if (inboundTask != null)
             {
-                if( trace) log.Trace("IncreaseInbound with count " + queue.Count);
+                if( verbose) log.Verbose("IncreaseInbound with count " + queue.Count);
                 if (count == 1)
                 {
                     earliestUtcTime = utcTime;
@@ -287,7 +289,18 @@ namespace TickZoom.TickUtil
 	    
 	    public bool TryDequeue(out T item)
 	    {
-	    	if( !isStarted)
+            if (isDisposed)
+            {
+                if (exception != null)
+                {
+                    throw new ApplicationException("Enqueue failed.", exception);
+                }
+                else
+                {
+                    throw new QueueException(EventType.Terminate);
+                }
+            }
+            if (!isStarted)
 	    	{
 	    	    StartDequeue();
 	    	}
@@ -299,18 +312,18 @@ namespace TickZoom.TickUtil
 	            return false;
 	        }
 	        item = entry.Entry;
-            if (trace) log.Trace("Dequeue " + item);
+            if (verbose) log.Verbose("Dequeue " + item);
             var count = queue.Count;
             earliestUtcTime = count == 0 ? long.MaxValue : queue.Peek().utcTime;
             if (count == 0) earliestUtcTime = long.MaxValue;
             if (inboundTask != null)
             {
-                if (trace) log.Trace("DecreaseInbound with count = " + count);
+                if (verbose) log.Verbose("DecreaseInbound with count = " + count);
                 inboundTask.DecreaseInbound(inboundId, earliestUtcTime);
             }
             if (count + 1 == maxSize)
             {
-                if (trace) log.Trace("DecreaseOutbound with count " + count + ", previous count " + priorCount);
+                if (verbose) log.Verbose("DecreaseOutbound with count " + count + ", previous count " + priorCount);
                 for (var i = 0; i < outboundTasks.Count; i++)
                 {
                     outboundTasks[i].DecreaseOutbound();

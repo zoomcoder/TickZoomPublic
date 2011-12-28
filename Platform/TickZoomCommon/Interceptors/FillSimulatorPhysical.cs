@@ -87,7 +87,6 @@ namespace TickZoom.Interceptors
         private static int maxPartialFillsPerOrder = 1;
 	    private volatile bool isOnline = false;
 	    private string name;
-        private SimpleLock flushQueueLocker = new SimpleLock();
         private bool createActualFills;
 
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills, bool createActualFills)
@@ -363,25 +362,17 @@ namespace TickZoom.Interceptors
 
 	    public void FlushFillQueue()
         {
-            if( !flushQueueLocker.TryLock()) return;
-            try
+            if (!isOnline)
             {
-                if (!isOnline)
-                {
-                    if (verbose) log.Verbose("Unable to flush fill queue yet because isOnline is " + isOnline);
-                    return;
-                }
-                while (fillQueue.Count > 0)
-                {
-                    var wrapper = fillQueue.Dequeue();
-                    if (debug) log.Debug("Dequeuing fill ( isOnline " + isOnline + "): " + wrapper.Fill);
-                    if (SyncTicks.Enabled && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
-                    onPhysicalFill(wrapper.Fill);
-                }
+                if (verbose) log.Verbose("Unable to flush fill queue yet because isOnline is " + isOnline);
+                return;
             }
-            finally
+            while (fillQueue.Count > 0)
             {
-                flushQueueLocker.Unlock();
+                var wrapper = fillQueue.Dequeue();
+                if (debug) log.Debug("Dequeuing fill ( isOnline " + isOnline + "): " + wrapper.Fill);
+                if (SyncTicks.Enabled && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
+                onPhysicalFill(wrapper.Fill);
             }
         }
 		

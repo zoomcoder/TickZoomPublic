@@ -16,8 +16,6 @@ namespace TickZoom.Api
         CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber);
         bool HasCancelOrder(PhysicalOrder order);
         bool HasCreateOrder(CreateOrChangeOrder order);
-        IDisposable BeginTransaction();
-        void EndTransaction();
         void ResetLastChange();
         void SetActualPosition(SymbolInfo symbol, long position);
         long GetActualPosition(SymbolInfo symbol);
@@ -27,7 +25,6 @@ namespace TickZoom.Api
         void SyncPositions(Iterable<StrategyPosition> strategyPositions);
         string StrategyPositionsToString();
         string SymbolPositionsToString();
-        void AssertAtomic();
         string OrdersToString();
     }
 
@@ -49,5 +46,8 @@ namespace TickZoom.Api
         int Count();
         void IncrementUpdateCount();
         void TrySnapshot();
+        IDisposable BeginTransaction();
+        void EndTransaction();
+        void AssertAtomic();
     }
 }

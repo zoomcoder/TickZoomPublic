@@ -38,54 +38,14 @@ namespace TickZoom.Common
         protected Dictionary<long, SymbolPosition> positions = new Dictionary<long, SymbolPosition>();
         protected Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
         private TaskLock ordersLocker = new TaskLock();
-        protected SimpleLock cacheLocker = new SimpleLock();
-        private PhysicalOrderLock physicalOrderLock;
 
         public PhysicalOrderCacheDefault()
         {
             log = Factory.SysLog.GetLogger(typeof(PhysicalOrderCacheDefault));
             log.Register(this);
-            physicalOrderLock = new PhysicalOrderLock(this);
         }
 
-        public class PhysicalOrderLock : IDisposable
-        {
-            private PhysicalOrderCache lockedCache;
-            internal PhysicalOrderLock(PhysicalOrderCache cache)
-            {
-                lockedCache = cache;
-            }
-            public void Dispose()
-            {
-                lockedCache.EndTransaction();
-            }
-        }
-
-        public IDisposable BeginTransaction()
-        {
-            cacheLocker.Lock();
-            return physicalOrderLock;
-        }
-
-        public void EndTransaction()
-        {
-            cacheLocker.Unlock();
-        }
-
-        public bool IsLocked
-        {
-            get { return cacheLocker.IsLocked; }
-        }
-
-        public void AssertAtomic()
-        {
-            if (!IsLocked)
-            {
-                var message = "Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.";
-                log.Error(message + "\n" + Environment.StackTrace);
-                //throw new ApplicationException(message);
-            }
-        }
+        public virtual void AssertAtomic() { }
 
         public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
         {
@@ -418,10 +378,6 @@ namespace TickZoom.Common
                 log.Info("Dispose()");
                 if (disposing)
                 {
-                    if( cacheLocker.IsLocked)
-                    {
-                        return;
-                    }
                     isDisposed = true;
                 }
             }

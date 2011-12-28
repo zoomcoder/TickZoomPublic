@@ -48,6 +48,8 @@ namespace TickZoom.Common
         private object fileLocker = new object();
         private object snapshotLocker = new object();
         private bool snapshotNeeded;
+        private PhysicalOrderLock physicalOrderLock;
+        protected SimpleLock cacheLocker = new SimpleLock();
 
         public PhysicalOrderStoreDefault(string name)
         {
@@ -62,6 +64,46 @@ namespace TickZoom.Common
             memory = new MemoryStream();
             writer = new BinaryWriter(memory, Encoding.UTF8);
             reader = new BinaryReader(memory, Encoding.UTF8);
+            physicalOrderLock = new PhysicalOrderLock(this);
+        }
+
+        public class PhysicalOrderLock : IDisposable
+        {
+            private PhysicalOrderStore lockedCache;
+            internal PhysicalOrderLock(PhysicalOrderStore cache)
+            {
+                lockedCache = cache;
+            }
+            public void Dispose()
+            {
+                lockedCache.EndTransaction();
+            }
+        }
+
+        public IDisposable BeginTransaction()
+        {
+            cacheLocker.Lock();
+            return physicalOrderLock;
+        }
+
+        public void EndTransaction()
+        {
+            cacheLocker.Unlock();
+        }
+
+        public bool IsLocked
+        {
+            get { return cacheLocker.IsLocked; }
+        }
+
+        public void AssertAtomic()
+        {
+            if (!IsLocked)
+            {
+                var message = "Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.";
+                log.Error(message + "\n" + Environment.StackTrace);
+                //throw new ApplicationException(message);
+            }
         }
 
         public bool TryOpen()
