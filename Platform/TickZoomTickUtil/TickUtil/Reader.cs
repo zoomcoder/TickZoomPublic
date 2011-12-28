@@ -578,7 +578,17 @@ namespace TickZoom.TickUtil
 
 		void progressCallback(string text, Int64 current, Int64 final)
 		{
-			if (backgroundWorker != null && !backgroundWorker.CancellationPending && backgroundWorker.WorkerReportsProgress) {
+            var percent = current * 100 / final;
+            if( final > 0 && final > current)
+            {
+                log.Info(symbol + ": " + text + " " + percent + "% complete.");
+            }
+            else
+            {
+                log.Info(symbol + ": " + text);
+            }
+            if (backgroundWorker != null && !backgroundWorker.CancellationPending && backgroundWorker.WorkerReportsProgress)
+            {
 				progress.UpdateProgress(text, current, final);
 				backgroundWorker.ReportProgress(0, progress);
 			}
