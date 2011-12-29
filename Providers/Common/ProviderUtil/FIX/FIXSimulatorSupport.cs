@@ -27,6 +27,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using TickZoom.Api;
 
 namespace TickZoom.FIX
@@ -1155,7 +1156,7 @@ namespace TickZoom.FIX
 			if (!isDisposed) {
 				isDisposed = true;
 				if (disposing) {
-					if (debug) log.Debug("Dispose()");
+                    if (debug) log.Debug("Dispose()\n" + new StackTrace(true));
                     ShutdownHandlers();
                     CloseSockets();
                     if (fixListener != null)
