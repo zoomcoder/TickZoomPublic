@@ -578,9 +578,9 @@ namespace TickZoom.TickUtil
 
 		void progressCallback(string text, Int64 current, Int64 final)
 		{
-            var percent = current * 100 / final;
             if( final > 0 && final > current)
             {
+                var percent = current * 100 / final;
                 log.Info(symbol + ": " + text + " " + percent + "% complete.");
             }
             else

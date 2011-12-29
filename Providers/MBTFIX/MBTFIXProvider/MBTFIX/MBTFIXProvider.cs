@@ -155,7 +155,21 @@ namespace TickZoom.MBTFIX
                     }
 				    var queue = algorithm.Queue;
 			        var item = new EventItem(symbol, (int)EventType.EndBroker);
-				    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                    try
+                    {
+                        queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                    }
+                    catch( QueueException ex )
+                    {
+                        if( ex.EntryType == EventType.Terminate)
+                        {
+                            log.Warn("Queue was already terminated.");
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
 				    algorithm.IsBrokerStarted = false;
 				}
 			}

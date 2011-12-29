@@ -146,7 +146,7 @@ namespace TickZoom.TickUtil
         {
             lock (locker)
             {
-                lock (queueListLocker)
+                using (queueListLocker.Using())
                 {
                     if (queueList != null)
                     {

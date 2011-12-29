@@ -42,13 +42,15 @@ namespace TickZoom.Update
 			string appDataFolder = Factory.Settings["AppDataFolder"];
 			userKeyPath = appDataFolder + @"\" + userKeyFile;
 			try {
-				StreamReader streamReader = new StreamReader(userKeyPath);
-				userKey = streamReader.ReadToEnd();
-				userKey = userKey.Replace("-----BEGIN RSA PRIVATE KEY-----","");
-				userKey = userKey.Replace("-----END RSA PRIVATE KEY-----","");
-		        Regex r = new Regex(@"\s+");
-		        userKey = r.Replace(userKey, @"");
-			    result = true;
+				using( var streamReader = new StreamReader(userKeyPath))
+				{
+                    userKey = streamReader.ReadToEnd();
+                    userKey = userKey.Replace("-----BEGIN RSA PRIVATE KEY-----", "");
+                    userKey = userKey.Replace("-----END RSA PRIVATE KEY-----", "");
+                    Regex r = new Regex(@"\s+");
+                    userKey = r.Replace(userKey, @"");
+                    result = true;
+                }
 			} catch( Exception ex) {
 				userKey = "";
 				message = "User key problem: " + ex.Message + " Please consider upgrading.";
@@ -59,7 +61,7 @@ namespace TickZoom.Update
 		
 		public bool UpdateAll() {
 			bool retVal = false;
-            if( !LoadUserKey())
+            if( userKey == null && !LoadUserKey())
             {
                 return false;
             }
@@ -136,9 +138,10 @@ namespace TickZoom.Update
 		public bool DownloadFile(string fileName)
 		{   
 			bool Ret = false;
-			if( userKey == null) {
-				return false;
-			}
+            if (userKey == null && !LoadUserKey())
+            {
+                return false;
+            }
 			
 			string url = remoteCgi + currentVersion + "/" + remotePage;
 			try {
