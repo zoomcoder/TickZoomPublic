@@ -641,6 +641,7 @@ namespace TickZoom.MBTQuotes
 					PositionChangeDetail positionChange = (PositionChangeDetail) eventDetail;
 					PositionChange(receiver,symbol,positionChange.Position,positionChange.Orders);
 					break;
+                case EventType.RemoteShutdown:
 				case EventType.Terminate:
 					Dispose();
 					break; 

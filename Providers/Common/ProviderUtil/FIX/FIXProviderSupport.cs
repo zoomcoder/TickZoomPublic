@@ -152,7 +152,7 @@ namespace TickZoom.FIX
             socket.OnConnect = OnConnect;
 			socket.MessageFactory = new MessageFactoryFix44();
 			if( debug) log.Debug("Created new " + socket);
-			connectionStatus = Status.New;
+			ConnectionStatus = Status.New;
 			if( trace) {
 				string message = "Generated socket: " + socket;
 				if( old != null) {
@@ -237,7 +237,7 @@ namespace TickZoom.FIX
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
             OnDisconnect();
-            switch (connectionStatus)
+            switch (ConnectionStatus)
             {
                 case Status.Connected:
                 case Status.Disconnected:
@@ -246,17 +246,17 @@ namespace TickZoom.FIX
                 case Status.Recovered:
                 case Status.PendingLogin:
                 case Status.PendingRetry:
-                    connectionStatus = Status.Disconnected;
-                    if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+                    ConnectionStatus = Status.Disconnected;
                     var startTime = TimeStamp.UtcNow;
                     startTime.AddSeconds(RetryDelay);
                     retryTimer.Start(startTime);
                     break;
                 case Status.PendingLogOut:
+                    ConnectionStatus = Status.Disconnected;
                     Dispose();
                     break;
                 default:
-                    log.Warn("Unexpected connection status when socket disconnected: " + connectionStatus + ". Shutting down the provider.");
+                    log.Warn("Unexpected connection status when socket disconnected: " + ConnectionStatus + ". Shutting down the provider.");
                     Dispose();
                     break;
             }
@@ -271,16 +271,14 @@ namespace TickZoom.FIX
             }
             log.Info("OnConnect( " + socket + " ) ");
             retryTimer.Cancel();
-            connectionStatus = Status.Connected;
-            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            ConnectionStatus = Status.Connected;
             isResendComplete = true;
             if (debug) log.Debug("Set resend complete: " + IsResendComplete);
             using (OrderStore.BeginTransaction())
             {
                 if (OnLogin())
                 {
-                    connectionStatus = Status.PendingLogin;
-                    if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+                    ConnectionStatus = Status.PendingLogin;
                     IncreaseHeartbeatTimeout();
                 }
                 else
@@ -299,38 +297,35 @@ namespace TickZoom.FIX
 
         public virtual void CancelRecovered()
         {
-            connectionStatus = Status.PendingRecovery;
+            ConnectionStatus = Status.PendingRecovery;
         }
 
 		public void StartRecovery() {
             CancelRecovered();
-			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
 			OnStartRecovery();
 		}
 		
 		public void EndRecovery() {
-			connectionStatus = Status.Recovered;
+			ConnectionStatus = Status.Recovered;
 		    bestConnectionStatus = Status.Recovered;
-			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
             OrderStore.ResetLastChange();
             OnFinishRecovery();
         }
 		
 		public bool IsRecovered {
 			get {
-                return connectionStatus == Status.Recovered;
+                return ConnectionStatus == Status.Recovered;
 			}
 		}
 		
 		private void SetupRetry() {
 			OnRetry();
 			RegenerateSocket();
-			if( trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
 		}
 		
 		public bool IsRecovery {
 			get {
-				return connectionStatus == Status.PendingRecovery;
+				return ConnectionStatus == Status.PendingRecovery;
 			}
 		}
 
@@ -350,7 +345,7 @@ namespace TickZoom.FIX
 
         private Yield HeartBeatTimerEvent()
         {
-            var typeStr = connectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
+            var typeStr = ConnectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
             log.Info(typeStr + ". Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
             log.Error("FIXProvider " + typeStr);
             SyncTicks.LogStatus();
@@ -385,11 +380,6 @@ namespace TickZoom.FIX
                     if (debug) log.Debug("SocketState changed to " + socket.State);
                     lastSocketState = socket.State;
                 }
-                if (connectionStatus != lastConnectionStatus)
-                {
-                    if (debug) log.Debug("Connection status changed to " + connectionStatus);
-                    lastConnectionStatus = connectionStatus;
-                }
                 switch (socket.State)
                 {
                     case SocketState.New:
@@ -397,7 +387,7 @@ namespace TickZoom.FIX
                     case SocketState.PendingConnect:
                         return Yield.NoWork.Repeat;
                     case SocketState.Connected:
-                        switch (connectionStatus)
+                        switch (ConnectionStatus)
                         {
                             case Status.New:
                             case Status.Connected:
@@ -414,7 +404,7 @@ namespace TickZoom.FIX
 
                                 MessageFIXT1_1 messageFIX = null;
 
-                                if (connectionStatus != Status.PendingLogin)
+                                if (ConnectionStatus != Status.PendingLogin)
                                 {
                                     while (resendQueue.Count > 0)
                                     {
@@ -458,7 +448,7 @@ namespace TickZoom.FIX
                                         }
                                         if (HandleLogon(messageFIX))
                                         {
-                                            connectionStatus = Status.PendingRecovery;
+                                            ConnectionStatus = Status.PendingRecovery;
                                         }
                                     }
                                 }
@@ -502,8 +492,7 @@ namespace TickZoom.FIX
                                                     HandleReject(messageFIX);
                                                     break;
                                                 case "5": // log off confirm
-                                                    if (debug) log.Debug("Log off confirmation received.");
-                                                    connectionStatus = Status.Disconnected;
+                                                    if (debug) log.Debug("Logout confirmation received.");
                                                     Dispose();
                                                     break;
                                                 default:
@@ -528,11 +517,11 @@ namespace TickZoom.FIX
                             case Status.Disconnected:
                                 return Yield.NoWork.Repeat;
                             default:
-                                throw new InvalidOperationException("Unknown connection status: " + connectionStatus);
+                                throw new InvalidOperationException("Unknown connection status: " + ConnectionStatus);
                         }
                     case SocketState.Disconnected:
                     case SocketState.Closed:
-                        switch (connectionStatus)
+                        switch (ConnectionStatus)
                         {
                             case Status.Connected:
                             case Status.Disconnected:
@@ -540,8 +529,7 @@ namespace TickZoom.FIX
                             case Status.PendingRecovery:
                             case Status.Recovered:
                             case Status.PendingLogin:
-                                connectionStatus = Status.PendingRetry;
-                                if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + RetryDelay + " seconds.");
+                                ConnectionStatus = Status.PendingRetry;
                                 RetryDelay += retryIncrease;
                                 RetryDelay = Math.Min(RetryDelay, retryMaximum);
                                 return Yield.NoWork.Repeat;
@@ -551,7 +539,7 @@ namespace TickZoom.FIX
                                 Dispose();
                                 return Yield.NoWork.Repeat;
                             default:
-                                log.Warn("Unexpected connection status when socket disconnected: " + connectionStatus + ". Shutting down the provider.");
+                                log.Warn("Unexpected connection status when socket disconnected: " + ConnectionStatus + ". Shutting down the provider.");
                                 Dispose();
                                 return Yield.NoWork.Repeat;
                         }
@@ -643,7 +631,7 @@ namespace TickZoom.FIX
                 }
                 return false;
             }
-            else if (connectionStatus == Status.PendingLogin)
+            else if (ConnectionStatus == Status.PendingLogin)
             {
                 resendQueue.Enqueue(messageFIX, TimeStamp.UtcNow.Internal);
                 releaseFlag = false;
@@ -1069,6 +1057,9 @@ namespace TickZoom.FIX
                         if( debug) log.Debug("PositionChangeQueue has " + positionChangeQueue.Count + " items.");
                         positionChangeQueue.Enqueue(positionChange,TimeStamp.UtcNow.Internal);
                         break;
+                    case EventType.RemoteShutdown:
+                        LogOut();
+                        break;
                     case EventType.Terminate:
                         Dispose();
                         break;
@@ -1123,10 +1114,10 @@ namespace TickZoom.FIX
                 Dispose();
                 return;
             }
-            while (!isDisposed)
+            if(!isDisposed)
             {
-                if( debug) log.Debug("LogOut() status " + connectionStatus);
-                switch( connectionStatus)
+                if( debug) log.Debug("LogOut() status " + ConnectionStatus);
+                switch( ConnectionStatus)
                 {
                     case Status.Connected:
                     case Status.Disconnected:
@@ -1140,7 +1131,7 @@ namespace TickZoom.FIX
                         break;
                     case Status.Recovered:
                     case Status.PendingRecovery:
-                        connectionStatus = Status.PendingLogOut;
+                        ConnectionStatus = Status.PendingLogOut;
                         using( orderStore.BeginTransaction())
                         {
                             if (debug) log.Debug("Calling OnLogOut()");
@@ -1148,9 +1139,8 @@ namespace TickZoom.FIX
                         }
                         break;
                     default:
-                        throw new ApplicationException("Unexpected connection status for log out: " + connectionStatus);
+                        throw new ApplicationException("Unexpected connection status for log out: " + ConnectionStatus);
                 }
-                Thread.Sleep(100);
             }
         }
 
@@ -1209,10 +1199,6 @@ namespace TickZoom.FIX
 			get { return accountNumber; }
 		}
 		
-		public FIXProviderSupport.Status ConnectionStatus {
-			get { return connectionStatus; }
-		}
-		
 		public FIXTFactory FixFactory {
 			get { return fixFactory; }
 			set { fixFactory = value; }
@@ -1238,6 +1224,18 @@ namespace TickZoom.FIX
         {
             get { return retryDelay; }
             set { retryDelay = value; }
+        }
+
+        public Status ConnectionStatus
+        {
+            get { return connectionStatus; }
+            set
+            {
+                if( connectionStatus != value)
+                {
+                    connectionStatus = value;
+                }
+            }
         }
     }
 }

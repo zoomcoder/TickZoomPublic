@@ -48,26 +48,18 @@ namespace TickZoom.MBTFIX
 		
 		public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {
 			switch( (EventType) eventType) {
-				case EventType.Connect:
-					quotesProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					fixProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					break;
-				case EventType.Disconnect:
-					quotesProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					fixProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					break;
-				case EventType.StartSymbol:
-					quotesProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					fixProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					break;
-				case EventType.StopSymbol:
-					quotesProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					fixProvider.SendEvent(receiver,symbol,eventType,eventDetail);
-					break;
 				case EventType.PositionChange:
 					fixProvider.SendEvent(receiver,symbol,eventType,eventDetail);
 					break;
-				case EventType.Terminate:
+				case EventType.StopSymbol:
+				case EventType.StartSymbol:
+				case EventType.Disconnect:
+				case EventType.Connect:
+                case EventType.RemoteShutdown:
+                    quotesProvider.SendEvent(receiver, symbol, eventType, eventDetail);
+                    fixProvider.SendEvent(receiver, symbol, eventType, eventDetail);
+                    break;
+                case EventType.Terminate:
 					Dispose();
 					break; 
 				default:
@@ -93,11 +85,6 @@ namespace TickZoom.MBTFIX
                         if (debug) log.Debug("Disposing quotes provider");
                         quotesProvider.Dispose();
                     }
-                    if (fixProvider != null)
-                    {
-                        if (debug) log.Debug("Disposing FIX provider");
-                        fixProvider.LogOut();
-	            	}
 	            }
     		}
 	    }

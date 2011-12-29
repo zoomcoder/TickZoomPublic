@@ -86,7 +86,16 @@ namespace TickZoom.MBTFIX
 		
 		public override void OnDisconnect() {
             HeartbeatDelay = int.MaxValue;
-            if( ConnectionStatus != Status.PendingLogOut)
+            if( ConnectionStatus == Status.PendingLogOut)
+            {
+                foreach (var kvp in orderAlgorithms)
+                {
+                    var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
+                    var algo = kvp.Value;
+                    algo.Queue.Enqueue(new EventItem(symbol,(int)EventType.RemoteShutdown), Factory.Parallel.UtcNow.Internal);
+                }
+            }
+            else 
             {
                 OrderStore.ForceSnapshot();
             }
