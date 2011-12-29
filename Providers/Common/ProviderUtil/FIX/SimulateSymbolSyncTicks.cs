@@ -37,10 +37,12 @@ namespace TickZoom.FIX
 		private static Log log = Factory.SysLog.GetLogger(typeof(SimulateSymbolSyncTicks));
         private volatile bool debug;
         private volatile bool trace;
+        private volatile bool verbose;
         public void RefreshLogLevel()
         {
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
+            verbose = log.IsVerboseEnabled;
         }
         private FillSimulator fillSimulator;
 		private TickReader reader;
@@ -111,19 +113,19 @@ namespace TickZoom.FIX
         {
             if (tickSync.Completed || tickSync.OnlyProcessPhysicalOrders || tickSync.OnlyReprocessPhysicalOrders)
             {
-                if (trace) log.Trace("TickSyncChangedEvent(" + symbol + ") resuming task.");
+                if (verbose) log.Verbose("TickSyncChangedEvent(" + symbol + ") resuming task.");
                 queueTask.Resume();
             }
             else
             {
-                if (trace) log.Trace("TickSyncChangedEvent(" + symbol + ") not ready to resume task.");
+                if (verbose) log.Verbose("TickSyncChangedEvent(" + symbol + ") not ready to resume task.");
             }
         }
 
         private void TryCompleteTick()
         {
 	    	if( tickSync.Completed) {
-		    	if( trace) log.Trace("TryCompleteTick() Next Tick");
+		    	if( verbose) log.Verbose("TryCompleteTick() Next Tick");
 		    	tickSync.Clear();
             }
             else if (tickSync.OnlyReprocessPhysicalOrders)
