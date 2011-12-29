@@ -28,65 +28,44 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Text;
 using System.Threading;
 using TickZoom.Api;
 
 namespace TickZoom.TickUtil
 {
-	public abstract class Reader
+    public abstract class Reader
 	{
 		BackgroundWorker backgroundWorker;
 		long maxCount = long.MaxValue;
-		SymbolInfo symbol = null;
-		long lSymbol = 0;
 	    private Log log;
 	    private bool debug;
 	    private bool trace;
-		bool quietMode = false;
 		long progressDivisor = 1;
 		private Elapsed sessionStart = new Elapsed(8, 0, 0);
 		private Elapsed sessionEnd = new Elapsed(12, 0, 0);
 		bool excludeSunday = true;
-		string fileName = null;
 		bool logProgress = false;
-		bool bulkFileLoad = false;
 		private Receiver receiver;
 		protected Task fileReaderTask;
 		private static object readerListLocker = new object();
 		private static List<Reader> readerList = new List<Reader>();
-		string priceDataFolder;
-		string appDataFolder;
-		MemoryStream memory;
-		byte[] buffer;
 		Progress progress = new Progress();
 		private Pool<TickBinaryBox> tickBoxPool;
 		private TickBinaryBox box;
 	    private int diagnoseMetric;
 	    private ReceiveEventQueue outboundQueue;
+	    private TickFile tickFile;
 
 		public Reader()
 		{
-			var property = "PriceDataFolder";
-			priceDataFolder = Factory.Settings[property];
-			if (priceDataFolder == null) {
-				throw new ApplicationException("Must set " + property + " property in app.config");
-			}
-			property = "AppDataFolder";
-			appDataFolder = Factory.Settings[property];
-			if (appDataFolder == null) {
-				throw new ApplicationException("Must set " + property + " property in app.config");
-			}
 			lock(readerListLocker) {
 				readerList.Add(this);
 			}
-			memory = new MemoryStream();
-			memory.SetLength(TickImpl.minTickSize);
-			buffer = memory.GetBuffer();
 			TickEventMethod = TickEvent;
 			SendFinishMethod = SendFinish;
 			StartEventMethod = StartEvent;
-		}
+            tickFile = new TickFile();
+        }
 
 		bool CancelPending {
 			get { return backgroundWorker != null && backgroundWorker.CancellationPending; }
@@ -100,103 +79,20 @@ namespace TickZoom.TickUtil
 
 		public void Initialize(string folderOrfile, string symbolFile)
 		{
-			string[] symbolParts = symbolFile.Split(new char[] { '.' });
-			string _symbol = symbolParts[0];
-			symbol = Factory.Symbol.LookupSymbol(_symbol);
-			lSymbol = symbol.BinaryIdentifier;
-			var dataFolder = folderOrfile.Contains(@"Test\") ? appDataFolder : priceDataFolder;
-			var filePath = dataFolder + "\\" + folderOrfile;
-			if (Directory.Exists(filePath)) {
-				fileName = filePath + "\\" + symbolFile.StripInvalidPathChars() + ".tck";
-			}
-            else if (File.Exists(folderOrfile)) {
-				fileName = folderOrfile;
-			}
-            else
-			{
-                Directory.CreateDirectory(filePath);
-                fileName = filePath + "\\" + symbolFile.StripInvalidPathChars() + ".tck";
-                //throw new ApplicationException("Requires either a file or folder to read data. Tried both " + folderOrfile + " and " + filePath);
-			}
-			CheckFileExtension();
+            tickFile.Initialize(folderOrfile, symbolFile);
 			PrepareTask();
 		}
 
-		private string FindFile(string path)
-		{
-			string directory = Path.GetDirectoryName(path);
-			string name = Path.GetFileName(path);
-			string[] paths = Directory.GetFiles(directory, name, SearchOption.AllDirectories);
-			if (paths.Length == 0) {
-				return null;
-			} else if (paths.Length > 1) {
-				throw new FileNotFoundException("Sorry, found multiple files with name: " + name + " under directory: " + directory);
-			} else {
-				return paths[0];
-			}
-		}
-
-		private void CheckFileExtension()
-		{
-			string locatedFile = FindFile(fileName);
-			if (locatedFile == null) {
-				if (fileName.Contains("_Tick.tck")) {
-					locatedFile = FindFile(fileName.Replace("_Tick.tck", ".tck"));
-				} else {
-					locatedFile = FindFile(fileName.Replace(".tck", "_Tick.tck"));
-				}
-				if (locatedFile != null) {
-					fileName = locatedFile;
-					log.Warn("Deprecated: Please use new style .tck file names by removing \"_Tick\" from the name.");
-				} else {
-					throw new FileNotFoundException("Sorry, unable to find the file: " + fileName);
-				}
-			}
-			fileName = locatedFile;
-		}
 
 		public void Initialize(string fileName)
 		{
-            this.fileName = fileName = Path.GetFullPath(fileName);
-			CheckFileExtension();
-			if (debug)
-				log.Debug("File Name = " + fileName);
-			if (debug)
-				log.Debug("Setting start method on reader queue.");
-			string baseName = Path.GetFileNameWithoutExtension(fileName);
-			if (symbol == null) {
-				symbol = Factory.Symbol.LookupSymbol(baseName.Replace("_Tick", ""));
-				lSymbol = symbol.BinaryIdentifier;
-			}
-			Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+		    tickFile.Initialize(fileName);
 			PrepareTask();
 		}
 
-		public TickIO GetLastTick()
+		public void GetLastTick(TickIO tickIO)
 		{
-			Stream stream;
-			stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-			dataIn = new BinaryReader(stream, Encoding.Unicode);
-			TickImpl lastTickIO = new TickImpl();
-			int count = 0;
-			try {
-				while (stream.Position < stream.Length && !CancelPending) {
-					long lastPosition = stream.Position;
-					if (!TryReadTick()) {
-						break;
-					}
-					count ++;
-					lastTickIO.Inject(tickIO.Extract());
-				}
-			} catch (ObjectDisposedException) {
-				// Only partial tick was read at the end of the file.
-				// Another writer must not have completed.
-				log.Warn("ObjectDisposedException returned from tickIO.FromReader(). Incomplete last tick. Ignoring.");
-			} catch {
-				log.Error("Error reading tick #" + count);
-			}
-			isTaskPrepared = false;
-			return lastTickIO;
+            tickFile.GetLastTick(tickIO);
 		}
 
         private SimpleLock startLocker = new SimpleLock();
@@ -211,6 +107,7 @@ namespace TickZoom.TickUtil
                 if (!isStarted)
                 {
                     this.receiver = receiver;
+                    var symbol = tickFile.Symbol;
                     outboundQueue = receiver.GetQueue(symbol);
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
@@ -247,17 +144,6 @@ namespace TickZoom.TickUtil
 
 		public bool LogTicks = false;
 
-		void LogInfo(string logMsg)
-		{
-			if (!quietMode) {
-				log.Notice(logMsg);
-			} else {
-				log.Debug(logMsg);
-			}
-		}
-		static Dictionary<SymbolInfo, byte[]> fileBytesDict = new Dictionary<SymbolInfo, byte[]>();
-		static object fileLocker = new object();
-		BinaryReader dataIn = null;
 		TickImpl tickIO = new TickImpl();
 		long lastTime = 0;
 
@@ -271,119 +157,29 @@ namespace TickZoom.TickUtil
 		bool isTaskPrepared = false;
 		bool isStarted = false;
 		
-		private bool PrepareTask()
+		private void PrepareTask()
 		{
+		    var symbol = tickFile.Symbol;
 	        log = Factory.SysLog.GetLogger("TickZoom.TickUtil.Reader."+symbol.Symbol.StripInvalidPathChars());
 	        debug = log.IsDebugEnabled;
 	        trace = log.IsTraceEnabled;
 		    tickBoxPool = Factory.TickUtil.TickPool(symbol);
-            for (int retry = 0; retry < 3; retry++)
+            progressDivisor = tickFile.Length / 20;
+            progressCallback("Loading bytes...", tickFile.Position, tickFile.Length);
+            isTaskPrepared = true;
+		}
+
+        void LogInfo(string logMsg)
+        {
+            if (!tickFile.QuietMode)
             {
-				try {
-					if (!quietMode) {
-						LogInfo("Reading from file: " + fileName);
-					}
-
-					Directory.CreateDirectory(Path.GetDirectoryName(fileName));
-
-					Stream stream;
-					if (bulkFileLoad) {
-						byte[] filebytes;
-						lock (fileLocker) {
-							if (!fileBytesDict.TryGetValue(symbol, out filebytes)) {
-								filebytes = File.ReadAllBytes(fileName);
-								fileBytesDict[symbol] = filebytes;
-							}
-						}
-						stream = new MemoryStream(filebytes);
-					} else {
-                        var fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-					    stream = new BufferedStream(fileStream, 15*1024);
-					}
-
-					dataIn = new BinaryReader(stream, Encoding.Unicode);
-
-					progressDivisor = dataIn.BaseStream.Length / 20;
-					if (!quietMode || debug) {
-						if (debug)
-							log.Debug("Starting to read data.");
-						log.Indent();
-					}
-					progressCallback("Loading bytes...", dataIn.BaseStream.Position, dataIn.BaseStream.Length);
-					isTaskPrepared = true;
-					return true;
-				} catch (Exception ex) {
-					ExceptionHandler(ex);
-				}
-				Factory.Parallel.Sleep(1000);
-			}
-			return false;
-		}
-
-		private void ExceptionHandler(Exception e)
-		{
-			if (e is CollectionTerminatedException) {
-				log.Warn("Reader queue was terminated.");
-			} else if (e is ThreadAbortException) {
-				//	
-			} else if (e is FileNotFoundException) {
-				log.Error("ERROR: " + e.Message);
-			} else {
-				log.Error("ERROR: " + e);
-			}
-			if (dataIn != null) {
-				isDisposed = true;
-				dataIn.Close();
-				dataIn = null;
-			}
-		}
-
-		int dataVersion;
-
-		public int DataVersion {
-			get { return dataVersion; }
-		}
-
-		private bool TryReadTick()
-		{
-            try
-            {
-                tickIO.SetSymbol(lSymbol);
-                byte size = dataIn.ReadByte();
-                // Check for old style prior to version 8 where
-                // single byte version # was first.
-                if (dataVersion < 8 && size < 8)
-                {
-                    dataVersion = tickIO.FromReader((byte) size, dataIn);
-                }
-                else
-                {
-                    // Subtract the size byte.
-                    //if (dataIn.BaseStream.Position + size - 1 > length) {
-                    //    return false;
-                    //}
-                    int count = 1;
-                    memory.SetLength(size);
-                    memory.GetBuffer()[0] = size;
-                    while (count < size)
-                    {
-                        var bytesRead = dataIn.Read(buffer, count, size - count);
-                        if( bytesRead == 0)
-                        {
-                            return false;
-                        }
-                        count += bytesRead;
-                    }
-                    memory.Position = 0;
-                    dataVersion = tickIO.FromReader(memory);
-                }
-                var utcTime = new TimeStamp(tickIO.lUtcTime);
-                tickIO.SetTime(utcTime);
-                return true;
-            } catch( EndOfStreamException) {
-                return false;
+                log.Notice(logMsg);
             }
-		}
+            else
+            {
+                log.Debug(logMsg);
+            }
+        }
 		
 		private YieldMethod TickEventMethod;
 		private YieldMethod SendFinishMethod;
@@ -396,14 +192,14 @@ namespace TickZoom.TickUtil
 				if (isDisposed)
 					return Yield.Terminate;
 				try {
-					if (!CancelPending && TryReadTick()) {
+					if (!CancelPending && tickFile.TryReadTick(tickIO)) {
 
 						tick = tickIO.Extract();
 						isDataRead = true;
 
 						if (Factory.TickCount > nextUpdate) {
 							try {
-								progressCallback("Loading bytes...", dataIn.BaseStream.Position, dataIn.BaseStream.Length);
+								progressCallback("Loading bytes...", tickFile.Position, tickFile.Length);
 							} catch (Exception ex) {
 								log.Debug("Exception on progressCallback: " + ex.Message);
 							}
@@ -427,7 +223,7 @@ namespace TickZoom.TickUtil
 							} else if (trace) {
 								log.Trace("Read a tick " + tickIO);
 							}
-							tick.Symbol = symbol.BinaryIdentifier;
+                            tick.Symbol = tickFile.Symbol.BinaryIdentifier;
 
 							if (tick.UtcTime <= lastTime) {
 								tick.UtcTime = lastTime + 1;
@@ -451,7 +247,7 @@ namespace TickZoom.TickUtil
 						tickCount++;
 
 					} else {
-                        if( debug) log.Debug("Finished reading to file length: " + dataIn.BaseStream.Length);
+                        if( debug) log.Debug("Finished reading to file length: " + tickFile.Length);
 						return Yield.DidWork.Invoke(SendFinishMethod);
 					}
 				} catch (ObjectDisposedException) {
@@ -463,11 +259,9 @@ namespace TickZoom.TickUtil
 
         private Yield StartEvent()
 		{
-		    var item = new EventItem(symbol,(int) EventType.StartHistorical);
+		    var item = new EventItem(tickFile.Symbol,(int) EventType.StartHistorical);
             outboundQueue.Enqueue(item, TimeStamp.UtcNow.Internal);
-			if (!quietMode) {
-				LogInfo("Starting loading for " + symbol + " from " + tickIO.ToPosition());
-			}
+            LogInfo("Starting loading for " + tickFile.Symbol + " from " + tickIO.ToPosition());
 			box = tickBoxPool.Create();
 		    var tickId = box.TickBinary.Id;
 			box.TickBinary = tick;
@@ -483,7 +277,7 @@ namespace TickZoom.TickUtil
 			}
             try
             {
-    		    var item = new EventItem(symbol,(int)EventType.Tick,box);
+                var item = new EventItem(tickFile.Symbol, (int)EventType.Tick, box);
                 outboundQueue.Enqueue(item, box.TickBinary.UtcTime);
                 if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
                 box = null;
@@ -497,24 +291,22 @@ namespace TickZoom.TickUtil
 
 		private Yield SendFinish()
 		{
-		    var item = new EventItem(symbol,(int)EventType.EndHistorical);
+            var item = new EventItem(tickFile.Symbol, (int)EventType.EndHistorical);
 		    outboundQueue.Enqueue(item, TimeStamp.UtcNow.Internal);
-			if( debug) log.Debug("EndHistorical for " + symbol);
+            if (debug) log.Debug("EndHistorical for " + tickFile.Symbol);
 			return Yield.DidWork.Invoke(FinishTask);
 		}
 
 		private Yield FinishTask()
 		{
 			try {
-				if (!quietMode && isDataRead) {
-					LogInfo("Processing ended for " + symbol + " at " + tickIO.ToPosition());
+				if (isDataRead) {
+                    LogInfo("Processing ended for " + tickFile.Symbol + " at " + tickIO.ToPosition());
 				}
 				long end = Factory.TickCount;
-				if (!quietMode) {
-					LogInfo("Processed " + Count + " ticks in " + (end - start) + " ms.");
-				}
+				LogInfo("Processed " + Count + " ticks in " + (end - start) + " ms.");
 				try {
-					progressCallback("Processing complete.", dataIn.BaseStream.Length, dataIn.BaseStream.Length);
+					progressCallback("Processing complete.", tickFile.Length, tickFile.Length);
 				} catch (Exception ex) {
 					log.Debug("Exception on progressCallback: " + ex.Message);
 				}
@@ -527,11 +319,7 @@ namespace TickZoom.TickUtil
 			} catch (Exception ex) {
 				log.Error("ERROR: " + ex);
 			} finally {
-				isDisposed = true;
-				fileReaderTask.Stop();
-				if (dataIn != null) {
-					dataIn.Close();
-				}
+                Dispose();
 			}
 			return Yield.Terminate;
 		}
@@ -553,11 +341,8 @@ namespace TickZoom.TickUtil
 						fileReaderTask.Stop();
 						fileReaderTask.Join();
 					}
-					if (dataIn != null) {
-						if( dataIn.BaseStream != null) {
-							dataIn.BaseStream.Close();
-						}
-						dataIn.Close();
+					if (tickFile != null) {
+						tickFile.Dispose();
 					}
 					lock( readerListLocker) {
 						readerList.Remove(this);
@@ -581,11 +366,11 @@ namespace TickZoom.TickUtil
             if( final > 0 && final > current)
             {
                 var percent = current * 100 / final;
-                log.Info(symbol + ": " + text + " " + percent + "% complete.");
+                log.Info(tickFile.Symbol + ": " + text + " " + percent + "% complete.");
             }
             else
             {
-                log.Info(symbol + ": " + text);
+                log.Info(tickFile.Symbol + ": " + text);
             }
             if (backgroundWorker != null && !backgroundWorker.CancellationPending && backgroundWorker.WorkerReportsProgress)
             {
@@ -615,11 +400,11 @@ namespace TickZoom.TickUtil
 		}
 
 		public string FileName {
-			get { return fileName; }
+			get { return tickFile.FileName; }
 		}
 
 		public SymbolInfo Symbol {
-			get { return symbol; }
+            get { return tickFile.Symbol; }
 		}
 
 		public bool LogProgress {
@@ -633,13 +418,13 @@ namespace TickZoom.TickUtil
 		}
 
 		public bool QuietMode {
-			get { return quietMode; }
-			set { quietMode = value; }
+			get { return tickFile.QuietMode; }
+			set { tickFile.QuietMode = value; }
 		}
 
 		public bool BulkFileLoad {
-			get { return bulkFileLoad; }
-			set { bulkFileLoad = value; }
+			get { return tickFile.BulkFileLoad; }
+			set { tickFile.BulkFileLoad = value; }
 		}
 
 		public TickIO LastTick {
@@ -650,5 +435,10 @@ namespace TickZoom.TickUtil
 	    {
 	        get { return count; }
 	    }
+
+        public int DataVersion
+        {
+            get { return tickFile.DataVersion; }
+        }
 	}
 }

@@ -37,7 +37,7 @@ namespace TickZoom.TickUtil
 	/// Description of TickDOM.
 	/// </summary>
 	/// <inheritdoc/>
-	unsafe public struct TickImpl : TickIO
+	unsafe public class TickImpl : TickIO
 	{
 		public const int minTickSize = 256;
 		

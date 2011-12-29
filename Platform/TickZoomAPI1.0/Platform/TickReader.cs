@@ -42,7 +42,7 @@ namespace TickZoom.Api
 		void Initialize(string _folder, SymbolInfo symbolInfo);
 		void Initialize(string folderOrfile, string symbolFile);
 		void Initialize(string fileName);
-		TickIO GetLastTick();
+		void GetLastTick(TickIO tickIO);
 		void Start(Receiver receiver);
 		void Stop(Receiver receiver);
 		bool IsAtStart(TickBinary tick);

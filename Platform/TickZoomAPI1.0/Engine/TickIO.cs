@@ -118,5 +118,7 @@ namespace TickZoom.Api
 		bool HasDepthOfMarket {
 			get;
 		}
+
+	    long lUtcTime { get; }
 	}
 }
