@@ -116,21 +116,20 @@ namespace TickZoom.TickUtil
     }
 
     public class PoolDefault<T> : Pool<T> where T : new()
-	{
-		private Stack<T> _items = new Stack<T>();
-        private SimpleLock _sync = new SimpleLock();
+    {
+        private ActiveQueue<T> _items = new ActiveQueue<T>(10000);
 		private int count = 0;
-        private Queue<T> _freed = new Queue<T>();
 
 		public T Create()
 		{
-			using (_sync.Using()) {
-				if (_items.Count == 0) {
-					Interlocked.Increment(ref count);
-					return new T();
-				} else {
-					return _items.Pop();
-				}
+			if (_items.Count < 100)
+			{
+			    ++count;
+				return new T();
+			}
+            else
+			{
+			    return _items.Dequeue();
 			}
 		}
 
@@ -140,29 +139,17 @@ namespace TickZoom.TickUtil
             {
                 throw new InvalidOperationException("Attempt to free null reference.");
             }
-			using (_sync.Using()) {
-                _freed.Enqueue(item);
-                if (_freed.Count > 10)
-                {
-                    _items.Push(_freed.Dequeue());
-                }
-			}
+            _items.Enqueue(item);
 		}
 
 		public void Clear()
 		{
-			using(_sync.Using()) {
-				_items.Clear();
-			}
+			_items.Clear();
 		}
 		
 		public int Count {
 			get { return count; }
 		}
 
-        public T[] Freed
-        {
-            get { return _freed.ToArray(); }
-        }
 	}
 }

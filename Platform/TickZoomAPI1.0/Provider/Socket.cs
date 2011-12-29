@@ -44,8 +44,8 @@ namespace TickZoom.Api
 	[CLSCompliant(false)]
 	public interface Socket : IDisposable {
 		void SetBlocking(bool enable);
-		void Connect(string addrStr, ushort port);
-		void Bind(string addrStr, ushort port);
+		void Connect();
+		void Bind();
 		void Listen(int queue);
 		bool TrySendMessage(Message message);
 		bool TryGetMessage(out Message message);

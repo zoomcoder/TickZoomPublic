@@ -58,8 +58,8 @@ namespace TickZoom.FIX
 		}
 		
 		private void ListenToLocal() {
-			listener = Factory.Provider.Socket(typeof(FIXPretradeFilter).Name);
-			listener.Bind(localAddress,localPort);
+            listener = Factory.Provider.Socket(typeof(FIXPretradeFilter).Name, localAddress, localPort);
+			listener.Bind();
 			listener.Listen(5);
 			listener.OnConnect = OnConnect;
 			listener.OnDisconnect = OnDisconnect;
@@ -106,11 +106,11 @@ namespace TickZoom.FIX
 		private void RequestRemoteConnect() {
 
             log.Info("Requesting connect at " + remoteAddress + " and port " + remotePort + " with socket: " + localSocket);
-            remoteSocket = Factory.Provider.Socket("FilterRemoteSocket");
+            remoteSocket = Factory.Provider.Socket("FilterRemoteSocket", remoteAddress,remotePort);
             remoteSocket.MessageFactory = new MessageFactoryFix44();
 			remoteSocket.OnConnect = OnConnect;
 			remoteSocket.OnDisconnect = OnDisconnect;
-			remoteSocket.Connect( remoteAddress,remotePort);
+			remoteSocket.Connect();
 			remoteConnectTimeout = Factory.TickCount + 2000;
 		}
 		

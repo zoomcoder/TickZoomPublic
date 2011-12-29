@@ -181,8 +181,8 @@ namespace TickZoom.FIX
         private void ListenToFIX(ushort fixPort)
 		{
 			this.fixPort = fixPort;
-			fixListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name);
-			fixListener.Bind( localAddress, fixPort);
+            fixListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name, localAddress, fixPort);
+			fixListener.Bind();
 			fixListener.Listen( 5);
 			fixListener.OnConnect = OnConnectFIX;
 			fixListener.OnDisconnect = OnDisconnectFIX;
@@ -193,8 +193,8 @@ namespace TickZoom.FIX
 		private void ListenToQuotes(ushort quotesPort)
 		{
 			this.quotesPort = quotesPort;
-			quoteListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name);
-			quoteListener.Bind( localAddress, quotesPort);
+            quoteListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name, localAddress, quotesPort);
+			quoteListener.Bind();
 			quoteListener.Listen( 5);
 			quoteListener.OnConnect = OnConnectQuotes;
 			quoteListener.OnDisconnect = OnDisconnectQuotes;

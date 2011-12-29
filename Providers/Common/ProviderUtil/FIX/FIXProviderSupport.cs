@@ -145,7 +145,7 @@ namespace TickZoom.FIX
 			if( socket != null) {
 				socket.Dispose();
 			}
-			socket = Factory.Provider.Socket("MBTFIXSocket");
+            socket = Factory.Provider.Socket("MBTFIXSocket", "127.0.0.1", port);
             socket.ReceiveQueue.ConnectInbound(socketTask);
             socket.SendQueue.ConnectOutbound(socketTask);
 			socket.OnDisconnect = OnDisconnect;
@@ -165,7 +165,7 @@ namespace TickZoom.FIX
             {
                 try
                 {
-                    socket.Connect("127.0.0.1", port);
+                    socket.Connect();
                     if (debug) log.Debug("Requested Connect for " + socket);
                     var startTime = TimeStamp.UtcNow;
                     startTime.AddSeconds(RetryDelay);

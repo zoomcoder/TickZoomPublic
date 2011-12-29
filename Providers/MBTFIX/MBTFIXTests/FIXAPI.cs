@@ -135,10 +135,11 @@ namespace Test
 			string password = "1lake2dust";
 			string userName = "DEMOXJSPFIX";
 			using( var filter = new FIXPretradeFilter(addrStr,port))
-			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
+            using (Socket socket = Factory.Provider.Socket("TestSocket", "127.0.0.1", filter.LocalPort))
+            {
 				socket.MessageFactory = new MessageFactoryFix44();
 				socket.SetBlocking(true);
-				socket.Connect("127.0.0.1",filter.LocalPort);
+				socket.Connect();
 				socket.SetBlocking(false);
 
 			    Message message = socket.MessageFactory.Create();
@@ -192,11 +193,12 @@ namespace Test
 			ushort port = 5679;
 			string password = "badpassword";
 			string userName = "DEMOXJSPFIX";
-			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
+            using (Socket socket = Factory.Provider.Socket("TestSocket", addrStr, port))
+            {
 				socket.MessageFactory = new MessageFactoryFix44();
 				socket.OnDisconnect = OnDisconnect;
 				socket.SetBlocking(true);
-				socket.Connect(addrStr,port);
+				socket.Connect();
 				socket.SetBlocking(false);
 
 			    Message message = socket.MessageFactory.Create();

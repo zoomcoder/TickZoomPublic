@@ -107,7 +107,7 @@ namespace TickZoom.MBTQuotes
 			if( socket != null) {
 				socket.Dispose();
 			}
-			socket = Factory.Provider.Socket("MBTQuoteSocket");
+            socket = Factory.Provider.Socket("MBTQuoteSocket",addrStr, port);
 			socket.OnDisconnect = OnDisconnect;
             socket.OnConnect = OnConnect;
             socket.MessageFactory = new MessageFactoryMbtQuotes();
@@ -127,7 +127,7 @@ namespace TickZoom.MBTQuotes
             {
                 try
                 {
-                    socket.Connect(addrStr, port);
+                    socket.Connect();
                     log.Info("Requested Connect for " + socket);
                     return;
                 }

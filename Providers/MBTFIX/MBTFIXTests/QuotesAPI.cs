@@ -98,10 +98,11 @@ namespace Test
 			string password = "1step2wax";
 //			string userName = "DEMOXJRX";
 //			string password = "1clock2bird";
-			using( Socket socket = Factory.Provider.Socket("TestSocket")) {
+            using (Socket socket = Factory.Provider.Socket("TestSocket", addrStr, port))
+            {
 				socket.MessageFactory = new MessageFactoryMbtQuotes();
 				socket.SetBlocking(true);
-				socket.Connect(addrStr,port);
+				socket.Connect();
 				socket.SetBlocking(false);
 
 			    Message message = socket.MessageFactory.Create();
