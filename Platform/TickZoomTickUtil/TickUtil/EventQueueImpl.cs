@@ -5,6 +5,12 @@ namespace TickZoom.TickUtil
     public class EventQueueImpl : FastQueueImpl<EventItem>, EventQueue
     {
         private SymbolInfo symbol;
+
+        public EventQueueImpl(string name)
+            : base(name)
+        {
+        }
+
         public EventQueueImpl(SymbolInfo symbol, string name)
             : base(name + "." + symbol)
         {

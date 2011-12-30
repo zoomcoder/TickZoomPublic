@@ -1156,7 +1156,7 @@ namespace TickZoom.FIX
 			if (!isDisposed) {
 				isDisposed = true;
 				if (disposing) {
-                    if (debug) log.Debug("Dispose()\n" + new StackTrace(true));
+                    if (debug) log.Debug("Dispose()");
                     ShutdownHandlers();
                     CloseSockets();
                     if (fixListener != null)

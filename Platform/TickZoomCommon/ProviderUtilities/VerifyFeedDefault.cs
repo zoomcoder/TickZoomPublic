@@ -624,5 +624,10 @@ namespace TickZoom.Common
 	        }
 	        return queue;
 	    }
-	}
+
+        public ReceiveEventQueue GetQueue()
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

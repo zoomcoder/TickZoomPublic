@@ -53,6 +53,18 @@ namespace TickZoom.Api
             this.EventType = eventType;
             this.EventDetail = null;
         }
+        public EventItem(int eventType, object detail)
+        {
+            this.Symbol = null;
+            this.EventType = eventType;
+            this.EventDetail = detail;
+        }
+        public EventItem(int eventType)
+        {
+            this.Symbol = null;
+            this.EventType = eventType;
+            this.EventDetail = null;
+        }
         public override string ToString()
         {
             return Symbol + " " + (EventType) EventType + " " + EventDetail;
@@ -61,7 +73,8 @@ namespace TickZoom.Api
 	
 	public interface Receiver : IDisposable
 	{
-	    ReceiveEventQueue GetQueue(SymbolInfo symbol);
+        ReceiveEventQueue GetQueue();
+        ReceiveEventQueue GetQueue(SymbolInfo symbol);
 	}
 	
 	public interface Serializable {

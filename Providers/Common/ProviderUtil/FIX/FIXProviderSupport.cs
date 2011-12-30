@@ -86,6 +86,7 @@ namespace TickZoom.FIX
         private Status lastConnectionStatus = Status.None;
         private FastQueue<PositionChangeDetail> positionChangeQueue;
         private FastQueue<MessageFIXT1_1> resendQueue;
+        private string name;
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }
@@ -104,25 +105,32 @@ namespace TickZoom.FIX
 
 		public FIXProviderSupport(string name)
 		{
+		    this.name = name;
 		    this.providerName = GetType().Name;
             log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+providerName);
 		    log.Register(this);
             verbose = log.IsVerboseEnabled;
             debug = log.IsDebugEnabled;
 			trace = log.IsTraceEnabled;
-        	log.Info(providerName+" Startup");
-		    positionChangeQueue = Factory.TickUtil.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
+        }
+
+        public void Start(Receiver receiver)
+        {
+            if (debug) log.Debug("Start() receiver: " + receiver);
+            this.receiver = (Receiver)receiver;
+            log.Info(providerName + " Startup");
+            positionChangeQueue = Factory.TickUtil.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
             resendQueue = Factory.TickUtil.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
-			socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
-		    socketTask.Scheduler = Scheduler.EarliestTime;
-		    retryTimer = Factory.Parallel.CreateTimer("Retry",socketTask, RetryTimerEvent);
-            heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat",socketTask, HeartBeatTimerEvent);
+            socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
+            socketTask.Scheduler = Scheduler.EarliestTime;
+            retryTimer = Factory.Parallel.CreateTimer("Retry", socketTask, RetryTimerEvent);
+            heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", socketTask, HeartBeatTimerEvent);
             positionChangeQueue.ConnectInbound(socketTask);
             resendQueue.ConnectInbound(socketTask);
             socketTask.Start();
             string logRecoveryString = Factory.Settings["LogRecovery"];
-  			logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
+            logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
             appDataFolder = Factory.Settings["AppDataFolder"];
             if (appDataFolder == null)
             {
@@ -139,8 +147,9 @@ namespace TickZoom.FIX
                 RegenerateSocket();
             }
         }
-		
-		protected void RegenerateSocket() {
+
+        protected void RegenerateSocket()
+        {
 			Socket old = socket;
 			if( socket != null) {
 				socket.Dispose();
@@ -823,12 +832,6 @@ namespace TickZoom.FIX
             Dispose();
 		}
 		
-        public void Start(Receiver receiver)
-        {
-        	if( debug) log.Debug("Start() receiver: " + receiver);
-        	this.receiver = (Receiver) receiver;
-        }
-        
         public void Stop(Receiver receiver) {
         	
         }

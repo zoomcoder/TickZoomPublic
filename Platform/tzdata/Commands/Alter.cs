@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using TickZoom.Api;
+using TickZoom.TickUtil;
 
 namespace TickZoom.TZData
 {
@@ -27,7 +28,7 @@ namespace TickZoom.TZData
                 Output("A backup file already exists. Please delete it first at: " + file + ".back");
                 return;
             }
-            using (var reader = Factory.TickUtil.TickReader())
+            using (var reader = new TickFile())
             using (var writer = Factory.TickUtil.TickWriter(true))
             {
                 reader.Initialize(file);
@@ -35,16 +36,14 @@ namespace TickZoom.TZData
                 writer.KeepFileOpen = true;
                 writer.Initialize(file + ".temp", reader.Symbol.Symbol);
 
-                TickIO firstTick = Factory.TickUtil.TickIO();
-                TickIO tickIO = Factory.TickUtil.TickIO();
-                TickBinary tickBinary = new TickBinary();
+                var firstTick = Factory.TickUtil.TickIO();
+                var tickIO = Factory.TickUtil.TickIO();
                 int count = 0;
                 try
                 {
                     while (true)
                     {
-                        reader.ReadQueue.Dequeue(ref tickBinary);
-                        tickIO.Inject(tickBinary);
+                        reader.TryReadTick(tickIO);
                         tickIO.IsSimulateTicks = false;
                         while (!writer.TryAdd(tickIO))
                         {

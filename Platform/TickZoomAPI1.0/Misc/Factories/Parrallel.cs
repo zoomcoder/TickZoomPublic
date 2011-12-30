@@ -150,6 +150,7 @@ namespace TickZoom.Api
         long TimerCount { get; }
 	    int ThreadCount { get; }
 	    TimeStamp UtcNow { get; }
+	    bool IsWorkerThread { get; }
 	    void ReleaseIOTasks();
 	    void ExcuteAsync( Action asyncAction);
 	    void StackTrace();

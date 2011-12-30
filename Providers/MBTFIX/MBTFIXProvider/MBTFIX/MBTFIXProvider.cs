@@ -88,27 +88,25 @@ namespace TickZoom.MBTFIX
             HeartbeatDelay = int.MaxValue;
             if( ConnectionStatus == Status.PendingLogOut)
             {
-                foreach (var kvp in orderAlgorithms)
-                {
-                    var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
-                    var algo = kvp.Value;
-                    algo.Queue.Enqueue(new EventItem(symbol,(int)EventType.RemoteShutdown), Factory.Parallel.UtcNow.Internal);
-                }
+                if( debug) log.Debug("Sending RemoteShutdown confirmation back to provider manager.");
+                if (receiver != null)
+                    receiver.GetQueue().Enqueue(new EventItem((int)EventType.RemoteShutdown),Factory.Parallel.UtcNow.Internal);
             }
             else 
             {
                 OrderStore.ForceSnapshot();
+                var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
+                if (SyncTicks.Enabled)
+                {
+                    log.Notice(message);
+                }
+                else
+                {
+                    log.Error(message);
+                }
+                log.Info("Logging out -- Sending EndBroker event.");
+                TrySendEndBroker();
             }
-            var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
-            if( SyncTicks.Enabled)
-            {
-                log.Notice(message);
-            } else
-            {
-                log.Error(message);
-            }
-            log.Info("Logging out -- Sending EndBroker event.");
-            TrySendEndBroker();
         }
 
 		public override void OnRetry() {

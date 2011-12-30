@@ -72,6 +72,11 @@ namespace TickZoom.TickUtil
 			return new FastQueueImpl<T>(name);
 		}
 
+        public EventQueue EventQueue(string name)
+        {
+            return new EventQueueImpl(name);
+        }
+
         public EventQueue EventQueue(SymbolInfo symbol, string name)
         {
             return new EventQueueImpl(symbol,name);

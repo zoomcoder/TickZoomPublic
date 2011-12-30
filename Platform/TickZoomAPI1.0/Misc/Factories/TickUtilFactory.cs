@@ -49,5 +49,6 @@ namespace TickZoom.Api
 		string GetQueueStats();
 		void Release();
 	    EventQueue EventQueue(SymbolInfo symbol, string name);
+	    EventQueue EventQueue(string name);
 	}
 }

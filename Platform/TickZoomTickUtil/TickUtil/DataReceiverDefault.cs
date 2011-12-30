@@ -69,7 +69,7 @@ namespace TickZoom.TickUtil
 			sender.SendEvent(this,null,(int)EventType.Connect,null);
 		}
 		
-		public bool OnEvent(SymbolInfo symbol, int eventType, object eventDetail) {
+		public bool OnEvent(int eventType, object eventDetail) {
             throw new NotImplementedException();
 		}
 		
@@ -80,5 +80,14 @@ namespace TickZoom.TickUtil
 		public void Dispose() {
 			
 		}
-	}
+
+        #region Receiver Members
+
+        public ReceiveEventQueue GetQueue()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+    }
 }
