@@ -79,14 +79,14 @@ namespace TickZoom.TickUtil
 
 		public void Initialize(string folderOrfile, string symbolFile)
 		{
-            tickFile.Initialize(folderOrfile, symbolFile);
+            tickFile.Initialize(folderOrfile, symbolFile, TickFileMode.Read);
 			PrepareTask();
 		}
 
 
 		public void Initialize(string fileName)
 		{
-		    tickFile.Initialize(fileName);
+		    tickFile.Initialize(fileName,TickFileMode.Read);
 			PrepareTask();
 		}
 

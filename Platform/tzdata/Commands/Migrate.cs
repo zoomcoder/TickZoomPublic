@@ -31,6 +31,7 @@ using System.Reflection;
 using System.Threading;
 
 using TickZoom.Api;
+using TickZoom.TickUtil;
 
 namespace TickZoom.TZData
 {
@@ -51,42 +52,44 @@ namespace TickZoom.TZData
                 Output("A backup file already exists. Please delete it first at: " + file + ".back");
 				return;
 			}
-			using( var reader = Factory.TickUtil.TickReader()) 
-			using( var writer = Factory.TickUtil.TickWriter(true)) {
-				reader.Initialize( file, symbol);
-				
-				writer.KeepFileOpen = true;
-				writer.Initialize( file + ".temp", symbol);
-				
-				TickIO firstTick = Factory.TickUtil.TickIO();
-				TickIO tickIO = Factory.TickUtil.TickIO();
-				TickBinary tickBinary = new TickBinary();
-				int count = 0;
-				bool first = false;
-				try {
-					while(true) {
-						while( !reader.ReadQueue.TryDequeue(ref tickBinary)) {
-							Thread.Sleep(1);
-						}
-						tickIO.Inject(tickBinary);
-						while( !writer.TryAdd(tickIO)) {
-							Thread.Sleep(1);
-						}
-						if( first) {
-							firstTick.Copy(tickIO);
-							first = false;
-						}
-						count++;
-					}
-				} catch( QueueException ex) {
-					if( ex.EntryType != EventType.EndHistorical) {
-						throw new ApplicationException("Unexpected QueueException: " + ex);
-					}
-				}
-                Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
-			}
-			File.Move( file, file + ".back");
-			File.Move( file + ".temp", file);
+			using( var reader = new TickFile())
+			{
+                using (var writer = new TickFile())
+                {
+                    writer.EraseFileToStart = true;
+                    reader.Initialize(file, symbol, TickFileMode.Read);
+
+                    writer.Initialize(file + ".temp", TickFileMode.Write);
+
+                    TickIO firstTick = Factory.TickUtil.TickIO();
+                    TickIO tickIO = Factory.TickUtil.TickIO();
+                    int count = 0;
+                    bool first = true;
+                    try
+                    {
+                        while (reader.TryReadTick(tickIO))
+                        {
+                            writer.WriteTick(tickIO);
+                            if (first)
+                            {
+                                firstTick.Copy(tickIO);
+                                first = false;
+                            }
+                            count++;
+                        }
+                    }
+                    catch (QueueException ex)
+                    {
+                        if (ex.EntryType != EventType.EndHistorical)
+                        {
+                            throw new ApplicationException("Unexpected QueueException: " + ex);
+                        }
+                    }
+                    Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
+                }
+            }
+			Alter.MoveFile( file, file + ".back");
+            Alter.MoveFile(file + ".temp", file);
 		}
 		
 		public override string[] Usage() {

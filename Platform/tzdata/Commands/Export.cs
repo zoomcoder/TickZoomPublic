@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 using TickZoom.Api;
+using TickZoom.TickUtil;
 
 namespace TickZoom.TZData
 {
@@ -13,9 +14,8 @@ namespace TickZoom.TZData
         string dataFolder = "DataCache";
 
         // Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        SymbolInfo symbol;
         TickIO tickIO = Factory.TickUtil.TickIO();
-        TickReader reader = Factory.TickUtil.TickReader();
+        TickFile reader = new TickFile();
 
         private TimeStamp startTime = TimeStamp.MinValue;
         private TimeStamp endTime = TimeStamp.MaxValue;
@@ -36,28 +36,26 @@ namespace TickZoom.TZData
             if (args.Length == 1)
             {
                 string filePath = args[0];
-                reader.Initialize(filePath);
+                reader.Initialize(filePath, TickFileMode.Read);
             }
             else if (args.Length == 2)
             {
                 symbolString = args[0];
-                symbol = Factory.Symbol.LookupSymbol(symbolString);
                 string filePath = args[1];
-                reader.Initialize(filePath, symbol);
+                reader.Initialize(filePath, symbolString, TickFileMode.Read);
             }
             else if( args.Length == 3)
             {
                 string filePath = args[0];
-                reader.Initialize(filePath);
+                reader.Initialize(filePath,TickFileMode.Read);
                 startTime = new TimeStamp(args[1]);
                 endTime = new TimeStamp(args[2]);
             }
             else if (args.Length == 4)
             {
                 symbolString = args[0];
-                symbol = Factory.Symbol.LookupSymbol(symbolString);
                 string filePath = args[1];
-                reader.Initialize(filePath, symbol);
+                reader.Initialize(filePath, symbolString, TickFileMode.Read);
                 startTime = new TimeStamp(args[2]);
                 endTime = new TimeStamp(args[3]);
             }
@@ -73,32 +71,25 @@ namespace TickZoom.TZData
         public void ReadFile()
         {
             TickIO tickIO = Factory.TickUtil.TickIO();
-            TickBinary tickBinary = new TickBinary();
-            using( var queue = reader.ReadQueue)
+            try
             {
-                try
+                while (reader.TryReadTick(tickIO)) 
                 {
-                    while (true)
+                    if (tickIO.UtcTime > endTime)
                     {
-                        queue.Dequeue(ref tickBinary);
-
-                        tickIO.Inject(tickBinary);
-                        if (tickIO.UtcTime > endTime)
-                        {
-                            break;
-                        }
-                        if( tickIO.UtcTime > startTime)
-                        {
-                            Output(tickIO.ToString());
-                        }
+                        break;
+                    }
+                    if( tickIO.UtcTime > startTime)
+                    {
+                        Output(tickIO.ToString());
                     }
                 }
-                catch (QueueException ex)
+            }
+            catch (QueueException ex)
+            {
+                if (ex.EntryType != EventType.EndHistorical)
                 {
-                    if (ex.EntryType != EventType.EndHistorical)
-                    {
-                        throw;
-                    }
+                    throw;
                 }
             }
         }

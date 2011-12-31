@@ -28,14 +28,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading;
-using Microsoft.Win32.SafeHandles;
 using TickZoom.Api;
 
 namespace TickZoom.TickUtil
 {
-
 	/// <summary>
 	/// Description of TickArray.
 	/// </summary>
@@ -50,22 +47,17 @@ namespace TickZoom.TickUtil
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickWriterDefault));
 		private readonly bool debug = log.IsDebugEnabled;
 		private readonly bool trace = log.IsTraceEnabled;
-		private bool keepFileOpen = true;
-		private bool eraseFileToStart = false;
 		private bool logProgress = false;
-		private FileStream fs = null;
-        private TaskLock memoryLocker = new TaskLock();
-		private MemoryStream memory = null;
 		private bool isInitialized = false;
 		private string priceDataFolder;
 		private string appDataFolder;
 		private Progress progress = new Progress();
-		private Action writeFileAction;
-		private IAsyncResult writeFileResult;
+	    private TickFile tickFile;
 		
 		public TickWriterDefault(bool eraseFileToStart)
 		{
-			this.eraseFileToStart = eraseFileToStart;
+            tickFile = new TickFile();
+		    tickFile.EraseFileToStart = eraseFileToStart;
 			writeQueue = Factory.TickUtil.TickQueue(typeof(TickWriter));
 			writeQueue.StartEnqueue = Start;
 			var property = "PriceDataFolder";
@@ -78,7 +70,6 @@ namespace TickZoom.TickUtil
 			if (appDataFolder == null) {
 				throw new ApplicationException("Must set " + property + " property in app.config");
 			}
-			writeFileAction = WriteToFile;
 		}
 		
 		public void Start() {
@@ -99,41 +90,12 @@ namespace TickZoom.TickUtil
 		}
 		
 		public void Initialize(string folderOrfile, string _symbol) {
-			SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(_symbol);
-			
-			var dataFolder = folderOrfile.Contains(@"Test\") ? appDataFolder : priceDataFolder;
-			
-			symbol = Factory.Symbol.LookupSymbol(_symbol);
-			if( string.IsNullOrEmpty(Path.GetExtension(folderOrfile))) {
-				fileName = dataFolder + Path.DirectorySeparatorChar + folderOrfile + Path.DirectorySeparatorChar + symbol.Symbol.StripInvalidPathChars() + ".tck";
-			} else {
-    			fileName = folderOrfile;
-			}
-			          
-    		log.Notice("TickWriter fileName: " + fileName);
-    		var path = Path.GetFullPath(fileName);
-		    path = Path.GetDirectoryName(path);
-    		if( path != null) {
-    			Directory.CreateDirectory( path);
-    		}
-			if( eraseFileToStart) {
-    			File.Delete( fileName);
-    			log.Notice("TickWriter file was erased to begin writing.");
-    		}
-			if( keepFileOpen) {
-    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
-   				log.Debug("keepFileOpen - Open()");
-    			memory = new MemoryStream();
-			}
+            tickFile.Initialize(folderOrfile,_symbol,TickFileMode.Write);
      		if( !CancelPending ) {
 				StartAppendThread();
 			}
 			isInitialized = true;
 		}
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool FlushFileBuffers(SafeFileHandle hFile);
 
         [Obsolete("Please pass string symbol instead of SymbolInfo.", true)]
 		public void Initialize(string _folder, SymbolInfo _symbol) {
@@ -160,26 +122,6 @@ namespace TickZoom.TickUtil
 		TickBinary tick = new TickBinary();
 		TickIO tickIO = new TickImpl();
 
-        private object asyncWriteLocker = new object();
-
-        private bool CompleteAsyncWrite()
-        {
-            var result = false;
-            lock( asyncWriteLocker)
-            {
-                if (writeFileResult == null)
-                {
-                    result = true;
-                } else if (writeFileResult.IsCompleted)
-                {
-                    writeFileAction.EndInvoke(writeFileResult);
-                    writeFileResult = null;
-                    result = true;
-                }
-            }
-            return result;
-        }
-
 	    private long appendCounter = 0;
 		
 		protected virtual Yield AppendData() {
@@ -188,55 +130,24 @@ namespace TickZoom.TickUtil
 				if( writeQueue.Count == 0) {
 					return result;
 				}
-				if( !keepFileOpen) {
-	    			fs = new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
-	    			if( trace) log.Trace("!keepFileOpen - Open()");
-	    			memory = new MemoryStream();
-				}
 				while( writeQueue.Count > 0) {
-                    if( !CompleteAsyncWrite())
+                    if (!writeQueue.TryPeek(ref tick))
                     {
-                        break;
-                    }
-                    if (!memoryLocker.TryLock())
+						break;
+    				}
+		    		tickIO.Inject(tick);
+                    if( tickFile.TryWriteTick(tickIO))
                     {
-                        break;
-                    }
-                    try
-                    {
-                        if (!writeQueue.TryDequeue(ref tick))
-                        {
-    						break;
-	    				}
-			    		tickIO.Inject(tick);
-				    	if( trace)  log.Trace("Writing to file: " + tickIO);
-                        tickIO.ToWriter(memory);
-                    }
-                    finally
-                    {
-                        memoryLocker.Unlock();
-                    }
-                    if (memory.Position > 5000)
-                    {
-                        lock (asyncWriteLocker)
-                        {
-                            writeFileResult = writeFileAction.BeginInvoke(null, null);
-                        }
+                        writeQueue.TryDequeue(ref tick);
                     }
                     result = Yield.DidWork.Repeat;
 				}
-				if( !keepFileOpen)
-				{
-                    CloseFile(fs);
-                    fs = null;
-                    if (trace) log.Trace("!keepFileOpen - Close()");
-		    	}
 	    		return result;
 		    } catch (QueueException ex) {
 				if( ex.EntryType == EventType.Terminate) {
                     log.Notice("Last tick written: " + tickIO);
                     if( debug) log.Debug("Exiting, queue terminated.");
-					Dispose();
+					Finalize();
 					return Yield.Terminate;
 				} else {
 					Exception exception = new ApplicationException("Queue returned unexpected: " + ex.EntryType);
@@ -255,77 +166,12 @@ namespace TickZoom.TickUtil
 
         public void Flush()
         {
-            if( debug) log.Debug("Before flush write queue " + writeQueue.Count + ", memory " + memory.Position);
-            lock (asyncWriteLocker)
-            {
-                var result = false;
-                if (writeFileResult == null)
-                {
-                    result = true;
-                }
-                else if (writeFileResult.IsCompleted)
-                {
-                    writeFileAction.EndInvoke(writeFileResult);
-                    writeFileResult = null;
-                    result = true;
-                }
-                if( result)
-                {
-                    writeFileResult = writeFileAction.BeginInvoke(null, null);
-                }
-            }
-            while (!CompleteAsyncWrite())
-            {
-                Thread.Sleep(100);
-            }
-            if (debug) log.Debug("After flush write queue " + writeQueue.Count + ", memory " + memory.Position);
+            if( debug) log.Debug("Before flush write queue " + writeQueue.Count);
+            tickFile.Flush();
+            if (debug) log.Debug("After flush write queue " + writeQueue.Count);
         }
 
-        private void CloseFile( FileStream fs)
-        {
-            if( fs != null) {
-                if(debug) log.Debug("CloseFile() at with " + tickCount + " ticks and length " + fs.Length );
-                
-                fs.Flush();
-                if (!FlushFileBuffers(fs.SafeFileHandle))   // Flush OS file cache to disk.
-                {
-                    Int32 err = Marshal.GetLastWin32Error();
-                    throw new Win32Exception(err, "Win32 FlushFileBuffers returned error for " + fs.Name);
-                }
-                fs.Close();
-            }
-        }
-		
 	    private long tickCount = 0;
-		private int origSleepSeconds = 3;
-		private int currentSleepSeconds = 3;
-	    private long writeCounter = 0;
-		private void WriteToFile() {
-			int errorCount = 0;
-            if( memory.Position == 0) return;
-			do {
-			    try { 
-					if( debug) log.Debug("Writing buffer size: " + memory.Position);
-			        using (memoryLocker.Using())
-			        {
-                        fs.Write(memory.GetBuffer(), 0, (int)memory.Position);
-                        fs.Flush();
-                        memory.Position = 0;
-			            Interlocked.Increment(ref writeCounter);
-			        }
-		    		if( errorCount > 0) {
-				    	log.Notice(symbol + ": Retry successful."); 
-		    		}
-		    		errorCount = 0;
-		    		currentSleepSeconds = origSleepSeconds;
-			    } catch(IOException e) { 
-	    			errorCount++;
-			    	log.Debug(symbol + ": " + e.Message + "\nPausing " + currentSleepSeconds + " seconds before retry."); 
-			    	Factory.Parallel.Sleep(3000);
-			    } 
-				tickCount++;
-			} while( errorCount > 0);
-		}
 		
 		public void Add(TickIO tick) {
 			while( !TryAdd(tick)) {
@@ -377,9 +223,6 @@ namespace TickZoom.TickUtil
 		{
 			if (!isDisposed) {
 				isDisposed = true;
-			    var count = Interlocked.Read(ref writeCounter);
-			    var append = Interlocked.Read(ref appendCounter);
-                if( debug) log.Debug("Only " + count + " writes but " + append + " appends.");
 				if( !isInitialized)
 				{
 				    return;
@@ -387,15 +230,9 @@ namespace TickZoom.TickUtil
 				if( debug) log.Debug("Dispose()");
 				if( appendTask != null) {
 					if( writeQueue != null) {
-                        count = Interlocked.Read(ref writeCounter);
-                        append = Interlocked.Read(ref appendCounter);
-                        if (debug) log.Debug("Only " + count + " writes before enqueue loop but " + append + " appends.");
-                        while( writeQueue.Count > 0)
-                        {
-                            Thread.Sleep(10);
-                        }
                         try
                         {
+                            if (debug) log.Debug("Sending event " + EventType.Terminate + " to tickwriter queue.");
                             while (!writeQueue.TryEnqueue(EventType.Terminate, symbol))
                             {
                                 Thread.Sleep(1);
@@ -403,47 +240,35 @@ namespace TickZoom.TickUtil
                         }
                         catch( QueueException ex)
                         {
-                            if( ex.EntryType != EventType.Terminate)
+                            if( ex.EntryType == EventType.Terminate)
+                            {
+                                Finalize();
+                            }
+                            else
                             {
                                 throw;
                             }
                         }
-					} else {
-						appendTask.Stop();
 					}
-                    count = Interlocked.Read(ref writeCounter);
-                    append = Interlocked.Read(ref appendCounter);
-                    if (debug) log.Debug("Only " + count + " writes before join but " + append + " appends.");
-                    appendTask.Join();
 				}
-                count = Interlocked.Read(ref writeCounter);
-                append = Interlocked.Read(ref appendCounter);
-                if (debug) log.Debug("Only " + count + " writes before CompleteAsyncWrite but " + append + " appends.");
-                while (!CompleteAsyncWrite())
-			    {
-			        Thread.Sleep(100);
-			    }
-                count = Interlocked.Read(ref writeCounter);
-                append = Interlocked.Read(ref appendCounter);
-                if (debug) log.Debug("Only " + count + " writes before writeToFile but " + append + " appends.");
-                if (memory != null && memory.Position > 0)
-                {
-					WriteToFile();
-		    	}
-                count = Interlocked.Read(ref writeCounter);
-                append = Interlocked.Read(ref appendCounter);
-                if (debug) log.Debug("write queue has " + writeQueue.Count + " left over and memory has " + memory.Position + " bytes.");
-                if (debug) log.Debug("Only " + count + " writes before closeFile but " + append + " appends.");
-                if (fs != null)
-                {
-                    CloseFile(fs);
-                    fs = null;
-                    log.Info("Flushed and closed file " + fileName);
-                    log.Debug("keepFileOpen - Close()");
-		    	}
-				if( debug) log.Debug("Exiting Close()");
 			}
 		}
+
+	    private bool isFinalized;
+
+        private void Finalize()
+        {
+            if (debug) log.Debug("Finalize()");
+            Flush();
+            var count = tickFile.WriteCounter;
+            var append = Interlocked.Read(ref appendCounter);
+            if (debug) log.Debug("Only " + count + " writes before closeFile but " + append + " appends.");
+            if (tickFile != null)
+            {
+                tickFile.Dispose();
+            }
+            isFinalized = true;
+        }
 
  		public BackgroundWorker BackgroundWorker {
 			get { return backgroundWorker; }
@@ -468,13 +293,13 @@ namespace TickZoom.TickUtil
 			set { maxCount = value; }
 		}
 		
-		public bool KeepFileOpen {
-			get { return keepFileOpen; }
-			set { /* keepFileOpen = value; */ }
-		}
-		
 		public TickQueue WriteQueue {
 			get { return writeQueue; }
 		}
+
+	    public bool IsFinalized
+	    {
+	        get { return isFinalized; }
+	    }
 	}
 }

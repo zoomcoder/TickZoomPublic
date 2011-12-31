@@ -165,6 +165,10 @@
       <Project>{61D3BADE-512C-4AE3-8863-0B669ACFEA99}</Project>
       <Name>Starters</Name>
     </ProjectReference>
+    <ProjectReference Include="..\TickZoomTickUtil\TickUtil.csproj">
+      <Project>{44135BE2-CBA4-4041-8F31-91C480302C2D}</Project>
+      <Name>TickUtil</Name>
+    </ProjectReference>
     <ProjectReference Include="..\WinFormsUtil\WinFormsUtil.csproj">
       <Project>{771668A4-C8C5-4C51-B8DD-822D374F3DB4}</Project>
       <Name>WinFormsUtil</Name>

@@ -305,7 +305,7 @@ namespace Loaders
             }
         }
 
-        private static void DeleteFile(string path)
+        public static void DeleteFile(string path)
         {
             var errors = new List<Exception>();
             var errorCount = 0;

@@ -32,13 +32,14 @@ using System.Text;
 using System.Threading;
 
 using TickZoom.Api;
+using TickZoom.TickUtil;
 
 namespace TickZoom.TZData
 {
 	public class Query : Command
 	{
 		StringBuilder stringBuilder = new StringBuilder();
-		TickReader reader = Factory.TickUtil.TickReader();
+	    private TickFile reader = new TickFile();
 		
 		public override void Run(string[] args)
 		{
@@ -51,89 +52,112 @@ namespace TickZoom.TZData
 			if( args.Length > 1) {
 				string symbol = args[0];
 				string filePath = args[1];
-				reader.Initialize(filePath,symbol);
+				reader.Initialize(filePath,symbol,TickFileMode.Read);
 				ReadFile();
 			} else {
 				string filePath = args[0];
-				reader.Initialize(filePath);
+				reader.Initialize(filePath,TickFileMode.Read);
 				ReadFile();
 			}
 		}
 		
 		public void ReadFile() {
-			TickQueue queue = reader.ReadQueue;
-			TickIO firstTick = Factory.TickUtil.TickIO();
-			TickIO lastTick = Factory.TickUtil.TickIO();
-			TickIO prevTick = Factory.TickUtil.TickIO();
-			long count = 0;
-			long dups = 0;
-			long quotes = 0;
-			long trades = 0;
-			long quotesAndTrades = 0;
-			TickIO tickIO = Factory.TickUtil.TickIO();
-			TickBinary tickBinary = new TickBinary();
-			try { 
-				while(true) {
-					if( !TryGetNextTick(queue, ref tickBinary)) {
-						break;
-					}
-					tickIO.Inject(tickBinary);
-					if( count == 0) {
-						firstTick.Copy(tickIO);
-					}
-					if( tickIO.IsQuote && tickIO.IsTrade) {
-						quotesAndTrades++;
-					} else if( tickIO.IsQuote) {
-						quotes++;
-					} else {
-						trades++;
-					}
-					if( count > 0) {
-						bool quoteDup = tickIO.IsQuote && prevTick.IsQuote && tickIO.Bid == prevTick.Bid && tickIO.Ask == prevTick.Ask;
-						bool tradeDup = tickIO.IsTrade && prevTick.IsTrade && tickIO.Price == prevTick.Price;
-						if( tickIO.IsQuote && tickIO.IsTrade) {
-							if( quoteDup && tradeDup) {
-								dups++;
-							}
-						} else if( tickIO.IsQuote) {
-							if( quoteDup) {
-								dups++;
-							}
-						} else {
-							if( tradeDup) {
-								dups++;
-							}
-						}
-					}
-					count++;
-					prevTick.Copy(tickIO);
-				}
-			} catch( QueueException) {
-				// Terminated.
-			}
-			lastTick.Copy( tickIO);
-			stringBuilder.AppendLine("Symbol: " + reader.Symbol);
-			stringBuilder.AppendLine("Version: " + reader.DataVersion);
-			stringBuilder.AppendLine("Ticks: " + count);
-			if( quotes > 0) {
-				stringBuilder.AppendLine("Quote Only: " + quotes);
-			}
-			if( trades > 0) {
-				stringBuilder.AppendLine("Trade Only: " + trades);
-			}
-			if( quotesAndTrades > 0) {
-				stringBuilder.AppendLine("Quote and Trade: " + quotesAndTrades);
-			}
-			var time = firstTick.Time.ToString();
-			var utcTime = firstTick.UtcTime.ToString();
-			stringBuilder.AppendLine("From: " + time + " (local), " + utcTime + " (UTC)");
-			time = lastTick.Time.ToString();
-			utcTime = lastTick.UtcTime.ToString();
-			stringBuilder.AppendLine("  To: " + time + " (local), " + utcTime + " (UTC)");
-			if( dups > 0) {
-				stringBuilder.AppendLine("Prices duplicates: " + dups);
-			}
-			Factory.TickUtil.TickReader().CloseAll();
+            try
+            {
+                TickIO firstTick = Factory.TickUtil.TickIO();
+                TickIO lastTick = Factory.TickUtil.TickIO();
+                TickIO prevTick = Factory.TickUtil.TickIO();
+                long count = 0;
+                long dups = 0;
+                long quotes = 0;
+                long trades = 0;
+                long quotesAndTrades = 0;
+                var tickIO = Factory.TickUtil.TickIO();
+                try
+                {
+                    while (reader.TryReadTick(tickIO))
+                    {
+                        if (count == 0)
+                        {
+                            firstTick.Copy(tickIO);
+                        }
+                        if (tickIO.IsQuote && tickIO.IsTrade)
+                        {
+                            quotesAndTrades++;
+                        }
+                        else if (tickIO.IsQuote)
+                        {
+                            quotes++;
+                        }
+                        else
+                        {
+                            trades++;
+                        }
+                        if (count > 0)
+                        {
+                            bool quoteDup = tickIO.IsQuote && prevTick.IsQuote && tickIO.Bid == prevTick.Bid && tickIO.Ask == prevTick.Ask;
+                            bool tradeDup = tickIO.IsTrade && prevTick.IsTrade && tickIO.Price == prevTick.Price;
+                            if (tickIO.IsQuote && tickIO.IsTrade)
+                            {
+                                if (quoteDup && tradeDup)
+                                {
+                                    dups++;
+                                }
+                            }
+                            else if (tickIO.IsQuote)
+                            {
+                                if (quoteDup)
+                                {
+                                    dups++;
+                                }
+                            }
+                            else
+                            {
+                                if (tradeDup)
+                                {
+                                    dups++;
+                                }
+                            }
+                        }
+                        count++;
+                        prevTick.Copy(tickIO);
+                    }
+                }
+                catch (QueueException)
+                {
+                    // Terminated.
+                }
+                lastTick.Copy(tickIO);
+                stringBuilder.AppendLine("Symbol: " + reader.Symbol);
+                stringBuilder.AppendLine("Version: " + reader.DataVersion);
+                stringBuilder.AppendLine("Ticks: " + count);
+                if (quotes > 0)
+                {
+                    stringBuilder.AppendLine("Quote Only: " + quotes);
+                }
+                if (trades > 0)
+                {
+                    stringBuilder.AppendLine("Trade Only: " + trades);
+                }
+                if (quotesAndTrades > 0)
+                {
+                    stringBuilder.AppendLine("Quote and Trade: " + quotesAndTrades);
+                }
+                var time = firstTick.Time.ToString();
+                var utcTime = firstTick.UtcTime.ToString();
+                stringBuilder.AppendLine("From: " + time + " (local), " + utcTime + " (UTC)");
+                time = lastTick.Time.ToString();
+                utcTime = lastTick.UtcTime.ToString();
+                stringBuilder.AppendLine("  To: " + time + " (local), " + utcTime + " (UTC)");
+                if (dups > 0)
+                {
+                    stringBuilder.AppendLine("Prices duplicates: " + dups);
+                }
+            }
+            finally
+            {
+                reader.Dispose();
+            }
 		}
 		
 		private bool TryGetNextTick(TickQueue queue, ref TickBinary binary) {

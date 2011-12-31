@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 
 using TickZoom.Api;
+using TickZoom.TickUtil;
 
 namespace TickZoom.TZData
 {
@@ -32,7 +33,7 @@ namespace TickZoom.TZData
 
 		// Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 		TimeStamp tickTime;
-		TickWriter tickWriter;
+		TickFile tickWriter;
 		String[] tsBits;			// the price line parsed
 		SymbolInfo symbol;
 		TickIO tickIO = Factory.TickUtil.TickIO();
@@ -168,7 +169,7 @@ namespace TickZoom.TZData
 	        }
 	        finally {
 	        	if( tickWriter != null) {
-					tickWriter.Close();
+					tickWriter.Dispose();
 	        	}
 	        }
 			
@@ -179,20 +180,6 @@ namespace TickZoom.TZData
 			}
 		}
 
-		public void TZConverter(string file, string symbol){
-			
-			TickReader reader = Factory.TickUtil.TickReader();
-			reader.Initialize( file, symbol);
-			TickQueue queue = reader.ReadQueue;
-
-			TickBinary tickBinary = new TickBinary();
-				
-			if( !TryGetNextTick(queue, ref tickBinary)) {
-			
-			}
-			
-
-		}
 		
 		private void writeATick(double insertPrice, int volume) {
 			if ( tsBits[1].Length <= 3 ){		    
@@ -213,16 +200,17 @@ namespace TickZoom.TZData
 				tickIO.SetTrade(price, volume);
 			}
 
-			if( tickWriter == null) {
-				tickWriter = Factory.TickUtil.TickWriter(true);
-	 			tickWriter.KeepFileOpen = true;
+			if( tickWriter == null)
+			{
+			    tickWriter = new TickFile();
 				string folder = "DataCache";
-				tickWriter.Initialize(folder, symbol.Symbol);
+			    tickWriter.EraseFileToStart = true;
+				tickWriter.Initialize(folder, symbol.Symbol, TickFileMode.Write);
 			}
 			
 			// Console.WriteLine(tickIO);
 			
-			tickWriter.Add(tickIO);
+			tickWriter.WriteTick(tickIO);
 			
 			countTicksOut++;
 		}
@@ -281,21 +269,6 @@ namespace TickZoom.TZData
 		
 		}
 		
-		private bool TryGetNextTick(TickQueue queue, ref TickBinary binary) {
-			bool result = false;
-			do {
-				try {
-					result = queue.TryDequeue(ref binary);
-				} catch( QueueException ex) {
-					// Ignore any other events.
-					if( ex.EntryType == EventType.EndHistorical) {
-						throw;
-					}
-				}
-			} while( !result);
-			return result;
-		}		
-
 		public override string[] Usage() {
 			return new string[] { assemblyName + " import <symbol> <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
 		}

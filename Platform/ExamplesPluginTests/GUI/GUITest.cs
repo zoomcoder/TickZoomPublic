@@ -36,6 +36,7 @@ using NUnit.Framework;
 using TickZoom.Api;
 using TickZoom.GUI;
 using TickZoom.Presentation;
+using TickZoom.TickUtil;
 using ZedGraph;
 
 namespace Other
@@ -258,25 +259,12 @@ namespace Other
 		}
 		
 		private void DeleteFiles() {
-			int count = 0;
-			while( true) {
-				try {
-					string appData = Factory.Settings["AppDataFolder"];
-		 			File.Delete( appData + @"\Test\\ServerCache\ESZ9.tck");
-		 			File.Delete( appData + @"\Test\\ServerCache\IBM.tck");
-		 			File.Delete( appData + @"\Test\\ServerCache\GBPUSD.tck");
-		 			Directory.CreateDirectory(appData + @"\Workspace\");
-		 			File.Delete( appData + @"\Workspace\test.config");
-					return;
-				} catch( Exception) {
-					count ++;
-					if( count > 100) {
-						throw;
-					} else {
-						Thread.Sleep(1);
-					}
-				}
-			}
+			string appData = Factory.Settings["AppDataFolder"];
+ 			StrategyBaseTest.DeleteFile( appData + @"\Test\\ServerCache\ESZ9.tck");
+            StrategyBaseTest.DeleteFile(appData + @"\Test\\ServerCache\IBM.tck");
+            StrategyBaseTest.DeleteFile(appData + @"\Test\\ServerCache\GBPUSD.tck");
+ 			Directory.CreateDirectory(appData + @"\Workspace\");
+            StrategyBaseTest.DeleteFile(appData + @"\Workspace\test.config");
 		}
 		
 		[Test]
@@ -301,44 +289,36 @@ namespace Other
 				string appData = Factory.Settings["AppDataFolder"];
 				string compareFile1 = appData + @"\Test\MockProviderData\ESZ9.tck";
 				string compareFile2 = appData + @"\Test\ServerCache\ESZ9.tck";
-				using ( TickReader reader1 = Factory.TickUtil.TickReader()) {
-					reader1.Initialize(compareFile1,config.SymbolList);
-                    TickBinary tick1 = new TickBinary();
+				using ( var reader1 = new TickFile()) {
+					reader1.Initialize(compareFile1,config.SymbolList,TickFileMode.Read);
+				    var tickIO = Factory.TickUtil.TickIO();
 					try {
 						int count = 0;
-						while(true)
+						while(reader1.TryReadTick(tickIO))
 						{
-						    if( !reader1.ReadQueue.TryDequeue(ref tick1)) { Thread.Sleep(10); }
 							count++;
 						}
 					} catch( QueueException ex) {
                         Assert.IsTrue(ex.EntryType == EventType.StartHistorical || ex.EntryType == EventType.EndHistorical,"start or end historical");
 					}
 				}
-				using ( TickReader reader1 = Factory.TickUtil.TickReader())
-				using ( TickReader reader2 = Factory.TickUtil.TickReader()) {
-					reader1.Initialize(compareFile1,config.SymbolList);
-					reader2.Initialize(compareFile2,config.SymbolList);
-					TickBinary tick1 = new TickBinary();
-					TickBinary tick2 = new TickBinary();
+				using ( var reader1 = new TickFile())
+				using ( var reader2 = new TickFile()) {
+					reader1.Initialize(compareFile1,TickFileMode.Read);
+					reader2.Initialize(compareFile2,TickFileMode.Read);
+				    var tickIO1 = Factory.TickUtil.TickIO();
+				    var tickIO2 = Factory.TickUtil.TickIO();
 					bool result = true;
-					try {
-						int count = 0;
-						while(true)
-						{
-						    reader1.ReadQueue.Dequeue(ref tick1);
-						    reader2.ReadQueue.Dequeue(ref tick2);
-							TimeStamp ts1 = new TimeStamp(tick1.UtcTime);
-							TimeStamp ts2 = new TimeStamp(tick2.UtcTime);
-							if( !ts1.Equals(ts2)) {
-								result = false;
-								log.Error("Tick# " + count + " failed. Expected: " + ts1 + ", But was:" + ts2);
-							}
-							count++;
+					int count = 0;
+					while(reader1.TryReadTick(tickIO1) && reader2.TryReadTick(tickIO2)) {
+						TimeStamp ts1 = new TimeStamp(tickIO1.UtcTime);
+						TimeStamp ts2 = new TimeStamp(tickIO2.UtcTime);
+						if( !ts1.Equals(ts2)) {
+							result = false;
+							log.Error("Tick# " + count + " failed. Expected: " + ts1 + ", But was:" + ts2);
 						}
-					} catch( QueueException ex) {
-                        Assert.IsTrue(ex.EntryType == EventType.StartHistorical || ex.EntryType == EventType.EndHistorical, "start or end historical");
-                    }
+						count++;
+					}
 					Assert.IsTrue(result,"Tick mismatch errors. See log file.");
 				}
 			} catch( Exception ex) {

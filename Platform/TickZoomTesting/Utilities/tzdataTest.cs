@@ -33,6 +33,7 @@ using System.Threading;
 using Microsoft.Win32;
 using NUnit.Framework;
 using TickZoom.Api;
+using TickZoom.TickUtil;
 using TickZoom.TZData;
 
 namespace TickZoom.Utilities
@@ -110,24 +111,19 @@ namespace TickZoom.Utilities
 	       	import.DataFolder = @"Test\DataCache";
 	       	import.AssemblyName = "tzdata";
 	       	import.Run(args);
-	       	
-	       	var reader = Factory.TickUtil.TickReader();
-	       	reader.Initialize(@"DataCache", symbol.ToString());
-	       	var queue = reader.ReadQueue;
-	       	var binary = new TickBinary();
+
+		    var reader = new TickFile();
+	       	reader.Initialize(@"DataCache", symbol.ToString(), TickFileMode.Read);
 	       	var tickIO = Factory.TickUtil.TickIO();
 	       	var sb = new StringBuilder();
 	       	long lineCount = 0;
 	       	using( var inputFile = new StreamReader(storageFolder + @"\Test\\ImportData\KC.csv")) {
 	       		lineCount++;
 				var heading = inputFile.ReadLine();
-		       	while( true) {
+		       	while( reader.TryReadTick(tickIO))
+                {
 	       			try {
-			       		while( ! queue.TryDequeue( ref binary)) {
-			       			Thread.Sleep(1);
-			       		}
 			       		lineCount++;
-						tickIO.Inject(binary);
 						sb.Length = 0;
 						sb.AppendFormat("{0:00}",tickIO.Time.Month);
 						sb.Append("/");
@@ -187,16 +183,22 @@ namespace TickZoom.Utilities
             export.AssemblyName = "tzdata";
             export.Run(args);
             var actual = sb.ToString();
-            actual = actual.Replace("\r\n", "\n");
 
             var expectedOutput =
                 @"2010-02-16 16:49:28.769.000 1063,10, 0/0 0,0,0,0,0|0,0,0,0,0
 2010-02-16 16:49:28.791.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
 2010-02-16 16:49:28.792.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
 2010-02-16 16:49:28.793.000 1062.75,2, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793.000 1062.75,4, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793.000 1063,1, 0/0 0,0,0,0,0|0,0,0,0,0
+2010-02-16 16:49:28.793.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
 ";
-            expectedOutput = expectedOutput.Replace("\r\n", "\n");
-            Assert.AreEqual(expectedOutput,actual);
+            //expectedOutput = expectedOutput.Replace("\r\n", "\n");
+            //actual = actual.Replace("\r\n", "\n");
+            Assert.AreEqual(expectedOutput, actual);
         }
 
         [Test]
@@ -231,7 +233,7 @@ namespace TickZoom.Utilities
 	       	if( storageFolder == null) {
 	       		throw new ApplicationException( "Must set AppDataFolder property in app.config");
 	       	}
-	       	string origFile = storageFolder + @"\Test\\DataCache\Migrate.tck";
+	       	string origFile = storageFolder + @"\Test\\DataCache\USDJPY.Migrate.tck";
 	       	string tempFile = origFile + ".temp";
 	       	string backupFile = origFile + ".back";
 	       	File.Delete( backupFile);
@@ -242,7 +244,7 @@ namespace TickZoom.Utilities
 	       	}
 	       	File.Copy(fileName, origFile);
 	       	
-	       	string[] args = { "USD/JPY", storageFolder + @"\Test\\DataCache\Migrate.tck" };
+	       	string[] args = { "USD/JPY", origFile };
 	       	
 	       	Migrate migrate = new Migrate();
 	       	migrate.Run(args);

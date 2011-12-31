@@ -41,13 +41,11 @@ namespace TickZoom.Api
 		bool CanReceive {
 			get;
 		}
-		bool KeepFileOpen {
-			get;
-			set;
-		}
 		TickQueue WriteQueue {
 			get;
 		}
+
+	    bool IsFinalized { get; }
 
 	    void Flush();
 	}

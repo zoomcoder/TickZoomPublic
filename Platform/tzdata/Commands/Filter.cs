@@ -30,6 +30,7 @@ using System.Reflection;
 using System.Threading;
 
 using TickZoom.Api;
+using TickZoom.TickUtil;
 
 namespace TickZoom.TZData
 {
@@ -65,63 +66,63 @@ namespace TickZoom.TZData
 			FilterFile(symbol,from,to,startTime,endTime);
 		}
 		
-		private void FilterFile(string symbol, string inputPath, string outputPath, TimeStamp startTime, TimeStamp endTime) {
-			TickReader reader = Factory.TickUtil.TickReader();
-			TickWriter writer = Factory.TickUtil.TickWriter(true);
-			writer.KeepFileOpen = true;
-			writer.Initialize( outputPath, symbol);
-			reader.Initialize( inputPath, symbol);
-			TickQueue inputQueue = reader.ReadQueue;
-			TickIO firstTick = Factory.TickUtil.TickIO();
-			TickIO lastTick = Factory.TickUtil.TickIO();
-			TickIO prevTick = Factory.TickUtil.TickIO();
-			long count = 0;
-			long dups = 0;
-			TickIO tickIO = Factory.TickUtil.TickIO();
-			TickBinary tickBinary = new TickBinary();
-			try {
-				while(true) {
-					while( !inputQueue.TryDequeue(ref tickBinary)) {
-						Thread.Sleep(1);
-					}
-					tickIO.Inject(tickBinary);
-					
-					if( tickIO.Time >= startTime) {
-						if( tickIO.Time > endTime) break;
-						if( count == 0) {
-							prevTick.Copy(tickIO);
-							prevTick.IsSimulateTicks = true;
-							firstTick.Copy(tickIO);
-							firstTick.IsSimulateTicks = true;
-						}
-						count++;
-//						if( tickIO.Bid == prevTick.Bid && tickIO.Ask == prevTick.Ask) {
-//							dups++;
-//						} else {
-//							Elapsed elapsed = tickIO.Time - prevTick.Time;
-							prevTick.Copy(tickIO);
-							prevTick.IsSimulateTicks = true;
-//							if( elapsed.TotalMilliseconds < 5000) {
-//								fast++;
-//							} else {
-							while( !writer.TryAdd(prevTick)) {
-								Thread.Sleep(1);
-							}
-//							}	
-//						}
-					}
-				}
-			} catch( QueueException ex) {
-				if( ex.EntryType != EventType.EndHistorical) {
-					throw new ApplicationException("Unexpected QueueException: " + ex);
-				}
-			}
-			lastTick.Copy( tickIO);
-			Output(reader.Symbol + ": " + count + " ticks.");
-			Output("From " + firstTick.Time + " to " + lastTick.Time);
-			Output( dups + " duplicates elimated.");
-			Factory.TickUtil.TickReader().CloseAll();
-			writer.Close();
+		private void FilterFile(string symbol, string inputPath, string outputPath, TimeStamp startTime, TimeStamp endTime)
+		{
+		    using( var reader = new TickFile())
+		    using( var writer = new TickFile())
+		    {
+                writer.Initialize(outputPath, symbol, TickFileMode.Write);
+                reader.Initialize(inputPath, symbol, TickFileMode.Read);
+                TickIO firstTick = Factory.TickUtil.TickIO();
+                TickIO lastTick = Factory.TickUtil.TickIO();
+                TickIO prevTick = Factory.TickUtil.TickIO();
+                long count = 0;
+                long dups = 0;
+                TickIO tickIO = Factory.TickUtil.TickIO();
+                try
+                {
+                    while (reader.TryReadTick(tickIO))
+                    {
+
+                        if (tickIO.Time >= startTime)
+                        {
+                            if (tickIO.Time > endTime) break;
+                            if (count == 0)
+                            {
+                                prevTick.Copy(tickIO);
+                                prevTick.IsSimulateTicks = true;
+                                firstTick.Copy(tickIO);
+                                firstTick.IsSimulateTicks = true;
+                            }
+                            count++;
+                            //						if( tickIO.Bid == prevTick.Bid && tickIO.Ask == prevTick.Ask) {
+                            //							dups++;
+                            //						} else {
+                            //							Elapsed elapsed = tickIO.Time - prevTick.Time;
+                            prevTick.Copy(tickIO);
+                            prevTick.IsSimulateTicks = true;
+                            //							if( elapsed.TotalMilliseconds < 5000) {
+                            //								fast++;
+                            //							} else {
+                            writer.WriteTick(prevTick);
+                            //							}	
+                            //						}
+                        }
+                    }
+                }
+                catch (QueueException ex)
+                {
+                    if (ex.EntryType != EventType.EndHistorical)
+                    {
+                        throw new ApplicationException("Unexpected QueueException: " + ex);
+                    }
+                }
+                lastTick.Copy(tickIO);
+                Output(reader.Symbol + ": " + count + " ticks.");
+                Output("From " + firstTick.Time + " to " + lastTick.Time);
+                Output(dups + " duplicates elimated.");
+                Factory.TickUtil.TickReader().CloseAll();
+            }
 		}
 
 		public override string[] Usage() {

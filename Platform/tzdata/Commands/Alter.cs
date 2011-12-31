@@ -29,42 +29,58 @@ namespace TickZoom.TZData
                 return;
             }
             using (var reader = new TickFile())
-            using (var writer = Factory.TickUtil.TickWriter(true))
+            using (var writer = new TickFile())
             {
-                reader.Initialize(file);
+                reader.Initialize(file,TickFileMode.Read);
 
-                writer.KeepFileOpen = true;
-                writer.Initialize(file + ".temp", reader.Symbol.Symbol);
+                writer.Initialize(file + ".temp", TickFileMode.Write);
 
                 var firstTick = Factory.TickUtil.TickIO();
                 var tickIO = Factory.TickUtil.TickIO();
                 int count = 0;
-                try
+                while (reader.TryReadTick(tickIO))
                 {
-                    while (true)
-                    {
-                        reader.TryReadTick(tickIO);
-                        tickIO.IsSimulateTicks = false;
-                        while (!writer.TryAdd(tickIO))
-                        {
-                            Thread.Sleep(1);
-                        }
-                        count++;
-                    }
-                }
-                catch (QueueException ex)
-                {
-                    if (ex.EntryType != EventType.EndHistorical)
-                    {
-                        Output("Unexpected QueueException: " + ex);
-                    }
+                    tickIO.IsSimulateTicks = false;
+                    writer.WriteTick(tickIO);
+                    count++;
                 }
                 Output(reader.Symbol + ": Altered " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
             }
-            File.Move(file, file + ".back");
-            File.Move(file + ".temp", file);
+            MoveFile(file, file + ".back");
+            MoveFile(file + ".temp", file);
         }
 
+        public static void MoveFile(string path, string topath)
+        {
+            var errors = new List<Exception>();
+            var errorCount = 0;
+            while (errorCount < 300)
+            {
+                try
+                {
+                    File.Move(path,topath);
+                    errors.Clear();
+                    break;
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    errors.Clear();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    errors.Add(ex);
+                    Thread.Sleep(100);
+                    errorCount++;
+                }
+            }
+            if (errors.Count > 0)
+            {
+                var ex = errors[errors.Count - 1];
+                Factory.Parallel.StackTrace();
+                throw new IOException("Can't move " + path + " to " + topath, ex);
+            }
+        }
         public override string[] Usage()
         {
             List<string> lines = new List<string>();
