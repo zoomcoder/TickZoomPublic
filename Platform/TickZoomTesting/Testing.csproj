@@ -76,6 +76,7 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Data" />
     <Reference Include="System.Web.Extensions">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
@@ -135,11 +136,13 @@
     <Compile Include="TradingFramework\TradeStatsTest.cs" />
     <Compile Include="Utilities\ActiveListTest.cs" />
     <Compile Include="Utilities\ActiveQueueTest.cs" />
+    <Compile Include="Utilities\Class1.cs" />
     <Compile Include="Utilities\FastQueueTest.cs" />
     <Compile Include="Utilities\ISINTest.cs" />
     <Compile Include="Utilities\MultiCoreSameClassTest.cs" />
     <Compile Include="Utilities\MultiCoreTest.cs" />
     <Compile Include="Utilities\SymbolTest.cs" />
+    <Compile Include="Utilities\TestingLongJmpIdeas.cs" />
     <Compile Include="Utilities\tzdataTest.cs" />
     <None Include="app.config" />
     <None Include="Lib\nunit.framework.dll" />
@@ -150,6 +153,10 @@
     <Content Include="ProfilingSessions\Session20101026_180331.sdps" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Fibers\Fibers.vcproj">
+      <Project>{6DB85167-9D13-4743-B576-0C0508BC6ED5}</Project>
+      <Name>Fibers</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Charting\Charting.csproj">
       <Project>{DD11DD33-785D-4B89-871D-9F7F7CCE486E}</Project>
       <Name>Charting</Name>
