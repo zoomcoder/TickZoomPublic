@@ -245,6 +245,11 @@ namespace TickZoom.FIX
 				return;
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
+            if (isDisposed)
+            {
+                isFinalized = true;
+                return;
+            }
             OnDisconnect();
             switch (ConnectionStatus)
             {
@@ -999,6 +1004,8 @@ namespace TickZoom.FIX
 			return false;
 		}
 
+        private bool isFinalized;
+
         public abstract void PositionChange(PositionChangeDetail positionChange);
 		
 	 	protected volatile bool isDisposed = false;
@@ -1014,7 +1021,8 @@ namespace TickZoom.FIX
 	            isDisposed = true;   
 	            if (disposing) {
 	            	if( debug) log.Debug("Dispose()");
-	            	if( socketTask != null) {
+                    if (socketTask != null)
+                    {
 		            	socketTask.Stop();
                         socketTask.Join();
 	            	}
@@ -1034,6 +1042,7 @@ namespace TickZoom.FIX
                     {
                         orderStore.Dispose();
                     }
+	                isFinalized = true;
 	            }
     		}
 	    }    
@@ -1112,7 +1121,7 @@ namespace TickZoom.FIX
 
         public void LogOut()
         {
-            if( bestConnectionStatus != Status.Recovered)
+            if (bestConnectionStatus != Status.Recovered)
             {
                 Dispose();
                 return;
@@ -1135,7 +1144,7 @@ namespace TickZoom.FIX
                     case Status.Recovered:
                     case Status.PendingRecovery:
                         ConnectionStatus = Status.PendingLogOut;
-                        using( orderStore.BeginTransaction())
+                        using (orderStore.BeginTransaction())
                         {
                             if (debug) log.Debug("Calling OnLogOut()");
                             OnLogout();
@@ -1239,6 +1248,11 @@ namespace TickZoom.FIX
                     connectionStatus = value;
                 }
             }
+        }
+
+        public bool IsFinalized
+        {
+            get { return isFinalized; }
         }
     }
 }

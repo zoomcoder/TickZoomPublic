@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using System.Threading;
 using Fibers;
 using NUnit.Framework;
-using TickZoom.Api;
 
 namespace TickZoom.Utilities
 {

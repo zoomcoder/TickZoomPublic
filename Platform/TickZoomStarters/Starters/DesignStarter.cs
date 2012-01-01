@@ -166,8 +166,14 @@ namespace TickZoom.Starters
 		public void Stop(Receiver receiver)
 		{
 		}
-		
-	    public void Dispose() 
+
+        private volatile bool isFinalized;
+        public bool IsFinalized
+        {
+            get { return isFinalized; }
+        }
+
+        public void Dispose() 
 	    {
 	        Dispose(true);
 	        GC.SuppressFinalize(this);      
@@ -176,8 +182,9 @@ namespace TickZoom.Starters
 	    protected virtual void Dispose(bool disposing)
 	    {
        		if( !isDisposed) {
-	            isDisposed = true;   
-    		}
+	            isDisposed = true;
+       		    isFinalized = true;
+       		}
 	    }
 	    
 		public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {

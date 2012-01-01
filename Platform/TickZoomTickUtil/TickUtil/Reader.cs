@@ -324,8 +324,14 @@ namespace TickZoom.TickUtil
 			return Yield.Terminate;
 		}
 
-		private volatile bool isDisposed = false;
-		private object taskLocker = new object();
+        private volatile bool isFinalized;
+        public bool IsFinalized
+        {
+            get { return isFinalized; }
+        }
+
+        private volatile bool isDisposed = false;
+        private object taskLocker = new object();
 		public void Dispose()
 		{
 			Dispose(true);
@@ -347,6 +353,7 @@ namespace TickZoom.TickUtil
 					lock( readerListLocker) {
 						readerList.Remove(this);
 					}
+				    isFinalized = true;
 				}
 			}
 		}
@@ -440,5 +447,6 @@ namespace TickZoom.TickUtil
         {
             get { return tickFile.DataVersion; }
         }
+
 	}
 }

@@ -88,8 +88,9 @@ namespace TickZoom.Utilities
 			updater.CurrentVersion = testVersion;
 			string[] files = updater.GetFileList();
 			Assert.AreEqual(2,files.Length);
-            Assert.AreEqual("ProviderCommon-1.2.51.51756.dll.zip b66482a3260d3fcbb60cde33f29eef43", files[0]);
-            Assert.AreEqual("TickZoomEngine-1.2.51.51756.dll.zip f24cdfe346291a6e9e782ba1582f4022", files[1]);
+            
+            Assert.IsTrue(files[0].StartsWith("ProviderCommon-1.2.51.51756.dll.zip"), files[0]);
+            Assert.IsTrue(files[1].StartsWith("TickZoomEngine-1.2.51.51756.dll.zip"), files[1]);
 		}
 		
 		[Test]

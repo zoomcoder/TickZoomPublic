@@ -45,8 +45,13 @@ namespace TickZoom.MBTFIX
 			fixProvider = new MBTFIXProvider(configName);
 			quotesProvider = new MBTQuotesProvider(configName);
 		}
-		
-		public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {
+
+	    public bool IsFinalized
+	    {
+	        get { return fixProvider.IsFinalized && isFinalized; }
+	    }
+
+	    public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {
 			switch( (EventType) eventType) {
 				case EventType.PositionChange:
 					fixProvider.SendEvent(receiver,symbol,eventType,eventDetail);
@@ -67,7 +72,8 @@ namespace TickZoom.MBTFIX
 			}
 		}
 		
-	 	private volatile bool isDisposed = false;
+	 	private volatile bool isDisposed;
+	    private bool isFinalized;
 	    public void Dispose() 
 	    {
 	        Dispose(true);
@@ -85,6 +91,7 @@ namespace TickZoom.MBTFIX
                         if (debug) log.Debug("Disposing quotes provider");
                         quotesProvider.Dispose();
                     }
+	                isFinalized = true;
 	            }
     		}
 	    }

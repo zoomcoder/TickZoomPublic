@@ -586,8 +586,14 @@ namespace TickZoom.MBTQuotes
 		}
 		
 		public abstract void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders);
-		
-	 	protected volatile bool isDisposed = false;
+
+        private volatile bool isFinalized;
+        public bool IsFinalized
+        {
+            get { return isFinalized; }
+        }
+
+        protected volatile bool isDisposed = false;
 	    public void Dispose() 
 	    {
 	        Dispose(true);
@@ -619,6 +625,7 @@ namespace TickZoom.MBTQuotes
                         if (debug) log.Debug("Stopped task timer.");
                     }
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
+	                isFinalized = true;
 	            }
     		}
 	    }    

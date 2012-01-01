@@ -60,12 +60,20 @@ namespace TickZoom.TickUtil
             writeFileAction = WriteToFile;
         }
 
+        private void InitLogging()
+        {
+            log = Factory.SysLog.GetLogger("TickZoom.TickUtil.TickFile." + mode + "." + Symbol.Symbol.StripInvalidPathChars());
+            debug = log.IsDebugEnabled;
+            trace = log.IsTraceEnabled;
+        }
+
         public void Initialize(string folderOrfile, string symbolFile, TickFileMode mode)
         {
             string[] symbolParts = symbolFile.Split(new char[] { '.' });
             string _symbol = symbolParts[0];
             this.mode = mode;
             symbol = Factory.Symbol.LookupSymbol(_symbol);
+            InitLogging();
             var dataFolder = folderOrfile.Contains(@"Test\") ? appDataFolder : priceDataFolder;
             var filePath = dataFolder + "\\" + folderOrfile;
             if (Directory.Exists(filePath))
@@ -82,6 +90,8 @@ namespace TickZoom.TickUtil
                 fileName = filePath + "\\" + symbolFile.StripInvalidPathChars() + ".tck";
                 //throw new ApplicationException("Requires either a file or folder to read data. Tried both " + folderOrfile + " and " + filePath);
             }
+            CheckFileExtension();
+            if (debug) log.Debug("File Name = " + fileName);
             OpenFile();
         }
 
@@ -89,27 +99,21 @@ namespace TickZoom.TickUtil
         {
             this.mode = mode;
             this.fileName = fileName = Path.GetFullPath(fileName);
-            if( mode == TickFileMode.Read)
-            {
-                CheckFileExtension();
-            }
-            if (debug) log.Debug("File Name = " + fileName);
-            if (debug) log.Debug("Setting start method on reader queue.");
             string baseName = Path.GetFileNameWithoutExtension(fileName);
             if (Symbol == null)
             {
                 symbol = Factory.Symbol.LookupSymbol(baseName.Replace("_Tick", ""));
                 lSymbol = Symbol.BinaryIdentifier;
             }
+            InitLogging();
             Directory.CreateDirectory(Path.GetDirectoryName(fileName));
+            CheckFileExtension();
+            if (debug) log.Debug("File Name = " + fileName);
             OpenFile();
         }
 
         private void OpenFile()
         {
-            log = Factory.SysLog.GetLogger("TickZoom.TickUtil.TickFile." + mode + "." + Symbol.Symbol.StripInvalidPathChars());
-            debug = log.IsDebugEnabled;
-            trace = log.IsTraceEnabled;
             lSymbol = Symbol.BinaryIdentifier;
             switch (mode)
             {
@@ -255,10 +259,10 @@ namespace TickZoom.TickUtil
 
         private void CheckFileExtension()
         {
-            string locatedFile = FindFile(FileName);
+            string locatedFile = FindFile(fileName);
             if (locatedFile == null)
             {
-                if (FileName.Contains("_Tick.tck"))
+                if (fileName.Contains("_Tick.tck"))
                 {
                     locatedFile = FindFile(FileName.Replace("_Tick.tck", ".tck"));
                 }
@@ -271,13 +275,21 @@ namespace TickZoom.TickUtil
                     fileName = locatedFile;
                     log.Warn("Deprecated: Please use new style .tck file names by removing \"_Tick\" from the name.");
                 }
-                else
+                else if( mode == TickFileMode.Read)
                 {
                     throw new FileNotFoundException("Sorry, unable to find the file: " + FileName);
                 }
+                else
+                {
+                    log.Warn("File was not found. Will create it. " + fileName);
+                }
             }
-            fileName = locatedFile;
+            else
+            {
+                fileName = locatedFile;
+            }
         }
+
 
 
         public void GetLastTick(TickIO lastTickIO)
@@ -311,6 +323,7 @@ namespace TickZoom.TickUtil
 
         public bool TryReadTick(TickIO tickIO)
         {
+            if( dataIn == null) return false;
             try
             {
                 tickIO.SetSymbol(lSymbol);

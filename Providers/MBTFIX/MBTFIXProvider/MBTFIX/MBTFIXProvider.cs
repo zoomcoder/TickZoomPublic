@@ -89,13 +89,11 @@ namespace TickZoom.MBTFIX
             if( ConnectionStatus == Status.PendingLogOut)
             {
                 if( debug) log.Debug("Sending RemoteShutdown confirmation back to provider manager.");
-                if (receiver != null)
-                    receiver.GetQueue().Enqueue(new EventItem((int)EventType.RemoteShutdown),Factory.Parallel.UtcNow.Internal);
             }
             else 
             {
                 OrderStore.ForceSnapshot();
-                var message = "MBTFIXProvider disconnected. Attempting to reconnect.";
+                var message = "MBTFIXProvider disconnected.";
                 if (SyncTicks.Enabled)
                 {
                     log.Notice(message);

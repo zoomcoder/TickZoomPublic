@@ -84,7 +84,6 @@ namespace TickZoom.FIX
                 reader.ReadQueue.ConnectInbound(queueTask);
                 fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
                 queueTask.Start();
-                reader.ReadQueue.StartEnqueue();
                 initialCount = reader.ReadQueue.Count;
                 tickSync.ChangeCallBack = TickSyncChangedEvent;
             }

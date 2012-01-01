@@ -466,8 +466,14 @@ namespace TickZoom.Starters
 			log.Notice("Assigning " + tasksPerEngine + " passes to each engine per iteration.");
 			return tasksPerEngine;
 		}
-		
-		private object disposeLocker = new object();
+
+        private volatile bool isFinalized;
+        public bool IsFinalized
+        {
+            get { return isFinalized; }
+        }
+
+        private object disposeLocker = new object();
  		private volatile bool isDisposed = false;
 	    public void Dispose() 
 	    {
@@ -482,6 +488,7 @@ namespace TickZoom.Starters
 		            isDisposed = true;   
 		            if (disposing) {
 		            }
+	    		    isFinalized = true;
 	    		}
     		}
 	    }

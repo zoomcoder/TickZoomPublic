@@ -62,7 +62,8 @@ namespace TickZoom.TickUtil
             readQueue = new TickQueueImpl("DataReceiverDefault." + symbol.Symbol.StripInvalidPathChars(), 1000);
             var tickPool = Factory.TickUtil.TickPool(symbol);
             wrapper = new DataReceiverQueueWrapper(symbol,tickPool,readQueue);
-			readQueue.StartEnqueue = Start;
+		    Start();
+		    //readQueue.StartEnqueue = Start;
 		}
 		
 		private void Start() {

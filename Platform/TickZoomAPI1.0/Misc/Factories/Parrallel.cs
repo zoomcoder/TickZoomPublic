@@ -155,5 +155,6 @@ namespace TickZoom.Api
 	    void ExcuteAsync( Action asyncAction);
 	    void StackTrace();
 	    void Exec(Action action);
+	    void Exec(Queue queue, Action action);
 	}
 }
