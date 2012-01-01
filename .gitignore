@@ -9,6 +9,7 @@ target/
 Artifacts/
 *.sdps
 *.suo
+*.ncb
 *.user
 TickZoomPublic/Platform/Engine
 TickZoom.config
