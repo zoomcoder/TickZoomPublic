@@ -13,6 +13,7 @@ Artifacts/
 TickZoomPublic/Platform/Engine
 TickZoom.config
 *.ReSharper.user
+*.ReSharper
 _ReSharper*/
 *.patch
 *.pidb
