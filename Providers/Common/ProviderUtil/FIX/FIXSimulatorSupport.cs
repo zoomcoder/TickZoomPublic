@@ -272,7 +272,7 @@ namespace TickZoom.FIX
         
         private void OnDisconnectFIX(Socket socket)
 		{
-			if (this.fixSocket == socket) {
+			if (this.fixSocket.Equals(socket)) {
 				log.Info("FIX socket disconnect: " + socket);
                 StopFIXSimulation();
                 CloseFIXSocket();
@@ -286,7 +286,7 @@ namespace TickZoom.FIX
 
         private void OnDisconnectQuotes(Socket socket)
 		{
-			if (this.quoteSocket == socket) {
+			if (this.quoteSocket.Equals(socket)) {
 				log.Info("Quotes socket disconnect: " + socket);
 			    ShutdownHandlers();
 				CloseQuoteSocket();

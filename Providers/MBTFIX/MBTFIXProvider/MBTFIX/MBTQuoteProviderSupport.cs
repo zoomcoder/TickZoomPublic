@@ -100,7 +100,7 @@ namespace TickZoom.MBTQuotes
 			socket.ReceiveQueue.ConnectInbound( socketTask);
             socket.SendQueue.ConnectOutbound( socketTask);
             if (debug) log.Debug("Created new " + socket);
-			connectionStatus = Status.New;
+			ConnectionStatus = Status.New;
 			if( trace) {
 				string message = "Generated socket: " + socket;
 				if( old != null) {
@@ -173,31 +173,34 @@ namespace TickZoom.MBTQuotes
 
         private void OnConnect(Socket socket)
         {
-            if (!this.socket.Port.Equals(socket.Port))
+            if (!this.socket.Equals(socket))
             {
                 log.Warn("OnConnect( " + this.socket + " != " + socket + " ) - Ignored.");
                 return;
             }
             log.Info("OnConnect( " + socket + " ) ");
-            connectionStatus = Status.Connected;
-            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            ConnectionStatus = Status.Connected;
+            if (debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus);
             SendLogin();
-            connectionStatus = Status.PendingLogin;
-            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            ConnectionStatus = Status.PendingLogin;
+            if (debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus);
             IncreaseRetryTimeout();
         }
 
         private void OnDisconnect(Socket socket)
         {
+            if( !this.socket.Equals(socket))
+            {
+                log.Warn("OnDisconnect( " + this.socket + " != " + socket + " ) - Ignored.");
+                return;
+            }
 			if( !this.socket.Port.Equals(socket.Port)) {
-				log.Warn("OnDisconnect( " + this.socket + " != " + socket + " ) - Ignored.");
-				return;
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
 		    log.Error("MBTQuoteProvider disconnected.");
-			connectionStatus = Status.Disconnected;
+			ConnectionStatus = Status.Disconnected;
 		    debugDisconnect = true;
-            if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+            if (debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus);
             if (debug) log.Debug("Socket state now: " + socket.State);
             if( isDisposed)
             {
@@ -212,31 +215,31 @@ namespace TickZoom.MBTQuotes
 		}
 	
 		public void StartRecovery() {
-			connectionStatus = Status.PendingRecovery;
-			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+			ConnectionStatus = Status.PendingRecovery;
+			if( debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus);
 			OnStartRecovery();
 		}
 		
 		public void EndRecovery() {
-			connectionStatus = Status.Recovered;
-			if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
+			ConnectionStatus = Status.Recovered;
+			if( debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus);
 		}
 		
 		public bool IsRecovered {
 			get { 
-				return connectionStatus == Status.Recovered;
+				return ConnectionStatus == Status.Recovered;
 			}
 		}
 		
 		private void SetupRetry() {
 			OnRetry();
 			RegenerateSocket();
-			if( trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
+			if( trace) log.Trace("ConnectionStatus changed to: " + ConnectionStatus);
 		}
 		
 		public bool IsRecovering {
 			get {
-				return connectionStatus == Status.PendingRecovery;
+				return ConnectionStatus == Status.PendingRecovery;
 			}
 		}
 
@@ -256,7 +259,8 @@ namespace TickZoom.MBTQuotes
 			if( isDisposed ) return Yield.NoWork.Repeat;
             if (debugDisconnect)
             {
-                if( debug) log.Debug("SocketTask: Current socket state: " + socket.State + ", connection status: " + connectionStatus);
+                if( debug) log.Debug("SocketTask() Current socket state: " + socket.State + ", " + socket);
+                if (debug) log.Debug("SocketTask: Current connection status: " + ConnectionStatus);
                 debugDisconnect = false;
             }
             if( socket.State != lastSocketState)
@@ -264,10 +268,10 @@ namespace TickZoom.MBTQuotes
                 if( debug) log.Debug("Socket state changed to: " + socket.State);
                 lastSocketState = socket.State;
             }
-            if (connectionStatus != lastStatus)
+            if (ConnectionStatus != lastStatus)
             {
-                if (debug) log.Debug("Connection status changed to: " + connectionStatus);
-                lastStatus = connectionStatus;
+                if (debug) log.Debug("Connection status changed to: " + ConnectionStatus);
+                lastStatus = ConnectionStatus;
             }
             switch (socket.State)
             {
@@ -284,7 +288,7 @@ namespace TickZoom.MBTQuotes
 						return Yield.NoWork.Repeat;
 					}
 				case SocketState.Connected:
-					switch( connectionStatus) {
+					switch( ConnectionStatus) {
 						case Status.Connected:
                             return Yield.DidWork.Repeat;
                         case Status.PendingLogin:
@@ -352,16 +356,16 @@ namespace TickZoom.MBTQuotes
 
 					        return receivedMessage ? Yield.DidWork.Repeat : Yield.NoWork.Repeat;
 						default:
-							return Yield.NoWork.Repeat;
+							throw new ApplicationException("Unexpected connection status: " + ConnectionStatus);
 					}
                 case SocketState.Closing:
 				case SocketState.Disconnected:
-					switch( connectionStatus) {
+					switch( ConnectionStatus) {
 						case Status.Disconnected:
 							OnDisconnect();
 							retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
-							connectionStatus = Status.PendingRetry;
-							if( debug) log.Debug("ConnectionStatus changed to: " + connectionStatus + ". Retrying in " + retryDelay + " seconds.");
+							ConnectionStatus = Status.PendingRetry;
+							if( debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus + ". Retrying in " + retryDelay + " seconds.");
 							retryDelay += retryIncrease;
 							retryDelay = retryDelay > retryMaximum ? retryMaximum : retryDelay;
 							return Yield.NoWork.Repeat;
@@ -370,15 +374,15 @@ namespace TickZoom.MBTQuotes
                                 log.Info("MBTQuoteProvider retry time elapsed. Retrying.");
                                 OnRetry();
 								RegenerateSocket();
-								if( trace) log.Trace("ConnectionStatus changed to: " + connectionStatus);
+								if( trace) log.Trace("ConnectionStatus changed to: " + ConnectionStatus);
 								return Yield.DidWork.Repeat;
 							} else {
 								return Yield.NoWork.Repeat;
 							}
 						default:
-                            log.Warn("Unexpected state for quotes connection: " + connectionStatus);
-					        connectionStatus = Status.Disconnected;
-                            log.Warn("Forces connection state to be: " + connectionStatus);
+                            log.Warn("Unexpected state for quotes connection: " + ConnectionStatus);
+					        ConnectionStatus = Status.Disconnected;
+                            log.Warn("Forces connection state to be: " + ConnectionStatus);
                             return Yield.NoWork.Repeat;
 					}
                 case SocketState.Closed:
@@ -715,11 +719,20 @@ namespace TickZoom.MBTQuotes
 			get { return logRecovery; }
 		}
 		
-		public MBTQuoteProviderSupport.Status ConnectionStatus {
-			get { return connectionStatus; }
+		public MBTQuoteProviderSupport.Status ConnectionStatus
+		{
+		    get { return connectionStatus; }
+		    set
+		    {
+		        if( connectionStatus != value)
+		        {
+		            if( debug) log.Debug("Connection status changed from " + connectionStatus + " to " + value);
+		            connectionStatus = value;
+		        }
+		    }
 		}
-	    
-		public bool UseLocalTickTime {
+
+	    public bool UseLocalTickTime {
 			get { return useLocalTickTime; }
 		}
 	}
