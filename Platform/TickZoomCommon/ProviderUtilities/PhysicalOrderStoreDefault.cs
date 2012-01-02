@@ -116,7 +116,7 @@ namespace TickZoom.Common
                 try
                 {
                     fs = new FileStream(databasePath, FileMode.Append, FileAccess.Write, FileShare.Read, 1024, FileOptions.WriteThrough);
-                    log.Warn("Open " + storeName);
+                    if( debug) log.Debug("Open " + storeName);
                     snapshotLength = fs.Length;
                     return true;
                 }
@@ -598,7 +598,7 @@ namespace TickZoom.Common
             if (fs != null)
             {
                 fs.Close();
-                log.Warn("Closed " + storeName);
+                if( debug) log.Debug("Closed " + storeName);
             }
         }
 
@@ -827,7 +827,7 @@ namespace TickZoom.Common
                 if (!isDisposed)
                 {
                     isDisposed = true;
-                    log.Warn("Dispose()");
+                    if( debug) log.Debug("Dispose()");
                     lock( snapshotLocker)
                     {
                         ForceSnapshot();

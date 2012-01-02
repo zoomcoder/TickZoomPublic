@@ -56,6 +56,11 @@ namespace TickZoom.Api
             get;
         }
 
+        new TimeInForce TimeInForce
+        {
+            get; set;
+        }
+
         new double MaxPositionSize
         {
             get; set; }

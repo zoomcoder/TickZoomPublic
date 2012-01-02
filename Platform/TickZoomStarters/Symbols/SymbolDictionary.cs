@@ -355,7 +355,8 @@ namespace TickZoom.Symbols
     <property name=""FullPointValue"" value=""1"" />
     <property name=""TimeAndSales"" value=""Extrapolated"" />
     <property name=""QuoteType"" value=""Level1"" />
-    <property name=""FIXSimulationType"" value=""ForexPair"" />
+    <property name=""FIXSimulationType"" value=""BrokerHeldStopOrder"" />
+    <property name=""TimeInForce"" value=""GTC"" />
     <category name=""4 Pip"">
     <property name=""MinimumTick"" value=""0.00001"" />
       <symbol name=""USD/CHF"" universal=""USDCHF"">

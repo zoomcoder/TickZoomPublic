@@ -299,5 +299,9 @@ namespace TickZoom.Api
         /// </summary>
 	    FIXSimulationType FixSimulationType{ get; }
 
-	}
+        /// <summary>
+        /// Order time in force. GTC required for Forex. All others should be set to Day.
+        /// </summary>
+        TimeInForce TimeInForce { get; }
+    }
 }

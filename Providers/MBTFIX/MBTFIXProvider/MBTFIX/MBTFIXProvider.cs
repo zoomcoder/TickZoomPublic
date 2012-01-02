@@ -711,7 +711,7 @@ namespace TickZoom.MBTFIX
                         }
                         if (symbol != null)
                         {
-                            if (symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+                            if (symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
                                 OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
                                 (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                             {
@@ -879,7 +879,7 @@ namespace TickZoom.MBTFIX
                         }
                         if (symbol != null)
                         {
-                            if (symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+                            if (symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
                                 OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order) &&
                                 (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                             {
@@ -1577,7 +1577,10 @@ namespace TickZoom.MBTFIX
 				case OrderType.BuyLimit:
 					fixMsg.SetOrderType(2);
 					fixMsg.SetPrice(order.Price);
-					fixMsg.SetTimeInForce(1);
+                    if( order.Symbol.TimeInForce == TimeInForce.GTC)
+                    {
+                        fixMsg.SetTimeInForce(1);
+                    }
 					break;
 				case OrderType.BuyMarket:
 					fixMsg.SetOrderType(1);
@@ -1587,13 +1590,19 @@ namespace TickZoom.MBTFIX
 					fixMsg.SetOrderType(3);
 					fixMsg.SetPrice(order.Price);
 					fixMsg.SetStopPrice(order.Price);
-					fixMsg.SetTimeInForce(1);
-					break;
+                    if (order.Symbol.TimeInForce == TimeInForce.GTC)
+                    {
+                        fixMsg.SetTimeInForce(1);
+                    }
+                    break;
 				case OrderType.SellLimit:
 					fixMsg.SetOrderType(2);
 					fixMsg.SetPrice(order.Price);
-					fixMsg.SetTimeInForce(1);
-					break;
+                    if (order.Symbol.TimeInForce == TimeInForce.GTC)
+                    {
+                        fixMsg.SetTimeInForce(1);
+                    }
+                    break;
 				case OrderType.SellMarket:
 					fixMsg.SetOrderType(1);
 					fixMsg.SetTimeInForce(0);
@@ -1602,8 +1611,11 @@ namespace TickZoom.MBTFIX
 					fixMsg.SetOrderType(3);
 					fixMsg.SetPrice(order.Price);
 					fixMsg.SetStopPrice(order.Price);
-					fixMsg.SetTimeInForce(1);
-					break;
+                    if (order.Symbol.TimeInForce == TimeInForce.GTC)
+                    {
+                        fixMsg.SetTimeInForce(1);
+                    }
+                    break;
 			}
 			fixMsg.SetLocateRequired("N");
 			fixMsg.SetTransactTime(order.UtcCreateTime);

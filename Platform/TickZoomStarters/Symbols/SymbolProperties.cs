@@ -70,6 +70,7 @@ namespace TickZoom.Symbols
         private LimitOrderQuoteSimulation _limitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
 	    private LimitOrderTradeSimulation _limitOrderTradeSimulation = LimitOrderTradeSimulation.TradeTouch;
 	    private OptionChain optionChain = OptionChain.None;
+	    private TimeInForce timeInForce;
 
 		public SymbolProperties Copy()
 	    {
@@ -285,6 +286,12 @@ namespace TickZoom.Symbols
 	    {
 	        get { return optionChain; }
 	        set { optionChain = value; }
+	    }
+
+	    public TimeInForce TimeInForce
+	    {
+	        get { return timeInForce; }
+	        set { timeInForce = value; }
 	    }
 	}
 }

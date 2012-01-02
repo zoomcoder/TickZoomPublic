@@ -274,7 +274,7 @@ namespace TickZoom.MBTFIX
 	    private void ProcessCreateOrder(CreateOrChangeOrder order) {
 			SendExecutionReport( order, "A", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
 			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
-            if( order.Symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+            if( order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
                 (order.Type == OrderType.BuyStop || order.Type == OrderType.StopLoss))
             {
                 SendExecutionReport(order, "A", "D", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
@@ -384,7 +384,7 @@ namespace TickZoom.MBTFIX
 		}
 		
 		private void OnPhysicalFill( PhysicalFill fill) {
-            if( fill.Order.Symbol.FixSimulationType == FIXSimulationType.ForexPair &&
+            if( fill.Order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
                 (fill.Order.Type == OrderType.BuyStop || fill.Order.Type == OrderType.SellStop))
             {
                 var orderType = fill.Order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
