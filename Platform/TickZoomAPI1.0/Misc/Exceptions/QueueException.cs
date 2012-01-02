@@ -35,15 +35,13 @@ namespace TickZoom.Api
 	public class QueueException : System.ApplicationException
 	{
 		private EventType queueItemType;
-		private string symbol;
 		public QueueException(EventType queueItemType)
 			: base("Queue returned item type: " + queueItemType) {
 			this.queueItemType = queueItemType;
 		}
-		public QueueException(EventType queueItemType, string symbol)
-			: base("Queue returned item type: " + queueItemType) {
+		public QueueException(EventType queueItemType, string message)
+			: base("Queue returned item type: " + queueItemType + " for " + message) {
 			this.queueItemType = queueItemType;
-			this.symbol = symbol;
 		}
 	
 	    // Constructor needed for serialization 
@@ -55,8 +53,5 @@ namespace TickZoom.Api
 			get { return queueItemType; }
 		}
 		
-		public string Symbol {
-			get { return symbol; }
-		}
 	}
 }

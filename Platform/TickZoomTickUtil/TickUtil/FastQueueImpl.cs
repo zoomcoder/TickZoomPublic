@@ -297,7 +297,7 @@ namespace TickZoom.TickUtil
                 }
                 else
                 {
-                    throw new QueueException(EventType.Terminate);
+                    throw new QueueException(EventType.Terminate,name);
                 }
             }
             if (!isStarted)
@@ -371,8 +371,10 @@ namespace TickZoom.TickUtil
 	    {
 	       	if( !isDisposed) {
 	    		lock( disposeLocker) {
-		            isDisposed = true;   
-		            if (disposing) {
+		            isDisposed = true;
+                    if (debug) log.Debug("Dispose("+name+")");
+                    if (disposing)
+                    {
 				        if( queue!=null)
 				        {
 					    	inboundTask = null;

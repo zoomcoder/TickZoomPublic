@@ -409,10 +409,24 @@ namespace TickZoom.Common
 					break;
 				case EventType.StartBroker:
 					brokerState = BrokerState.Connected;
-					break;
+                    if (SyncTicks.Enabled)
+                    {
+                        while (tickSync.SentSwtichBrokerState)
+                        {
+                            tickSync.RemoveSwitchBrokerState("endbroker");
+                        }
+                    }
+                    break;
 				case EventType.EndBroker:
 					brokerState = BrokerState.Disconnected;
-					break;
+                    if (SyncTicks.Enabled)
+                    {
+                        while (tickSync.SentSwtichBrokerState)
+                        {
+                            tickSync.RemoveSwitchBrokerState("endbroker");
+                        }
+                    }
+                    break;
 				case EventType.Terminate:
 					symbolState = SymbolState.None;
 					return true;

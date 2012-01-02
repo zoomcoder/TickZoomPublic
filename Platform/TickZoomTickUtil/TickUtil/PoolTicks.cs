@@ -44,6 +44,10 @@ namespace TickZoom.TickUtil
 
         public void Free(TickBinaryBox item)
         {
+            if( item == null)
+            {
+                throw new ArgumentNullException("item");
+            }
             if( item.TickBinary.Id == 0)
             {
                 throw new InvalidOperationException("TickBinary id must be non-zero to be freed.");

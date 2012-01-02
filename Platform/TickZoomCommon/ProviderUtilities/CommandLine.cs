@@ -116,7 +116,7 @@ namespace TickZoom.Common
 			Console.WriteLine("Usage: " + assemblyName + " [--start | --stop | --run | {port}] [{configuration}]");
 			Console.WriteLine();
 			Console.WriteLine("{port}: Run from command line using the port given on local host.");
-			Console.WriteLine("--run : Create as a Service Process so it will auto start at boot up.");
+			Console.WriteLine("--run : Run the program directly w/o installing a process.");
 			Console.WriteLine("--start : Create as a Service Process so it will auto start at boot up.");
 			Console.WriteLine("--stop : Remove the Service Process.");
 			Console.WriteLine();
