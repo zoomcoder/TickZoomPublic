@@ -196,8 +196,8 @@ namespace TickZoom.Utilities
 2010-02-16 16:49:28.793.000 1063,1, 0/0 0,0,0,0,0|0,0,0,0,0
 2010-02-16 16:49:28.793.000 1062.75,1, 0/0 0,0,0,0,0|0,0,0,0,0
 ";
-            //expectedOutput = expectedOutput.Replace("\r\n", "\n");
-            //actual = actual.Replace("\r\n", "\n");
+            expectedOutput = expectedOutput.Replace("\r\n", "\n");
+            actual = actual.Replace("\r\n", "\n");
             Assert.AreEqual(expectedOutput, actual);
         }
 
