@@ -48,7 +48,7 @@ namespace TickZoom.MBTFIX
 
 	    public bool IsFinalized
 	    {
-	        get { return fixProvider.IsFinalized && isFinalized; }
+	        get { return fixProvider.IsFinalized && quotesProvider.IsFinalized && isFinalized; }
 	    }
 
 	    public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {

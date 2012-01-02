@@ -84,22 +84,8 @@ namespace TickZoom.MBTQuotes
 		    log.Register(this);
             providerName = GetType().Name;
             RefreshLogLevel();
-	        log.Info(providerName+" Startup");
-            socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
-		    socketTask.Scheduler = Scheduler.EarliestTime;
-            taskTimer = Factory.Parallel.CreateTimer("Task",socketTask, TimerTask);
-            socketTask.Start();
-
-            TimeStamp currentTime = TimeStamp.UtcNow;
-            currentTime.AddSeconds(1);
-		    taskTimer.Start(currentTime);
-
-	  		string logRecoveryString = Factory.Settings["LogRecovery"];
-	  		logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
-            Initialize();
-            RegenerateSocket();
-            retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
-            log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
+            string logRecoveryString = Factory.Settings["LogRecovery"];
+            logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
         }
 		
 		private void RegenerateSocket() {
@@ -208,11 +194,15 @@ namespace TickZoom.MBTQuotes
 				return;
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
-		    log.Error("MBTQuoteProvider disconnected. Attempting to reconnect.");
+		    log.Error("MBTQuoteProvider disconnected.");
 			connectionStatus = Status.Disconnected;
 		    debugDisconnect = true;
             if (debug) log.Debug("ConnectionStatus changed to: " + connectionStatus);
             if (debug) log.Debug("Socket state now: " + socket.State);
+            if( isDisposed)
+            {
+                Finalize();
+            }
         }
 	
 		public bool IsInterrupted {
@@ -435,6 +425,20 @@ namespace TickZoom.MBTQuotes
         public void Start(Receiver receiver)
         {
         	this.receiver = (Receiver) receiver;
+            log.Info(providerName + " Startup");
+            socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
+            socketTask.Scheduler = Scheduler.EarliestTime;
+            taskTimer = Factory.Parallel.CreateTimer("Task", socketTask, TimerTask);
+            socketTask.Start();
+
+            TimeStamp currentTime = TimeStamp.UtcNow;
+            currentTime.AddSeconds(1);
+            taskTimer.Start(currentTime);
+
+            Initialize();
+            RegenerateSocket();
+            retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
+            log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
         }
         
         public void Stop(Receiver receiver) {
@@ -590,7 +594,17 @@ namespace TickZoom.MBTQuotes
         private volatile bool isFinalized;
         public bool IsFinalized
         {
-            get { return isFinalized; }
+            get { return isFinalized && (socketTask == null || !socketTask.IsAlive); }
+        }
+
+        private void Finalize()
+        {
+            isFinalized = true;
+            if (socketTask != null)
+            {
+                socketTask.Stop();
+                if (debug) log.Debug("Stopped socket task.");
+            }
         }
 
         protected volatile bool isDisposed = false;
@@ -614,18 +628,12 @@ namespace TickZoom.MBTQuotes
                         //}
                         socket.Dispose();
                     }
-                    if (socketTask != null)
-                    {
-		            	socketTask.Stop();
-                        if( debug) log.Debug("Stopped socket task.");
-	            	}
                     if (taskTimer != null)
                     {
                         taskTimer.Dispose();
                         if (debug) log.Debug("Stopped task timer.");
                     }
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
-	                isFinalized = true;
 	            }
     		}
 	    }    
