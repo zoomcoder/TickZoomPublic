@@ -48,7 +48,7 @@ namespace TickZoom.MBTQuotes
         private Dictionary<long, SymbolHandler> symbolHandlers = new Dictionary<long, SymbolHandler>();
         private Dictionary<long, SymbolHandler> symbolOptionHandlers = new Dictionary<long, SymbolHandler>();	
 		
-		public MBTQuotesProvider(string name) : base( name)
+		private MBTQuotesProvider(string name) : base( name)
 		{
 		    log.Register(this);
 			if( name.Contains(".config")) {

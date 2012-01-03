@@ -39,11 +39,11 @@ namespace TickZoom.MBTFIX
 	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (MBTProvider));
 	    private static readonly bool debug = log.IsDebugEnabled;
 		private Provider fixProvider;
-		private MBTQuotesProvider quotesProvider;
+		private Provider quotesProvider;
 		
 		public MBTProvider(string configName) {
 			fixProvider = Factory.Parallel.SpawnProvider(typeof(MBTFIXProvider),configName);
-			quotesProvider = new MBTQuotesProvider(configName);
+			quotesProvider = Factory.Parallel.SpawnProvider(typeof(MBTQuotesProvider),configName);
 		}
 
 	    public bool IsFinalized
