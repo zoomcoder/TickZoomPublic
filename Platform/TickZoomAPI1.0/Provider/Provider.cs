@@ -40,7 +40,7 @@ namespace TickZoom.Api
 	
 	public interface Provider : IDisposable
 	{
-		void SendEvent(Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail);
+		void SendEvent(EventItem eventItem);
 	    bool IsFinalized { get; }
 	}
 }

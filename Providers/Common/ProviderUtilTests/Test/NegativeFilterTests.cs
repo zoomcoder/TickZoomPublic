@@ -47,8 +47,8 @@ namespace TickZoom.Test
 	  		int expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Provider provider = ProviderFactory()) {
-				provider.SendEvent(verify,null,(int)EventType.Connect,null);
-				provider.SendEvent(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue));
+				provider.SendEvent(new EventItem(verify,(int)EventType.Connect));
+				provider.SendEvent(new EventItem(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -78,8 +78,8 @@ namespace TickZoom.Test
 	  		var expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Provider provider = ProviderFactory()) {
-				provider.SendEvent(verify,null,(int)EventType.Connect,null);
-				provider.SendEvent(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue));
+				provider.SendEvent(new EventItem(verify,(int)EventType.Connect));
+				provider.SendEvent(new EventItem(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -107,8 +107,8 @@ namespace TickZoom.Test
 	  		int secondsDelay = 3;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Provider provider = ProviderFactory()) {
-				provider.SendEvent(verify,null,(int)EventType.Connect,null);
-				provider.SendEvent(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue));
+				provider.SendEvent(new EventItem(verify,(int)EventType.Connect));
+				provider.SendEvent(new EventItem(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -131,8 +131,8 @@ namespace TickZoom.Test
 			var expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Provider provider = ProviderFactory()) {
-				provider.SendEvent(verify,null,(int)EventType.Connect,null);
-				provider.SendEvent(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue));
+				provider.SendEvent(new EventItem(verify,(int)EventType.Connect));
+				provider.SendEvent(new EventItem(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);

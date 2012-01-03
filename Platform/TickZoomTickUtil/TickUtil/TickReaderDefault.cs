@@ -111,9 +111,14 @@ namespace TickZoom.TickUtil
 			throw new NotImplementedException();
 		}
 
-		public void SendEvent(Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail)
-		{
-			switch ((EventType)eventType) {
+        public void SendEvent(EventItem eventItem)
+        {
+            var receiver = eventItem.Receiver;
+            var symbol = eventItem.Symbol;
+            var eventType = eventItem.EventType;
+            var eventDetail = eventItem.EventDetail;
+            switch ((EventType)eventType)
+            {
 				case EventType.Connect:
 					Start(receiver);
 					break;

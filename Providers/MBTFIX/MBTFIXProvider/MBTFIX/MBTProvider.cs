@@ -51,18 +51,24 @@ namespace TickZoom.MBTFIX
 	        get { return fixProvider.IsFinalized && quotesProvider.IsFinalized && isFinalized; }
 	    }
 
-	    public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {
-			switch( (EventType) eventType) {
+        public void SendEvent(EventItem eventItem)
+        {
+            var receiver = eventItem.Receiver;
+            var symbol = eventItem.Symbol;
+            var eventType = eventItem.EventType;
+            var eventDetail = eventItem.EventDetail;
+            switch ((EventType)eventType)
+            {
 				case EventType.PositionChange:
-					fixProvider.SendEvent(receiver,symbol,eventType,eventDetail);
+					fixProvider.SendEvent(new EventItem(receiver,symbol,eventType,eventDetail));
 					break;
 				case EventType.StopSymbol:
 				case EventType.StartSymbol:
 				case EventType.Disconnect:
 				case EventType.Connect:
                 case EventType.RemoteShutdown:
-                    quotesProvider.SendEvent(receiver, symbol, eventType, eventDetail);
-                    fixProvider.SendEvent(receiver, symbol, eventType, eventDetail);
+                    quotesProvider.SendEvent(new EventItem(receiver, symbol, eventType, eventDetail));
+                    fixProvider.SendEvent(new EventItem(receiver, symbol, eventType, eventDetail));
                     break;
                 case EventType.Terminate:
 					Dispose();

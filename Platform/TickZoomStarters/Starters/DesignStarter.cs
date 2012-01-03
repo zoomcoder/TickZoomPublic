@@ -201,8 +201,12 @@ namespace TickZoom.Starters
                 }
             }
 
-            public void SendEvent(Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail)
+            public void SendEvent(EventItem eventItem)
             {
+                var receiver = eventItem.Receiver;
+                var symbol = eventItem.Symbol;
+                var eventType = eventItem.EventType;
+                var eventDetail = eventItem.EventDetail;
                 switch ((EventType)eventType)
                 {
                     case EventType.Connect:

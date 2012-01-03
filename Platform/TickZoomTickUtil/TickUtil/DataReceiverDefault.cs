@@ -67,7 +67,7 @@ namespace TickZoom.TickUtil
 		}
 		
 		private void Start() {
-			sender.SendEvent(this,null,(int)EventType.Connect,null);
+			sender.SendEvent(new EventItem(this,(int)EventType.Connect));
 		}
 		
 		public bool OnEvent(int eventType, object eventDetail) {
