@@ -117,7 +117,7 @@ namespace TickZoom.Starters
 		
 		public void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail)
 		{
-		    var tickPool = Factory.TickUtil.TickPool(symbol);
+		    var tickPool = Factory.Parallel.TickPool(symbol);
 			TickIO tickIO = Factory.TickUtil.TickIO();
 			tickIO.Initialize();
 			tickIO.SetSymbol( symbol.BinaryIdentifier);

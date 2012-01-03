@@ -31,7 +31,7 @@ namespace TickZoom.MBTQuotes
 {
 	public class MessageFactoryMbtQuotes : MessageFactory
 	{
-	    private Pool<MessageMbtQuotes> pool = Factory.TickUtil.Pool<MessageMbtQuotes>();
+	    private Pool<MessageMbtQuotes> pool = Factory.Parallel.Pool<MessageMbtQuotes>();
 		public Message Create()
 		{
 		    var message = pool.Create();

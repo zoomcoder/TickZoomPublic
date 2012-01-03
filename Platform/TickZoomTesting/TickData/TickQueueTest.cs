@@ -39,7 +39,7 @@ namespace TickZoom.TickData
 		
 		[SetUp]
 		public void Setup() {
-			queue = Factory.TickUtil.TickQueue(typeof(TickQueueTest));
+			queue = Factory.Parallel.TickQueue(typeof(TickQueueTest));
 		}
 		
 		[Test]

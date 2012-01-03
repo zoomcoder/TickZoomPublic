@@ -35,20 +35,10 @@ namespace TickZoom.Api
 	[CLSCompliant(false)]
     public interface TickUtilFactory
 	{
-		TickQueue TickQueue( Type type);
-		TickQueue TickQueue( string name);
 		TickIO TickIO();
-		FastFillQueue FastFillQueue(string name, int maxSize);
-		FastEventQueue FastEventQueue(string name, int maxSize);
 		TickWriter TickWriter(bool overwriteFile);
 		TickReader TickReader();
-		FastQueue<T> FastQueue<T>(string name);
-		Pool<T> Pool<T>() where T : new();
-        Pool<T> PoolChecked<T>() where T : new();
-        Pool<TickBinaryBox> TickPool(SymbolInfo symbol);
-		string GetQueueStats();
 		void Release();
-	    EventQueue EventQueue(SymbolInfo symbol, string name);
-	    EventQueue EventQueue(string name);
+
 	}
 }

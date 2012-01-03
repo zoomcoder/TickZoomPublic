@@ -119,8 +119,8 @@ namespace TickZoom.FIX
             if (debug) log.Debug("Start() receiver: " + receiver);
             this.receiver = (Receiver)receiver;
             log.Info(providerName + " Startup");
-            positionChangeQueue = Factory.TickUtil.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
-            resendQueue = Factory.TickUtil.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
+            positionChangeQueue = Factory.Parallel.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
+            resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
             socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
             socketTask.Scheduler = Scheduler.EarliestTime;

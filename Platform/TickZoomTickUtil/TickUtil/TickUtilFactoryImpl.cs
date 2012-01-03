@@ -37,28 +37,12 @@ namespace TickZoom.TickUtil
 	/// </summary>
 	public class TickUtilFactoryImpl : TickUtilFactory
 	{
-		private Dictionary<long,Pool<TickBinaryBox>> tickPools;
 		private object locker = new object();
 		
-		public TickQueue TickQueue( Type type) {
-			return new TickQueueImpl(type.Name);
-		}
 		public TickIO TickIO() {
 			return new TickImpl();
 		}
-		
-		public TickQueue TickQueue(string name)
-		{
-			return new TickQueueImpl(name);
-		}
-		
-		public FastFillQueue FastFillQueue(string name, int maxSize) {
-			return new FastFillQueueImpl(name,maxSize);
-		}
-		
-		public FastEventQueue FastEventQueue(string name, int maxSize) {
-			return new FastEventQueueImpl(name,maxSize);
-		}
+
 		
 		public TickWriter TickWriter(bool overwriteFile) {
 			return new TickWriterDefault(overwriteFile);
@@ -67,104 +51,11 @@ namespace TickZoom.TickUtil
 		public TickReader TickReader() {
 			return new TickReaderDefault();
 		}
-		
-		public FastQueue<T> FastQueue<T>(string name) {
-			return new FastQueueImpl<T>(name);
-		}
-
-        public EventQueue EventQueue(string name)
-        {
-            return new EventQueueImpl(name);
-        }
-
-        public EventQueue EventQueue(SymbolInfo symbol, string name)
-        {
-            return new EventQueueImpl(symbol,name);
-        }
-
-        public Pool<T> Pool<T>() where T : new()
-        {
-            return new PoolDefault<T>();
-		}
-
-        public Pool<T> PoolChecked<T>() where T : new()
-        {
-            return new PoolChecked<T>();
-        }
-
-        public Pool<TickBinaryBox> TickPool(SymbolInfo symbol)
-        {
-			if( tickPools == null) {
-				lock( locker) {
-					if( tickPools == null)
-					{
-					    tickPools = new Dictionary<long, Pool<TickBinaryBox>>();
-					}
-				}
-			}
-            lock( locker)
-            {
-                Pool<TickBinaryBox> tickPool;
-                if( !tickPools.TryGetValue(symbol.BinaryIdentifier, out tickPool))
-                {
-                    tickPool = new PoolTicks();
-                    tickPools.Add(symbol.BinaryIdentifier,tickPool);
-                }
-                return tickPool;
-            }
-		}
-		
-	    private static readonly List<Queue> queueList = new List<Queue>();
-	    private static readonly TaskLock queueListLocker = new TaskLock();
-	    internal static void AddQueue( Queue queue) {
-	    	queueListLocker.Lock();
-	    	try {
-	    		queueList.Add(queue);
-	    	} finally {
-	    		queueListLocker.Unlock();
-	    	}
-	    }
-	    
-	    public string GetQueueStats() {
-	    	return GetQueueStatsStatic();
-	    }
-
-	    private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickUtilFactoryImpl));
-		public static string GetQueueStatsStatic() {
-	    	queueListLocker.Lock();
-	    	try {
-				var sb = new StringBuilder();
-				queueList.Sort( (q1,q2) => q1.Count.CompareTo(q2.Count));
-				for( int i=0;i<queueList.Count; i++) {
-					var queue = queueList[i];
-					if( queue.Count > 0) {
-						sb.AppendLine(queue.GetStats());
-					}
-				}
-				return sb.ToString();
-	    	} finally {
-	    		queueListLocker.Unlock();
-	    	}
-		}
 
         public void Release()
         {
             lock (locker)
             {
-                using (queueListLocker.Using())
-                {
-                    if (queueList != null)
-                    {
-                        foreach (var queue in queueList)
-                        {
-                            if (queue != null)
-                            {
-                                queue.Dispose();
-                            }
-                        }
-                        queueList.Clear();
-                    }
-                }
                 new TickReaderDefault().CloseAll();
             }
         }

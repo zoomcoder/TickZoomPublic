@@ -100,8 +100,8 @@ namespace TickZoom.FIX
 		private Message _quoteWriteMessage;
 		private bool isQuoteSimulationStarted = false;
 		private MessageFactory _quoteMessageFactory;
-		private FastQueue<Message> fixPacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorFIX");
-		protected FastQueue<Message> quotePacketQueue = Factory.TickUtil.FastQueue<Message>("SimulatorQuote");
+		private FastQueue<Message> fixPacketQueue = Factory.Parallel.FastQueue<Message>("SimulatorFIX");
+		protected FastQueue<Message> quotePacketQueue = Factory.Parallel.FastQueue<Message>("SimulatorQuote");
 		private Dictionary<long, SimulateSymbol> symbolHandlers = new Dictionary<long, SimulateSymbol>();
         private TrueTimer heartbeatTimer;
         private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;

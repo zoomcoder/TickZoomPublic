@@ -82,7 +82,7 @@ namespace TickZoom.Common
 		    this.outboundQueue = receiver.GetQueue(symbol);
 			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
 			this.salesLatency = new LatencyMetric( "SymbolHandler-Trade-" + symbol.Symbol.StripInvalidPathChars());
-            tickPool =  Factory.TickUtil.TickPool(symbol);
+            tickPool =  Factory.Parallel.TickPool(symbol);
 		}
 		
 		bool errorWrongLevel1Type = false;

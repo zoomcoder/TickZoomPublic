@@ -65,8 +65,8 @@ namespace TickZoom.Common
 		{
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-            tickPool =  Factory.TickUtil.TickPool(symbol);
-            queue = Factory.TickUtil.EventQueue(symbol,"VerifyFeed");
+            tickPool =  Factory.Parallel.TickPool(symbol);
+            queue = Factory.Parallel.EventQueue(symbol,"VerifyFeed");
             queue.StartEnqueue = Start;
         }
 
@@ -467,7 +467,7 @@ namespace TickZoom.Common
 			log.Notice("Last tick received at : " + tickIO.ToPosition());
             if (count < expectedTickCount)
             {
-                var queueStats = Factory.TickUtil.GetQueueStats();
+                var queueStats = Factory.Parallel.GetQueueStats();
                 log.Info(queueStats);
             }
             Dispose();

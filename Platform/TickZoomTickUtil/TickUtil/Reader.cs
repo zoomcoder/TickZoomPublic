@@ -114,7 +114,7 @@ namespace TickZoom.TickUtil
                     diagnoseMetric = Diagnose.RegisterMetric("Reader." + symbol.Symbol.StripInvalidPathChars());
                     fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
                     fileReaderTask.Scheduler = Scheduler.EarliestTime;
-                    var tempQueue = Factory.TickUtil.FastQueue<int>(symbol + " Reader Nominal Queue");
+                    var tempQueue = Factory.Parallel.FastQueue<int>(symbol + " Reader Nominal Queue");
                     var tempConnectionId = 0;
                     fileReaderTask.ConnectInbound(tempQueue, out tempConnectionId);
                     outboundQueue.ConnectOutbound(fileReaderTask);
@@ -163,7 +163,7 @@ namespace TickZoom.TickUtil
 	        log = Factory.SysLog.GetLogger("TickZoom.TickUtil.Reader."+symbol.Symbol.StripInvalidPathChars());
 	        debug = log.IsDebugEnabled;
 	        trace = log.IsTraceEnabled;
-		    tickBoxPool = Factory.TickUtil.TickPool(symbol);
+		    tickBoxPool = Factory.Parallel.TickPool(symbol);
             progressDivisor = tickFile.Length / 20;
             progressCallback("Loading bytes...", tickFile.Position, tickFile.Length);
             isTaskPrepared = true;

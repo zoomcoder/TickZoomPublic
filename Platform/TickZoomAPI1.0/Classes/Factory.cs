@@ -264,6 +264,10 @@ namespace TickZoom.Api
                 {
                     tickUtilFactory.Release();
                 }
+                if (parallel != null)
+                {
+                    parallel.Release();
+                }
             }
         }
 	}

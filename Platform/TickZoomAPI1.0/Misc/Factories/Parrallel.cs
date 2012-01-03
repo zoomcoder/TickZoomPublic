@@ -154,5 +154,20 @@ namespace TickZoom.Api
 	    void StackTrace();
 	    void Exec(Action action);
 	    void Exec(Queue queue, Action action);
+
+        /// Queue related factories.
+        string GetQueueStats();
+        Pool<TickBinaryBox> TickPool(SymbolInfo symbol);
+        TickQueue TickQueue(Type type);
+        TickQueue TickQueue(string name);
+        FastFillQueue FastFillQueue(string name, int maxSize);
+        FastEventQueue FastEventQueue(string name, int maxSize);
+        FastQueue<T> FastQueue<T>(string name);
+        Pool<T> Pool<T>() where T : new();
+        Pool<T> PoolChecked<T>() where T : new();
+        EventQueue EventQueue(SymbolInfo symbol, string name);
+        EventQueue EventQueue(string name);
+
+	    void Release();
 	}
 }

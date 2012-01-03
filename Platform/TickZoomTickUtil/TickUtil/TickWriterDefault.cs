@@ -58,7 +58,7 @@ namespace TickZoom.TickUtil
 		{
             tickFile = new TickFile();
 		    tickFile.EraseFileToStart = eraseFileToStart;
-			writeQueue = Factory.TickUtil.TickQueue(typeof(TickWriter));
+			writeQueue = Factory.Parallel.TickQueue(typeof(TickWriter));
 			writeQueue.StartEnqueue = Start;
 			var property = "PriceDataFolder";
 			priceDataFolder = Factory.Settings[property];
