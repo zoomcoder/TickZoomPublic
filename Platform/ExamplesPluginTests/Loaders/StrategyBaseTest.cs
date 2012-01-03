@@ -371,8 +371,8 @@ namespace Loaders
             Factory.SysLog.Flush();
             if (testFailed)
             {
-                log.Error("Exiting because one of the tests failed.");
-                Environment.Exit(1);
+                //log.Error("Exiting because one of the tests failed.");
+                //Environment.Exit(1);
             }
         }
 		

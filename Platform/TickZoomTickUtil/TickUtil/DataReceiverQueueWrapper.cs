@@ -117,5 +117,16 @@ namespace TickZoom.TickUtil
             tickQueue.Dispose();
         }
 
+
+        #region Queue Members
+
+
+        public bool DisableRelease
+        {
+            get { return false; }
+            set { throw new NotImplementedException(); }
+        }
+
+        #endregion
     }
 }

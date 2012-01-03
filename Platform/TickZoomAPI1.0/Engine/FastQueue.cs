@@ -49,7 +49,8 @@ namespace TickZoom.Api
         bool IsEmpty { get; }
         void ConnectInbound(Task task);
 	    void ConnectOutbound(Task task);
-	}
+        bool DisableRelease { get; set; }
+    }
 
     public interface ReceiveQueue<T> : Queue
     {
@@ -60,7 +61,7 @@ namespace TickZoom.Api
 	public interface FastQueue<T> : ReceiveQueue<T>
 	{
         StartEnqueue StartEnqueue { get; set; }
-        void Clear();
+	    void Clear();
         void Dequeue(out T tick);
 	    bool TryDequeue(out T item);
 		void Peek(out T tick);

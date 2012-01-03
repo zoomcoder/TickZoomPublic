@@ -34,7 +34,7 @@ namespace TickZoom.Api
 	public enum EventType : int {
 		None=0,
 		// Provider/Receiver Connection Events.
-		Initialize=1000,
+		Initialize,
 		Terminate,
 		Connect,
 		Disconnect,
@@ -49,13 +49,14 @@ namespace TickZoom.Api
         EndBroker,
         TickBatch,
         RemoteShutdown,
+	    VerifyHeartbeat,
 		
 		// TCP/IP Events
-		Acknowledgment=2000,
+		Acknowledgment=100,
 		Heartbeat,
 		
 		// Events visible to Platform
-		Open=3000,
+		Open=200,
 		OpenInterval,
 		Close,
 		CloseInterval,
@@ -66,6 +67,6 @@ namespace TickZoom.Api
         Error,
         
         // Never use an event id higher than this.
-        Capacity=5000
+        Capacity=500,
 	}
 }

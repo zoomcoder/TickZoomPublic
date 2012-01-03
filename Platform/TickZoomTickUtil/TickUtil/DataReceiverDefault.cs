@@ -90,5 +90,15 @@ namespace TickZoom.TickUtil
         }
 
         #endregion
+
+        #region Receiver Members
+
+
+        public bool IsFinalized()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
     }
 }

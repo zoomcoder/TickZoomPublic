@@ -643,5 +643,15 @@ namespace TickZoom.Common
         {
             throw new NotImplementedException();
         }
+
+        #region Receiver Members
+
+
+        public bool IsFinalized()
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
     }
 }
