@@ -79,14 +79,10 @@ namespace TickZoom.TickUtil
 		PauseEnqueue pauseEnqueue;
 		ResumeEnqueue resumeEnqueue;
 	    int maxSize;
-	    int lowWaterMark;
-	    int highWaterMark;
 		Exception exception;
-        int backupIncrease = 20;
-        int backupLevel = 20;
         int backupInitial = 20;
         long earliestUtcTime = long.MaxValue;
-		private Task inboundTask;
+		private Task dequeueTask;
         private class TaskConnection
         {
             internal Task task;
@@ -107,7 +103,7 @@ namespace TickZoom.TickUtil
                 }
             }
         }
-        private List<TaskConnection> outboundTasks = new List<TaskConnection>();
+        private List<TaskConnection> enqueueTasks = new List<TaskConnection>();
 		
 		public long EarliestUtcTime {
 			get { return earliestUtcTime; }
@@ -127,11 +123,6 @@ namespace TickZoom.TickUtil
 		    debug = log.IsDebugEnabled;
 		    trace = log.IsTraceEnabled;
             verbose = log.IsVerboseEnabled;
-            //if( !string.IsNullOrEmpty(nameString)) {
-            //    if( nameString.Contains("-Receive")) {
-	        		backupLevel = backupInitial = 900;
-            //    }
-            //}
 			instanceLog = Factory.SysLog.GetLogger("TickZoom.TickUtil.FastQueue."+name);
 			if( trace) log.Trace("Created with capacity " + maxSize);
             if( name is string)
@@ -142,8 +133,6 @@ namespace TickZoom.TickUtil
                 this.name = ((Type) name).Name;
             }
 			this.maxSize = maxSize;
-			this.lowWaterMark = maxSize / 2;
-			this.highWaterMark = maxSize / 2;
             queue = new ActiveQueue<FastQueueEntry<T>>();
 			queue.Clear();
 			TickUtilFactoryImpl.AddQueue(this);
@@ -167,13 +156,13 @@ namespace TickZoom.TickUtil
             {
                 throw new ArgumentNullException("task cannot be null");
             }
-			if( inboundTask == null) {
-				inboundTask = task;
+			if( dequeueTask == null) {
+				dequeueTask = task;
 				task.ConnectInbound( this, out inboundId);
 			}
-            else if( inboundTask != task)
+            else if( dequeueTask != task)
             {
-                throw new ApplicationException("Attempt to connect inbound task " + task + " to the queue but task " + inboundTask + " was already connected.");
+                throw new ApplicationException("Attempt to connect inbound task " + task + " to the queue but task " + dequeueTask + " was already connected.");
             }
 	    }
 
@@ -183,12 +172,12 @@ namespace TickZoom.TickUtil
             {
                 throw new ArgumentNullException("task cannot be null");
             }
-            var found = outboundTasks.Find(x => x.task == task);
+            var found = enqueueTasks.Find(x => x.task == task);
             if( found == null || found.task == null)
             {
                 var connection = new TaskConnection();
                 connection.task = task;
-                outboundTasks.Add(connection);
+                enqueueTasks.Add(connection);
                 task.ConnectOutbound(this, out connection.id);
                 if( IsFull)
                 {
@@ -214,20 +203,20 @@ namespace TickZoom.TickUtil
 	            return false;
 	        }
 	        var count = queue.Count;
-            if (inboundTask != null)
+            if (dequeueTask != null)
             {
                 if( verbose) log.Verbose("IncreaseInbound with count " + queue.Count);
                 if (count == 1)
                 {
                     earliestUtcTime = utcTime;
                 }
-                inboundTask.IncreaseInbound(inboundId,earliestUtcTime);
+                dequeueTask.IncreaseInbound(inboundId,earliestUtcTime);
             }
             if (count >= maxSize)
             {
-                for (var i = 0; i < outboundTasks.Count; i++)
+                for (var i = 0; i < enqueueTasks.Count; i++)
                 {
-                    outboundTasks[i].IncreaseOutbound();
+                    enqueueTasks[i].IncreaseOutbound();
                 }
             }
 	        return true;
@@ -304,7 +293,16 @@ namespace TickZoom.TickUtil
 	    	{
 	    	    StartDequeue();
 	    	}
-	        FastQueueEntry<T> entry;
+//	        var currentTask = Factory.Parallel.CurrentTask;
+//            if( dequeueTask == null)
+//            {
+//                throw new ApplicationException("Dequeue on queue " + name + " was called by task " + currentTask + " but dequeue task was unassigned.");
+//            }
+//            if (dequeueTask != currentTask)
+//            {
+//                throw new ApplicationException("Dequeue on queue " + name + " was called by task " + currentTask + " but dequeue task is " + dequeueTask);
+//            }
+            FastQueueEntry<T> entry;
             var priorCount = queue.Count;
             if (!queue.TryDequeue(out entry))
 	        {
@@ -316,24 +314,23 @@ namespace TickZoom.TickUtil
             var count = queue.Count;
             earliestUtcTime = count == 0 ? long.MaxValue : queue.Peek().utcTime;
             if (count == 0) earliestUtcTime = long.MaxValue;
-            if (inboundTask != null)
+            if (dequeueTask != null)
             {
                 if (verbose) log.Verbose("DecreaseInbound with count = " + count);
-                inboundTask.DecreaseInbound(inboundId, earliestUtcTime);
+                dequeueTask.DecreaseInbound(inboundId, earliestUtcTime);
             }
             if (count + 1 == maxSize)
             {
                 if (verbose) log.Verbose("DecreaseOutbound with count " + count + ", previous count " + priorCount);
-                for (var i = 0; i < outboundTasks.Count; i++)
+                for (var i = 0; i < enqueueTasks.Count; i++)
                 {
-                    outboundTasks[i].DecreaseOutbound();
+                    enqueueTasks[i].DecreaseOutbound();
                 }
             }
  			if( count == 0) {
             	if( isBackingUp) {
             		isBackingUp = false;
             		if( debug) log.Debug( name + " queue now cleared after backup to " + maxLastBackup + " items.");
-            	    backupLevel = backupInitial;
             		maxLastBackup = 0;
             	}
 	    	}
@@ -377,7 +374,7 @@ namespace TickZoom.TickUtil
                     {
 				        if( queue!=null)
 				        {
-					    	inboundTask = null;
+					    	dequeueTask = null;
 				        }
 		            }
 	    		}

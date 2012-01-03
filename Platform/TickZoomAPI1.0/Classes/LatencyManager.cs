@@ -116,8 +116,6 @@ namespace TickZoom.Api
             }
             var showLog = tickCount > 100 && latency > 20000;
             var selectCount = Factory.Provider.ManagerTCP.SelectCount;
-		    var roundRobinCounter = Factory.Parallel.RoundRobinCounter;
-		    var earliestCounter = Factory.Parallel.EarliestCounter;
             var sendCounter = Factory.Provider.ManagerTCP.SendCounter;
 		    var receiveCounter = Factory.Provider.ManagerTCP.ReceiveCounter;
 		    var tryReadCounter = Interlocked.Read(ref TryReadCounter);
@@ -133,8 +131,6 @@ namespace TickZoom.Api
                 TryReceive = (int) (tryReadCounter - lastTryReadCount),
                 Receives = (int) (receiveCounter - lastReceiveCount),
                 Sends = (int) (sendCounter - lastSendCount),
-                RoundRobin = (int) (roundRobinCounter - lastRoundRobinCount),
-                Earliest = (int) (earliestCounter - lastEarliestCount),
                 // - lastEarliestCount),
                 Simulator = (int) (simulator - lastSimulatorCount),
                 TimerCount = timerCount,
@@ -143,8 +139,6 @@ namespace TickZoom.Api
 		    lastTryReadCount = tryReadCounter;
 		    lastReceiveCount = receiveCounter;
 		    lastSendCount = sendCounter;
-		    lastRoundRobinCount = roundRobinCounter;
-		    lastEarliestCount = earliestCounter;
 		    lastSimulatorCount = simulator;
 			latencyLogLocker.Lock();
 			AddLatency(ref entry);
