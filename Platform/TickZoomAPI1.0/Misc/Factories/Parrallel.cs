@@ -169,5 +169,7 @@ namespace TickZoom.Api
         EventQueue EventQueue(string name);
 
 	    void Release();
+	    Provider SpawnProvider( Type typeToSpawn, params object[] args);
+        Receiver SpawnReceiver(Type typeToSpawn, params object[] args);
 	}
 }

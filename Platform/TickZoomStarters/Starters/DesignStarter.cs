@@ -58,159 +58,176 @@ using TickZoom.Api;
 
 namespace TickZoom.Starters
 {
-	/// <summary>
-	/// This starter is use by the GUI to initialize model for
-	/// browsing of properties.
-	/// </summary>
-	public class DesignStarter : StarterCommon
-	{
-		Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-		TickEngine engine;
-   		
-		public DesignStarter()
-		{
-		} 
-		
-		bool CancelPending {
-			get { if( BackgroundWorker != null) {
-					return BackgroundWorker.CancellationPending;
-				} else {
-					return false;
-				}
-			}
-		}
+    /// <summary>
+    /// This starter is use by the GUI to initialize model for
+    /// browsing of properties.
+    /// </summary>
+    public class DesignStarter : StarterCommon
+    {
+        Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        TickEngine engine;
 
-		public override void Run(ModelInterface model)
-		{
-            Factory.Parallel.SetMode(parallelMode);
-            Factory.SysLog.ResetConfiguration();
-			engine = Factory.Engine.TickEngine;
-			engine.MaxBarsBack = 2;
-			engine.MaxTicksBack = 2;
-			SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol("Design");
-			engine.SymbolInfo = new SymbolInfo[] { symbolInfo };
-			engine.Providers = SetupProviders(false,false);
-			engine.IntervalDefault = ProjectProperties.Starter.IntervalDefault;
-			engine.RunMode = RunMode.Historical;
-			engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
-	
-			if(CancelPending) return;
-			
-			engine.Model = model;
-			
-			engine.QueueTask();
-			engine.WaitTask();
-		}
-		
-		public override void Wait() {
-			engine.WaitTask();
-		}
-		
-		public override Provider[] SetupProviders(bool quietMode, bool singleLoad) {
-			return new Provider[] { new DesignProvider() };
-		}
-	}
-
-	public class DesignProvider : Provider {
-		private object taskLocker = new object();
- 		private volatile bool isDisposed = false;
-		
-		public void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail)
-		{
-		    var tickPool = Factory.Parallel.TickPool(symbol);
-			TickIO tickIO = Factory.TickUtil.TickIO();
-			tickIO.Initialize();
-			tickIO.SetSymbol( symbol.BinaryIdentifier);
-			tickIO.SetTime( new TimeStamp(2000,1,1));
-			tickIO.SetQuote(100D, 100D);
-		    var queue = receiver.GetQueue(symbol);
-		    var item = new EventItem(symbol, (int) EventType.StartHistorical);
-		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
-			var binaryBox = tickPool.Create();
-		    var tickId = binaryBox.TickBinary.Id;
-			binaryBox.TickBinary = tickIO.Extract();
-		    binaryBox.TickBinary.Id = tickId;
-            item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
-			tickIO.Initialize();
-			tickIO.SetSymbol( symbol.BinaryIdentifier);
-			tickIO.SetTime( new TimeStamp(2000,1,2));
-			tickIO.SetQuote(101D, 101D);
-			binaryBox = tickPool.Create();
-            tickId = binaryBox.TickBinary.Id;
-            binaryBox.TickBinary = tickIO.Extract();
-            binaryBox.TickBinary.Id = tickId;
-            item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
-            item = new EventItem(symbol, (int)EventType.EndHistorical);
-		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
-		}
-		
-		public void StopSymbol(Receiver receiver, SymbolInfo symbol)
-		{
-		}
-
-	    public void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
-	    {
-	        throw new NotImplementedException();
-	    }
-
-	    public void Signal(Receiver receiver, string symbol, double signal)
-		{
-		}
-
-        public void Start(Receiver receiver)
-		{
-		}
-		
-		public void Stop(Receiver receiver)
-		{
-		}
-
-        private volatile bool isFinalized;
-        public bool IsFinalized
+        public DesignStarter()
         {
-            get { return isFinalized; }
         }
 
-        public void Dispose() 
-	    {
-	        Dispose(true);
-	        GC.SuppressFinalize(this);      
-	    }
-	
-	    protected virtual void Dispose(bool disposing)
-	    {
-       		if( !isDisposed) {
-	            isDisposed = true;
-       		    isFinalized = true;
-       		}
-	    }
-	    
-		public void SendEvent( Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail) {
-			switch( (EventType) eventType) {
-				case EventType.Connect:
-					Start(receiver);
-					break;
-				case EventType.Disconnect:
-					Stop(receiver);
-					break;
-				case EventType.StartSymbol:
-					StartSymbol(receiver, symbol, eventDetail);
-					break;
-				case EventType.StopSymbol:
-					StopSymbol(receiver,(SymbolInfo)eventDetail);
-					break;
-				case EventType.PositionChange:
-					PositionChangeDetail positionChange = (PositionChangeDetail) eventDetail;
-					PositionChange(receiver,symbol,positionChange.Position,positionChange.Orders);
-					break;
-				case EventType.Terminate:
-					Dispose();
-					break;
-				default:
-					throw new ApplicationException("Unexpected event type: " + (EventType) eventType);
-			}
-		}
-	}
+        bool CancelPending
+        {
+            get
+            {
+                if (BackgroundWorker != null)
+                {
+                    return BackgroundWorker.CancellationPending;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+
+        public override void Run(ModelInterface model)
+        {
+            Factory.Parallel.SetMode(parallelMode);
+            Factory.SysLog.ResetConfiguration();
+            engine = Factory.Engine.TickEngine;
+            engine.MaxBarsBack = 2;
+            engine.MaxTicksBack = 2;
+            SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol("Design");
+            engine.SymbolInfo = new SymbolInfo[] { symbolInfo };
+            engine.Providers = SetupProviders(false, false);
+            engine.IntervalDefault = ProjectProperties.Starter.IntervalDefault;
+            engine.RunMode = RunMode.Historical;
+            engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
+
+            if (CancelPending) return;
+
+            engine.Model = model;
+
+            engine.QueueTask();
+            engine.WaitTask();
+        }
+
+        public override void Wait()
+        {
+            engine.WaitTask();
+        }
+
+        public override Provider[] SetupProviders(bool quietMode, bool singleLoad)
+        {
+            return new Provider[] { Factory.Parallel.SpawnProvider(typeof(DesignProvider)) };
+        }
+
+
+        public class DesignProvider : Provider
+        {
+            private volatile bool isDisposed = false;
+
+            private DesignProvider()
+            {
+
+            }
+
+            public void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail)
+            {
+                var tickPool = Factory.Parallel.TickPool(symbol);
+                TickIO tickIO = Factory.TickUtil.TickIO();
+                tickIO.Initialize();
+                tickIO.SetSymbol(symbol.BinaryIdentifier);
+                tickIO.SetTime(new TimeStamp(2000, 1, 1));
+                tickIO.SetQuote(100D, 100D);
+                var queue = receiver.GetQueue(symbol);
+                var item = new EventItem(symbol, (int)EventType.StartHistorical);
+                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                var binaryBox = tickPool.Create();
+                var tickId = binaryBox.TickBinary.Id;
+                binaryBox.TickBinary = tickIO.Extract();
+                binaryBox.TickBinary.Id = tickId;
+                item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
+                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                tickIO.Initialize();
+                tickIO.SetSymbol(symbol.BinaryIdentifier);
+                tickIO.SetTime(new TimeStamp(2000, 1, 2));
+                tickIO.SetQuote(101D, 101D);
+                binaryBox = tickPool.Create();
+                tickId = binaryBox.TickBinary.Id;
+                binaryBox.TickBinary = tickIO.Extract();
+                binaryBox.TickBinary.Id = tickId;
+                item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
+                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                item = new EventItem(symbol, (int)EventType.EndHistorical);
+                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+            }
+
+            public void StopSymbol(Receiver receiver, SymbolInfo symbol)
+            {
+            }
+
+            public void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Signal(Receiver receiver, string symbol, double signal)
+            {
+            }
+
+            public void Start(Receiver receiver)
+            {
+            }
+
+            public void Stop(Receiver receiver)
+            {
+            }
+
+            private volatile bool isFinalized;
+            public bool IsFinalized
+            {
+                get { return isFinalized; }
+            }
+
+            public void Dispose()
+            {
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+
+            protected virtual void Dispose(bool disposing)
+            {
+                if (!isDisposed)
+                {
+                    isDisposed = true;
+                    isFinalized = true;
+                }
+            }
+
+            public void SendEvent(Receiver receiver, SymbolInfo symbol, int eventType, object eventDetail)
+            {
+                switch ((EventType)eventType)
+                {
+                    case EventType.Connect:
+                        Start(receiver);
+                        break;
+                    case EventType.Disconnect:
+                        Stop(receiver);
+                        break;
+                    case EventType.StartSymbol:
+                        StartSymbol(receiver, symbol, eventDetail);
+                        break;
+                    case EventType.StopSymbol:
+                        StopSymbol(receiver, (SymbolInfo)eventDetail);
+                        break;
+                    case EventType.PositionChange:
+                        PositionChangeDetail positionChange = (PositionChangeDetail)eventDetail;
+                        PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders);
+                        break;
+                    case EventType.Terminate:
+                        Dispose();
+                        break;
+                    default:
+                        throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
+                }
+            }
+        }
+    }
 }
