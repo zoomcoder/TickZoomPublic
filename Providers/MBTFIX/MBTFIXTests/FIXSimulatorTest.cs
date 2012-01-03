@@ -75,7 +75,7 @@ namespace Test
 		
 		public override Provider ProviderFactory()
 		{
-			return new MBTProvider("Simulate");
+            return Factory.Parallel.SpawnProvider(typeof(MBTProvider), "Simulate");
 		}		
 	}
 }

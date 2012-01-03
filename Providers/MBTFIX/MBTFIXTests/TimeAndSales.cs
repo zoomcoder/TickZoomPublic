@@ -49,7 +49,7 @@ namespace Test
 		
 		public override Provider ProviderFactory()
 		{
-			return new MBTProvider("EquityDemo");
+			return Factory.Parallel.SpawnProvider(typeof(MBTProvider),"EquityDemo");
 		}
 	}
 }

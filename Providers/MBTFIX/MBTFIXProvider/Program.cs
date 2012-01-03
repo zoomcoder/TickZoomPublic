@@ -39,7 +39,7 @@ namespace TickZoom.MBTFIX
 			try {
 				Console.WriteLine( "Command line: " + string.Join(" ",args));
 				ServiceConnection connection = Factory.Provider.ConnectionManager();
-				connection.OnCreateProvider = () => new MBTProvider(connection.Config);
+				connection.OnCreateProvider = () => Factory.Parallel.SpawnProvider(typeof(MBTProvider),connection.Config);
 				if( args.Length > 0 ) {
 					// Connection port provided on command line.
 					ProviderService commandLine = Factory.Utility.CommandLineProcess();
