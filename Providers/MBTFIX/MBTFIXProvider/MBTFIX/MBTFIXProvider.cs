@@ -75,7 +75,7 @@ namespace TickZoom.MBTFIX
         }
         private string fixDestination = "MBT";
 
-        public MBTFIXProvider(string name) : base( name)
+        private MBTFIXProvider(string name) : base( name)
 		{
             log.Register(this);
 			log.Notice("Using config file name: " + name);

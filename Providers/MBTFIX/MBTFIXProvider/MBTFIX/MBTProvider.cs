@@ -38,11 +38,11 @@ namespace TickZoom.MBTFIX
 	{
 	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (MBTProvider));
 	    private static readonly bool debug = log.IsDebugEnabled;
-		private MBTFIXProvider fixProvider;
+		private Provider fixProvider;
 		private MBTQuotesProvider quotesProvider;
 		
 		public MBTProvider(string configName) {
-			fixProvider = new MBTFIXProvider(configName);
+			fixProvider = Factory.Parallel.SpawnProvider(typeof(MBTFIXProvider),configName);
 			quotesProvider = new MBTQuotesProvider(configName);
 		}
 
@@ -95,26 +95,6 @@ namespace TickZoom.MBTFIX
 	            }
     		}
 	    }
-		
-		public bool OnChangeBrokerOrder(CreateOrChangeOrder order)
-		{
-			return fixProvider.OnChangeBrokerOrder(order);
-		}
-		
-		public bool OnCreateBrokerOrder(CreateOrChangeOrder order)
-		{
-			return fixProvider.OnCreateBrokerOrder(order);
-		}
-
-        public int ProcessOrders()
-        {
-            return 0;
-        }
-		
-		public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
-		{
-			return fixProvider.OnCancelBrokerOrder(order);
-		}
 		
 	}
 }
