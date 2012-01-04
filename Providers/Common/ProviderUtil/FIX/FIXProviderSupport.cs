@@ -92,6 +92,11 @@ namespace TickZoom.FIX
 			get { return useLocalFillTime; }
 		}
 
+        public Receiver GetReceiver()
+        {
+            throw new NotImplementedException();
+        }
+
         public void DumpHistory()
         {
             for( var i = 0; i<=fixFactory.LastSequence; i++)

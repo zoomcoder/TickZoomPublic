@@ -58,7 +58,6 @@ namespace TickZoom.Common
         private TimeStamp time;
 	    private int diagnoseMetric = Diagnose.RegisterMetric("Symbol Handler");
         private long tickCount = 0L;
-        private ReceiveEventQueue outboundQueue;
         
         
 		public void Start()
@@ -79,7 +78,6 @@ namespace TickZoom.Common
 		public SymbolHandlerDefault(SymbolInfo symbol, Receiver receiver) {
         	this.symbol = symbol;
 			this.receiver = receiver;
-		    this.outboundQueue = receiver.GetQueue(symbol);
 			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
 			this.salesLatency = new LatencyMetric( "SymbolHandler-Trade-" + symbol.Symbol.StripInvalidPathChars());
             tickPool =  Factory.Parallel.TickPool(symbol);
@@ -111,7 +109,7 @@ namespace TickZoom.Common
 					    box.TickBinary.Id = tickId;
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
 					    var eventItem = new EventItem(symbol,(int) EventType.Tick,box);
-					    outboundQueue.Enqueue(eventItem, box.TickBinary.UtcTime);
+					    receiver.SendEvent(eventItem, box.TickBinary.UtcTime);
 					    Interlocked.Increment(ref tickCount);
                         if( Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
 						if( trace) log.Trace("Sent quote for " + Symbol + ": " + tickIO);
@@ -197,7 +195,7 @@ namespace TickZoom.Common
             }
             salesLatency.TryUpdate(box.TickBinary.Symbol, box.TickBinary.UtcTime);
             var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
-            outboundQueue.Enqueue(eventItem, box.TickBinary.UtcTime);
+            receiver.SendEvent(eventItem, box.TickBinary.UtcTime);
             Interlocked.Increment(ref tickCount);
             if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
             if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);
@@ -251,7 +249,7 @@ namespace TickZoom.Common
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
                 var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
-			    outboundQueue.Enqueue(eventItem, box.TickBinary.UtcTime);
+                receiver.SendEvent(eventItem, box.TickBinary.UtcTime);
                 Interlocked.Increment(ref tickCount);
                 if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
                 if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);

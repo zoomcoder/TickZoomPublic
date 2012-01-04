@@ -29,6 +29,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using TickZoom.Api;
+using TickZoom.TickUtil;
 
 namespace TickZoom.FIX
 {
@@ -45,7 +46,7 @@ namespace TickZoom.FIX
             verbose = log.IsVerboseEnabled;
         }
         private FillSimulator fillSimulator;
-		private TickReader reader;
+		private TickFile reader;
 		private Action<Message,SymbolInfo,Tick> onTick;
 		private Task queueTask;
 		private TickSync tickSync;
@@ -56,7 +57,6 @@ namespace TickZoom.FIX
 		private LatencyMetric latency;
 		private long tickCounter = 0;
 	    private int diagnoseMetric;
-        private int initialCount;
         private bool alreadyEmpty = false;
         private TickIO currentTick = Factory.TickUtil.TickIO();
 	
@@ -75,16 +75,14 @@ namespace TickZoom.FIX
             tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
             latency = new LatencyMetric("SimulateSymbolSyncTicks-" + symbolString.StripInvalidPathChars());
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");
-            reader = Factory.TickUtil.TickReader();
+            reader = new TickFile();
             try
             {
-                reader.Initialize("Test\\MockProviderData", symbolString);
+                reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
                 queueTask = Factory.Parallel.Loop("SimulateSymbolSyncTicks-" + symbolString, OnException, ProcessQueue);
                 queueTask.Scheduler = Scheduler.EarliestTime;
-                reader.ReadQueue.ConnectInbound(queueTask);
                 fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
                 queueTask.Start();
-                initialCount = reader.ReadQueue.Count;
                 tickSync.ChangeCallBack = TickSyncChangedEvent;
             }
            catch( FileNotFoundException ex)
@@ -145,51 +143,35 @@ namespace TickZoom.FIX
 		private Yield DequeueTick() {
             LatencyManager.IncrementSymbolHandler();
             var result = Yield.NoWork.Repeat;
-			var binary = new TickBinary();
 			
-			try {
-                if( !alreadyEmpty && reader.ReadQueue.Count == 0)
+            alreadyEmpty = false;
+			tickCounter++;
+            if( isFirstTick)
+            {
+                if (!reader.TryReadTick(currentTick))
                 {
-                    alreadyEmpty = true;
-                    var sb = new StringBuilder();
-                    log.Info("Simulator found empty read queue at tick " + tickCounter + ", initial count " + initialCount + ". Recent counts:");
-                    if( trace) log.Trace("Recent counts:\n"+sb);
+                    return result;
                 }
-			    reader.ReadQueue.Peek(ref binary);
-			    if( Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref binary);
-                alreadyEmpty = false;
-				tickCounter++;
-                if( isFirstTick)
+            }
+            else
+            {
+                currentTick.Inject(nextTick.Extract());
+                if (!reader.TryReadTick(nextTick))
                 {
-                    currentTick.Inject(binary);
+                    return result;
                 }
-                else
-                {
-                    currentTick.Inject(nextTick.Extract());
-                }
-                isFirstTick = false;
-                FillSimulator.StartTick(currentTick);
-                nextTick.Inject(binary);
-                tickSync.AddTick(nextTick);
-		   		if( isFirstTick) {
-				   	FillSimulator.StartTick( nextTick);
-			   		isFirstTick = false;
-			   	} else { 
-			   		FillSimulator.ProcessOrders();
-			   	}
-			   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
-			   	result = Yield.DidWork.Invoke(ProcessOnTickCallBack);
-			} catch( QueueException ex) {
-                switch( ex.EntryType)
-                {
-                    case EventType.StartHistorical:
-                    case EventType.EndHistorical:
-                        break;
-                    default:
-                        throw;
-                }
-			}
-			return result;
+            }
+            isFirstTick = false;
+            FillSimulator.StartTick(currentTick);
+            tickSync.AddTick(nextTick);
+	   		if( isFirstTick) {
+			   	FillSimulator.StartTick( nextTick);
+		   		isFirstTick = false;
+		   	} else { 
+		   		FillSimulator.ProcessOrders();
+		   	}
+		   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
+		   	return Yield.DidWork.Invoke(ProcessOnTickCallBack);
 		}
 		
 		private Message quoteMessage;
@@ -214,8 +196,6 @@ namespace TickZoom.FIX
 		    fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
             quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
-            var binary = default(TickBinary);
-            reader.ReadQueue.Dequeue(ref binary);
             queueTask.Pause();
             TickSyncChangedEvent();            
 		    return Yield.DidWork.Return;

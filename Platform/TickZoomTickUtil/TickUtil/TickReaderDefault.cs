@@ -45,18 +45,17 @@ namespace TickZoom.TickUtil
 		TimeStamp endTime = TimeStamp.MaxValue;
 		double startDouble = double.MinValue;
 		double endDouble = double.MaxValue;
-		DataReceiverDefault receiverInternal;
 
 		public TickQueue ReadQueue {
 			get {
-				if (receiverInternal == null) {
-					if (debug)
-						log.Debug("ReadQueue was called. Setting up internal data receiver.");
-					receiverInternal = new DataReceiverDefault(this,Symbol);
-				}
-				return receiverInternal.ReadQueue;
+                throw new NotImplementedException();
 			}
 		}
+
+        public Receiver GetReceiver()
+        {
+            throw new NotImplementedException();
+        }
 
 		public override sealed bool IsAtEnd(TickBinary tick)
 		{

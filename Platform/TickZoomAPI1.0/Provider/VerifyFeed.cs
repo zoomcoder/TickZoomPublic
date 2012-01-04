@@ -30,7 +30,7 @@ using System.Collections.Generic;
 namespace TickZoom.Api
 {
 	[CLSCompliant(false)]
-	public interface VerifyFeed : Receiver, IDisposable
+	public interface VerifyFeed : IDisposable
 	{
 		long VerifyEvent(Action<SymbolInfo, int, object> assertEvent, int timeout);
 		long Verify(Action<TickIO, TickIO, long> assertTick, int timeout);
@@ -49,6 +49,7 @@ namespace TickZoom.Api
 		bool KeepReceived { get; set; }
 		List<TickBinary> GetReceived();
 		int PauseSeconds { get; set; }
+	    Task Task { get; }
 	    void Clear();
 	}
 }

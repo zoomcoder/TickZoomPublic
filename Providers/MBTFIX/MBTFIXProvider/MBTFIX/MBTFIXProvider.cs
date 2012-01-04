@@ -49,7 +49,6 @@ namespace TickZoom.MBTFIX
         {
             public bool IsBrokerStarted;
             public OrderAlgorithm OrderAlgorithm;
-            public ReceiveEventQueue Queue;
         }
 
         public override void RefreshLogLevel()
@@ -135,7 +134,7 @@ namespace TickZoom.MBTFIX
                 if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
                 {
                     var item = new EventItem(symbol, (int)type);
-                    algorithm.Queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                    receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
                 }
                 else
                 {
@@ -161,23 +160,8 @@ namespace TickZoom.MBTFIX
                         if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
                         continue;
                     }
-				    var queue = algorithm.Queue;
 			        var item = new EventItem(symbol, (int)EventType.EndBroker);
-                    try
-                    {
-                        queue.Enqueue(item, TimeStamp.UtcNow.Internal);
-                    }
-                    catch( QueueException ex )
-                    {
-                        if( ex.EntryType == EventType.Terminate)
-                        {
-                            log.Warn("Queue was already terminated.");
-                        }
-                        else
-                        {
-                            throw;
-                        }
-                    }
+                    receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
 				    algorithm.IsBrokerStarted = false;
 				}
 			}
@@ -1102,9 +1086,8 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Broker offline but sending fill anyway for " + symbol + " to receiver: " + fill);
             }
 		    if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
-		    var queue = symbolAlgorithm.Queue;
             var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
-            queue.Enqueue(item, fill.UtcTime.Internal);
+            receiver.SendEvent(item, fill.UtcTime.Internal);
 		}
 
 		public void RejectOrder( MessageFIX4_4 packetFIX)
@@ -1432,24 +1415,11 @@ namespace TickZoom.MBTFIX
                 if (!orderAlgorithms.TryGetValue(symbol, out symbolAlgorithm))
                 {
                     var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-                    ReceiveEventQueue queue = null;
-                    try
-                    {
-                        queue = receiver.GetQueue(symbolInfo);
-                    }
-                    catch( ApplicationException ex)
-                    {
-                        log.Warn("Skipping " + symbolInfo + " because " + ex.Message);
-                    }
-                    if( queue != null)
-                    {
-                        var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
-                        var algorithm = Factory.Utility.OrderAlgorithm("mbtfix", symbolInfo, this, orderCache, OrderStore);
-                        symbolAlgorithm = new SymbolAlgorithm { OrderAlgorithm = algorithm };
-                        symbolAlgorithm.Queue = queue;
-                        orderAlgorithms.Add(symbol, symbolAlgorithm);
-                        algorithm.OnProcessFill = ProcessFill;
-                    }
+                    var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
+                    var algorithm = Factory.Utility.OrderAlgorithm("mbtfix", symbolInfo, this, orderCache, OrderStore);
+                    symbolAlgorithm = new SymbolAlgorithm { OrderAlgorithm = algorithm };
+                    orderAlgorithms.Add(symbol, symbolAlgorithm);
+                    algorithm.OnProcessFill = ProcessFill;
 				}
 			}
 			return symbolAlgorithm;

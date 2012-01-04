@@ -38,9 +38,10 @@ namespace TickZoom.Api
 		
 	}
 	
-	public interface Provider : IDisposable
+	public interface Provider : Agent, IDisposable
 	{
 		void SendEvent(EventItem eventItem);
 	    bool IsFinalized { get; }
+	    Receiver GetReceiver();
 	}
 }

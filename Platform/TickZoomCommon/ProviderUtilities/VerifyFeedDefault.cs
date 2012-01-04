@@ -33,7 +33,7 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-	public class VerifyFeedDefault : Receiver, VerifyFeed, IDisposable
+	public class VerifyFeedDefault : VerifyFeed
 	{
         private static readonly Log log = Factory.SysLog.GetLogger(typeof(VerifyFeedDefault));
 		private readonly bool debug = log.IsDebugEnabled;
@@ -444,9 +444,9 @@ namespace TickZoom.Common
 			count = 0;
 			countLog = 0;
 			task = Factory.Parallel.Loop(this, OnException, TimeTheFeedTask);
-		    task.Scheduler = Scheduler.EarliestTime;
-            queue.ConnectInbound(task);
-			task.Start();
+		    Task.Scheduler = Scheduler.EarliestTime;
+            queue.ConnectInbound(Task);
+			Task.Start();
 		}
 		
 		private Exception propagateException = null;
@@ -555,9 +555,9 @@ namespace TickZoom.Common
 	    		lock( taskLocker) {
 		            isDisposed = true;   
 		            if (disposing) {
-		            	if( task != null) {
-			            	task.Stop();
-			            	task.Join();
+		            	if( Task != null) {
+			            	Task.Stop();
+			            	Task.Join();
 							queue.Dispose();
 		            	}
 		            }
@@ -598,6 +598,11 @@ namespace TickZoom.Common
 			set { pauseSeconds = value; }
 		}
 
+	    public Task Task
+	    {
+	        get { return task; }
+	    }
+
 	    public void Clear()
 	    {
             if( queue != null)
@@ -629,29 +634,9 @@ namespace TickZoom.Common
             symbolState = SymbolState.None;
         }
 
-	    public ReceiveEventQueue GetQueue( SymbolInfo symbol)
-	    {
-            if (debug) log.Debug("GetQueue for " + symbol);
-            if (symbol.BinaryIdentifier != this.symbol.BinaryIdentifier)
-	        {
-	            throw new ApplicationException("Requested " + symbol + " but expected " + this.symbol);
-	        }
-	        return queue;
-	    }
-
-        public ReceiveEventQueue GetQueue()
-        {
-            throw new NotImplementedException();
-        }
-
-        #region Receiver Members
-
-
         public bool IsFinalized()
         {
             throw new NotImplementedException();
         }
-
-        #endregion
     }
 }

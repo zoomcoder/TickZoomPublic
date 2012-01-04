@@ -46,7 +46,12 @@ namespace TickZoom.MBTFIX
 			quotesProvider = Factory.Parallel.SpawnProvider(typeof(MBTQuotesProvider),configName);
 		}
 
-	    public bool IsFinalized
+        public Receiver GetReceiver()
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool IsFinalized
 	    {
 	        get { return fixProvider.IsFinalized && quotesProvider.IsFinalized && isFinalized; }
 	    }

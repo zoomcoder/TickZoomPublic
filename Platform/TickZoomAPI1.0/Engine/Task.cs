@@ -41,7 +41,16 @@ namespace TickZoom.Api
         Outbound
     }
 
-    public interface Task
+    public interface QueueFilter
+    {
+        bool Receive(out EventItem eventItem);
+        void IncludeTypes( params int[] includes);
+        void ExcludeTypes( params int[] excludes);
+        bool CanReceive { get; }
+        void Pop();
+    }
+
+    public interface Task : Receiver
     {
 		void Start();
 		void Stop();
@@ -83,5 +92,5 @@ namespace TickZoom.Api
         void IncreaseOutbound(int id);
         void DecreaseOutbound(int id);
 	    unsafe void ConnectOutbound(Queue queue, out int outboundId);
-	}
+    }
 }

@@ -87,8 +87,14 @@ namespace TickZoom.MBTQuotes
             string logRecoveryString = Factory.Settings["LogRecovery"];
             logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
         }
-		
-		private void RegenerateSocket() {
+
+        public Receiver GetReceiver()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void RegenerateSocket()
+        {
 			Socket old = socket;
 			if( socket != null) {
 				socket.Dispose();

@@ -385,9 +385,8 @@ namespace TickZoom.MBTQuotes
                 }
             }
 
-            var queue = receiver.GetQueue(symbol);
 		    var item = new EventItem(symbol, (int) EventType.StartRealTime);
-		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+		    receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
 		}
 		
 		public override void OnStopSymbol(SymbolInfo symbol)
@@ -398,9 +397,8 @@ namespace TickZoom.MBTQuotes
 		private void RequestStopSymbol(SymbolInfo symbol) {
        		SymbolHandler buffer = symbolHandlers[symbol.BinaryIdentifier];
        		buffer.Stop();
-            var queue = receiver.GetQueue(symbol);
             var item = new EventItem(symbol, (int)EventType.EndRealTime);
-		    queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+            receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
 		}
 		
 		
@@ -413,7 +411,6 @@ namespace TickZoom.MBTQuotes
 	        	} else {
 	    	    	symbolHandler = Factory.Utility.SymbolHandler(symbol,receiver);
 	    	    	symbolHandlers.Add(symbol.BinaryIdentifier,symbolHandler);
-                    receiver.GetQueue(symbol).ConnectOutbound(socketTask);
                     symbolHandler.Start();
 	        	}
 			}
@@ -432,7 +429,6 @@ namespace TickZoom.MBTQuotes
                 {
                     symbolHandler = Factory.Utility.SymbolHandler(symbol, receiver);
                     symbolOptionHandlers.Add(symbol.BinaryIdentifier, symbolHandler);
-                    receiver.GetQueue(symbol).ConnectOutbound(socketTask);
                     symbolHandler.Start();
                 }
             }

@@ -36,88 +36,15 @@ namespace TickZoom.Api
 	public interface AsyncReceiver : Receiver, AsyncHandler, IDisposable {
 	}
 
-    public struct EventItem
+    public interface Agent
     {
-        public Receiver Receiver;
-        public SymbolInfo Symbol;
-        public int EventType;
-        public object EventDetail;
-        public Provider Recipient;
-        public EventItem( SymbolInfo symbol, int eventType, object detail)
-        {
-            this.Receiver = null;
-            this.Symbol = symbol;
-            this.EventType = eventType;
-            this.EventDetail = detail;
-            this.Recipient = null;
-        }
-        public EventItem(SymbolInfo symbol, int eventType)
-        {
-            this.Receiver = null;
-            this.Symbol = symbol;
-            this.EventType = eventType;
-            this.EventDetail = null;
-            this.Recipient = null;
-        }
-        public EventItem(int eventType, object detail)
-        {
-            this.Receiver = null;
-            this.Symbol = null;
-            this.EventType = eventType;
-            this.EventDetail = detail;
-            this.Recipient = null;
-        }
-        public EventItem(int eventType)
-        {
-            this.Receiver = null;
-            this.Symbol = null;
-            this.EventType = eventType;
-            this.EventDetail = null;
-            this.Recipient = null;
-        }
-        public EventItem(Receiver receiver, SymbolInfo symbol, int eventType, object detail)
-        {
-            this.Receiver = receiver;
-            this.Symbol = symbol;
-            this.EventType = eventType;
-            this.EventDetail = detail;
-            this.Recipient = null;
-        }
-        public EventItem(Receiver receiver, SymbolInfo symbol, int eventType)
-        {
-            this.Receiver = receiver;
-            this.Symbol = symbol;
-            this.EventType = eventType;
-            this.EventDetail = null;
-            this.Recipient = null;
-        }
-        public EventItem(Receiver receiver, int eventType, object detail)
-        {
-            this.Receiver = receiver;
-            this.Symbol = null;
-            this.EventType = eventType;
-            this.EventDetail = detail;
-            this.Recipient = null;
-        }
-        public EventItem(Receiver receiver, int eventType)
-        {
-            this.Receiver = receiver;
-            this.Symbol = null;
-            this.EventType = eventType;
-            this.EventDetail = null;
-            this.Recipient = null;
-        }
-        public override string ToString()
-        {
-            return Symbol + " " + (EventType) EventType + " " + EventDetail;
-        }
+        
     }
 	
-	public interface Receiver : IDisposable
+	public interface Receiver : Agent, IDisposable
 	{
-        ReceiveEventQueue GetQueue();
-        ReceiveEventQueue GetQueue(SymbolInfo symbol);
-	    bool IsFinalized();
+        void SendEvent(EventItem eventItem, long utcTime);
+        bool IsFinalized();
 	}
 	
 	public interface Serializable {

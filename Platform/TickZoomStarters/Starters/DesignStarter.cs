@@ -128,6 +128,11 @@ namespace TickZoom.Starters
 
             }
 
+            public Receiver GetReceiver()
+            {
+                throw new NotImplementedException();
+            }
+
             public void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail)
             {
                 var tickPool = Factory.Parallel.TickPool(symbol);
@@ -136,15 +141,14 @@ namespace TickZoom.Starters
                 tickIO.SetSymbol(symbol.BinaryIdentifier);
                 tickIO.SetTime(new TimeStamp(2000, 1, 1));
                 tickIO.SetQuote(100D, 100D);
-                var queue = receiver.GetQueue(symbol);
                 var item = new EventItem(symbol, (int)EventType.StartHistorical);
-                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
                 var binaryBox = tickPool.Create();
                 var tickId = binaryBox.TickBinary.Id;
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
                 item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
                 tickIO.Initialize();
                 tickIO.SetSymbol(symbol.BinaryIdentifier);
                 tickIO.SetTime(new TimeStamp(2000, 1, 2));
@@ -154,9 +158,9 @@ namespace TickZoom.Starters
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
                 item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
                 item = new EventItem(symbol, (int)EventType.EndHistorical);
-                queue.Enqueue(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
             }
 
             public void StopSymbol(Receiver receiver, SymbolInfo symbol)

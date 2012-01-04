@@ -53,7 +53,6 @@ namespace TickZoom.TickUtil
 		private Pool<TickBinaryBox> tickBoxPool;
 		private TickBinaryBox box;
 	    private int diagnoseMetric;
-	    private ReceiveEventQueue outboundQueue;
 	    private TickFile tickFile;
 
 		public Reader()
@@ -108,16 +107,14 @@ namespace TickZoom.TickUtil
                 {
                     this.receiver = receiver;
                     var symbol = tickFile.Symbol;
-                    outboundQueue = receiver.GetQueue(symbol);
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader." + symbol.Symbol.StripInvalidPathChars());
                     fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
-                    fileReaderTask.Scheduler = Scheduler.EarliestTime;
+                    fileReaderTask.Scheduler = Scheduler.RoundRobin;
                     var tempQueue = Factory.Parallel.FastQueue<int>(symbol + " Reader Nominal Queue");
                     var tempConnectionId = 0;
                     fileReaderTask.ConnectInbound(tempQueue, out tempConnectionId);
-                    outboundQueue.ConnectOutbound(fileReaderTask);
                     fileReaderTask.IncreaseInbound(tempConnectionId,0L);
                     fileReaderTask.Start();
                     isStarted = true;
@@ -187,7 +184,6 @@ namespace TickZoom.TickUtil
 
 		private Yield FileReader()
 		{
-            if (outboundQueue.IsFull) return Yield.NoWork.Repeat;
 			lock (taskLocker) {
 				if (isDisposed)
 					return Yield.Terminate;
@@ -260,7 +256,7 @@ namespace TickZoom.TickUtil
         private Yield StartEvent()
 		{
 		    var item = new EventItem(tickFile.Symbol,(int) EventType.StartHistorical);
-            outboundQueue.Enqueue(item, TimeStamp.UtcNow.Internal);
+            receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
             LogInfo("Starting loading for " + tickFile.Symbol + " from " + tickIO.ToPosition());
 			box = tickBoxPool.Create();
 		    var tickId = box.TickBinary.Id;
@@ -275,24 +271,17 @@ namespace TickZoom.TickUtil
 			if( box == null) {
 				throw new ApplicationException("Box is null.");
 			}
-            try
-            {
-                var item = new EventItem(tickFile.Symbol, (int)EventType.Tick, box);
-                outboundQueue.Enqueue(item, box.TickBinary.UtcTime);
-                if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
-                box = null;
-                return Yield.DidWork.Return;
-            } catch( QueueException)
-            {
-                // receiver terminated.
-                return Yield.DidWork.Invoke(FinishTask);
-            }
+            var item = new EventItem(tickFile.Symbol, (int)EventType.Tick, box);
+            receiver.SendEvent(item, box.TickBinary.UtcTime);
+            if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
+            box = null;
+            return Yield.DidWork.Return;
 		}
 
 		private Yield SendFinish()
 		{
             var item = new EventItem(tickFile.Symbol, (int)EventType.EndHistorical);
-		    outboundQueue.Enqueue(item, TimeStamp.UtcNow.Internal);
+            receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
             if (debug) log.Debug("EndHistorical for " + tickFile.Symbol);
 			return Yield.DidWork.Invoke(FinishTask);
 		}
