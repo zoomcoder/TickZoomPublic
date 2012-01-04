@@ -144,7 +144,8 @@ namespace TickZoom.Interceptors
             }
             CreateBrokerOrder( order);
             if (confirmOrders != null) confirmOrders.ConfirmChange(order,true);
-		    return true;
+            UpdateCounts();
+            return true;
 		}
 
         public bool TryGetOrderById(string orderId, out CreateOrChangeOrder createOrChangeOrder)
@@ -242,6 +243,7 @@ namespace TickZoom.Interceptors
 			}
             CreateBrokerOrder(order);
             if (confirmOrders != null) confirmOrders.ConfirmCreate(order, true);
+            UpdateCounts();
 		    return true;
 		}
 		
@@ -265,7 +267,8 @@ namespace TickZoom.Interceptors
             }
 		    origOrder.ReplacedBy = order;
             if (confirmOrders != null) confirmOrders.ConfirmCancel(origOrder, true);
-		    return true;
+            UpdateCounts();
+            return true;
 		}
 
 		public int ProcessOrders() {
@@ -338,18 +341,30 @@ namespace TickZoom.Interceptors
 				throw new ApplicationException("Please set the Symbol property for the " + GetType().Name + ".");
 			}
             if( trace) log.Trace( "Orders: Market " + marketOrders.Count + ", Increase " + increaseOrders.Count + ", Decrease " + decreaseOrders.Count);
-			for( var node = marketOrders.First; node != null; node = node.Next) {
-				var order = node.Value;
-				OnProcessOrder(order, tick);
-			}
-			for( var node = increaseOrders.First; node != null; node = node.Next) {
-				var order = node.Value;
-				OnProcessOrder(order, tick);
-			}
-			for( var node = decreaseOrders.First; node != null; node = node.Next) {
-				var order = node.Value;
-				OnProcessOrder(order, tick);
-			}
+            if( marketOrderCount > 0)
+            {
+                for (var node = marketOrders.First; node != null; node = node.Next)
+                {
+                    var order = node.Value;
+                    OnProcessOrder(order, tick);
+                }
+            }
+            if( increaseOrderCount > 0)
+            {
+                for (var node = increaseOrders.First; node != null; node = node.Next)
+                {
+                    var order = node.Value;
+                    OnProcessOrder(order, tick);
+                }
+            }
+            if( decreaseOrderCount > 0)
+            {
+                for (var node = decreaseOrders.First; node != null; node = node.Next)
+                {
+                    var order = node.Value;
+                    OnProcessOrder(order, tick);
+                }
+            }
             if (onPhysicalFill == null)
             {
                 throw new ApplicationException("Please set the OnPhysicalFill property.");
@@ -388,7 +403,24 @@ namespace TickZoom.Interceptors
 			}
 		}
 
-		private void SortAdjust(CreateOrChangeOrder order) {
+	    private int decreaseOrderCount;
+        private int increaseOrderCount;
+        private int marketOrderCount;
+
+        private void UpdateCounts()
+        {
+            decreaseOrderCount = decreaseOrders.Count;
+            increaseOrderCount = increaseOrders.Count;
+            marketOrderCount = marketOrders.Count;
+        }
+
+        public int OrderCount
+        {
+            get { return decreaseOrderCount + increaseOrderCount + marketOrderCount; }
+        }
+
+        private void SortAdjust(CreateOrChangeOrder order)
+        {
 			switch( order.Type) {
 				case OrderType.BuyLimit:					
 				case OrderType.SellStop:
@@ -415,6 +447,7 @@ namespace TickZoom.Interceptors
 		
 		private void Adjust(ActiveList<CreateOrChangeOrder> list, CreateOrChangeOrder order) {
 			AssureNode(order);
+		    var addedOne = false;
 			var node = (ActiveListNode<CreateOrChangeOrder>) order.Reference;
 			if( node.List == null ) {
 				list.AddLast(node);
