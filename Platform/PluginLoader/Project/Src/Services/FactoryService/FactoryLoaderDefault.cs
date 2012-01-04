@@ -73,7 +73,12 @@ namespace TickZoom.Update
 			logMessage.Length = 0;
 		}
 
-		public object Load(Type type, string assemblyName, params object[] args)
+        public object Load(Type type, string assemblyName, params object[] args)
+        {
+            return LoadClass(type, null, assemblyName, args);
+        }
+
+        public object LoadClass(Type type, string className, string assemblyName, params object[] args)
 		{
 			ResetLog();
 			assemblyName = Path.GetFileNameWithoutExtension(assemblyName);
@@ -86,10 +91,10 @@ namespace TickZoom.Update
 			object obj = null;
 			try {
 				if (obj == null && !string.IsNullOrEmpty(currentDirectoryPath)) {
-					obj = Load(currentDirectoryPath, type, assemblyName, false, args);
+					obj = Load(currentDirectoryPath, type, className, assemblyName, false, args);
 				}
 				if (obj == null && !string.IsNullOrEmpty(currentDirectoryPath)) {
-					obj = Load(currentDirectoryPath, type, assemblyName, true, args);
+                    obj = Load(currentDirectoryPath, type, className, assemblyName, true, args);
 				}
 			} catch (Exception ex) {
 				// if not found in main bin folder, look in the update folder
@@ -160,9 +165,9 @@ namespace TickZoom.Update
 		    return path;
 		}
 
-		private object Load(string path, Type type, string partialName, bool runUpdate, params object[] args)
+		private object Load(string path, Type type, string className, string partialAssmblyName, bool runUpdate, params object[] args)
 		{
-			string internalName = partialName;
+			string internalName = partialAssmblyName;
 
 			LogMsg("Current version : " + currentVersion);
 
@@ -174,12 +179,12 @@ namespace TickZoom.Update
 				string autoUpdateFolder = appDataFolder + "\\AutoUpdate";
 
 				Directory.CreateDirectory(autoUpdateFolder);
-				allFiles.AddRange(Directory.GetFiles(autoUpdateFolder, partialName + "-" + currentVersion + ".dll", SearchOption.AllDirectories));
-				allFiles.AddRange(Directory.GetFiles(autoUpdateFolder, partialName + "-" + currentVersion + ".exe", SearchOption.AllDirectories));
+				allFiles.AddRange(Directory.GetFiles(autoUpdateFolder, partialAssmblyName + "-" + currentVersion + ".dll", SearchOption.AllDirectories));
+				allFiles.AddRange(Directory.GetFiles(autoUpdateFolder, partialAssmblyName + "-" + currentVersion + ".exe", SearchOption.AllDirectories));
 			}
 
-			allFiles.AddRange(Directory.GetFiles(path, partialName + ".dll", SearchOption.AllDirectories));
-			allFiles.AddRange(Directory.GetFiles(path, partialName + ".exe", SearchOption.AllDirectories));
+			allFiles.AddRange(Directory.GetFiles(path, partialAssmblyName + ".dll", SearchOption.AllDirectories));
+			allFiles.AddRange(Directory.GetFiles(path, partialAssmblyName + ".exe", SearchOption.AllDirectories));
 
 			LogMsg("Files being searched:");
 			for (int i = 0; i < allFiles.Count; i++) {
@@ -219,7 +224,7 @@ namespace TickZoom.Update
 					}
 					Assembly assembly = Assembly.LoadFrom(loadPath);
 
-					object obj = InstantiateObject(assembly, type, args);
+					object obj = InstantiateObject(assembly, type, className, args);
 					if (obj != null)
 						return obj;
 				} catch (ReflectionTypeLoadException ex) {
@@ -227,19 +232,23 @@ namespace TickZoom.Update
 					for (int i = 0; i < ex.LoaderExceptions.Length; i++) {
 						exceptions += ex.LoaderExceptions[i].Message + System.Environment.NewLine;
 					}
-					LogMsg(partialName + " load failed for '" + fullPath + "'.\n" + "This is probably due to a mismatch version. Skipping this one.\n" + "Further detail:\n" + exceptions + ex.ToString());
+					LogMsg(partialAssmblyName + " load failed for '" + fullPath + "'.\n" + "This is probably due to a mismatch version. Skipping this one.\n" + "Further detail:\n" + exceptions + ex.ToString());
 				} catch (Exception ex) {
-					LogMsg(partialName + " load unsuccessful for '" + fullPath + "'.\n" + "This is probably due to a mismatch version. Skipping this one.\n" + "Further detail: " + ex.Message);
+					LogMsg(partialAssmblyName + " load unsuccessful for '" + fullPath + "'.\n" + "This is probably due to a mismatch version. Skipping this one.\n" + "Further detail: " + ex.Message);
 				}
 			}
 			return null;
 		}
 
-		private object InstantiateObject(Assembly assembly, Type type, object[] args)
+		private object InstantiateObject(Assembly assembly, Type type, string className, object[] args)
 		{
 			foreach (Type t in assembly.GetTypes()) {
 				if (t.IsClass && !t.IsAbstract && !t.IsInterface) {
 					if (t.GetInterface(type.FullName) != null) {
+                        if( className != null && !t.FullName.Contains(className))
+                        {
+                            continue;
+                        }
 						var attributes = t.GetCustomAttributes(typeof(SkipDynamicLoadAttribute),false);
 						if( attributes.Length > 0) {
 							continue;
@@ -247,8 +256,24 @@ namespace TickZoom.Update
 						LogMsg("Found the interface: " + type.Name);
 						try {
 							LogMsg("Creating an instance with " + args.Length + " arguments.");
-							return Activator.CreateInstance(t, args);
-						} catch (MissingMethodException) {
+                            try
+                            {
+                                return Activator.CreateInstance(t, args);
+                            }
+                            catch( MissingMethodException)
+                            {
+                                var constructors = t.GetConstructors(BindingFlags.NonPublic | BindingFlags.Instance);
+                                foreach (var constructor in constructors)
+                                {
+                                    if (constructor.GetParameters().Length == args.Length)
+                                    {
+                                        return constructor.Invoke(args);
+                                    }
+                                }
+                            }
+                        }
+                        catch (MissingMethodException)
+                        {
 							errorCount++;
 							throw new ApplicationException("'" + t.Name + "' failed to load due to missing constructor.");
 						} catch (Exception ex) {

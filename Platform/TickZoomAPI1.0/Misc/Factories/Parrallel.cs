@@ -170,5 +170,6 @@ namespace TickZoom.Api
 
 	    void Release();
 	    Provider SpawnProvider( Type typeToSpawn, params object[] args);
-	}
+        Provider SpawnProvider( string assemblyName, string className, params object[] args);
+    }
 }

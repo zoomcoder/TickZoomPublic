@@ -132,11 +132,10 @@ namespace TickZoom.Starters
 			try {
 				List<Provider> senderList = new List<Provider>();
                 SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
-                for (int i = 0; i < symbols.Length; i++)
-                {
-                    var provider = Factory.Provider.RemoteProvider(address, (ushort)port);
-                    senderList.Add(provider);
-                }
+                var providerManager = Factory.Parallel.SpawnProvider("ProviderCommon", "ProviderManager", "Default");
+                providerManager.SendEvent(new EventItem((int)EventType.Initialize));
+                var provider = Factory.Parallel.SpawnProvider("ProviderCommon", "ClientManager", providerManager, "Local");
+                senderList.Add(provider);
 				return senderList.ToArray();
 			} catch( Exception ex) {
 				log.Error("Setup failed.", ex);

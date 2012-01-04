@@ -37,5 +37,6 @@ namespace TickZoom.Api
 	{
 	    bool AutoUpdate(BackgroundWorker bw);
 		object Load(Type type, string assemblyName, params object[] args);
+	    object LoadClass(Type type, string className, string assemblyName, params object[] args);
 	}
 }

@@ -52,50 +52,58 @@ namespace TickZoom.Starters
 		public override void Run(ModelInterface model)
 		{
             runMode = RunMode.RealTime;
-
-            SetupProviderServiceConfig();
-
-            switch (Address.ToLower())
+            try
             {
-				case "inprocess":
-			        {
-                        var service = Factory.Provider.ProviderService();
-                        if (Config != null)
-                        {
-                            service.SetConfig(Config);
-                        }
-                        try
-                        {
-                            service.OnStart();
-                            base.Run(model);
-                        }
-                        finally
-                        {
-                            service.OnStop();
-                            parallelMode = ParallelMode.Normal;
-                        }
-                    }
-                    break;
-                case "subprocess":
-			        {
-                        var service = Factory.Provider.Subprocess();
-                        service.ExecutableName = "TickZoomWarehouse.exe";
-                        service.AddArgument("--config WarehouseTest --run");
-                        service.TryStart();
-                        try
-                        {
-                            base.Run(model);
-                        }
-                        finally
-                        {
-                            service.TryKill();
-                            parallelMode = ParallelMode.Normal;
-                        }
-                    }
-                    break;
-                default:
-					break;
-			}
+                base.Run(model);
+            }
+            finally
+            {
+                parallelMode = ParallelMode.Normal;
+            }
+
+            //SetupProviderServiceConfig();
+
+            //switch (Address.ToLower())
+            //{
+            //    case "inprocess":
+            //        {
+            //            var service = Factory.Provider.ProviderService();
+            //            if (Config != null)
+            //            {
+            //                service.SetConfig(Config);
+            //            }
+            //            try
+            //            {
+            //                service.OnStart();
+            //                base.Run(model);
+            //            }
+            //            finally
+            //            {
+            //                service.OnStop();
+            //                parallelMode = ParallelMode.Normal;
+            //            }
+            //        }
+            //        break;
+            //    case "subprocess":
+            //        {
+            //            var service = Factory.Provider.Subprocess();
+            //            service.ExecutableName = "TickZoomWarehouse.exe";
+            //            service.AddArgument("--config WarehouseTest --run");
+            //            service.TryStart();
+            //            try
+            //            {
+            //                base.Run(model);
+            //            }
+            //            finally
+            //            {
+            //                service.TryKill();
+            //                parallelMode = ParallelMode.Normal;
+            //            }
+            //        }
+            //        break;
+            //    default:
+            //        break;
+            //}
 		}
 
 		public void SetupProviderServiceConfig()
