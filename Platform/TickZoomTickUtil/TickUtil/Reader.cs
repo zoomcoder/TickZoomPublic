@@ -188,6 +188,10 @@ namespace TickZoom.TickUtil
 				if (isDisposed)
 					return Yield.Terminate;
 				try {
+                    if (tickBoxPool.AllocatedCount > 1000)
+                    {
+                        return Yield.NoWork.Repeat;
+                    }
 					if (!CancelPending && tickFile.TryReadTick(tickIO)) {
 
 						tick = tickIO.Extract();

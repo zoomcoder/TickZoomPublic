@@ -35,7 +35,7 @@ namespace TickZoom.FIX
 	public class MessageFactoryFix44 : MessageFactory
 	{
 	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (MessageFactoryFix44));
-        private Pool<MessageFIX4_4> pool = Factory.Parallel.PoolChecked<MessageFIX4_4>();
+        private Pool<MessageFIX4_4> pool = Factory.Parallel.Pool<MessageFIX4_4>();
         public Message Create()
         {
             var message = pool.Create();
