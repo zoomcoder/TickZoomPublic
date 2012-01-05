@@ -49,7 +49,7 @@ namespace Loaders
 		
 		[TestFixtureSetUp]
 		public override void RunStrategy() {
-			CleanupFiles(null);
+			CleanupFiles(null, null);
 			StartGUIThread();
 			try {
 				Starter starter = CreateStarterCallback();

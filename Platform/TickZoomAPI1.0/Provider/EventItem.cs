@@ -18,6 +18,7 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public EventItem(SymbolInfo symbol, int eventType)
         {
             this.Receiver = null;
@@ -27,6 +28,7 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public EventItem(int eventType, object detail)
         {
             this.Receiver = null;
@@ -36,6 +38,7 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public EventItem(int eventType)
         {
             this.Receiver = null;
@@ -45,6 +48,7 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public EventItem(Receiver receiver, SymbolInfo symbol, int eventType, object detail)
         {
             this.Receiver = receiver;
@@ -54,6 +58,7 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public EventItem(Receiver receiver, SymbolInfo symbol, int eventType)
         {
             this.Receiver = receiver;
@@ -63,6 +68,7 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public EventItem(Receiver receiver, int eventType, object detail)
         {
             this.Receiver = receiver;
@@ -72,6 +78,7 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public EventItem(Receiver receiver, int eventType)
         {
             this.Receiver = receiver;
@@ -81,9 +88,11 @@
             this.Recipient = null;
             this.RecipientTask = null;
         }
+
         public override string ToString()
         {
-            var result = Symbol + " " + (EventType) EventType + " " + EventDetail;
+            var result = Receiver == null ? "" : Receiver.ToString();
+            result += Symbol + " " + (EventType) EventType + " " + EventDetail;
             if( Recipient != null)
             {
                 result += " " + Recipient;

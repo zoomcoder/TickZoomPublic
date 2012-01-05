@@ -196,7 +196,7 @@ namespace Loaders
         public virtual void RunStrategy() {
             log.Notice("Beginning RunStrategy()");
             StaticGlobal.Clear();
-            CleanupFiles(Symbols);
+            CleanupFiles(Symbols, null);
             StartGUIThread();
             // Clear tick syncs.
             foreach( var tickSync in SyncTicks.TickSyncs)
@@ -277,7 +277,7 @@ namespace Loaders
         //    CleanupFiles(null);
         //}
 		
-        public static void CleanupFiles(string symbols) {
+        public static void CleanupFiles(string symbols, string dummyArg) {
             CleanupServerCache(symbols);
             var appDataFolder = Factory.Settings["AppDataFolder"];
             var providersFolder = Path.Combine(appDataFolder,"Providers");

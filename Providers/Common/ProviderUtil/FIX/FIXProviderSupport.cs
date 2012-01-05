@@ -111,12 +111,13 @@ namespace TickZoom.FIX
 		public FIXProviderSupport(string name)
 		{
 		    this.name = name;
-		    this.providerName = GetType().Name;
-            log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport)+"."+providerName);
-		    log.Register(this);
+            configSection = name;
+            this.providerName = GetType().Name;
+            log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport) + "." + providerName);
+            log.Register(this);
             verbose = log.IsVerboseEnabled;
             debug = log.IsDebugEnabled;
-			trace = log.IsTraceEnabled;
+            trace = log.IsTraceEnabled;
         }
 
         public void Start(Receiver receiver)
@@ -147,8 +148,6 @@ namespace TickZoom.FIX
             }
             else
             {
-                configSection = name;
-                Initialize();
                 RegenerateSocket();
             }
         }
@@ -194,9 +193,9 @@ namespace TickZoom.FIX
             }
         }
 
-		protected void Initialize() {
+		private void Initialize() {
         	try { 
-				if( debug) log.Debug("> Initialize.");
+				if( debug) log.Debug("> SetupFolders.");
 				string appDataFolder = Factory.Settings["AppDataFolder"];
 				if( appDataFolder == null) {
 					throw new ApplicationException("Sorry, AppDataFolder must be set in the app.config file.");
@@ -1052,8 +1051,9 @@ namespace TickZoom.FIX
     		}
 	    }    
 	        
-		public void SendEvent( EventItem eventItem)
+		public bool SendEvent( EventItem eventItem)
 		{
+            var result = true;
 		    var receiver = eventItem.Receiver;
 		    var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
@@ -1062,6 +1062,9 @@ namespace TickZoom.FIX
             {
                 switch ((EventType)eventType)
                 {
+                    case EventType.Initialize:
+                        Initialize();
+                        break;
                     case EventType.Connect:
                         Start(receiver);
                         break;
@@ -1093,6 +1096,7 @@ namespace TickZoom.FIX
             {
                 OnException(ex);
             }
+		    return result;
 		}
 
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {

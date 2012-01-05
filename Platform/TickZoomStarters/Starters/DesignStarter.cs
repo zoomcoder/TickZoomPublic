@@ -205,8 +205,9 @@ namespace TickZoom.Starters
                 }
             }
 
-            public void SendEvent(EventItem eventItem)
+            public bool SendEvent(EventItem eventItem)
             {
+                var result = true;
                 var receiver = eventItem.Receiver;
                 var symbol = eventItem.Symbol;
                 var eventType = eventItem.EventType;
@@ -235,6 +236,7 @@ namespace TickZoom.Starters
                     default:
                         throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
                 }
+                return result;
             }
         }
     }

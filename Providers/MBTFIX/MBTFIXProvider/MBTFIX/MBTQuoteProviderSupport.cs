@@ -48,8 +48,13 @@ namespace TickZoom.MBTQuotes
             trace = log.IsTraceEnabled;
         }
         private static long nextConnectTime = 0L;
+        protected class SymbolReceiver
+        {
+            internal SymbolInfo Symbol;
+            internal Receiver Receiver;
+        }
 		protected readonly object symbolsRequestedLocker = new object();
-		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
+        protected Dictionary<long, SymbolReceiver> symbolsRequested = new Dictionary<long, SymbolReceiver>();
 		private Socket socket;
         protected Task socketTask;
 		private string failedFile;
@@ -445,7 +450,6 @@ namespace TickZoom.MBTQuotes
             currentTime.AddSeconds(1);
             taskTimer.Start(currentTime);
 
-            Initialize();
             RegenerateSocket();
             retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
             log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
@@ -455,31 +459,26 @@ namespace TickZoom.MBTQuotes
         	
         }
 	
-        public void StartSymbol(Receiver receiver, SymbolInfo symbol, StartSymbolDetail detail)
+        public void StartSymbol(EventItem eventItem)
         {
-        	log.Info("StartSymbol( " + symbol + ")");
-        	if( this.receiver != receiver) {
-        		throw new ApplicationException("Invalid receiver. Only one receiver allowed for " + this.GetType().Name);
-        	}
+        	log.Info("StartSymbol( " + eventItem.Symbol+ ")");
         	// This adds a new order handler.
-        	TryAddSymbol(symbol);
-        	OnStartSymbol(symbol);
+            TryAddSymbol(eventItem.Symbol, eventItem.Receiver);
+            OnStartSymbol(eventItem.Symbol, eventItem.Receiver);
         }
         
-        public abstract void OnStartSymbol( SymbolInfo symbol);
+        public abstract void OnStartSymbol( SymbolInfo symbol, Receiver symbolReceiver);
         
-        public void StopSymbol(Receiver receiver, SymbolInfo symbol)
+        public void StopSymbol(EventItem eventItem)
         {
-        	log.Info("StopSymbol( " + symbol + ")");
-        	if( this.receiver != receiver) {
-        		throw new ApplicationException("Invalid receiver. Only one receiver allowed for " + this.GetType().Name);
-        	}
-        	if( TryRemoveSymbol(symbol)) {
-        		OnStopSymbol(symbol);
+        	log.Info("StopSymbol( " + eventItem.Symbol + ")");
+            if (TryRemoveSymbol(eventItem.Symbol))
+            {
+                OnStopSymbol(eventItem.Symbol, eventItem.Receiver);
         	}
         }
         
-        public abstract void OnStopSymbol(SymbolInfo symbol);
+        public abstract void OnStopSymbol(SymbolInfo symbol, Receiver symbolReceiver);
 
 	    private bool alreadyLoggedSectionAndFile = false;
 	    private void LoadProperties(string configFilePath) {
@@ -579,10 +578,11 @@ namespace TickZoom.MBTQuotes
 			}
 		}
 		
-		private bool TryAddSymbol(SymbolInfo symbol) {
+		private bool TryAddSymbol(SymbolInfo symbol, Receiver symbolReceiver) {
 			lock( symbolsRequestedLocker) {
-				if( !symbolsRequested.ContainsKey(symbol.BinaryIdentifier)) {
-					symbolsRequested.Add(symbol.BinaryIdentifier,symbol);
+				if( !symbolsRequested.ContainsKey(symbol.BinaryIdentifier))
+				{
+				    symbolsRequested.Add(symbol.BinaryIdentifier, new SymbolReceiver {Symbol = symbol, Receiver = symbolReceiver});
 					return true;
 				}
 			}
@@ -643,19 +643,27 @@ namespace TickZoom.MBTQuotes
                         taskTimer.Dispose();
                         if (debug) log.Debug("Stopped task timer.");
                     }
+                    if( socketTask != null)
+                    {
+                        socketTask.Stop();
+                    }
 	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	            }
     		}
 	    }
 
-        public void SendEvent(EventItem eventItem)
+        public bool SendEvent(EventItem eventItem)
         {
+            var result = true;
             var receiver = eventItem.Receiver;
             var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
             var eventDetail = eventItem.EventDetail;
             switch ((EventType)eventType)
             {
+                case EventType.Initialize:
+                    Initialize();
+                    break;
 				case EventType.Connect:
 					Start(receiver);
 					break;
@@ -663,10 +671,10 @@ namespace TickZoom.MBTQuotes
 					Stop(receiver);
 					break;
 				case EventType.StartSymbol:
-					StartSymbol(receiver,symbol, (StartSymbolDetail) eventDetail);
+					StartSymbol(eventItem);
 					break;
 				case EventType.StopSymbol:
-					StopSymbol(receiver,symbol);
+					StopSymbol(eventItem);
 					break;
 				case EventType.PositionChange:
 					PositionChangeDetail positionChange = (PositionChangeDetail) eventDetail;
@@ -679,7 +687,8 @@ namespace TickZoom.MBTQuotes
 				default:
 					throw new ApplicationException("Unexpected event type: " + (EventType) eventType);
 			}
-		}
+            return result;
+        }
 		
 		public Socket Socket {
 			get { return socket; }

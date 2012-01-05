@@ -110,8 +110,9 @@ namespace TickZoom.TickUtil
 			throw new NotImplementedException();
 		}
 
-        public void SendEvent(EventItem eventItem)
+        public bool SendEvent(EventItem eventItem)
         {
+            var result = true;
             var receiver = eventItem.Receiver;
             var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
@@ -139,7 +140,8 @@ namespace TickZoom.TickUtil
 					break;
 				default:
 					throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
-			}
-		}
+            }
+            return result;
+        }
 	}
 }

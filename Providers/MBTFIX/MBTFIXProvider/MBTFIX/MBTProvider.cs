@@ -56,8 +56,9 @@ namespace TickZoom.MBTFIX
 	        get { return fixProvider.IsFinalized && quotesProvider.IsFinalized && isFinalized; }
 	    }
 
-        public void SendEvent(EventItem eventItem)
+        public bool SendEvent(EventItem eventItem)
         {
+            var result = false;
             var receiver = eventItem.Receiver;
             var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
@@ -65,7 +66,8 @@ namespace TickZoom.MBTFIX
             switch ((EventType)eventType)
             {
 				case EventType.PositionChange:
-					fixProvider.SendEvent(new EventItem(receiver,symbol,eventType,eventDetail));
+                    fixProvider.SendEvent(new EventItem(receiver, symbol, eventType, eventDetail));
+                    result = true;
 					break;
 				case EventType.StopSymbol:
 				case EventType.StartSymbol:
@@ -74,14 +76,17 @@ namespace TickZoom.MBTFIX
                 case EventType.RemoteShutdown:
                     quotesProvider.SendEvent(new EventItem(receiver, symbol, eventType, eventDetail));
                     fixProvider.SendEvent(new EventItem(receiver, symbol, eventType, eventDetail));
+                    result = true;
                     break;
                 case EventType.Terminate:
 					Dispose();
+                    result = true;
 					break; 
 				default:
 					throw new ApplicationException("Unexpected event type: " + (EventType) eventType);
 			}
-		}
+            return result;
+        }
 		
 	 	private volatile bool isDisposed;
 	    private bool isFinalized;

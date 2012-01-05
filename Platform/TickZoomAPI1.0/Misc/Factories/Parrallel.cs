@@ -127,7 +127,7 @@ namespace TickZoom.Api
 		bool Active { get; }
 	}
 	
-	public interface Parallel : ParallelStarter
+	public interface Parallel : ParallelStarter, IDisposable
 	{
 		void Yield();
 		void Sleep(int millis);
@@ -149,6 +149,7 @@ namespace TickZoom.Api
 	    int ThreadCount { get; }
 	    TimeStamp UtcNow { get; }
 	    bool IsWorkerThread { get; }
+	    bool IsFinalized { get; }
 	    void ReleaseIOTasks();
 	    void ExcuteAsync( Action asyncAction);
 	    void StackTrace();
@@ -171,5 +172,5 @@ namespace TickZoom.Api
 	    void Release();
 	    Provider SpawnProvider( Type typeToSpawn, params object[] args);
         Provider SpawnProvider( string assemblyName, string className, params object[] args);
-    }
+	}
 }

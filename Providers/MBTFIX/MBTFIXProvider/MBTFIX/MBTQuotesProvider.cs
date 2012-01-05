@@ -274,8 +274,8 @@ namespace TickZoom.MBTQuotes
 		private void SendStartRealTime() {
 			lock( symbolsRequestedLocker) {
 				foreach( var kvp in symbolsRequested) {
-					SymbolInfo symbol = kvp.Value;
-					RequestStartSymbol(symbol);
+					var symbol = kvp.Value;
+					RequestStartSymbol(symbol.Symbol,symbol.Receiver);
 				}
 			}
 		}
@@ -283,21 +283,21 @@ namespace TickZoom.MBTQuotes
 		private void SendEndRealTime() {
 			lock( symbolsRequestedLocker) {
 				foreach(var kvp in symbolsRequested) {
-					SymbolInfo symbol = kvp.Value;
-					RequestStopSymbol(symbol);
+					var symbol = kvp.Value;
+					RequestStopSymbol(symbol.Symbol,symbol.Receiver);
 				}
 			}
 		}
 		
-		public override void OnStartSymbol(SymbolInfo symbol)
+		public override void OnStartSymbol(SymbolInfo symbol, Receiver symbolReceiver)
 		{
 			if( IsRecovering || IsRecovered) {
-				RequestStartSymbol(symbol);
+				RequestStartSymbol(symbol, symbolReceiver);
 			}
 		}
 		
-		private void RequestStartSymbol(SymbolInfo symbol) {
-            StartSymbolHandler(symbol,receiver);
+		private void RequestStartSymbol(SymbolInfo symbol, Receiver symbolReceiver) {
+            StartSymbolHandler(symbol,symbolReceiver);
             if( symbol.OptionChain != OptionChain.None)
             {
                 StartSymbolOptionHandler(symbol, receiver);
@@ -389,16 +389,16 @@ namespace TickZoom.MBTQuotes
 		    receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
 		}
 		
-		public override void OnStopSymbol(SymbolInfo symbol)
+		public override void OnStopSymbol(SymbolInfo symbol, Receiver receiver)
 		{
-			RequestStopSymbol(symbol);
+			RequestStopSymbol(symbol,receiver);
 		}
 		
-		private void RequestStopSymbol(SymbolInfo symbol) {
-       		SymbolHandler buffer = symbolHandlers[symbol.BinaryIdentifier];
-       		buffer.Stop();
+		private void RequestStopSymbol(SymbolInfo symbol, Receiver symbolReceiver) {
+       		SymbolHandler handler = symbolHandlers[symbol.BinaryIdentifier];
+       		handler.Stop();
             var item = new EventItem(symbol, (int)EventType.EndRealTime);
-            receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+            symbolReceiver.SendEvent(item, TimeStamp.UtcNow.Internal);
 		}
 		
 		

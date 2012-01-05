@@ -80,7 +80,7 @@ namespace TickZoom.FIX
             {
                 reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
                 queueTask = Factory.Parallel.Loop("SimulateSymbolSyncTicks-" + symbolString, OnException, ProcessQueue);
-                queueTask.Scheduler = Scheduler.EarliestTime;
+                queueTask.Scheduler = Scheduler.RoundRobin;
                 fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
                 queueTask.Start();
                 tickSync.ChangeCallBack = TickSyncChangedEvent;
@@ -152,6 +152,7 @@ namespace TickZoom.FIX
                 {
                     return result;
                 }
+                nextTick.Inject(currentTick.Extract());
             }
             else
             {

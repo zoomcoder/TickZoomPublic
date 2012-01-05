@@ -225,10 +225,12 @@ namespace TickZoom.FIX
 			quoteSocket.ReceiveQueue.ConnectInbound( task);
             quoteSocket.SendQueue.ConnectOutbound(task);
 		}
-		
+
+        private QueueFilter filter;
 		private void TryInitializeTask() {
 			if( task == null) {
 				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
+			    filter = task.GetFilter();
 			    task.Scheduler = Scheduler.EarliestTime;
                 quotePacketQueue.ConnectInbound(task);
                 fixPacketQueue.ConnectInbound(task);
@@ -343,7 +345,21 @@ namespace TickZoom.FIX
 		private State state = State.Start;
 		private bool hasQuotePacket = false;
 		private bool hasFIXPacket = false;
-		private Yield MainLoop() {
+		private Yield MainLoop()
+		{
+		    EventItem eventItem;
+            if( filter.Receive(out eventItem))
+            {
+                switch( (EventType) eventItem.EventType)
+                {
+                    case EventType.RemoteShutdown:
+                        Dispose();
+                        filter.Pop();
+                        break;
+                    default:
+                        throw new ApplicationException("Unexpected event: " + eventItem);
+                }
+            }
             if( isConnectionLost)
             {
                 CloseFIXSocket();
