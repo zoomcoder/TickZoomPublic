@@ -36,7 +36,6 @@ using TickZoom.FIX;
 
 namespace TickZoom.MBTFIX
 {
-    [SkipDynamicLoad]
 	public class MBTFIXProvider : FIXProviderSupport, PhysicalOrderHandler, LogAware
 	{
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(MBTFIXProvider));
@@ -111,6 +110,11 @@ namespace TickZoom.MBTFIX
 
         private void TrySendStartBroker(SymbolInfo symbol)
         {
+            SymbolReceiver symbolReceiver;
+            if( !symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
+            {
+                throw new InvalidOperationException("Can't find symbol request for " + symbol);
+            }
             var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
             if( symbolAlgorithm.IsBrokerStarted)
             {
@@ -122,11 +126,11 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Attempted StartBroker but IsRecovered is " + IsRecovered);
                 return;
             }
-            TrySend(EventType.StartBroker, symbol);
+            TrySend(EventType.StartBroker, symbol, symbolReceiver.Receiver);
             symbolAlgorithm.IsBrokerStarted = true;
         }
 
-        private void TrySend(EventType type, SymbolInfo symbol)
+        private void TrySend(EventType type, SymbolInfo symbol, Receiver receiver)
         {
 			lock( symbolsRequestedLocker) {
                 if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
@@ -153,15 +157,15 @@ namespace TickZoom.MBTFIX
             lock (symbolsRequestedLocker)
             {
 				foreach(var kvp in symbolsRequested) {
-					SymbolInfo symbol = kvp.Value;
-				    var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+					var symbol = kvp.Value;
+				    var algorithm = GetAlgorithm(symbol.Symbol.BinaryIdentifier);
                     if (!algorithm.IsBrokerStarted)
                     {
                         if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
                         continue;
                     }
-			        var item = new EventItem(symbol, (int)EventType.EndBroker);
-                    receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+			        var item = new EventItem(symbol.Symbol, (int)EventType.EndBroker);
+                    symbol.Receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
 				    algorithm.IsBrokerStarted = false;
 				}
 			}
@@ -1080,14 +1084,19 @@ namespace TickZoom.MBTFIX
 		
 		public void ProcessFill( SymbolInfo symbol, LogicalFillBinary fill)
 		{
-		    var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            SymbolReceiver symbolReceiver;
+            if (!symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
+            {
+                throw new InvalidOperationException("Can't find symbol request for " + symbol);
+            }
+            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
             if( !symbolAlgorithm.IsBrokerStarted)
             {
                 if (debug) log.Debug("Broker offline but sending fill anyway for " + symbol + " to receiver: " + fill);
             }
 		    if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
             var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
-            receiver.SendEvent(item, fill.UtcTime.Internal);
+            symbolReceiver.Receiver.SendEvent(item, fill.UtcTime.Internal);
 		}
 
 		public void RejectOrder( MessageFIX4_4 packetFIX)

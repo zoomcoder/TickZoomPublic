@@ -58,7 +58,7 @@ namespace TickZoom.MBTQuotes
 		private Socket socket;
         protected Task socketTask;
 		private string failedFile;
-		protected Receiver receiver;
+		protected Receiver clientReceiver;
 		private long retryDelay = 30; // seconds
 		private long retryStart = 30; // seconds
 		private long retryIncrease = 5;
@@ -439,7 +439,7 @@ namespace TickZoom.MBTQuotes
 
         public void Start(Receiver receiver)
         {
-        	this.receiver = (Receiver) receiver;
+        	this.clientReceiver = (Receiver) receiver;
             log.Info(providerName + " Startup");
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
             socketTask.Scheduler = Scheduler.EarliestTime;
@@ -565,7 +565,7 @@ namespace TickZoom.MBTQuotes
 		}        
 		
 		public void SendError(string error) {
-			if( receiver!= null) {
+			if( clientReceiver!= null) {
 				ErrorDetail detail = new ErrorDetail();
 				detail.ErrorMessage = error;
 				log.Error(detail.ErrorMessage);

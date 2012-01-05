@@ -299,7 +299,7 @@ namespace TickZoom.MBTQuotes
             StartSymbolHandler(symbol,symbolReceiver);
             if( symbol.OptionChain != OptionChain.None)
             {
-                StartSymbolOptionHandler(symbol, receiver);
+                StartSymbolOptionHandler(symbol, symbolReceiver);
             }
 			string quoteType = "";
 			switch( symbol.QuoteType) {
@@ -385,7 +385,7 @@ namespace TickZoom.MBTQuotes
             }
 
 		    var item = new EventItem(symbol, (int) EventType.StartRealTime);
-		    receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+		    symbolReceiver.SendEvent(item, TimeStamp.UtcNow.Internal);
 		}
 		
 		public override void OnStopSymbol(SymbolInfo symbol, Receiver receiver)

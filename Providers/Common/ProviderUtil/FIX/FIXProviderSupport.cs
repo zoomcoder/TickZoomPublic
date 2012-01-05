@@ -51,11 +51,16 @@ namespace TickZoom.FIX
             }
         }
         protected readonly object symbolsRequestedLocker = new object();
-		protected Dictionary<long,SymbolInfo> symbolsRequested = new Dictionary<long, SymbolInfo>();
+        public class SymbolReceiver
+        {
+            public Receiver Receiver;
+            public SymbolInfo Symbol;
+        }
+        protected Dictionary<long, SymbolReceiver> symbolsRequested = new Dictionary<long, SymbolReceiver>();
 		private Socket socket;
 		private Task socketTask;
 		private string failedFile;
-		protected Receiver receiver;
+		protected Receiver clientReceiver;
 		private long retryDelay = 30; // seconds
 		private long retryStart = 30; // seconds
 		private long retryIncrease = 5;
@@ -123,7 +128,7 @@ namespace TickZoom.FIX
         public void Start(Receiver receiver)
         {
             if (debug) log.Debug("Start() receiver: " + receiver);
-            this.receiver = (Receiver)receiver;
+            this.clientReceiver = (Receiver)receiver;
             log.Info(providerName + " Startup");
             positionChangeQueue = Factory.Parallel.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
             resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
@@ -845,17 +850,14 @@ namespace TickZoom.FIX
         	
         }
 
-        public void StartSymbol(Receiver receiver, SymbolInfo symbol, StartSymbolDetail detail)
+        public void StartSymbol(EventItem eventItem)
         {
-        	log.Info("StartSymbol( " + symbol + ")");
-        	if( this.receiver != receiver) {
-        		throw new ApplicationException("Invalid receiver. Only one receiver allowed for " + this.GetType().Name);
-        	}
+        	log.Info("StartSymbol( " + eventItem.Symbol + ")");
         	// This adds a new order handler.
-        	TryAddSymbol(symbol);
+            TryAddSymbol(eventItem.Symbol,eventItem.Receiver);
             using( orderStore.BeginTransaction())
             {
-                OnStartSymbol(symbol);
+                OnStartSymbol(eventItem.Symbol);
             }
         }
         
@@ -864,9 +866,6 @@ namespace TickZoom.FIX
         public void StopSymbol(Receiver receiver, SymbolInfo symbol)
         {
         	log.Info("StopSymbol( " + symbol + ")");
-        	if( this.receiver != receiver) {
-        		throw new ApplicationException("Invalid receiver. Only one receiver allowed for " + this.GetType().Name);
-        	}
         	if( TryRemoveSymbol(symbol)) {
         		OnStopSymbol(symbol);
         	}
@@ -975,7 +974,7 @@ namespace TickZoom.FIX
 		}        
 		
 		public void SendError(string error) {
-			if( receiver!= null) {
+			if( clientReceiver!= null) {
 				ErrorDetail detail = new ErrorDetail();
 				detail.ErrorMessage = error;
 				log.Error(detail.ErrorMessage);
@@ -988,10 +987,10 @@ namespace TickZoom.FIX
 			}
 		}
 		
-		private bool TryAddSymbol(SymbolInfo symbol) {
+		private bool TryAddSymbol(SymbolInfo symbol, Receiver receiver) {
 			lock( symbolsRequestedLocker) {
 				if( !symbolsRequested.ContainsKey(symbol.BinaryIdentifier)) {
-					symbolsRequested.Add(symbol.BinaryIdentifier,symbol);
+					symbolsRequested.Add(symbol.BinaryIdentifier, new SymbolReceiver { Symbol = symbol, Receiver = receiver});
 					return true;
 				}
 			}
@@ -1072,7 +1071,7 @@ namespace TickZoom.FIX
                         Stop(receiver);
                         break;
                     case EventType.StartSymbol:
-                        StartSymbol(receiver, symbol, (StartSymbolDetail)eventDetail);
+                        StartSymbol(eventItem);
                         break;
                     case EventType.StopSymbol:
                         StopSymbol(receiver, symbol);
