@@ -57,8 +57,8 @@ namespace TickZoom.FIX
 		private LatencyMetric latency;
 		private long tickCounter = 0;
 	    private int diagnoseMetric;
-        private bool alreadyEmpty = false;
         private TickIO currentTick = Factory.TickUtil.TickIO();
+        private TickIO temporaryTick = Factory.TickUtil.TickIO();
 	
 		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,
@@ -143,36 +143,29 @@ namespace TickZoom.FIX
 		private Yield DequeueTick() {
             LatencyManager.IncrementSymbolHandler();
             var result = Yield.NoWork.Repeat;
-			
-            alreadyEmpty = false;
-			tickCounter++;
-            if( isFirstTick)
+
+            if (!reader.TryReadTick(temporaryTick))
             {
-                if (!reader.TryReadTick(currentTick))
-                {
-                    return result;
-                }
-                nextTick.Inject(currentTick.Extract());
+                return result;
+            }
+			tickCounter++;
+            if (isFirstTick)
+            {
+                currentTick.Inject(temporaryTick.Extract());
             }
             else
             {
                 currentTick.Inject(nextTick.Extract());
-                if (!reader.TryReadTick(nextTick))
-                {
-                    return result;
-                }
             }
             isFirstTick = false;
             FillSimulator.StartTick(currentTick);
+            nextTick.Inject(temporaryTick.Extract());
             tickSync.AddTick(nextTick);
-	   		if( isFirstTick) {
-			   	FillSimulator.StartTick( nextTick);
-		   		isFirstTick = false;
-		   	} else { 
-		   		FillSimulator.ProcessOrders();
-		   	}
+	   		FillSimulator.ProcessOrders();
 		   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
-		   	return Yield.DidWork.Invoke(ProcessOnTickCallBack);
+		    ProcessOnTickCallBack();
+		    TryEnqueuePacket();
+		    return Yield.DidWork.Return;
 		}
 		
 		private Message quoteMessage;
