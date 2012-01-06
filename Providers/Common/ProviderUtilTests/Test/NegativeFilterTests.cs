@@ -46,7 +46,7 @@ namespace TickZoom.Test
 		public void TestFIXPositionFilterBuy() {
 	  		int expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Provider provider = ProviderFactory()) {
+			using( var provider = ProviderFactory()) {
 				provider.SendEvent(new EventItem(verify.Task,(int)EventType.Connect));
                 provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				

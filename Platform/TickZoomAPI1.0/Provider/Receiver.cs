@@ -36,7 +36,7 @@ namespace TickZoom.Api
 	public interface AsyncReceiver : Receiver, AsyncHandler, IDisposable {
 	}
 
-    public interface Agent
+    public interface Agent : IDisposable
     {
         
     }

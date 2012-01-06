@@ -51,11 +51,6 @@ namespace TickZoom.MBTFIX
             throw new NotImplementedException();
         }
 
-        public bool IsFinalized
-	    {
-	        get { return fixProvider.IsFinalized && quotesProvider.IsFinalized && isFinalized; }
-	    }
-
         public bool SendEvent(EventItem eventItem)
         {
             var result = false;
@@ -102,11 +97,6 @@ namespace TickZoom.MBTFIX
 	            isDisposed = true;   
 	            if (disposing) {
                     if( debug) log.Debug("Disposing()");
-                    if (quotesProvider != null)
-                    {
-                        if (debug) log.Debug("Disposing quotes provider");
-                        quotesProvider.Dispose();
-                    }
 	                isFinalized = true;
 	            }
     		}
