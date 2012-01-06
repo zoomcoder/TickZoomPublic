@@ -38,13 +38,11 @@ namespace TickZoom.Api
 
     public interface Agent : IDisposable
     {
-        
+        bool SendEvent(EventItem eventItem);
     }
 	
-	public interface Receiver : Agent, IDisposable
+	public interface Receiver : Agent
 	{
-        void SendEvent(EventItem eventItem, long utcTime);
-        bool IsFinalized();
 	}
 	
 	public interface Serializable {

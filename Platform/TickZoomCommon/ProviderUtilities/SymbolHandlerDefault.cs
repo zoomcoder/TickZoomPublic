@@ -109,7 +109,7 @@ namespace TickZoom.Common
 					    box.TickBinary.Id = tickId;
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
 					    var eventItem = new EventItem(symbol,(int) EventType.Tick,box);
-					    receiver.SendEvent(eventItem, box.TickBinary.UtcTime);
+					    receiver.SendEvent(eventItem);
 					    Interlocked.Increment(ref tickCount);
                         if( Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
 						if( trace) log.Trace("Sent quote for " + Symbol + ": " + tickIO);
@@ -195,7 +195,7 @@ namespace TickZoom.Common
             }
             salesLatency.TryUpdate(box.TickBinary.Symbol, box.TickBinary.UtcTime);
             var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
-            receiver.SendEvent(eventItem, box.TickBinary.UtcTime);
+            receiver.SendEvent(eventItem);
             Interlocked.Increment(ref tickCount);
             if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
             if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);
@@ -249,7 +249,7 @@ namespace TickZoom.Common
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
                 var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
-                receiver.SendEvent(eventItem, box.TickBinary.UtcTime);
+                receiver.SendEvent(eventItem);
                 Interlocked.Increment(ref tickCount);
                 if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
                 if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);

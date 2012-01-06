@@ -35,11 +35,9 @@ namespace TickZoom.Api
 	/// </summary>
 	public interface TestableProvider : Provider
 	{
-		
-	}
+    }
 	
 	public interface Provider : Agent
 	{
-		bool SendEvent(EventItem eventItem);
 	}
 }

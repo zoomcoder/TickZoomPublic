@@ -138,7 +138,7 @@ namespace TickZoom.MBTFIX
                 if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
                 {
                     var item = new EventItem(symbol, (int)type);
-                    receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+                    receiver.SendEvent(item);
                 }
                 else
                 {
@@ -165,7 +165,7 @@ namespace TickZoom.MBTFIX
                         continue;
                     }
 			        var item = new EventItem(symbol.Symbol, (int)EventType.EndBroker);
-                    symbol.Receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+                    symbol.Receiver.SendEvent(item);
 				    algorithm.IsBrokerStarted = false;
 				}
 			}
@@ -1096,7 +1096,7 @@ namespace TickZoom.MBTFIX
             }
 		    if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
             var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
-            symbolReceiver.Receiver.SendEvent(item, fill.UtcTime.Internal);
+            symbolReceiver.Receiver.SendEvent(item);
 		}
 
 		public void RejectOrder( MessageFIX4_4 packetFIX)

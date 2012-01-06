@@ -260,7 +260,7 @@ namespace TickZoom.TickUtil
         private Yield StartEvent()
 		{
 		    var item = new EventItem(tickFile.Symbol,(int) EventType.StartHistorical);
-            receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+            receiver.SendEvent(item);
             LogInfo("Starting loading for " + tickFile.Symbol + " from " + tickIO.ToPosition());
 			box = tickBoxPool.Create();
 		    var tickId = box.TickBinary.Id;
@@ -276,7 +276,7 @@ namespace TickZoom.TickUtil
 				throw new ApplicationException("Box is null.");
 			}
             var item = new EventItem(tickFile.Symbol, (int)EventType.Tick, box);
-            receiver.SendEvent(item, box.TickBinary.UtcTime);
+            receiver.SendEvent(item);
             if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
             box = null;
             return Yield.DidWork.Return;
@@ -285,7 +285,7 @@ namespace TickZoom.TickUtil
 		private Yield SendFinish()
 		{
             var item = new EventItem(tickFile.Symbol, (int)EventType.EndHistorical);
-            receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+            receiver.SendEvent(item);
             if (debug) log.Debug("EndHistorical for " + tickFile.Symbol);
 			return Yield.DidWork.Invoke(FinishTask);
 		}

@@ -385,7 +385,7 @@ namespace TickZoom.MBTQuotes
             }
 
 		    var item = new EventItem(symbol, (int) EventType.StartRealTime);
-		    symbolReceiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+		    symbolReceiver.SendEvent(item);
 		}
 		
 		public override void OnStopSymbol(SymbolInfo symbol, Receiver receiver)
@@ -397,7 +397,7 @@ namespace TickZoom.MBTQuotes
        		SymbolHandler handler = symbolHandlers[symbol.BinaryIdentifier];
        		handler.Stop();
             var item = new EventItem(symbol, (int)EventType.EndRealTime);
-            symbolReceiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+            symbolReceiver.SendEvent(item);
 		}
 		
 		

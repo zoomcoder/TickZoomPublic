@@ -157,13 +157,13 @@ namespace TickZoom.Starters
                 tickIO.SetTime(new TimeStamp(2000, 1, 1));
                 tickIO.SetQuote(100D, 100D);
                 var item = new EventItem(symbol, (int)EventType.StartHistorical);
-                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item);
                 var binaryBox = tickPool.Create();
                 var tickId = binaryBox.TickBinary.Id;
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
                 item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item);
                 tickIO.Initialize();
                 tickIO.SetSymbol(symbol.BinaryIdentifier);
                 tickIO.SetTime(new TimeStamp(2000, 1, 2));
@@ -173,9 +173,9 @@ namespace TickZoom.Starters
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
                 item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item);
                 item = new EventItem(symbol, (int)EventType.EndHistorical);
-                receiver.SendEvent(item, TimeStamp.UtcNow.Internal);
+                receiver.SendEvent(item);
             }
 
             public void StopSymbol(Receiver receiver, SymbolInfo symbol)
