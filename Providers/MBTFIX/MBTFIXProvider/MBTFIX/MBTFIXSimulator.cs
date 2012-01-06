@@ -977,13 +977,5 @@ namespace TickZoom.MBTFIX
 		    SendMessage(fixMsg);
         }
 		
-		protected override void Dispose(bool disposing)
-		{
-			if( !isDisposed) {
-				if( disposing) {
-					base.Dispose(disposing);
-				}
-			}
-		}
 	}
 }

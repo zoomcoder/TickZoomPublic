@@ -244,6 +244,7 @@ namespace TickZoom.FIX
 
         private Yield HeartbeatTimerEvent()
         {
+            if (isDisposed) return Yield.Terminate;
             var currentTime = TimeStamp.UtcNow;
             if (verbose) log.Verbose("Heartbeat occurred at " + currentTime);
             if (isConnectionLost)
@@ -1100,8 +1101,8 @@ namespace TickZoom.FIX
             {
                 if( ex.EntryType == EventType.Terminate)
                 {
-                    if( debug) log.Debug("fix packet queue returned queue exception " + ex.EntryType + ". Dropping message due to dispose.");
-
+                    log.Warn("fix packet queue returned queue exception " + ex.EntryType + ". Dropping message due to dispose.");
+                    Dispose();
                 }
                 else
                 {
@@ -1182,6 +1183,10 @@ namespace TickZoom.FIX
                     if (quoteListener != null)
                     {
                         quoteListener.Dispose();
+                    }
+                    if( task != null)
+                    {
+                        task.Stop();
                     }
                 }
 			}
