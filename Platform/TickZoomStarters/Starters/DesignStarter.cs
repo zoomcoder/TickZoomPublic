@@ -214,6 +214,9 @@ namespace TickZoom.Starters
                 var eventDetail = eventItem.EventDetail;
                 switch ((EventType)eventType)
                 {
+                    case EventType.Initialize:
+                        // Nothing to do.
+                        break;
                     case EventType.Connect:
                         Start(receiver);
                         break;
@@ -231,7 +234,9 @@ namespace TickZoom.Starters
                         PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders);
                         break;
                     case EventType.Terminate:
+                    case EventType.RemoteShutdown:
                         Dispose();
+                        break;
                         break;
                     default:
                         throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
