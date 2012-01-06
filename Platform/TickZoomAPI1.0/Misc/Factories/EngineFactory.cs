@@ -39,10 +39,8 @@ namespace TickZoom.Api
 	/// </summary>
 	[CLSCompliant(false)]
 	public interface EngineFactory
-	{
-		TickEngine TickEngine {
-			get;
-		}
+    {
+        TickEngine TickEngine(string name);
 		
 		WebServer WebServer {
 			get;

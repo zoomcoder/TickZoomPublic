@@ -619,7 +619,7 @@ namespace TickZoom.Presentation
         {
             try
             {
-                TickEngine engine = Factory.Engine.TickEngine;
+                var engine = Factory.Engine.TickEngine("StarterConfig");
                 isEngineLoaded = true;
             }
             catch (Exception)

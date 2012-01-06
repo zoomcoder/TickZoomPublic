@@ -95,7 +95,6 @@ namespace TickZoom.StarterTest
 			Starter starter = new DesignStarter();
 			ModelInterface model = new TestSimpleStrategy();
     		starter.Run(model);
-    		starter.Wait();
     		long elapsed = Factory.TickCount - start;
     		Assert.Less( elapsed, 10000);
     		// Verify the chart data.

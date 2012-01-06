@@ -53,7 +53,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-
+using System.Threading;
 using TickZoom.Api;
 
 namespace TickZoom.Starters
@@ -90,7 +90,7 @@ namespace TickZoom.Starters
         {
             Factory.Parallel.SetMode(parallelMode);
             Factory.SysLog.ResetConfiguration();
-            engine = Factory.Engine.TickEngine;
+            engine = Factory.Engine.TickEngine("Design");
             engine.MaxBarsBack = 2;
             engine.MaxTicksBack = 2;
             SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol("Design");
@@ -106,11 +106,26 @@ namespace TickZoom.Starters
 
             engine.QueueTask();
             engine.WaitTask();
+            var parallel = Factory.Parallel;
+            parallel.Dispose();
+            while (!parallel.IsFinalized)
+            {
+                Thread.Sleep(100);
+            }
+            parallel.Release();
+
         }
 
         public override void Wait()
         {
             engine.WaitTask();
+            var parallel = Factory.Parallel;
+            parallel.Dispose();
+            while (!parallel.IsFinalized)
+            {
+                Thread.Sleep(100);
+            }
+            parallel.Release();
         }
 
         public override Provider[] SetupProviders(bool quietMode, bool singleLoad)

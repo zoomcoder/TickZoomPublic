@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-
+using System.Threading;
 using TickZoom.Api;
 using TickZoom.Common;
 
@@ -217,7 +217,7 @@ namespace TickZoom.Starters
 			// generations.
 			var engines = new Stack<TickEngine>();
 			for( int i=0; i<totalEngineCount; i++) {
-				engines.Push( SetupEngine( true));
+				engines.Push( SetupEngine( true, "Iteration"+(i+1)));
 			}
 			
 			for( int genCount =0; genCount < generationCount && !CancelPending; genCount++) {
@@ -258,7 +258,7 @@ namespace TickZoom.Starters
 					
 				if (topModel.Chain.Dependencies.Count > 0)
 				{
-					TickEngine engine = ProcessHistorical(topModel, true);
+					var engine = ProcessHistorical(topModel, true, "Iteration"+(engineIterations.Count+1));
 					engine.QueueTask();
 					engineIterations.Add(engine);
 				}
@@ -355,6 +355,13 @@ namespace TickZoom.Starters
 		        #endif
 		        --tasksRemaining;
 			}
+		    var parallel = Factory.Parallel;
+            parallel.Dispose();
+            while( !parallel.IsFinalized)
+            {
+                Thread.Sleep(100);
+            }
+            parallel.Release();
 		}
 	    
 		static Random random;

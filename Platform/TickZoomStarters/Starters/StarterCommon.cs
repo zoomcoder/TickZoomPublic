@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
-
+using System.Threading;
 using TickZoom.Api;
 using TickZoom.Properties;
 
@@ -161,7 +161,7 @@ namespace TickZoom.Starters
 		    Factory.Parallel.SetMode(parallelMode);
 		    try
 		    {
-                engine = Factory.Engine.TickEngine;
+                engine = Factory.Engine.TickEngine("Starter");
                 if (ProjectProperties.Starter.SymbolProperties.Length == 0)
                 {
                     throw new TickZoomException("Please enter at least one symbol.");
@@ -193,6 +193,13 @@ namespace TickZoom.Starters
                 log.Info("Setting engine create chart callback = " + engine.CreateChartCallback);
 
                 engine.Run();
+		        var parallel = Factory.Parallel;
+                parallel.Dispose();
+                while( !parallel.IsFinalized)
+                {
+                    Thread.Sleep(100);
+                }
+                parallel.Release();
                 if (CancelPending) return;
             }
             finally
@@ -407,12 +414,12 @@ namespace TickZoom.Starters
 	    	return topModel;
 		}
 		
-		public TickEngine SetupEngine(bool quietMode) {
+		public TickEngine SetupEngine(bool quietMode, string name) {
             if( ProjectProperties.Starter.SymbolProperties.Length == 0)
             {
                 throw new TickZoomException("Please enter at least one symbol.");
             }
-			TickEngine engine = Factory.Engine.TickEngine;
+		    TickEngine engine = Factory.Engine.TickEngine(name);
 			ProjectProperties.Engine.CopyProperties(engine);
 			engine.ChartProperties = ProjectProperties.Chart;
 			engine.SymbolInfo = ProjectProperties.Starter.SymbolProperties;
@@ -439,8 +446,8 @@ namespace TickZoom.Starters
 			return engine;
 		}
 		
-		public TickEngine ProcessHistorical(ModelInterface topModel, bool quietMode) {
-			var engine = SetupEngine( quietMode);
+		public TickEngine ProcessHistorical(ModelInterface topModel, bool quietMode, string name) {
+			var engine = SetupEngine( quietMode, name);
 			engine.Model = topModel;
 			return engine;
 		}
