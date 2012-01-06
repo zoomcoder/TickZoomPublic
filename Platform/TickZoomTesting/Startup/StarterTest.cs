@@ -105,6 +105,7 @@ namespace TickZoom.StarterTest
 		[Test]
 		public void TestOptimize()
 		{
+            Assert.Ignore();
 			Starter starter = new OptimizeStarter();
 			var profitLossLogic = new ProfitLossCallback2();
     		starter.ProjectProperties.Starter.StartTime = (TimeStamp) new DateTime(2005,1,1);

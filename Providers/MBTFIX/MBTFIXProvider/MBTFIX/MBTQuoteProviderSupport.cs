@@ -384,11 +384,12 @@ namespace TickZoom.MBTQuotes
 						default:
 							throw new ApplicationException("Unexpected connection status: " + ConnectionStatus);
 					}
+                case SocketState.ShuttingDown:
                 case SocketState.Closing:
-				case SocketState.Disconnected:
+                case SocketState.Closed:
+                case SocketState.Disconnected:
 					switch( ConnectionStatus) {
 						case Status.Disconnected:
-							OnDisconnect();
 							retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 							ConnectionStatus = Status.PendingRetry;
 							if( debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus + ". Retrying in " + retryDelay + " seconds.");
@@ -411,7 +412,6 @@ namespace TickZoom.MBTQuotes
                             log.Warn("Forces connection state to be: " + ConnectionStatus);
                             return Yield.NoWork.Repeat;
 					}
-                case SocketState.Closed:
                     return Yield.DidWork.Repeat;
                 default:
 					string errorMessage = "Unknown socket state: " + socket.State;
