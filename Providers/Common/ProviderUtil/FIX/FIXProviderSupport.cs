@@ -35,7 +35,7 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-    public abstract class FIXProviderSupport : Provider, LogAware
+    public abstract class FIXProviderSupport : Agent, LogAware
     {
         private PhysicalOrderStore orderStore;
         private readonly Log log;

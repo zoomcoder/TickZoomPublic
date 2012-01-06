@@ -128,17 +128,17 @@ namespace TickZoom.Starters
             parallel.Release();
         }
 
-        public override Provider[] SetupProviders(bool quietMode, bool singleLoad)
+        public override Agent[] SetupProviders(bool quietMode, bool singleLoad)
         {
-            return new Provider[] { Factory.Parallel.SpawnProvider(typeof(DesignProvider)) };
+            return new Agent[] { Factory.Parallel.SpawnProvider(typeof(DesignAgent)) };
         }
 
 
-        public class DesignProvider : Provider
+        public class DesignAgent : Agent
         {
             private volatile bool isDisposed = false;
 
-            private DesignProvider()
+            private DesignAgent()
             {
 
             }

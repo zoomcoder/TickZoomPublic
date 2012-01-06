@@ -37,7 +37,7 @@ using TickZoom.Api;
 
 namespace TickZoom.MBTQuotes
 {
-	public abstract class MBTQuoteProviderSupport : Provider, LogAware
+	public abstract class MBTQuoteProviderSupport : Agent, LogAware
 	{
 		private readonly Log log;
 		private volatile bool debug;

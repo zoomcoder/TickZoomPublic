@@ -95,7 +95,7 @@ namespace TickZoom.Api
 			set;
 		}
 		
-		Provider[] Providers {
+		Agent[] Providers {
 			get;
 			set;
 		}

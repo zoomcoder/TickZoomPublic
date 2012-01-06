@@ -25,31 +25,51 @@
 #endregion
 
 using System;
-using System.Threading;
-using NUnit.Framework;
-using TickZoom.Api;
-using TickZoom.MBTFIX;
-using TickZoom.Test;
+using System.IO;
 
-namespace Test
+namespace TickZoom.Api
 {
+	public interface AsyncHandler {
+		object Instance { get; }
+	}
 
-	[TestFixture]
-	public class TimeAndSalesTest : ProviderTests
-	{
-		public static readonly Log log = Factory.SysLog.GetLogger(typeof(EquityLevel1));
-		public TimeAndSalesTest()
-		{
-			log.Notice("Waiting 20 seconds for FIX server to reset.");
-			Thread.Sleep(20000);
-			SetSymbol("SPY");
-			SetTickTest(TickTest.TimeAndSales);
-			SetProviderAssembly("MBTFIXProvider/EquityDemo");
+    public interface IAsyncAgent : Agent, AsyncHandler, IDisposable
+    {
+	}
+
+    public interface Agent : IDisposable
+    {
+        bool SendEvent(EventItem eventItem);
+    }
+	
+	
+	public interface Serializable {
+        /// <summary>
+        /// Deserialize.
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <returns>the version number of the serialized object.</returns>
+		int FromReader(MemoryStream reader);
+		void ToWriter(MemoryStream memory);
+	}
+	
+	public interface Serializer  {
+		object FromReader(MemoryStream reader);
+		void ToWriter(object eventDetail, MemoryStream memory);
+		int EventType {
+			get;
 		}
-		
-		public override Agent ProviderFactory()
-		{
-			return Factory.Parallel.SpawnProvider(typeof(MBTProvider),"EquityDemo");
-		}
+	}
+	
+	public enum BrokerState {
+        None,
+		Disconnected,
+		Connected
+	}
+	
+	public enum SymbolState {
+		None,
+		Historical,
+		RealTime,
 	}
 }

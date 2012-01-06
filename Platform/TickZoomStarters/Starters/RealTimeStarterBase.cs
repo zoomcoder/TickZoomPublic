@@ -37,7 +37,7 @@ namespace TickZoom.Starters
 	{
 		Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-		public override Provider[] SetupProviders(bool quietMode, bool singleLoad)
+		public override Agent[] SetupProviders(bool quietMode, bool singleLoad)
 		{
 			switch( Address.ToLower()) {
 				case "inprocess":

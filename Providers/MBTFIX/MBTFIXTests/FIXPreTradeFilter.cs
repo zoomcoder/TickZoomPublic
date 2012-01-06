@@ -45,7 +45,7 @@ namespace Test
 			SetTickTest(TickTest.Level1);
 		}
 		
-		public override Provider ProviderFactory()
+		public override Agent ProviderFactory()
 		{
 			return Factory.Parallel.SpawnProvider(typeof(MBTProvider),"ForexLiveDemo");
 		}

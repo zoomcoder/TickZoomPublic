@@ -77,7 +77,7 @@ namespace TickZoom.Test
 		public void TestFIXPositionFilterSell() {
 	  		var expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Provider provider = ProviderFactory()) {
+			using( Agent provider = ProviderFactory()) {
                 provider.SendEvent(new EventItem(verify.Task, (int)EventType.Connect));
                 provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
@@ -106,7 +106,7 @@ namespace TickZoom.Test
 			var expectedPosition = 0;
 	  		int secondsDelay = 3;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Provider provider = ProviderFactory()) {
+			using( Agent provider = ProviderFactory()) {
                 provider.SendEvent(new EventItem(verify.Task, (int)EventType.Connect));
                 provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
@@ -130,7 +130,7 @@ namespace TickZoom.Test
 		public void TestFIXPretradeOrderFilterSell() {
 			var expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Provider provider = ProviderFactory()) {
+			using( Agent provider = ProviderFactory()) {
                 provider.SendEvent(new EventItem(verify.Task, (int)EventType.Connect));
                 provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				

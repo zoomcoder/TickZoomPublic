@@ -6,7 +6,7 @@ namespace TickZoom.Api
         public SymbolInfo Symbol;
         public int EventType;
         public object EventDetail;
-        public Provider Recipient;
+        public Agent Recipient;
         public Task RecipientTask;
 
         public EventItem( SymbolInfo symbol, int eventType, object detail)

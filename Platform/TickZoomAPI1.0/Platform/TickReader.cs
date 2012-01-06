@@ -31,7 +31,7 @@ using System.ComponentModel;
 namespace TickZoom.Api
 {
 	[CLSCompliant(false)]
-	public interface TickReader : Provider
+	public interface TickReader : Agent
 	{
 		void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail);
 		void StopSymbol(Receiver receiver, SymbolInfo symbol);

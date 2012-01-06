@@ -38,9 +38,9 @@ namespace TickZoom.Api
 	[CLSCompliant(false)]
 	public interface ProviderFactory {
 		void Release();
-		Provider InProcessProvider(string providerAssembly);
-		Provider RemoteProvider(string address, ushort port);
-		Provider ProviderProcess(string address, ushort port, string executableFileName);
+		Agent InProcessProvider(string providerAssembly);
+		Agent RemoteProvider(string address, ushort port);
+		Agent ProviderProcess(string address, ushort port, string executableFileName);
 		ServiceConnection ProviderService();
 		ServiceConnection ConnectionManager();
 		Serializers Serializers();

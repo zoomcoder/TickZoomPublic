@@ -439,7 +439,7 @@ namespace TickZoom.Common
 		}
 		
 		[Browsable(false)]
-		public Provider Provider {
+		public Agent Provider {
 			get {
 				throw new NotImplementedException();
 			}

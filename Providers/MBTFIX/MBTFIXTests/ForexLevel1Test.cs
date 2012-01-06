@@ -47,7 +47,7 @@ namespace Test
 			SetProviderAssembly("MBTFIXProvider/ForexDemo");
 		}
 		
-		public override Provider ProviderFactory()
+		public override Agent ProviderFactory()
 		{
 			return Factory.Parallel.SpawnProvider(typeof(MBTProvider),"ForexDemo");
 		}

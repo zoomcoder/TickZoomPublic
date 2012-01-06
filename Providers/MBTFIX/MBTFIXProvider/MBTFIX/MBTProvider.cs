@@ -38,8 +38,8 @@ namespace TickZoom.MBTFIX
 	{
 	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (MBTProvider));
 	    private static readonly bool debug = log.IsDebugEnabled;
-		private Provider fixProvider;
-		private Provider quotesProvider;
+		private Agent fixProvider;
+		private Agent quotesProvider;
 		
 		public MBTProvider(string configName) {
 			fixProvider = Factory.Parallel.SpawnProvider(typeof(MBTFIXProvider),configName);

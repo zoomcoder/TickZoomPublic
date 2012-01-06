@@ -30,7 +30,7 @@ using System.Collections.Generic;
 namespace TickZoom.Api
 {
 	public interface AsyncProviderAware {
-		Provider AsyncProvider {
+		Agent AsyncAgent {
 			get;
 		}
 	}

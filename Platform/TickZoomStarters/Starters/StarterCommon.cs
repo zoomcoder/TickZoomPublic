@@ -105,8 +105,8 @@ namespace TickZoom.Starters
 	    	}
 		}
 		
-		public virtual Provider[] SetupProviders(bool quietMode, bool singleLoad) {
-			List<Provider> senderList = new List<Provider>();
+		public virtual Agent[] SetupProviders(bool quietMode, bool singleLoad) {
+			List<Agent> senderList = new List<Agent>();
 			SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
 			string[] symbolFiles = projectProperties.Starter.SymbolArray;
 			for(int i=0; i<symbols.Length; i++) {
@@ -128,9 +128,9 @@ namespace TickZoom.Starters
 			return senderList.ToArray();
 		}
 		
-		public Provider[] SetupDataProviders(string address, int port) {
+		public Agent[] SetupDataProviders(string address, int port) {
 			try {
-				List<Provider> senderList = new List<Provider>();
+				List<Agent> senderList = new List<Agent>();
                 SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
                 var provider = Factory.Parallel.SpawnProvider("ProviderCommon", "ClientManager", "Local");
                 for (int i = 0; i < symbols.Length; i++)

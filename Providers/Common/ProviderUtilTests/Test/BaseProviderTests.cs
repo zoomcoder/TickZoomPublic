@@ -38,7 +38,7 @@ namespace TickZoom.Test
 	public abstract class BaseProviderTests {
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(BaseProviderTests));
 		private readonly bool debug = log.IsDebugEnabled;		
-		public abstract Provider ProviderFactory();
+		public abstract Agent ProviderFactory();
 		protected ActiveList<LogicalOrder> orders = new ActiveList<LogicalOrder>();
 		protected SymbolInfo symbol;
 		protected Action<TickIO, TickIO, long> assertTick;
@@ -73,8 +73,8 @@ namespace TickZoom.Test
 			assemblyName = strings[0];
 		}
 		
-		public virtual Provider CreateProvider(bool inProcessFlag) {
-			Provider provider;
+		public virtual Agent CreateProvider(bool inProcessFlag) {
+			Agent provider;
 			if( inProcessFlag) {
 				provider = ProviderFactory();
 			} else {
@@ -130,7 +130,7 @@ namespace TickZoom.Test
 			orders.Clear();
 		}
 		
-		public void ClearPosition(Provider provider, VerifyFeed verify, int secondsDelay) {
+		public void ClearPosition(Agent provider, VerifyFeed verify, int secondsDelay) {
 			var expectedPosition = 0;
   			var actualPosition = verify.VerifyPosition(expectedPosition,secondsDelay, () => {
   			                                                                                    ClearPositionInternal(provider,verify,expectedPosition);
@@ -138,7 +138,7 @@ namespace TickZoom.Test
   			Assert.AreEqual(expectedPosition, actualPosition, "Starting position.");
 		}
 		
-		private void ClearPositionInternal(Provider provider, VerifyFeed verify, int expectedPosition) {
+		private void ClearPositionInternal(Agent provider, VerifyFeed verify, int expectedPosition) {
   			if( SyncTicks.Enabled) tickSync.AddPositionChange("Test");
 		    var strategyPositions = new ActiveList<StrategyPosition>();
   			provider.SendEvent(new EventItem(verify.Task,symbol,(int)EventType.PositionChange,new PositionChangeDetail(symbol,expectedPosition,orders,strategyPositions,TimeStamp.UtcNow.Internal,1L)));
@@ -246,7 +246,7 @@ namespace TickZoom.Test
 //			return logical;
 //		}
 		
-		public void SendOrders(Provider provider, VerifyFeed verify, int desiredPosition, int secondsDelay) {
+		public void SendOrders(Agent provider, VerifyFeed verify, int desiredPosition, int secondsDelay) {
   			if( SyncTicks.Enabled) tickSync.AddPositionChange("Test");
             var strategyPositions = new ActiveList<StrategyPosition>();
             provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.PositionChange, new PositionChangeDetail(symbol, desiredPosition, orders, strategyPositions, TimeStamp.UtcNow.Internal, 1L)));

@@ -73,7 +73,7 @@ namespace Test
 //			return provider;
 //		}
 		
-		public override Provider ProviderFactory()
+		public override Agent ProviderFactory()
 		{
             return Factory.Parallel.SpawnProvider(typeof(MBTProvider), "Simulate");
 		}		

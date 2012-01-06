@@ -36,7 +36,7 @@ namespace TickZoom.Api
 
     public interface ServiceConnection
 	{
-		Func<Provider> OnCreateProvider {
+		Func<Agent> OnCreateProvider {
 			get;
 			set; 
 		}

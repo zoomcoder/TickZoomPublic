@@ -33,11 +33,8 @@ namespace TickZoom.Api
 	/// Allows automated testing code to directly cause broker orders
 	/// to occur for testing of fail-safe and other logic in the Provider.
 	/// </summary>
-	public interface TestableProvider : Provider
+	public interface TestableProvider : Agent
 	{
     }
 	
-	public interface Provider : Agent
-	{
-	}
 }
