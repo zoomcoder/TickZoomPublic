@@ -41,7 +41,6 @@ namespace TickZoom.TickUtil
 		private BackgroundWorker backgroundWorker;
    		private int maxCount = 0;
    		private SymbolInfo symbol = null;
-		private string fileName = null;
 		private Task appendTask = null;
 		protected TickQueue writeQueue;
 		private static readonly Log log = Factory.SysLog.GetLogger(typeof(TickWriterDefault));
@@ -111,9 +110,12 @@ namespace TickZoom.TickUtil
 			log.Error( ex.Message, ex);
 		}
 
+	    private QueueFilter filter;
+
 		protected virtual void StartAppendThread() {
-			string baseName = Path.GetFileNameWithoutExtension(fileName);
+			string baseName = Path.GetFileNameWithoutExtension(tickFile.FileName);
 			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
+		    filter = appendTask.GetFilter();
 			appendTask.Scheduler = Scheduler.EarliestTime;
 			writeQueue.ConnectInbound(appendTask);
 			appendTask.Start();
@@ -124,7 +126,21 @@ namespace TickZoom.TickUtil
 
 	    private long appendCounter = 0;
 		
-		protected virtual Yield AppendData() {
+		protected virtual Yield AppendData()
+		{
+		    EventItem eventItem;
+            if( filter.Receive(out eventItem))
+            {
+                switch( (EventType) eventItem.EventType)
+                {
+                    case EventType.RemoteShutdown:
+                        Dispose();
+                        filter.Pop();
+                        break;
+                    default:
+                        throw new ApplicationException("Unexpected event: " + eventItem);
+                }
+            }
 			var result = Yield.NoWork.Repeat;
 			try {
 				if( writeQueue.Count == 0) {
@@ -276,7 +292,7 @@ namespace TickZoom.TickUtil
 		}
 		
 		public string FileName {
-			get { return fileName; }
+			get { return tickFile.FileName; }
 		}
 	    
 		public SymbolInfo Symbol {

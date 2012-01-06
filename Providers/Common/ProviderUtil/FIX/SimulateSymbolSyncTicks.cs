@@ -75,6 +75,7 @@ namespace TickZoom.FIX
             tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
             latency = new LatencyMetric("SimulateSymbolSyncTicks-" + symbolString.StripInvalidPathChars());
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");
+            if (debug) log.Debug("Openning tick file for reading.");
             reader = new TickFile();
             try
             {

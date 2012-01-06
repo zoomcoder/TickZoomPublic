@@ -50,7 +50,7 @@ namespace TickZoom.Common
 		private int pauseSeconds = 3;
 	    private SymbolInfo symbol;
         private TickIO lastTick = Factory.TickUtil.TickIO();
-        private EventQueue queue;
+	    private QueueFilter filter;
 		
 		public List<TickBinary> GetReceived() {
 			return received;
@@ -66,8 +66,11 @@ namespace TickZoom.Common
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
             tickPool =  Factory.Parallel.TickPool(symbol);
-            queue = Factory.Parallel.EventQueue(symbol,"VerifyFeed");
-            queue.StartEnqueue = Start;
+            task = Factory.Parallel.Loop(this, OnException, TimeTheFeedTask);
+            Task.Scheduler = Scheduler.EarliestTime;
+		    filter = task.GetFilter();
+            task.Start();
+            task.Pause();
         }
 
 		public void Start()
@@ -95,7 +98,7 @@ namespace TickZoom.Common
         {
             EventItem eventItem;
             var result = false;
-            if( queue.TryDequeue(out eventItem))
+            if( filter.Receive(out eventItem))
             {
                 var eventType = (EventType)eventItem.EventType;
                 switch( eventType)
@@ -105,8 +108,10 @@ namespace TickZoom.Common
                         tickBinary = box.TickBinary;
                         box.Free();
                         result = true;
+                        filter.Pop();
                         break;
                     default:
+                        filter.Pop();
                         throw new QueueException(eventType);
                 }
             }
@@ -443,10 +448,7 @@ namespace TickZoom.Common
             startTime = Factory.TickCount;
 			count = 0;
 			countLog = 0;
-			task = Factory.Parallel.Loop(this, OnException, TimeTheFeedTask);
-		    Task.Scheduler = Scheduler.EarliestTime;
-            queue.ConnectInbound(Task);
-			Task.Start();
+            task.Resume();
 		}
 		
 		private Exception propagateException = null;
@@ -470,7 +472,6 @@ namespace TickZoom.Common
                 var queueStats = Factory.Parallel.GetQueueStats();
                 log.Info(queueStats);
             }
-            Dispose();
 			if( propagateException != null) {
 				throw propagateException;
 			}
@@ -557,8 +558,6 @@ namespace TickZoom.Common
 		            if (disposing) {
 		            	if( Task != null) {
 			            	Task.Stop();
-			            	Task.Join();
-							queue.Dispose();
 		            	}
 		            }
 		            task = null;
@@ -605,30 +604,27 @@ namespace TickZoom.Common
 
 	    public void Clear()
 	    {
-            if( queue != null)
+			while( true) 
             {
-    			while( true) 
+                try
                 {
-                    try
+                    if (TryDequeueTick(ref tickBinary))
                     {
-                        if (TryDequeueTick(ref tickBinary))
+                        tickIO.Inject(tickBinary);
+                        if( debug) log.Debug("Clearing out tick #" + count + " " + tickIO + " UTC " + tickIO.UtcTime);
+                        if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
                         {
-                            tickIO.Inject(tickBinary);
-                            if( debug) log.Debug("Clearing out tick #" + count + " " + tickIO + " UTC " + tickIO.UtcTime);
-                            if (SyncTicks.Enabled && symbolState == SymbolState.RealTime)
-                            {
-                                tickSync.RemoveTick(ref tickBinary);
-                            }
-                        }
-                        else
-                        {
-                            break;
+                            tickSync.RemoveTick(ref tickBinary);
                         }
                     }
-                    catch (QueueException ex)
+                    else
                     {
-                        HandleQueueException(ex);
+                        break;
                     }
+                }
+                catch (QueueException ex)
+                {
+                    HandleQueueException(ex);
                 }
             }
             symbolState = SymbolState.None;

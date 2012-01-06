@@ -268,6 +268,21 @@ namespace TickZoom.MBTQuotes
 
 	    private Yield SocketTask() {
 			if( isDisposed ) return Yield.NoWork.Repeat;
+
+	        EventItem eventItem;
+            if( filter.Receive(out eventItem))
+            {
+                switch( (EventType) eventItem.EventType)
+                {
+                    case EventType.RemoteShutdown:
+                        Dispose();
+                        filter.Pop();
+                        break;
+                    default:
+                        throw new ApplicationException("Unexpected event: " + eventItem);
+                }
+            }
+
             if (debugDisconnect)
             {
                 if( debug) log.Debug("SocketTask() Current socket state: " + socket.State + ", " + socket);
@@ -437,6 +452,8 @@ namespace TickZoom.MBTQuotes
 			Dispose();
 		}
 
+	    private QueueFilter filter;
+
         public void Start(Receiver receiver)
         {
         	this.clientReceiver = (Receiver) receiver;
@@ -444,6 +461,7 @@ namespace TickZoom.MBTQuotes
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
             socketTask.Scheduler = Scheduler.EarliestTime;
             taskTimer = Factory.Parallel.CreateTimer("Task", socketTask, TimerTask);
+            filter = socketTask.GetFilter();
             socketTask.Start();
 
             TimeStamp currentTime = TimeStamp.UtcNow;
