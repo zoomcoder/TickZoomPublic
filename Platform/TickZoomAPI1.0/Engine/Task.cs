@@ -44,8 +44,8 @@ namespace TickZoom.Api
     public interface QueueFilter
     {
         bool Receive(out EventItem eventItem);
-        void IncludeTypes( params int[] includes);
-        void ExcludeTypes( params int[] excludes);
+        void IncludeTypes(params EventType[] includes);
+        void ExcludeTypes(params EventType[] excludes);
         bool CanReceive { get; }
         void Pop();
     }

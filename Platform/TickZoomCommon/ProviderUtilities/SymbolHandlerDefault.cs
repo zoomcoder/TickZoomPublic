@@ -108,7 +108,7 @@ namespace TickZoom.Common
 						box.TickBinary = tickIO.Extract();
 					    box.TickBinary.Id = tickId;
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-					    var eventItem = new EventItem(symbol,(int) EventType.Tick,box);
+					    var eventItem = new EventItem(symbol,EventType.Tick,box);
 					    agent.SendEvent(eventItem);
 					    Interlocked.Increment(ref tickCount);
                         if( Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
@@ -194,7 +194,7 @@ namespace TickZoom.Common
                 log.Warn("Found trade tick with zero price: " + tickIO);
             }
             salesLatency.TryUpdate(box.TickBinary.Symbol, box.TickBinary.UtcTime);
-            var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
+            var eventItem = new EventItem(symbol,EventType.Tick,box);
             agent.SendEvent(eventItem);
             Interlocked.Increment(ref tickCount);
             if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
@@ -248,7 +248,7 @@ namespace TickZoom.Common
 					log.Warn("Found trade tick with zero price: " + tickIO);
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
-                var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
+                var eventItem = new EventItem(symbol,EventType.Tick,box);
                 agent.SendEvent(eventItem);
                 Interlocked.Increment(ref tickCount);
                 if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }

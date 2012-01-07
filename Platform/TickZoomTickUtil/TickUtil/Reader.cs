@@ -259,7 +259,7 @@ namespace TickZoom.TickUtil
 
         private Yield StartEvent()
 		{
-		    var item = new EventItem(tickFile.Symbol,(int) EventType.StartHistorical);
+		    var item = new EventItem(tickFile.Symbol,EventType.StartHistorical);
             agent.SendEvent(item);
             LogInfo("Starting loading for " + tickFile.Symbol + " from " + tickIO.ToPosition());
 			box = tickBoxPool.Create();
@@ -275,7 +275,7 @@ namespace TickZoom.TickUtil
 			if( box == null) {
 				throw new ApplicationException("Box is null.");
 			}
-            var item = new EventItem(tickFile.Symbol, (int)EventType.Tick, box);
+            var item = new EventItem(tickFile.Symbol, EventType.Tick, box);
             agent.SendEvent(item);
             if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
             box = null;
@@ -284,7 +284,7 @@ namespace TickZoom.TickUtil
 
 		private Yield SendFinish()
 		{
-            var item = new EventItem(tickFile.Symbol, (int)EventType.EndHistorical);
+            var item = new EventItem(tickFile.Symbol, EventType.EndHistorical);
             agent.SendEvent(item);
             if (debug) log.Debug("EndHistorical for " + tickFile.Symbol);
 			return Yield.DidWork.Invoke(FinishTask);
@@ -304,7 +304,7 @@ namespace TickZoom.TickUtil
 					log.Debug("Exception on progressCallback: " + ex.Message);
 				}
 				if (debug)
-					log.Debug("calling Agent.OnEvent(symbol,(int)EventType.EndHistorical)");
+					log.Debug("calling Agent.OnEvent(symbol,EventType.EndHistorical)");
 			} catch (ThreadAbortException) {
 
 			} catch (FileNotFoundException ex) {

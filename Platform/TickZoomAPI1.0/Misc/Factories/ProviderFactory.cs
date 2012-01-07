@@ -32,7 +32,7 @@ namespace TickZoom.Api
 	public interface EventLog {
 		bool CheckEnabled( Log log);
 		int GetReceiverId( object component);
-		void Capture( int componentId, SymbolInfo symbol, int eventType, object eventDetail);
+		void Capture( int componentId, SymbolInfo symbol, EventType eventType, object eventDetail);
 	}
 	
 	[CLSCompliant(false)]

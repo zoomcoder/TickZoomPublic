@@ -31,7 +31,7 @@ namespace TickZoom.Api
 {
 	[CLSCompliant(false)]
 	public struct QueueItem {
-	    public int EventType;
+        public EventType EventType;
 	    public long Symbol;
 	    public TickBinary Tick;
 	    public object EventDetail;

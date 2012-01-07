@@ -137,7 +137,7 @@ namespace TickZoom.MBTFIX
                 SymbolAlgorithm algorithm;
                 if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
                 {
-                    var item = new EventItem(symbol, (int)type);
+                    var item = new EventItem(symbol, type);
                     agent.SendEvent(item);
                 }
                 else
@@ -164,7 +164,7 @@ namespace TickZoom.MBTFIX
                         if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
                         continue;
                     }
-			        var item = new EventItem(symbol.Symbol, (int)EventType.EndBroker);
+			        var item = new EventItem(symbol.Symbol, EventType.EndBroker);
                     symbol.Agent.SendEvent(item);
 				    algorithm.IsBrokerStarted = false;
 				}
@@ -1095,7 +1095,7 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Broker offline but sending fill anyway for " + symbol + " to receiver: " + fill);
             }
 		    if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
-            var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
+            var item = new EventItem(symbol, EventType.LogicalFill, fill);
             symbolReceiver.Agent.SendEvent(item);
 		}
 

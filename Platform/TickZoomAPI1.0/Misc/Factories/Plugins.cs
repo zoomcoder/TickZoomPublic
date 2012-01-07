@@ -151,7 +151,7 @@ namespace TickZoom.Api
             }
         }
 
-        public Serializer GetSerializer(int eventType)
+        public Serializer GetSerializer(EventType eventType)
         {
             var serializer = SearchSerializers(eventType);
             if (serializer == null)
@@ -173,7 +173,7 @@ namespace TickZoom.Api
             }
         }
 
-        private Serializer SearchSerializers(int eventType)
+        private Serializer SearchSerializers(EventType eventType)
         {
             Serializer serializer = null;
             for (int i = 0; i < serializers.Count; i++)

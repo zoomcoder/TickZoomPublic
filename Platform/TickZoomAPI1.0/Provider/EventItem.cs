@@ -4,12 +4,12 @@ namespace TickZoom.Api
     {
         public Agent Agent;
         public SymbolInfo Symbol;
-        public int EventType;
+        public EventType EventType;
         public object EventDetail;
         public Agent Recipient;
         public Task RecipientTask;
 
-        public EventItem( SymbolInfo symbol, int eventType, object detail)
+        public EventItem( SymbolInfo symbol, EventType eventType, object detail)
         {
             this.Agent = null;
             this.Symbol = symbol;
@@ -19,7 +19,7 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(SymbolInfo symbol, int eventType)
+        public EventItem(SymbolInfo symbol, EventType eventType)
         {
             this.Agent = null;
             this.Symbol = symbol;
@@ -29,7 +29,7 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(int eventType, object detail)
+        public EventItem(EventType eventType, object detail)
         {
             this.Agent = null;
             this.Symbol = null;
@@ -39,7 +39,7 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(int eventType)
+        public EventItem(EventType eventType)
         {
             this.Agent = null;
             this.Symbol = null;
@@ -49,7 +49,7 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Agent agent, SymbolInfo symbol, int eventType, object detail)
+        public EventItem(Agent agent, SymbolInfo symbol, EventType eventType, object detail)
         {
             this.Agent = agent;
             this.Symbol = symbol;
@@ -59,7 +59,7 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Agent agent, SymbolInfo symbol, int eventType)
+        public EventItem(Agent agent, SymbolInfo symbol, EventType eventType)
         {
             this.Agent = agent;
             this.Symbol = symbol;
@@ -69,7 +69,7 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Agent agent, int eventType, object detail)
+        public EventItem(Agent agent, EventType eventType, object detail)
         {
             this.Agent = agent;
             this.Symbol = null;
@@ -79,7 +79,7 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Agent agent, int eventType)
+        public EventItem(Agent agent, EventType eventType)
         {
             this.Agent = agent;
             this.Symbol = null;

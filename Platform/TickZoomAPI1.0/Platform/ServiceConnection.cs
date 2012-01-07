@@ -30,8 +30,8 @@ namespace TickZoom.Api
 {
 	public interface Serializers
 	{
-		void Register(int eventType, Serializer serializer);
-		Serializer Get(int eventType);
+        void Register(EventType eventType, Serializer serializer);
+		Serializer Get(EventType eventType);
 	}
 
     public interface ServiceConnection

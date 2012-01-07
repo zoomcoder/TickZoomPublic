@@ -54,8 +54,8 @@ namespace TickZoom.Test
 			using( Provider provider = ProviderFactory()) {
 				verify.PauseSeconds = secondsDelay;
 				if(debug) log.Debug("===ZAutoReconnection===");
-				provider.SendEvent(verify,null,(int)EventType.Connect,null);
-				provider.SendEvent(verify,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue));
+				provider.SendEvent(verify,null,EventType.Connect,null);
+				provider.SendEvent(verify,symbol,EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue));
 				VerifyConnected(verify);
 				if(debug) log.Debug("===ClearOrders===");
 				ClearOrders(0);
@@ -80,17 +80,17 @@ namespace TickZoom.Test
 			using( var verify = Factory.Utility.VerifyFeed(symbol))
 			using( var provider = CreateProvider(true)) {
 				verify.PauseSeconds = secondsDelay;
-                provider.SendEvent(new EventItem(verify.Task, (int)EventType.Connect));
+                provider.SendEvent(new EventItem(verify.Task, EventType.Connect));
 				if(debug) log.Debug("===DemoConnectionTest===");
 				if(debug) log.Debug("===StartSymbol===");
-				provider.SendEvent(new EventItem(verify.Task,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
+				provider.SendEvent(new EventItem(verify.Task,symbol,EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);
 				if(debug) log.Debug("===VerifyState===");
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
 				if(debug) log.Debug("===VerifyFeed===");
-		  		provider.SendEvent(new EventItem(verify.Task,(int)EventType.Disconnect));	
-		  		provider.SendEvent(new EventItem(verify.Task,(int)EventType.Terminate));		
+		  		provider.SendEvent(new EventItem(verify.Task,EventType.Disconnect));	
+		  		provider.SendEvent(new EventItem(verify.Task,EventType.Terminate));		
 			}
 		}
 		
@@ -101,8 +101,8 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
 				verify.PauseSeconds = secondsDelay;
-				provider.SendEvent(new EventItem(verify.Task,(int)EventType.Connect));
-				provider.SendEvent(new EventItem(verify.Task,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
+				provider.SendEvent(new EventItem(verify.Task,EventType.Connect));
+				provider.SendEvent(new EventItem(verify.Task,symbol,EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -128,9 +128,9 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
 				verify.PauseSeconds = secondsDelay;
-				provider.SendEvent(new EventItem(verify.Task,null,(int)EventType.Connect,null));
+				provider.SendEvent(new EventItem(verify.Task,null,EventType.Connect,null));
 				if(debug) log.Debug("===TestMarketOrder===");
-				provider.SendEvent(new EventItem(verify.Task,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
+				provider.SendEvent(new EventItem(verify.Task,symbol,EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -184,8 +184,8 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
 				verify.PauseSeconds = secondsDelay;
-				provider.SendEvent(new EventItem(verify.Task,null,(int)EventType.Connect,null));
-				provider.SendEvent(new EventItem(verify.Task,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
+				provider.SendEvent(new EventItem(verify.Task,null,EventType.Connect,null));
+				provider.SendEvent(new EventItem(verify.Task,symbol,EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);
 				
 				ClearOrders(0);
@@ -227,14 +227,14 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = CreateProvider(true)) {
 				verify.PauseSeconds = secondsDelay;
-				provider.SendEvent(new EventItem(verify.Task,(int)EventType.Connect));
-				provider.SendEvent(new EventItem(verify.Task,symbol,(int)EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
+				provider.SendEvent(new EventItem(verify.Task,EventType.Connect));
+				provider.SendEvent(new EventItem(verify.Task,symbol,EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
 				if(debug) log.Debug("===VerifyState===");
 				VerifyConnected(verify);
 		  		long count = verify.Verify(2,assertTick,secondsDelay);
 	  			Assert.GreaterOrEqual(count,2,"tick count");
-		  		provider.SendEvent(new EventItem(verify.Task,(int)EventType.Disconnect));	
-		  		provider.SendEvent(new EventItem(verify.Task,(int)EventType.Terminate));		
+		  		provider.SendEvent(new EventItem(verify.Task,EventType.Disconnect));	
+		  		provider.SendEvent(new EventItem(verify.Task,EventType.Terminate));		
 			}
 //			Thread.Sleep(2000);
 			log.Info("Starting to reconnect---------\n");
@@ -242,14 +242,14 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = CreateProvider(true)) {
 				verify.PauseSeconds = secondsDelay;
-                provider.SendEvent(new EventItem(verify.Task, null, (int)EventType.Connect, null));
-                provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify.Task, null, EventType.Connect, null));
+                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
                 if (debug) log.Debug("===VerifyState===");
 				VerifyConnected(verify);
 	  			long count = verify.Verify(2,assertTick,secondsDelay);
 	  			Assert.GreaterOrEqual(count,2,"tick count");
-                provider.SendEvent(new EventItem(verify.Task, (int)EventType.Disconnect));
-                provider.SendEvent(new EventItem(verify.Task, (int)EventType.Terminate));
+                provider.SendEvent(new EventItem(verify.Task, EventType.Disconnect));
+                provider.SendEvent(new EventItem(verify.Task, EventType.Terminate));
             }
 		}
 
@@ -258,17 +258,17 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = CreateProvider(true)) {
 				verify.PauseSeconds = secondsDelay;
-                provider.SendEvent(new EventItem(verify.Task, null, (int)EventType.Connect, null));
+                provider.SendEvent(new EventItem(verify.Task, null, EventType.Connect, null));
                 log.Info("===DemoStopSymbolTest===");
 				if(debug) log.Debug("===StartSymbol===");
-                provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				if(debug) log.Debug("===VerifyState===");
 				VerifyConnected(verify);
 				if(debug) log.Debug("===VerifyFeed===");
 		  		long count = verify.Verify(2,assertTick,secondsDelay);
 		  		Assert.GreaterOrEqual(count,2,"tick count");
 				if(debug) log.Debug("===StopSymbol===");
-		  		provider.SendEvent(new EventItem(verify.Task,symbol,(int)EventType.StopSymbol));
+		  		provider.SendEvent(new EventItem(verify.Task,symbol,EventType.StopSymbol));
 		  		
 		  		// Wait for it to switch out of real time or historical mode.
 		  		var expectedBrokerState = BrokerState.Disconnected;
@@ -284,8 +284,8 @@ namespace TickZoom.Test
 		  		count = verify.Verify(0,assertTick,secondsDelay);
 		  		Assert.AreEqual(0,count,"your provider plugin must not send any more ticks after receiving a StopSymbol event.");
 
-                provider.SendEvent(new EventItem(verify.Task, (int)EventType.Disconnect));
-                provider.SendEvent(new EventItem(verify.Task, (int)EventType.Terminate));
+                provider.SendEvent(new EventItem(verify.Task, EventType.Disconnect));
+                provider.SendEvent(new EventItem(verify.Task, EventType.Terminate));
             }
 		}
 	
@@ -294,8 +294,8 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
 				verify.PauseSeconds = secondsDelay;
-                provider.SendEvent(new EventItem(verify.Task, null, (int)EventType.Connect, null));
-                provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify.Task, null, EventType.Connect, null));
+                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
                 VerifyConnected(verify);
 				
 				ClearOrders(0);
@@ -339,8 +339,8 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = CreateProvider(false)) {
 				verify.PauseSeconds = secondsDelay;
-                provider.SendEvent(new EventItem(verify.Task, null, (int)EventType.Connect, null));
-                provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify.Task, null, EventType.Connect, null));
+                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
                 if (debug) log.Debug("===VerifyState===");
 				VerifyConnected(verify);
 				if(debug) log.Debug("===VerifyFeed===");
@@ -349,8 +349,8 @@ namespace TickZoom.Test
 	  			Process[] processes = Process.GetProcessesByName(AssemblyName);
 	  			Assert.AreEqual(1,processes.Length,"Number of provider service processes.");
 
-                provider.SendEvent(new EventItem(verify.Task, (int)EventType.Disconnect));
-                provider.SendEvent(new EventItem(verify.Task, (int)EventType.Terminate));
+                provider.SendEvent(new EventItem(verify.Task, EventType.Disconnect));
+                provider.SendEvent(new EventItem(verify.Task, EventType.Terminate));
             }
 		}
 		
@@ -359,8 +359,8 @@ namespace TickZoom.Test
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
 				verify.PauseSeconds = secondsDelay;
-                provider.SendEvent(new EventItem(verify.Task, null, (int)EventType.Connect, null));
-                provider.SendEvent(new EventItem(verify.Task, symbol, (int)EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify.Task, null, EventType.Connect, null));
+                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
                 VerifyConnected(verify);
 				
 				ClearOrders(0);

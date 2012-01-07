@@ -42,7 +42,7 @@ namespace TickZoom.TickUtil
             {
                 var queueItem = new QueueItem();
                 queueItem.Symbol = item.Symbol.BinaryIdentifier;
-                queueItem.EventType = (int) eventType;
+                queueItem.EventType = eventType;
                 queueItem.EventDetail = item.EventDetail;
                 tickQueue.Enqueue( queueItem, utcTime);
             }

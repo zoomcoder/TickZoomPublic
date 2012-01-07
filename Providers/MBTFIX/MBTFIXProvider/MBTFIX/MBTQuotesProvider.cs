@@ -384,7 +384,7 @@ namespace TickZoom.MBTQuotes
                 }
             }
 
-		    var item = new EventItem(symbol, (int) EventType.StartRealTime);
+		    var item = new EventItem(symbol, EventType.StartRealTime);
 		    symbolAgent.SendEvent(item);
 		}
 		
@@ -396,7 +396,7 @@ namespace TickZoom.MBTQuotes
 		private void RequestStopSymbol(SymbolInfo symbol, Agent symbolAgent) {
        		SymbolHandler handler = symbolHandlers[symbol.BinaryIdentifier];
        		handler.Stop();
-            var item = new EventItem(symbol, (int)EventType.EndRealTime);
+            var item = new EventItem(symbol, EventType.EndRealTime);
             symbolAgent.SendEvent(item);
 		}
 		

@@ -156,13 +156,13 @@ namespace TickZoom.Starters
                 tickIO.SetSymbol(symbol.BinaryIdentifier);
                 tickIO.SetTime(new TimeStamp(2000, 1, 1));
                 tickIO.SetQuote(100D, 100D);
-                var item = new EventItem(symbol, (int)EventType.StartHistorical);
+                var item = new EventItem(symbol, EventType.StartHistorical);
                 agent.SendEvent(item);
                 var binaryBox = tickPool.Create();
                 var tickId = binaryBox.TickBinary.Id;
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
-                item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
+                item = new EventItem(symbol, EventType.Tick, binaryBox);
                 agent.SendEvent(item);
                 tickIO.Initialize();
                 tickIO.SetSymbol(symbol.BinaryIdentifier);
@@ -172,9 +172,9 @@ namespace TickZoom.Starters
                 tickId = binaryBox.TickBinary.Id;
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
-                item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
+                item = new EventItem(symbol, EventType.Tick, binaryBox);
                 agent.SendEvent(item);
-                item = new EventItem(symbol, (int)EventType.EndHistorical);
+                item = new EventItem(symbol, EventType.EndHistorical);
                 agent.SendEvent(item);
             }
 
