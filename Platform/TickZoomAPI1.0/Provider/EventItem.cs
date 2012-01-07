@@ -2,7 +2,7 @@ namespace TickZoom.Api
 {
     public struct EventItem
     {
-        public Receiver Receiver;
+        public Agent Agent;
         public SymbolInfo Symbol;
         public int EventType;
         public object EventDetail;
@@ -11,7 +11,7 @@ namespace TickZoom.Api
 
         public EventItem( SymbolInfo symbol, int eventType, object detail)
         {
-            this.Receiver = null;
+            this.Agent = null;
             this.Symbol = symbol;
             this.EventType = eventType;
             this.EventDetail = detail;
@@ -21,7 +21,7 @@ namespace TickZoom.Api
 
         public EventItem(SymbolInfo symbol, int eventType)
         {
-            this.Receiver = null;
+            this.Agent = null;
             this.Symbol = symbol;
             this.EventType = eventType;
             this.EventDetail = null;
@@ -31,7 +31,7 @@ namespace TickZoom.Api
 
         public EventItem(int eventType, object detail)
         {
-            this.Receiver = null;
+            this.Agent = null;
             this.Symbol = null;
             this.EventType = eventType;
             this.EventDetail = detail;
@@ -41,7 +41,7 @@ namespace TickZoom.Api
 
         public EventItem(int eventType)
         {
-            this.Receiver = null;
+            this.Agent = null;
             this.Symbol = null;
             this.EventType = eventType;
             this.EventDetail = null;
@@ -49,9 +49,9 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Receiver receiver, SymbolInfo symbol, int eventType, object detail)
+        public EventItem(Agent agent, SymbolInfo symbol, int eventType, object detail)
         {
-            this.Receiver = receiver;
+            this.Agent = agent;
             this.Symbol = symbol;
             this.EventType = eventType;
             this.EventDetail = detail;
@@ -59,9 +59,9 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Receiver receiver, SymbolInfo symbol, int eventType)
+        public EventItem(Agent agent, SymbolInfo symbol, int eventType)
         {
-            this.Receiver = receiver;
+            this.Agent = agent;
             this.Symbol = symbol;
             this.EventType = eventType;
             this.EventDetail = null;
@@ -69,9 +69,9 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Receiver receiver, int eventType, object detail)
+        public EventItem(Agent agent, int eventType, object detail)
         {
-            this.Receiver = receiver;
+            this.Agent = agent;
             this.Symbol = null;
             this.EventType = eventType;
             this.EventDetail = detail;
@@ -79,9 +79,9 @@ namespace TickZoom.Api
             this.RecipientTask = null;
         }
 
-        public EventItem(Receiver receiver, int eventType)
+        public EventItem(Agent agent, int eventType)
         {
-            this.Receiver = receiver;
+            this.Agent = agent;
             this.Symbol = null;
             this.EventType = eventType;
             this.EventDetail = null;
@@ -91,7 +91,7 @@ namespace TickZoom.Api
 
         public override string ToString()
         {
-            var result = Receiver == null ? "" : Receiver.ToString();
+            var result = Agent == null ? "" : Agent.ToString();
             result += Symbol + " " + (EventType) EventType + " " + EventDetail;
             if( Recipient != null)
             {

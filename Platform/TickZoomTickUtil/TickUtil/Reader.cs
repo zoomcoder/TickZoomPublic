@@ -45,7 +45,7 @@ namespace TickZoom.TickUtil
 		private Elapsed sessionEnd = new Elapsed(12, 0, 0);
 		bool excludeSunday = true;
 		bool logProgress = false;
-		private Receiver receiver;
+		private Agent agent;
 		protected Task fileReaderTask;
 		private static object readerListLocker = new object();
 		private static List<Reader> readerList = new List<Reader>();
@@ -95,7 +95,7 @@ namespace TickZoom.TickUtil
 		}
 
         private SimpleLock startLocker = new SimpleLock();
-		public virtual void Start(Receiver receiver)
+		public virtual void Start(Agent agent)
 		{
             using (startLocker.Using())
             {
@@ -105,7 +105,7 @@ namespace TickZoom.TickUtil
 	    		}
                 if (!isStarted)
                 {
-                    this.receiver = receiver;
+                    this.agent = agent;
                     var symbol = tickFile.Symbol;
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
@@ -129,10 +129,10 @@ namespace TickZoom.TickUtil
             log.Error(detail.ErrorMessage);
 		}
 
-		public void Stop(Receiver receiver)
+		public void Stop(Agent agent)
 		{
 			if (debug)
-				log.Debug("Stop(" + receiver + ")");
+				log.Debug("Stop(" + agent + ")");
 			Dispose();
 		}
 
@@ -260,7 +260,7 @@ namespace TickZoom.TickUtil
         private Yield StartEvent()
 		{
 		    var item = new EventItem(tickFile.Symbol,(int) EventType.StartHistorical);
-            receiver.SendEvent(item);
+            agent.SendEvent(item);
             LogInfo("Starting loading for " + tickFile.Symbol + " from " + tickIO.ToPosition());
 			box = tickBoxPool.Create();
 		    var tickId = box.TickBinary.Id;
@@ -276,7 +276,7 @@ namespace TickZoom.TickUtil
 				throw new ApplicationException("Box is null.");
 			}
             var item = new EventItem(tickFile.Symbol, (int)EventType.Tick, box);
-            receiver.SendEvent(item);
+            agent.SendEvent(item);
             if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
             box = null;
             return Yield.DidWork.Return;
@@ -285,7 +285,7 @@ namespace TickZoom.TickUtil
 		private Yield SendFinish()
 		{
             var item = new EventItem(tickFile.Symbol, (int)EventType.EndHistorical);
-            receiver.SendEvent(item);
+            agent.SendEvent(item);
             if (debug) log.Debug("EndHistorical for " + tickFile.Symbol);
 			return Yield.DidWork.Invoke(FinishTask);
 		}
@@ -304,7 +304,7 @@ namespace TickZoom.TickUtil
 					log.Debug("Exception on progressCallback: " + ex.Message);
 				}
 				if (debug)
-					log.Debug("calling receiver.OnEvent(symbol,(int)EventType.EndHistorical)");
+					log.Debug("calling Agent.OnEvent(symbol,(int)EventType.EndHistorical)");
 			} catch (ThreadAbortException) {
 
 			} catch (FileNotFoundException ex) {

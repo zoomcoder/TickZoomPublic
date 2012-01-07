@@ -143,12 +143,12 @@ namespace TickZoom.Starters
 
             }
 
-            public Receiver GetReceiver()
+            public Agent GetReceiver()
             {
                 throw new NotImplementedException();
             }
 
-            public void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail)
+            public void StartSymbol(Agent agent, SymbolInfo symbol, object eventDetail)
             {
                 var tickPool = Factory.Parallel.TickPool(symbol);
                 TickIO tickIO = Factory.TickUtil.TickIO();
@@ -157,13 +157,13 @@ namespace TickZoom.Starters
                 tickIO.SetTime(new TimeStamp(2000, 1, 1));
                 tickIO.SetQuote(100D, 100D);
                 var item = new EventItem(symbol, (int)EventType.StartHistorical);
-                receiver.SendEvent(item);
+                agent.SendEvent(item);
                 var binaryBox = tickPool.Create();
                 var tickId = binaryBox.TickBinary.Id;
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
                 item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-                receiver.SendEvent(item);
+                agent.SendEvent(item);
                 tickIO.Initialize();
                 tickIO.SetSymbol(symbol.BinaryIdentifier);
                 tickIO.SetTime(new TimeStamp(2000, 1, 2));
@@ -173,29 +173,29 @@ namespace TickZoom.Starters
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
                 item = new EventItem(symbol, (int)EventType.Tick, binaryBox);
-                receiver.SendEvent(item);
+                agent.SendEvent(item);
                 item = new EventItem(symbol, (int)EventType.EndHistorical);
-                receiver.SendEvent(item);
+                agent.SendEvent(item);
             }
 
-            public void StopSymbol(Receiver receiver, SymbolInfo symbol)
+            public void StopSymbol(Agent agent, SymbolInfo symbol)
             {
             }
 
-            public void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
+            public void PositionChange(Agent agent, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
             {
                 throw new NotImplementedException();
             }
 
-            public void Signal(Receiver receiver, string symbol, double signal)
+            public void Signal(Agent agent, string symbol, double signal)
             {
             }
 
-            public void Start(Receiver receiver)
+            public void Start(Agent agent)
             {
             }
 
-            public void Stop(Receiver receiver)
+            public void Stop(Agent agent)
             {
             }
 
@@ -223,7 +223,7 @@ namespace TickZoom.Starters
             public bool SendEvent(EventItem eventItem)
             {
                 var result = true;
-                var receiver = eventItem.Receiver;
+                var receiver = eventItem.Agent;
                 var symbol = eventItem.Symbol;
                 var eventType = eventItem.EventType;
                 var eventDetail = eventItem.EventDetail;

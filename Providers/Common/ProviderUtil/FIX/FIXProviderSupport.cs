@@ -53,14 +53,14 @@ namespace TickZoom.FIX
         protected readonly object symbolsRequestedLocker = new object();
         public class SymbolReceiver
         {
-            public Receiver Receiver;
+            public Agent Agent;
             public SymbolInfo Symbol;
         }
         protected Dictionary<long, SymbolReceiver> symbolsRequested = new Dictionary<long, SymbolReceiver>();
 		private Socket socket;
 		private Task socketTask;
 		private string failedFile;
-		protected Receiver clientReceiver;
+		protected Agent ClientAgent;
 		private long retryDelay = 30; // seconds
 		private long retryStart = 30; // seconds
 		private long retryIncrease = 5;
@@ -97,7 +97,7 @@ namespace TickZoom.FIX
 			get { return useLocalFillTime; }
 		}
 
-        public Receiver GetReceiver()
+        public Agent GetReceiver()
         {
             throw new NotImplementedException();
         }
@@ -125,10 +125,10 @@ namespace TickZoom.FIX
             trace = log.IsTraceEnabled;
         }
 
-        public void Start(Receiver receiver)
+        public void Start(Agent agent)
         {
-            if (debug) log.Debug("Start() receiver: " + receiver);
-            this.clientReceiver = (Receiver)receiver;
+            if (debug) log.Debug("Start() Agent: " + agent);
+            this.ClientAgent = (Agent)agent;
             log.Info(providerName + " Startup");
             positionChangeQueue = Factory.Parallel.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
             resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
@@ -846,7 +846,7 @@ namespace TickZoom.FIX
             Dispose();
 		}
 		
-        public void Stop(Receiver receiver) {
+        public void Stop(Agent agent) {
         	
         }
 
@@ -854,7 +854,7 @@ namespace TickZoom.FIX
         {
         	log.Info("StartSymbol( " + eventItem.Symbol + ")");
         	// This adds a new order handler.
-            TryAddSymbol(eventItem.Symbol,eventItem.Receiver);
+            TryAddSymbol(eventItem.Symbol,eventItem.Agent);
             using( orderStore.BeginTransaction())
             {
                 OnStartSymbol(eventItem.Symbol);
@@ -863,7 +863,7 @@ namespace TickZoom.FIX
         
         public abstract void OnStartSymbol( SymbolInfo symbol);
         
-        public void StopSymbol(Receiver receiver, SymbolInfo symbol)
+        public void StopSymbol(Agent agent, SymbolInfo symbol)
         {
         	log.Info("StopSymbol( " + symbol + ")");
         	if( TryRemoveSymbol(symbol)) {
@@ -974,7 +974,7 @@ namespace TickZoom.FIX
 		}        
 		
 		public void SendError(string error) {
-			if( clientReceiver!= null) {
+			if( ClientAgent!= null) {
 				ErrorDetail detail = new ErrorDetail();
 				detail.ErrorMessage = error;
 				log.Error(detail.ErrorMessage);
@@ -987,10 +987,10 @@ namespace TickZoom.FIX
 			}
 		}
 		
-		private bool TryAddSymbol(SymbolInfo symbol, Receiver receiver) {
+		private bool TryAddSymbol(SymbolInfo symbol, Agent agent) {
 			lock( symbolsRequestedLocker) {
 				if( !symbolsRequested.ContainsKey(symbol.BinaryIdentifier)) {
-					symbolsRequested.Add(symbol.BinaryIdentifier, new SymbolReceiver { Symbol = symbol, Receiver = receiver});
+					symbolsRequested.Add(symbol.BinaryIdentifier, new SymbolReceiver { Symbol = symbol, Agent = agent});
 					return true;
 				}
 			}
@@ -1053,7 +1053,7 @@ namespace TickZoom.FIX
 		public bool SendEvent( EventItem eventItem)
 		{
             var result = true;
-		    var receiver = eventItem.Receiver;
+		    var receiver = eventItem.Agent;
 		    var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
 		    var eventDetail = eventItem.EventDetail;

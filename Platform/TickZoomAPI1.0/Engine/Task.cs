@@ -50,7 +50,7 @@ namespace TickZoom.Api
         void Pop();
     }
 
-    public interface Task : Receiver
+    public interface Task : Agent
     {
 		void Start();
 		void Stop();

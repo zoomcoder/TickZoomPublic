@@ -63,7 +63,7 @@ namespace TickZoom.MBTQuotes
 			}
         }
 		
-		public override void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
+		public override void PositionChange(Agent agent, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
 		{
 		}
 		
@@ -274,7 +274,7 @@ namespace TickZoom.MBTQuotes
 			lock( symbolsRequestedLocker) {
 				foreach( var kvp in symbolsRequested) {
 					var symbol = kvp.Value;
-					RequestStartSymbol(symbol.Symbol,symbol.Receiver);
+					RequestStartSymbol(symbol.Symbol,symbol.Agent);
 				}
 			}
 		}
@@ -283,23 +283,23 @@ namespace TickZoom.MBTQuotes
 			lock( symbolsRequestedLocker) {
 				foreach(var kvp in symbolsRequested) {
 					var symbol = kvp.Value;
-					RequestStopSymbol(symbol.Symbol,symbol.Receiver);
+					RequestStopSymbol(symbol.Symbol,symbol.Agent);
 				}
 			}
 		}
 		
-		public override void OnStartSymbol(SymbolInfo symbol, Receiver symbolReceiver)
+		public override void OnStartSymbol(SymbolInfo symbol, Agent symbolAgent)
 		{
 			if( IsRecovering || IsRecovered) {
-				RequestStartSymbol(symbol, symbolReceiver);
+				RequestStartSymbol(symbol, symbolAgent);
 			}
 		}
 		
-		private void RequestStartSymbol(SymbolInfo symbol, Receiver symbolReceiver) {
-            StartSymbolHandler(symbol,symbolReceiver);
+		private void RequestStartSymbol(SymbolInfo symbol, Agent symbolAgent) {
+            StartSymbolHandler(symbol,symbolAgent);
             if( symbol.OptionChain != OptionChain.None)
             {
-                StartSymbolOptionHandler(symbol, symbolReceiver);
+                StartSymbolOptionHandler(symbol, symbolAgent);
             }
 			string quoteType = "";
 			switch( symbol.QuoteType) {
@@ -385,37 +385,37 @@ namespace TickZoom.MBTQuotes
             }
 
 		    var item = new EventItem(symbol, (int) EventType.StartRealTime);
-		    symbolReceiver.SendEvent(item);
+		    symbolAgent.SendEvent(item);
 		}
 		
-		public override void OnStopSymbol(SymbolInfo symbol, Receiver receiver)
+		public override void OnStopSymbol(SymbolInfo symbol, Agent agent)
 		{
-			RequestStopSymbol(symbol,receiver);
+			RequestStopSymbol(symbol,agent);
 		}
 		
-		private void RequestStopSymbol(SymbolInfo symbol, Receiver symbolReceiver) {
+		private void RequestStopSymbol(SymbolInfo symbol, Agent symbolAgent) {
        		SymbolHandler handler = symbolHandlers[symbol.BinaryIdentifier];
        		handler.Stop();
             var item = new EventItem(symbol, (int)EventType.EndRealTime);
-            symbolReceiver.SendEvent(item);
+            symbolAgent.SendEvent(item);
 		}
 		
 		
 		
-        private void StartSymbolHandler(SymbolInfo symbol, Receiver receiver) {
+        private void StartSymbolHandler(SymbolInfo symbol, Agent agent) {
 			lock( symbolHandlersLocker) {
 	        	SymbolHandler symbolHandler;
 	        	if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier,out symbolHandler)) {
 	        		symbolHandler.Start();
 	        	} else {
-	    	    	symbolHandler = Factory.Utility.SymbolHandler(symbol,receiver);
+	    	    	symbolHandler = Factory.Utility.SymbolHandler(symbol,agent);
 	    	    	symbolHandlers.Add(symbol.BinaryIdentifier,symbolHandler);
                     symbolHandler.Start();
 	        	}
 			}
         }
 
-        private void StartSymbolOptionHandler(SymbolInfo symbol, Receiver receiver)
+        private void StartSymbolOptionHandler(SymbolInfo symbol, Agent agent)
         {
             lock (symbolHandlersLocker)
             {
@@ -426,7 +426,7 @@ namespace TickZoom.MBTQuotes
                 }
                 else
                 {
-                    symbolHandler = Factory.Utility.SymbolHandler(symbol, receiver);
+                    symbolHandler = Factory.Utility.SymbolHandler(symbol, agent);
                     symbolOptionHandlers.Add(symbol.BinaryIdentifier, symbolHandler);
                     symbolHandler.Start();
                 }

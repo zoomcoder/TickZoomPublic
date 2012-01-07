@@ -39,7 +39,7 @@ namespace TickZoom.Api
 		OrderAlgorithm OrderAlgorithm(string name, SymbolInfo symbol, PhysicalOrderHandler handler, LogicalOrderCache logicalCache, PhysicalOrderCache physicalCache);
 	    CreateOrChangeOrder PhysicalOrder(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder);
         CreateOrChangeOrder PhysicalOrder(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, OrderFlags flags, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime);
-        SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver);
+        SymbolHandler SymbolHandler(SymbolInfo symbol, Agent agent);
 		VerifyFeed VerifyFeed(SymbolInfo symbol);
 		FillHandler FillHandler();
 		FillHandler FillHandler(StrategyInterface strategy);

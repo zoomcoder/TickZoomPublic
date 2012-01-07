@@ -33,17 +33,13 @@ namespace TickZoom.Api
 		object Instance { get; }
 	}
 	
-	public interface AsyncReceiver : Receiver, AsyncHandler, IDisposable {
+	public interface IAsyncAgent : Agent, AsyncHandler, IDisposable {
 	}
 
     public interface Agent : IDisposable
     {
         bool SendEvent(EventItem eventItem);
     }
-	
-	public interface Receiver : Agent
-	{
-	}
 	
 	public interface Serializable {
         /// <summary>

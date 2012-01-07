@@ -61,8 +61,8 @@ namespace TickZoom.Common
 		public OrderAlgorithm OrderAlgorithm(string name, SymbolInfo symbol, PhysicalOrderHandler handler, LogicalOrderCache logicalCache, PhysicalOrderCache physicalQueue) {
 			return new OrderAlgorithmDefault(name,symbol,handler, logicalCache, physicalQueue);
 		}
-		public SymbolHandler SymbolHandler(SymbolInfo symbol, Receiver receiver) {
-			return new SymbolHandlerDefault(symbol,receiver);
+		public SymbolHandler SymbolHandler(SymbolInfo symbol, Agent agent) {
+			return new SymbolHandlerDefault(symbol,agent);
 		}
 		public VerifyFeed VerifyFeed(SymbolInfo symbol) {
 			return new VerifyFeedDefault(symbol);

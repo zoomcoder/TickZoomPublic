@@ -38,7 +38,7 @@ namespace TickZoom.Common
 		private bool debug = log.IsDebugEnabled;
 		private bool trace = log.IsTraceEnabled;
 		private TickIO tickIO = Factory.TickUtil.TickIO();
-		private Receiver receiver;
+		private Agent agent;
 		private SymbolInfo symbol;
 		private bool isTradeInitialized = false;
 		private bool isQuoteInitialized = false;
@@ -75,9 +75,9 @@ namespace TickZoom.Common
             
         }
 
-		public SymbolHandlerDefault(SymbolInfo symbol, Receiver receiver) {
+		public SymbolHandlerDefault(SymbolInfo symbol, Agent agent) {
         	this.symbol = symbol;
-			this.receiver = receiver;
+			this.agent = agent;
 			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
 			this.salesLatency = new LatencyMetric( "SymbolHandler-Trade-" + symbol.Symbol.StripInvalidPathChars());
             tickPool =  Factory.Parallel.TickPool(symbol);
@@ -109,7 +109,7 @@ namespace TickZoom.Common
 					    box.TickBinary.Id = tickId;
 						quotesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
 					    var eventItem = new EventItem(symbol,(int) EventType.Tick,box);
-					    receiver.SendEvent(eventItem);
+					    agent.SendEvent(eventItem);
 					    Interlocked.Increment(ref tickCount);
                         if( Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
 						if( trace) log.Trace("Sent quote for " + Symbol + ": " + tickIO);
@@ -195,7 +195,7 @@ namespace TickZoom.Common
             }
             salesLatency.TryUpdate(box.TickBinary.Symbol, box.TickBinary.UtcTime);
             var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
-            receiver.SendEvent(eventItem);
+            agent.SendEvent(eventItem);
             Interlocked.Increment(ref tickCount);
             if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
             if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);
@@ -249,7 +249,7 @@ namespace TickZoom.Common
 				}		
 				salesLatency.TryUpdate( box.TickBinary.Symbol, box.TickBinary.UtcTime);
                 var eventItem = new EventItem(symbol,(int)EventType.Tick,box);
-                receiver.SendEvent(eventItem);
+                agent.SendEvent(eventItem);
                 Interlocked.Increment(ref tickCount);
                 if (Diagnose.TraceTicks) { Diagnose.AddTick(diagnoseMetric, ref box.TickBinary); }
                 if (trace) log.Trace("Sent trade tick for " + Symbol + ": " + tickIO);

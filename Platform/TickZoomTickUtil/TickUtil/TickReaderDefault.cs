@@ -52,7 +52,7 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-        public Receiver GetReceiver()
+        public Agent GetReceiver()
         {
             throw new NotImplementedException();
         }
@@ -88,7 +88,7 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-		public void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail)
+		public void StartSymbol(Agent agent, SymbolInfo symbol, object eventDetail)
 		{
 			StartSymbolDetail detail = (StartSymbolDetail)eventDetail;
 
@@ -100,12 +100,12 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-		public void StopSymbol(Receiver receiver, SymbolInfo symbol)
+		public void StopSymbol(Agent agent, SymbolInfo symbol)
 		{
 
 		}
 
-		public void PositionChange(Receiver receiver, SymbolInfo symbol, double position, Iterable<LogicalOrder> orders)
+		public void PositionChange(Agent agent, SymbolInfo symbol, double position, Iterable<LogicalOrder> orders)
 		{
 			throw new NotImplementedException();
 		}
@@ -113,7 +113,7 @@ namespace TickZoom.TickUtil
         public bool SendEvent(EventItem eventItem)
         {
             var result = true;
-            var receiver = eventItem.Receiver;
+            var receiver = eventItem.Agent;
             var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
             var eventDetail = eventItem.EventDetail;

@@ -126,11 +126,11 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Attempted StartBroker but IsRecovered is " + IsRecovered);
                 return;
             }
-            TrySend(EventType.StartBroker, symbol, symbolReceiver.Receiver);
+            TrySend(EventType.StartBroker, symbol, symbolReceiver.Agent);
             symbolAlgorithm.IsBrokerStarted = true;
         }
 
-        private void TrySend(EventType type, SymbolInfo symbol, Receiver receiver)
+        private void TrySend(EventType type, SymbolInfo symbol, Agent agent)
         {
 			lock( symbolsRequestedLocker) {
                 if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
@@ -138,7 +138,7 @@ namespace TickZoom.MBTFIX
                 if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
                 {
                     var item = new EventItem(symbol, (int)type);
-                    receiver.SendEvent(item);
+                    agent.SendEvent(item);
                 }
                 else
                 {
@@ -165,7 +165,7 @@ namespace TickZoom.MBTFIX
                         continue;
                     }
 			        var item = new EventItem(symbol.Symbol, (int)EventType.EndBroker);
-                    symbol.Receiver.SendEvent(item);
+                    symbol.Agent.SendEvent(item);
 				    algorithm.IsBrokerStarted = false;
 				}
 			}
@@ -1096,7 +1096,7 @@ namespace TickZoom.MBTFIX
             }
 		    if (debug) log.Debug("Sending fill event for " + symbol + " to receiver: " + fill);
             var item = new EventItem(symbol, (int)EventType.LogicalFill, fill);
-            symbolReceiver.Receiver.SendEvent(item);
+            symbolReceiver.Agent.SendEvent(item);
 		}
 
 		public void RejectOrder( MessageFIX4_4 packetFIX)

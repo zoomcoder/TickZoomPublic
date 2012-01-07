@@ -51,14 +51,14 @@ namespace TickZoom.MBTQuotes
         protected class SymbolReceiver
         {
             internal SymbolInfo Symbol;
-            internal Receiver Receiver;
+            internal Agent Agent;
         }
 		protected readonly object symbolsRequestedLocker = new object();
         protected Dictionary<long, SymbolReceiver> symbolsRequested = new Dictionary<long, SymbolReceiver>();
 		private Socket socket;
         protected Task socketTask;
 		private string failedFile;
-		protected Receiver clientReceiver;
+		protected Agent ClientAgent;
 		private long retryDelay = 30; // seconds
 		private long retryStart = 30; // seconds
 		private long retryIncrease = 5;
@@ -93,7 +93,7 @@ namespace TickZoom.MBTQuotes
             logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
         }
 
-        public Receiver GetReceiver()
+        public Agent GetReceiver()
         {
             throw new NotImplementedException();
         }
@@ -454,9 +454,9 @@ namespace TickZoom.MBTQuotes
 
 	    private QueueFilter filter;
 
-        public void Start(Receiver receiver)
+        public void Start(Agent agent)
         {
-        	this.clientReceiver = (Receiver) receiver;
+        	this.ClientAgent = (Agent) agent;
             log.Info(providerName + " Startup");
             socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
             socketTask.Scheduler = Scheduler.EarliestTime;
@@ -473,7 +473,7 @@ namespace TickZoom.MBTQuotes
             log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
         }
         
-        public void Stop(Receiver receiver) {
+        public void Stop(Agent agent) {
         	
         }
 	
@@ -481,22 +481,22 @@ namespace TickZoom.MBTQuotes
         {
         	log.Info("StartSymbol( " + eventItem.Symbol+ ")");
         	// This adds a new order handler.
-            TryAddSymbol(eventItem.Symbol, eventItem.Receiver);
-            OnStartSymbol(eventItem.Symbol, eventItem.Receiver);
+            TryAddSymbol(eventItem.Symbol, eventItem.Agent);
+            OnStartSymbol(eventItem.Symbol, eventItem.Agent);
         }
         
-        public abstract void OnStartSymbol( SymbolInfo symbol, Receiver symbolReceiver);
+        public abstract void OnStartSymbol( SymbolInfo symbol, Agent symbolAgent);
         
         public void StopSymbol(EventItem eventItem)
         {
         	log.Info("StopSymbol( " + eventItem.Symbol + ")");
             if (TryRemoveSymbol(eventItem.Symbol))
             {
-                OnStopSymbol(eventItem.Symbol, eventItem.Receiver);
+                OnStopSymbol(eventItem.Symbol, eventItem.Agent);
         	}
         }
         
-        public abstract void OnStopSymbol(SymbolInfo symbol, Receiver symbolReceiver);
+        public abstract void OnStopSymbol(SymbolInfo symbol, Agent symbolAgent);
 
 	    private bool alreadyLoggedSectionAndFile = false;
 	    private void LoadProperties(string configFilePath) {
@@ -583,7 +583,7 @@ namespace TickZoom.MBTQuotes
 		}        
 		
 		public void SendError(string error) {
-			if( clientReceiver!= null) {
+			if( ClientAgent!= null) {
 				ErrorDetail detail = new ErrorDetail();
 				detail.ErrorMessage = error;
 				log.Error(detail.ErrorMessage);
@@ -596,11 +596,11 @@ namespace TickZoom.MBTQuotes
 			}
 		}
 		
-		private bool TryAddSymbol(SymbolInfo symbol, Receiver symbolReceiver) {
+		private bool TryAddSymbol(SymbolInfo symbol, Agent symbolAgent) {
 			lock( symbolsRequestedLocker) {
 				if( !symbolsRequested.ContainsKey(symbol.BinaryIdentifier))
 				{
-				    symbolsRequested.Add(symbol.BinaryIdentifier, new SymbolReceiver {Symbol = symbol, Receiver = symbolReceiver});
+				    symbolsRequested.Add(symbol.BinaryIdentifier, new SymbolReceiver {Symbol = symbol, Agent = symbolAgent});
 					return true;
 				}
 			}
@@ -617,7 +617,7 @@ namespace TickZoom.MBTQuotes
 			return false;
 		}
 		
-		public abstract void PositionChange(Receiver receiver, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders);
+		public abstract void PositionChange(Agent agent, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders);
 
         private volatile bool isFinalized;
         public bool IsFinalized
@@ -673,7 +673,7 @@ namespace TickZoom.MBTQuotes
         public bool SendEvent(EventItem eventItem)
         {
             var result = true;
-            var receiver = eventItem.Receiver;
+            var receiver = eventItem.Agent;
             var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
             var eventDetail = eventItem.EventDetail;

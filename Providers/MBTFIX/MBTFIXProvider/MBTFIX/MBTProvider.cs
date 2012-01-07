@@ -46,7 +46,7 @@ namespace TickZoom.MBTFIX
 			quotesProvider = Factory.Parallel.SpawnProvider(typeof(MBTQuotesProvider),configName);
 		}
 
-        public Receiver GetReceiver()
+        public Agent GetReceiver()
         {
             throw new NotImplementedException();
         }
@@ -54,7 +54,7 @@ namespace TickZoom.MBTFIX
         public bool SendEvent(EventItem eventItem)
         {
             var result = false;
-            var receiver = eventItem.Receiver;
+            var receiver = eventItem.Agent;
             var symbol = eventItem.Symbol;
             var eventType = eventItem.EventType;
             var eventDetail = eventItem.EventDetail;

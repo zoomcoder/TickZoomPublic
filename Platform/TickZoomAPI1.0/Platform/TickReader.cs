@@ -33,8 +33,8 @@ namespace TickZoom.Api
 	[CLSCompliant(false)]
 	public interface TickReader : Agent
 	{
-		void StartSymbol(Receiver receiver, SymbolInfo symbol, object eventDetail);
-		void StopSymbol(Receiver receiver, SymbolInfo symbol);
+		void StartSymbol(Agent agent, SymbolInfo symbol, object eventDetail);
+		void StopSymbol(Agent agent, SymbolInfo symbol);
 		TickQueue ReadQueue { get; }
 		int StartCount { get; set; }
 		TimeStamp StartTime { get; set; }
@@ -43,8 +43,8 @@ namespace TickZoom.Api
 		void Initialize(string folderOrfile, string symbolFile);
 		void Initialize(string fileName);
 		void GetLastTick(TickIO tickIO);
-		void Start(Receiver receiver);
-		void Stop(Receiver receiver);
+		void Start(Agent agent);
+		void Stop(Agent agent);
 		bool IsAtStart(TickBinary tick);
 		bool IsAtEnd(TickBinary tick);
 		int DataVersion { get; }
