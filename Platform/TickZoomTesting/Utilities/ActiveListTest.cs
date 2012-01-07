@@ -314,39 +314,6 @@ namespace TickZoom.Utilities
             Console.Out.WriteLine("addCounter " + addCounter);
         }
 
-        [Test]
-        public void Test2WritersSafety()
-        {
-            for (var i = 0; i < 100; i++)
-            {
-                list.AddLast(Interlocked.Increment(ref nextValue));
-            }
-            var addThread = new Thread(AddToListLoop);
-            addThread.Start();
-            var removeThread = new Thread(RemoveFromListLoop);
-            removeThread.Start();
-            Thread.Sleep(5000);
-            stopThread = true;
-            addThread.Join();
-            removeThread.Join();
-            if( threadException != null )
-            {
-                throw new Exception("Thread failed: ", threadException);
-            }
-            if( addFailureCounter > 100)
-            {
-                Assert.Inconclusive("failure counter");
-            }
-            if( addCounter < 2000)
-            {
-                Assert.Inconclusive("add counter");
-            }
-            if( removeCounter < 2000)
-            {
-                Assert.Inconclusive("remove counter");
-            }
-        }
-
         public void AddToListLoop()
         {
             try
