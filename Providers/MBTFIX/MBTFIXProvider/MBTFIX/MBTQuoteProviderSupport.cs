@@ -263,10 +263,10 @@ namespace TickZoom.MBTQuotes
             TimeStamp currentTime = TimeStamp.UtcNow;
             currentTime.AddSeconds(1);
             taskTimer.Start(currentTime);
-            return SocketTask();
+            return Invoke();
         }
 
-	    private Yield SocketTask() {
+	    private Yield Invoke() {
 			if( isDisposed ) return Yield.NoWork.Repeat;
 
 	        EventItem eventItem;
@@ -285,8 +285,8 @@ namespace TickZoom.MBTQuotes
 
             if (debugDisconnect)
             {
-                if( debug) log.Debug("SocketTask() Current socket state: " + socket.State + ", " + socket);
-                if (debug) log.Debug("SocketTask: Current connection status: " + ConnectionStatus);
+                if( debug) log.Debug("Invoke() Current socket state: " + socket.State + ", " + socket);
+                if (debug) log.Debug("Invoke: Current connection status: " + ConnectionStatus);
                 debugDisconnect = false;
             }
             if( socket.State != lastSocketState)
@@ -458,7 +458,7 @@ namespace TickZoom.MBTQuotes
         {
         	this.ClientAgent = (Agent) agent;
             log.Info(providerName + " Startup");
-            socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, SocketTask);
+            socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, Invoke);
             socketTask.Scheduler = Scheduler.EarliestTime;
             taskTimer = Factory.Parallel.CreateTimer("Task", socketTask, TimerTask);
             filter = socketTask.GetFilter();

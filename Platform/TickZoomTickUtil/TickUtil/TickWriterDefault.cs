@@ -114,7 +114,7 @@ namespace TickZoom.TickUtil
 
 		protected virtual void StartAppendThread() {
 			string baseName = Path.GetFileNameWithoutExtension(tickFile.FileName);
-			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, AppendData);
+			appendTask = Factory.Parallel.Loop(baseName + " writer",OnException, Invoke);
 		    filter = appendTask.GetFilter();
 			appendTask.Scheduler = Scheduler.EarliestTime;
 			writeQueue.ConnectInbound(appendTask);
@@ -126,7 +126,7 @@ namespace TickZoom.TickUtil
 
 	    private long appendCounter = 0;
 		
-		protected virtual Yield AppendData()
+		protected virtual Yield Invoke()
 		{
 		    EventItem eventItem;
             if( filter.Receive(out eventItem))

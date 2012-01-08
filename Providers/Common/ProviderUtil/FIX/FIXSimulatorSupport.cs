@@ -136,7 +136,7 @@ namespace TickZoom.FIX
 			this._quoteMessageFactory = _quoteMessageFactory;
 			ListenToFIX(fixPort);
 			ListenToQuotes(quotesPort);
-			MainLoopMethod = MainLoop;
+			MainLoopMethod = Invoke;
             if( debug) log.Debug("Starting FIX Simulator.");
             if( allTests)
             {
@@ -229,7 +229,7 @@ namespace TickZoom.FIX
         private QueueFilter filter;
 		private void TryInitializeTask() {
 			if( task == null) {
-				task = Factory.Parallel.Loop("FIXSimulator", OnException, MainLoop);
+				task = Factory.Parallel.Loop("FIXSimulator", OnException, Invoke);
 			    filter = task.GetFilter();
 			    task.Scheduler = Scheduler.EarliestTime;
                 quotePacketQueue.ConnectInbound(task);
@@ -346,7 +346,7 @@ namespace TickZoom.FIX
 		private State state = State.Start;
 		private bool hasQuotePacket = false;
 		private bool hasFIXPacket = false;
-		private Yield MainLoop()
+		private Yield Invoke()
 		{
 		    EventItem eventItem;
             if( filter.Receive(out eventItem))

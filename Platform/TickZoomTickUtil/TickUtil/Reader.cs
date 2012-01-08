@@ -110,7 +110,7 @@ namespace TickZoom.TickUtil
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader." + symbol.Symbol.StripInvalidPathChars());
-                    fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, FileReader);
+                    fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, Invoke);
                     fileReaderTask.Scheduler = Scheduler.RoundRobin;
                     var tempQueue = Factory.Parallel.FastQueue<int>(symbol + " Reader Nominal Queue");
                     var tempConnectionId = 0;
@@ -182,7 +182,7 @@ namespace TickZoom.TickUtil
 		private YieldMethod SendFinishMethod;
 		private YieldMethod StartEventMethod;
 
-		private Yield FileReader()
+		private Yield Invoke()
 		{
 			lock (taskLocker) {
 				if (isDisposed)

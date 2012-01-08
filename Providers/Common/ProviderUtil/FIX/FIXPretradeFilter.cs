@@ -80,7 +80,7 @@ namespace TickZoom.FIX
 			localSocket.MessageFactory = new MessageFactoryFix44();
 			log.Info("Received local connection: " + socket);
 			RequestRemoteConnect();
-			localTask = Factory.Parallel.Loop( "FilterLocalRead", OnException, LocalReadLoop);
+			localTask = Factory.Parallel.Loop( "FilterLocalRead", OnException, Invoke);
 			localSocket.ReceiveQueue.ConnectInbound( localTask);
 			localTask.Start();
 		}
@@ -141,7 +141,7 @@ namespace TickZoom.FIX
 			}
 		}
 		
-		private Yield LocalReadLoop() {
+		private Yield Invoke() {
 			if( remoteSocket.State == SocketState.Connected) {
 				if( localSocket.TryGetMessage(out localMessage)) {
 					if( trace) log.Trace("Local Read: " + localMessage);

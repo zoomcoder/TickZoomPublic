@@ -66,7 +66,7 @@ namespace TickZoom.Common
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
             tickPool =  Factory.Parallel.TickPool(symbol);
-            task = Factory.Parallel.Loop(this, OnException, TimeTheFeedTask);
+            task = Factory.Parallel.Loop(this, OnException, Invoke);
             Task.Scheduler = Scheduler.EarliestTime;
 		    filter = task.GetFilter();
             task.Start();
@@ -478,7 +478,7 @@ namespace TickZoom.Common
 			return count;
 		}
 
-		public Yield TimeTheFeedTask()
+		public Yield Invoke()
 		{
 			lock(taskLocker) {
 				try {

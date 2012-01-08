@@ -43,7 +43,7 @@ namespace TickZoom.Api
         bool VerifyState(BrokerState expectedBrokerState, SymbolState expectedSymbolState, int timeout);
 		void StartTimeTheFeed();
 		int EndTimeTheFeed(int expectedTickCount, int timeoutSeconds);
-		Yield TimeTheFeedTask();
+		Yield Invoke();
 		bool IsRealTime { get; }
 		TickIO LastTick { get; }
 		bool KeepReceived { get; set; }

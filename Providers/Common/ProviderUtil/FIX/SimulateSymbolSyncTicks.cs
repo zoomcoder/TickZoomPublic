@@ -80,7 +80,7 @@ namespace TickZoom.FIX
             try
             {
                 reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
-                queueTask = Factory.Parallel.Loop("SimulateSymbolSyncTicks-" + symbolString, OnException, ProcessQueue);
+                queueTask = Factory.Parallel.Loop("SimulateSymbolSyncTicks-" + symbolString, OnException, Invoke);
                 queueTask.Scheduler = Scheduler.RoundRobin;
                 fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
                 queueTask.Start();
@@ -92,7 +92,7 @@ namespace TickZoom.FIX
            }
 		}
 
-        private Yield ProcessQueue()
+        private Yield Invoke()
         {
             LatencyManager.IncrementSymbolHandler();
             if (!tickSync.TryLock())

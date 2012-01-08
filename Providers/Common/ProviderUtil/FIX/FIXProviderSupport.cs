@@ -133,7 +133,7 @@ namespace TickZoom.FIX
             positionChangeQueue = Factory.Parallel.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
             resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
-            socketTask = Factory.Parallel.Loop(GetType().Name, OnException, SocketTask);
+            socketTask = Factory.Parallel.Loop(GetType().Name, OnException, Invoke);
             socketTask.Scheduler = Scheduler.EarliestTime;
             retryTimer = Factory.Parallel.CreateTimer("Retry", socketTask, RetryTimerEvent);
             heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", socketTask, HeartBeatTimerEvent);
@@ -377,7 +377,7 @@ namespace TickZoom.FIX
             return Yield.DidWork.Repeat;
         }
 
-        private Yield SocketTask()
+        private Yield Invoke()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
 

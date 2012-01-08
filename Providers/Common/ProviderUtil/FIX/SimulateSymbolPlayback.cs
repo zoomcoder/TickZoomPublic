@@ -47,7 +47,7 @@ namespace TickZoom.FIX
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true);
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
-            queueTask = Factory.Parallel.Loop("SimulateSymbolPlayback-" + symbolString, OnException, ProcessQueue);
+            queueTask = Factory.Parallel.Loop("SimulateSymbolPlayback-" + symbolString, OnException, Invoke);
             tickTimer = Factory.Parallel.CreateTimer("Tick",queueTask, PlayBackTick);
             queueTask.Scheduler = Scheduler.EarliestTime;
             fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
@@ -95,7 +95,7 @@ namespace TickZoom.FIX
             return FillSimulator.GetOrderById(clientOrderId);
         }
 
-        private Yield ProcessQueue()
+        private Yield Invoke()
         {
             LatencyManager.IncrementSymbolHandler();
             if (tickStatus == TickStatus.None || tickStatus == TickStatus.Sent)
@@ -199,7 +199,7 @@ namespace TickZoom.FIX
                     }
                     break;
                 case TickStatus.Sent:
-                    result = Yield.DidWork.Invoke(ProcessQueue);
+                    result = Yield.DidWork.Invoke(Invoke);
                     break;
                 case TickStatus.Timer:
                     break;
