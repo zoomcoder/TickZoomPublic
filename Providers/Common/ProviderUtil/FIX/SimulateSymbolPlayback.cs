@@ -31,6 +31,7 @@ namespace TickZoom.FIX
         private bool isVolumeTest = false;
         private long tickCounter = 0;
         private int diagnoseMetric;
+        private string symbolString;
 
         public SimulateSymbolPlayback(FIXSimulatorSupport fixSimulatorSupport,
                                       string symbolString,
@@ -43,12 +44,18 @@ namespace TickZoom.FIX
             this.onTick = onTick;
             this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             reader = new TickFile();
+            this.symbolString = symbolString;
             reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true);
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
-            queueTask = Factory.Parallel.Loop("SimulateSymbolPlayback-" + symbolString, OnException, Invoke);
-            tickTimer = Factory.Parallel.CreateTimer("Tick",queueTask, PlayBackTick);
+        }
+
+        public void Initialize( Task task)
+        {
+            queueTask = task;
+            queueTask.Name = "SimulateSymbolPlayback-" + symbolString;
+            tickTimer = Factory.Parallel.CreateTimer("Tick", queueTask, PlayBackTick);
             queueTask.Scheduler = Scheduler.EarliestTime;
             fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();

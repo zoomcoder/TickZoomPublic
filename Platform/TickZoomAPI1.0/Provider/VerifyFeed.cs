@@ -30,7 +30,7 @@ using System.Collections.Generic;
 namespace TickZoom.Api
 {
 	[CLSCompliant(false)]
-	public interface VerifyFeed : IDisposable
+	public interface VerifyFeed : AgentPerformer, IDisposable
 	{
 		long VerifyEvent(Action<SymbolInfo, int, object> assertEvent, int timeout);
 		long Verify(Action<TickIO, TickIO, long> assertTick, int timeout);

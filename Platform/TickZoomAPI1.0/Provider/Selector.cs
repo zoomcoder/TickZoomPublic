@@ -29,12 +29,8 @@ using System;
 namespace TickZoom.Api
 {				 
 	[CLSCompliant(false)]
-	public interface Selector : IDisposable {
-        //void AddReader(Socket socket);
-        //void AddWriter(Socket socket);
-		void Start();
+	public interface Selector : AgentPerformer  {
 		string GetStats();
-        //Task Task { get; }
         long SelectCount { get; }
 	    long ReceiveCounter { get; }
 	    long SendCounter { get; }

@@ -50,7 +50,7 @@ namespace TickZoom.Api
         void Pop();
     }
 
-    public interface Task : Agent
+    public interface Task
     {
 		void Start();
 		void Stop();
@@ -88,6 +88,8 @@ namespace TickZoom.Api
 		}
 
         bool IsPaused { get; }
+        string Name { get; set; }
+        QueueFilter Filter { get; }
 
         void IncreaseOutbound(int id);
         void DecreaseOutbound(int id);

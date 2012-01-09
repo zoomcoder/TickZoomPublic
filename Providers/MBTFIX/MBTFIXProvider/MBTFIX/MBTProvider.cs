@@ -46,6 +46,11 @@ namespace TickZoom.MBTFIX
 			quotesProvider = Factory.Parallel.SpawnProvider(typeof(MBTQuotesProvider),configName);
 		}
 
+        public void Initialize(Task task)
+	    {
+    	    
+	    }
+
         public Agent GetReceiver()
         {
             throw new NotImplementedException();
@@ -101,6 +106,16 @@ namespace TickZoom.MBTFIX
 	            }
     		}
 	    }
-		
-	}
+
+
+        public void Shutdown()
+        {
+            Dispose();
+        }
+
+        public Yield Invoke()
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

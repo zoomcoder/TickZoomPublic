@@ -45,13 +45,9 @@ namespace TickZoom.Starters
             Config = "WarehouseTest.config";
 			var provider = "MBTFIXProvider/Simulate";
 			AddProvider(provider);
-	        try { 
-				fixServer = (FIXSimulator) Factory.FactoryLoader.Load(typeof(FIXSimulator),"MBTFIXProvider","PlayBack");
+            using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "FIXSimulator", "Simulate"))
+            { 
 				base.Run(loader);
-			} finally {
-	            if( fixServer != null) {
-					fixServer.Dispose();
-	            }
 			}
 		}
 		

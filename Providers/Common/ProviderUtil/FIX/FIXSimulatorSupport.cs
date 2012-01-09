@@ -167,6 +167,20 @@ namespace TickZoom.FIX
             }
         }
 
+        public void Initialize(Task task)
+        {
+            this.task = task;
+            filter = task.GetFilter();
+            task.Scheduler = Scheduler.EarliestTime;
+            quotePacketQueue.ConnectInbound(task);
+            fixPacketQueue.ConnectInbound(task);
+            heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
+            var startTime = TimeStamp.UtcNow;
+            startTime.AddSeconds(1);
+            heartbeatTimer.Start(startTime);
+            task.Start();
+        }
+
         public void DumpHistory()
         {
             for (var i = 0; i <= FixFactory.LastSequence; i++)
@@ -210,7 +224,6 @@ namespace TickZoom.FIX
             fixSocket.MessageFactory = _fixMessageFactory;
 			log.Info("Received FIX connection: " + socket);
 			StartFIXSimulation();
-			TryInitializeTask();
 			fixSocket.ReceiveQueue.ConnectInbound( task);
             fixSocket.SendQueue.ConnectOutbound(task);
 		}
@@ -221,26 +234,11 @@ namespace TickZoom.FIX
 			quoteSocket.MessageFactory = _quoteMessageFactory;
 			log.Info("Received quotes connection: " + socket);
 			StartQuoteSimulation();
-			TryInitializeTask();
 			quoteSocket.ReceiveQueue.ConnectInbound( task);
             quoteSocket.SendQueue.ConnectOutbound(task);
 		}
 
         private QueueFilter filter;
-		private void TryInitializeTask() {
-			if( task == null) {
-				task = Factory.Parallel.Loop("FIXSimulator", OnException, Invoke);
-			    filter = task.GetFilter();
-			    task.Scheduler = Scheduler.EarliestTime;
-                quotePacketQueue.ConnectInbound(task);
-                fixPacketQueue.ConnectInbound(task);
-                heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
-                var startTime = TimeStamp.UtcNow;
-                startTime.AddSeconds(1);
-                heartbeatTimer.Start(startTime);
-                task.Start();
-            }
-        }
 
         private Yield HeartbeatTimerEvent()
         {
@@ -341,26 +339,19 @@ namespace TickZoom.FIX
 		{
 			isQuoteSimulationStarted = true;
 		}
+
+        public void Shutdown()
+        {
+            Dispose();
+        }
+
 		
 		private enum State { Start, ProcessFIX, WriteFIX, ProcessQuotes, WriteQuotes, Return };
 		private State state = State.Start;
 		private bool hasQuotePacket = false;
 		private bool hasFIXPacket = false;
-		private Yield Invoke()
+		public Yield Invoke()
 		{
-		    EventItem eventItem;
-            if( filter.Receive(out eventItem))
-            {
-                switch( (EventType) eventItem.EventType)
-                {
-                    case EventType.RemoteShutdown:
-                        Dispose();
-                        filter.Pop();
-                        break;
-                    default:
-                        throw new ApplicationException("Unexpected event: " + eventItem);
-                }
-            }
             if( isConnectionLost)
             {
                 CloseFIXSocket();
@@ -1241,5 +1232,6 @@ namespace TickZoom.FIX
                 fixFactory = value;
             }
         }
-	}
+
+    }
 }

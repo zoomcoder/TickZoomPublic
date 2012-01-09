@@ -109,7 +109,15 @@ namespace TickZoom.Api
 	public interface ParallelStarter
 	{
 		Task Loop(object creator, Action<Exception> onException, YieldMethod loop);
+	    Task Loop(object creator, AgentPerformer performer, YieldMethod loop);
 	}
+
+    public interface AgentPerformer
+    {
+        void Initialize(Task task);
+        Yield Invoke();
+        void Shutdown();
+    }
 	
 	public interface ForLoop {
 		void For(Action<int> loop);
@@ -172,5 +180,7 @@ namespace TickZoom.Api
 	    void Release();
 	    Agent SpawnProvider( Type typeToSpawn, params object[] args);
         Agent SpawnProvider( string assemblyName, string className, params object[] args);
+	    Agent GetAgent(AgentPerformer sender);
+	    AgentPerformer SpawnPerformer(Type typeToSpawn, params object[] args);
 	}
 }

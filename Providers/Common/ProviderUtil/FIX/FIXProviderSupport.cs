@@ -35,7 +35,7 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-    public abstract class FIXProviderSupport : Agent, LogAware
+    public abstract class FIXProviderSupport : AgentPerformer, LogAware
     {
         private PhysicalOrderStore orderStore;
         private readonly Log log;
@@ -128,15 +128,27 @@ namespace TickZoom.FIX
         public void Start(Agent agent)
         {
             if (debug) log.Debug("Start() Agent: " + agent);
-            this.ClientAgent = (Agent)agent;
+            this.ClientAgent = (Agent) agent;
             log.Info(providerName + " Startup");
-            positionChangeQueue = Factory.Parallel.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
-            resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
-            orderStore = Factory.Utility.PhyscalOrderStore(providerName);
-            socketTask = Factory.Parallel.Loop(GetType().Name, OnException, Invoke);
+            if (CheckFailedLoginFile())
+            {
+                Dispose();
+            }
+            else
+            {
+                RegenerateSocket();
+            }
+        }
+
+        public void Initialize(Task task)
+        {
+            socketTask = task;
             socketTask.Scheduler = Scheduler.EarliestTime;
             retryTimer = Factory.Parallel.CreateTimer("Retry", socketTask, RetryTimerEvent);
             heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", socketTask, HeartBeatTimerEvent);
+            positionChangeQueue = Factory.Parallel.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
+            resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
+            orderStore = Factory.Utility.PhyscalOrderStore(providerName);
             positionChangeQueue.ConnectInbound(socketTask);
             resendQueue.ConnectInbound(socketTask);
             socketTask.Start();
@@ -146,14 +158,6 @@ namespace TickZoom.FIX
             if (appDataFolder == null)
             {
                 throw new ApplicationException("Sorry, AppDataFolder must be set.");
-            }
-            if (CheckFailedLoginFile())
-            {
-                Dispose();
-            }
-            else
-            {
-                RegenerateSocket();
             }
         }
 
@@ -377,7 +381,12 @@ namespace TickZoom.FIX
             return Yield.DidWork.Repeat;
         }
 
-        private Yield Invoke()
+        public void Shutdown()
+        {
+            Dispose();
+        }
+
+        public Yield Invoke()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
 

@@ -49,7 +49,7 @@ namespace TickZoom.TickUtil
 		}
 		
 		public TickReader TickReader() {
-			return new TickReaderDefault();
+			return (TickReader) Factory.Parallel.SpawnPerformer(typeof (TickReaderDefault));
 		}
 
         public void Release()

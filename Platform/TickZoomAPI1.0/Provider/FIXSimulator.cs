@@ -28,7 +28,7 @@ using System;
 
 namespace TickZoom.Api
 {
-	public interface FIXSimulator : IDisposable
+	public interface FIXSimulator : AgentPerformer
 	{
 		long RealTimeOffset {
 			get;

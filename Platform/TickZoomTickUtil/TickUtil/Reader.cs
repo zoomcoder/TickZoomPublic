@@ -66,6 +66,13 @@ namespace TickZoom.TickUtil
             tickFile = new TickFile();
         }
 
+        public void Initialize(Task task)
+        {
+            this.fileReaderTask = task;
+            fileReaderTask.Scheduler = Scheduler.RoundRobin;
+            fileReaderTask.Start();
+        }
+
 		bool CancelPending {
 			get { return backgroundWorker != null && backgroundWorker.CancellationPending; }
 		}
@@ -95,7 +102,7 @@ namespace TickZoom.TickUtil
 		}
 
         private SimpleLock startLocker = new SimpleLock();
-		public virtual void Start(Agent agent)
+		public virtual void Start(EventItem eventItem)
 		{
             using (startLocker.Using())
             {
@@ -105,18 +112,15 @@ namespace TickZoom.TickUtil
 	    		}
                 if (!isStarted)
                 {
-                    this.agent = agent;
+                    this.agent = eventItem.Agent;
                     var symbol = tickFile.Symbol;
                     if (debug) log.Debug("Start called.");
                     start = Factory.TickCount;
                     diagnoseMetric = Diagnose.RegisterMetric("Reader." + symbol.Symbol.StripInvalidPathChars());
-                    fileReaderTask = Factory.Parallel.Loop("Reader." + symbol.Symbol.StripInvalidPathChars(), OnException, Invoke);
-                    fileReaderTask.Scheduler = Scheduler.RoundRobin;
                     var tempQueue = Factory.Parallel.FastQueue<int>(symbol + " Reader Nominal Queue");
                     var tempConnectionId = 0;
                     fileReaderTask.ConnectInbound(tempQueue, out tempConnectionId);
                     fileReaderTask.IncreaseInbound(tempConnectionId,0L);
-                    fileReaderTask.Start();
                     isStarted = true;
                 }
             }
@@ -129,10 +133,9 @@ namespace TickZoom.TickUtil
             log.Error(detail.ErrorMessage);
 		}
 
-		public void Stop(Agent agent)
+		public void Stop(EventItem eventItem)
 		{
-			if (debug)
-				log.Debug("Stop(" + agent + ")");
+			if (debug) log.Debug("Stop(" + agent + ")");
 			Dispose();
 		}
 
@@ -182,9 +185,20 @@ namespace TickZoom.TickUtil
 		private YieldMethod SendFinishMethod;
 		private YieldMethod StartEventMethod;
 
-		private Yield Invoke()
+		public virtual Yield Invoke()
 		{
-			lock (taskLocker) {
+            EventItem eventItem;
+            if( fileReaderTask.Filter.Receive(out eventItem))
+            {
+                switch( eventItem.EventType)
+                {
+                    default:
+                        throw new ApplicationException("Unexpected event: " + eventItem);
+                }
+            }
+            if (!isStarted) return Yield.NoWork.Repeat;
+            lock (taskLocker)
+            {
 				if (isDisposed)
 					return Yield.Terminate;
 				try {

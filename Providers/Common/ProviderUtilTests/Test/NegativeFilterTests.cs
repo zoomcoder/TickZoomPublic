@@ -47,8 +47,8 @@ namespace TickZoom.Test
 	  		int expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( var provider = ProviderFactory()) {
-				provider.SendEvent(new EventItem(verify.Task,EventType.Connect));
-                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+				provider.SendEvent(new EventItem(verify,EventType.Connect));
+                provider.SendEvent(new EventItem(verify, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -78,8 +78,8 @@ namespace TickZoom.Test
 	  		var expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
-                provider.SendEvent(new EventItem(verify.Task, EventType.Connect));
-                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify, EventType.Connect));
+                provider.SendEvent(new EventItem(verify, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -107,8 +107,8 @@ namespace TickZoom.Test
 	  		int secondsDelay = 3;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
-                provider.SendEvent(new EventItem(verify.Task, EventType.Connect));
-                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify, EventType.Connect));
+                provider.SendEvent(new EventItem(verify, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);
@@ -131,8 +131,8 @@ namespace TickZoom.Test
 			var expectedPosition = 0;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
 			using( Agent provider = ProviderFactory()) {
-                provider.SendEvent(new EventItem(verify.Task, EventType.Connect));
-                provider.SendEvent(new EventItem(verify.Task, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
+                provider.SendEvent(new EventItem(verify, EventType.Connect));
+                provider.SendEvent(new EventItem(verify, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
 				VerifyConnected(verify);				
 				ClearOrders(0);
 				ClearPosition(provider,verify,secondsDelay);

@@ -56,8 +56,16 @@ namespace TickZoom.FIX
 			WriteToRemoteMethod = WriteToRemote;
 			ListenToLocal();
 		}
-		
-		private void ListenToLocal() {
+
+        public void Initialize(Task task)
+        {
+            localTask = task;
+            localTask.Name = "FilterLocalRead";
+            localSocket.ReceiveQueue.ConnectInbound(localTask);
+            localTask.Start();
+        }
+
+	    private void ListenToLocal() {
             listener = Factory.Provider.Socket(typeof(FIXPretradeFilter).Name, localAddress, localPort);
 			listener.Bind();
 			listener.Listen(5);
@@ -80,9 +88,6 @@ namespace TickZoom.FIX
 			localSocket.MessageFactory = new MessageFactoryFix44();
 			log.Info("Received local connection: " + socket);
 			RequestRemoteConnect();
-			localTask = Factory.Parallel.Loop( "FilterLocalRead", OnException, Invoke);
-			localSocket.ReceiveQueue.ConnectInbound( localTask);
-			localTask.Start();
 		}
 		
 		private void OnDisconnect( Socket socket) {

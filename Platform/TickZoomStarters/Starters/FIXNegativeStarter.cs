@@ -20,8 +20,8 @@ namespace TickZoom.Starters
             Address = "inprocess";
             AddProvider("MBTFIXProvider/Simulate");
             SetupProviderServiceConfig();
-            using (var fixServer = (FIXSimulator)Factory.FactoryLoader.Load(typeof(FIXSimulator), "MBTFIXProvider", "Negative"))
-            {
+            using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "FIXSimulator", "Negative"))
+            { 
                 base.Run(loader);
             }
         }

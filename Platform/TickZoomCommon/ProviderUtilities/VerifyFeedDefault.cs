@@ -66,9 +66,12 @@ namespace TickZoom.Common
 		    this.symbol = symbol;
             tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
             tickPool =  Factory.Parallel.TickPool(symbol);
-            task = Factory.Parallel.Loop(this, OnException, Invoke);
-            Task.Scheduler = Scheduler.EarliestTime;
-		    filter = task.GetFilter();
+        }
+
+        public void Initialize( Task task)
+        {
+            task.Scheduler = Scheduler.EarliestTime;
+            filter = task.GetFilter();
             task.Start();
             task.Pause();
         }
@@ -477,6 +480,11 @@ namespace TickZoom.Common
 			}
 			return count;
 		}
+
+        public void Shutdown()
+        {
+            Dispose();
+        }
 
 		public Yield Invoke()
 		{

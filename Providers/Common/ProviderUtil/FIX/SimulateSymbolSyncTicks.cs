@@ -59,6 +59,7 @@ namespace TickZoom.FIX
 	    private int diagnoseMetric;
         private TickIO currentTick = Factory.TickUtil.TickIO();
         private TickIO temporaryTick = Factory.TickUtil.TickIO();
+        private string symbolString;
 	
 		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,
@@ -68,6 +69,7 @@ namespace TickZoom.FIX
             log.Register(this);
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.onTick = onTick;
+		    this.symbolString = symbolString;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true);
             FillSimulator.OnPhysicalFill = onPhysicalFill;
@@ -80,17 +82,23 @@ namespace TickZoom.FIX
             try
             {
                 reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
-                queueTask = Factory.Parallel.Loop("SimulateSymbolSyncTicks-" + symbolString, OnException, Invoke);
-                queueTask.Scheduler = Scheduler.RoundRobin;
-                fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
-                queueTask.Start();
-                tickSync.ChangeCallBack = TickSyncChangedEvent;
             }
            catch( FileNotFoundException ex)
            {
                log.Info("File for symbol " + symbolString + " not found: " + ex.Message);
            }
 		}
+
+        public void Initialize(Task task)
+        {
+            queueTask = task;
+            queueTask.Name = "SimulateSymbolSyncTicks-" + symbolString;
+            queueTask.Scheduler = Scheduler.RoundRobin;
+            fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
+            queueTask.Start();
+            tickSync.ChangeCallBack = TickSyncChangedEvent;
+        }
+
 
         private Yield Invoke()
         {

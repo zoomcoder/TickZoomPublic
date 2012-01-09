@@ -37,7 +37,7 @@ using TickZoom.Api;
 
 namespace TickZoom.MBTQuotes
 {
-	public abstract class MBTQuoteProviderSupport : Agent, LogAware
+	public abstract class MBTQuoteProviderSupport : AgentPerformer, LogAware
 	{
 		private readonly Log log;
 		private volatile bool debug;
@@ -93,9 +93,28 @@ namespace TickZoom.MBTQuotes
             logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
         }
 
-        public Agent GetReceiver()
+        public void Initialize(Task task)
         {
-            throw new NotImplementedException();
+            socketTask = task;
+            socketTask.Scheduler = Scheduler.EarliestTime;
+            taskTimer = Factory.Parallel.CreateTimer("Task", socketTask, TimerTask);
+            filter = socketTask.GetFilter();
+            socketTask.Start();
+            if (debug) log.Debug("> Initialize.");
+            var appDataFolder = Factory.Settings["AppDataFolder"];
+            if (appDataFolder == null)
+            {
+                throw new ApplicationException("Sorry, AppDataFolder must be set in the app.config file.");
+            }
+            var configFile = appDataFolder + @"/Providers/" + providerName + "/Default.config";
+            failedFile = appDataFolder + @"/Providers/" + providerName + "/LoginFailed.txt";
+
+            LoadProperties(configFile);
+
+            if (File.Exists(failedFile))
+            {
+                throw new ApplicationException("Please correct the username or password error described in " + failedFile + ". Then delete the file retrying, please.");
+            }
         }
 
         private void RegenerateSocket()
@@ -135,27 +154,6 @@ namespace TickZoom.MBTQuotes
             }
         }
 		
-		protected void Initialize() {
-	        try { 
-				if( debug) log.Debug("> Initialize.");
-				var appDataFolder = Factory.Settings["AppDataFolder"];
-				if( appDataFolder == null) {
-					throw new ApplicationException("Sorry, AppDataFolder must be set in the app.config file.");
-				}
-				var configFile = appDataFolder+@"/Providers/"+providerName+"/Default.config";
-				failedFile = appDataFolder+@"/Providers/"+providerName+"/LoginFailed.txt";
-				
-				LoadProperties(configFile);
-				
-				if( File.Exists(failedFile) ) {
-					throw new ApplicationException("Please correct the username or password error described in " + failedFile + ". Then delete the file retrying, please.");
-				}
-				
-	        } catch( Exception ex) {
-	        	log.Error(ex.Message,ex);
-	        	throw;
-	        }
-		}
 		
 		public enum Status {
 			New,
@@ -266,15 +264,41 @@ namespace TickZoom.MBTQuotes
             return Invoke();
         }
 
-	    private Yield Invoke() {
-			if( isDisposed ) return Yield.NoWork.Repeat;
+        public void Shutdown()
+        {
+            Dispose();
+        }
 
-	        EventItem eventItem;
+        public Yield Invoke()
+        {
+			if( isDisposed ) return Yield.NoWork.Repeat;
+            EventItem eventItem;
             if( filter.Receive(out eventItem))
             {
-                switch( (EventType) eventItem.EventType)
+                switch( eventItem.EventType)
                 {
+                    case EventType.Connect:
+                        Start(eventItem);
+                        filter.Pop();
+                        break;
+                    case EventType.Disconnect:
+                        Stop(eventItem);
+                        filter.Pop();
+                        break;
+                    case EventType.StartSymbol:
+                        StartSymbol(eventItem);
+                        filter.Pop();
+                        break;
+                    case EventType.StopSymbol:
+                        StopSymbol(eventItem);
+                        filter.Pop();
+                        break;
+                    case EventType.PositionChange:
+                        PositionChange(eventItem);
+                        filter.Pop();
+                        break;
                     case EventType.RemoteShutdown:
+                    case EventType.Terminate:
                         Dispose();
                         filter.Pop();
                         break;
@@ -282,6 +306,7 @@ namespace TickZoom.MBTQuotes
                         throw new ApplicationException("Unexpected event: " + eventItem);
                 }
             }
+            if (!isStarted) return Yield.NoWork.Repeat;
 
             if (debugDisconnect)
             {
@@ -453,16 +478,11 @@ namespace TickZoom.MBTQuotes
 		}
 
 	    private QueueFilter filter;
-
-        public void Start(Agent agent)
+	    private bool isStarted;
+        public void Start(EventItem eventItem)
         {
-        	this.ClientAgent = (Agent) agent;
+        	this.ClientAgent = eventItem.Agent;
             log.Info(providerName + " Startup");
-            socketTask = Factory.Parallel.Loop("MBTQuotesProvider", OnException, Invoke);
-            socketTask.Scheduler = Scheduler.EarliestTime;
-            taskTimer = Factory.Parallel.CreateTimer("Task", socketTask, TimerTask);
-            filter = socketTask.GetFilter();
-            socketTask.Start();
 
             TimeStamp currentTime = TimeStamp.UtcNow;
             currentTime.AddSeconds(1);
@@ -471,9 +491,10 @@ namespace TickZoom.MBTQuotes
             RegenerateSocket();
             retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
             log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
+            isStarted = true;
         }
         
-        public void Stop(Agent agent) {
+        public void Stop(EventItem eventItem) {
         	
         }
 	
@@ -617,7 +638,10 @@ namespace TickZoom.MBTQuotes
 			return false;
 		}
 		
-		public abstract void PositionChange(Agent agent, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders);
+		public void PositionChange(EventItem eventItem)
+		{
+		    
+		}
 
         private volatile bool isFinalized;
         public bool IsFinalized
@@ -669,44 +693,6 @@ namespace TickZoom.MBTQuotes
 	            }
     		}
 	    }
-
-        public bool SendEvent(EventItem eventItem)
-        {
-            var result = true;
-            var receiver = eventItem.Agent;
-            var symbol = eventItem.Symbol;
-            var eventType = eventItem.EventType;
-            var eventDetail = eventItem.EventDetail;
-            switch ((EventType)eventType)
-            {
-                case EventType.Initialize:
-                    Initialize();
-                    break;
-				case EventType.Connect:
-					Start(receiver);
-					break;
-				case EventType.Disconnect:
-					Stop(receiver);
-					break;
-				case EventType.StartSymbol:
-					StartSymbol(eventItem);
-					break;
-				case EventType.StopSymbol:
-					StopSymbol(eventItem);
-					break;
-				case EventType.PositionChange:
-					PositionChangeDetail positionChange = (PositionChangeDetail) eventDetail;
-					PositionChange(receiver,symbol,positionChange.Position,positionChange.Orders);
-					break;
-                case EventType.RemoteShutdown:
-				case EventType.Terminate:
-					Dispose();
-					break; 
-				default:
-					throw new ApplicationException("Unexpected event type: " + (EventType) eventType);
-			}
-            return result;
-        }
 		
 		public Socket Socket {
 			get { return socket; }

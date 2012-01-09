@@ -88,11 +88,11 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-		public void StartSymbol(Agent agent, SymbolInfo symbol, object eventDetail)
+		public void StartSymbol(EventItem eventItem)
 		{
-			StartSymbolDetail detail = (StartSymbolDetail)eventDetail;
+			var detail = (StartSymbolDetail)eventItem.EventDetail;
 
-			if (!symbol.Equals(Symbol)) {
+			if (!eventItem.Symbol.Equals(Symbol)) {
 				throw new ApplicationException("Mismatching symbol.");
 			}
 			if (detail.LastTime != StartTime) {
@@ -100,12 +100,60 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-		public void StopSymbol(Agent agent, SymbolInfo symbol)
+        public void Shutdown()
+        {
+            Dispose();
+        }
+
+        public override Yield Invoke()
+		{
+		    EventItem eventItem;
+		    if (fileReaderTask.Filter.Receive(out eventItem))
+		    {
+		        switch (eventItem.EventType)
+		        {
+                    case EventType.StartSymbol:
+                        StartSymbol(eventItem);
+                        fileReaderTask.Filter.Pop();
+		                break;
+                    case EventType.Connect:
+                        Start(eventItem);
+                        fileReaderTask.Filter.Pop();
+                        break;
+                    case EventType.Disconnect:
+                        Stop(eventItem);
+                        fileReaderTask.Filter.Pop();
+                        break;
+                    case EventType.StopSymbol:
+                        StopSymbol(eventItem);
+                        fileReaderTask.Filter.Pop();
+                        break;
+                    case EventType.PositionChange:
+                        PositionChange(eventItem);
+                        fileReaderTask.Filter.Pop();
+                        break;
+                    case EventType.RemoteShutdown:
+                    case EventType.Terminate:
+                        Dispose();
+                        fileReaderTask.Filter.Pop();
+                        break;
+                    default:
+            		    return base.Invoke();
+		        }
+		    }
+            else
+		    {
+		        return base.Invoke();
+		    }
+		    return Yield.NoWork.Repeat;
+		}
+
+	    public void StopSymbol(EventItem eventItem)
 		{
 
 		}
 
-		public void PositionChange(Agent agent, SymbolInfo symbol, double position, Iterable<LogicalOrder> orders)
+		public void PositionChange(EventItem eventItem)
 		{
 			throw new NotImplementedException();
 		}
@@ -119,26 +167,6 @@ namespace TickZoom.TickUtil
             var eventDetail = eventItem.EventDetail;
             switch ((EventType)eventType)
             {
-				case EventType.Connect:
-					Start(receiver);
-					break;
-				case EventType.Disconnect:
-					Stop(receiver);
-					break;
-				case EventType.StartSymbol:
-					StartSymbol(receiver, symbol, eventDetail);
-					break;
-				case EventType.StopSymbol:
-					StopSymbol(receiver, symbol);
-					break;
-				case EventType.PositionChange:
-					PositionChangeDetail positionChange = (PositionChangeDetail)eventDetail;
-					PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders);
-					break;
-                case EventType.RemoteShutdown:
-				case EventType.Terminate:
-					Dispose();
-					break;
 				default:
 					throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
             }

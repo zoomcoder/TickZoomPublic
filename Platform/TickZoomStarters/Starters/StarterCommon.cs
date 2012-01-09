@@ -120,7 +120,7 @@ namespace TickZoom.Starters
 	    		tickReader.QuietMode = quietMode;
 	    		try { 
 		    		tickReader.Initialize(DataFolder,symbolFiles[i]);
-					senderList.Add(tickReader);
+					senderList.Add(tickReader.ToAgent());
 	    		} catch( System.IO.FileNotFoundException ex) {
 	    			throw new ApplicationException("Error: " + ex.Message);
 	    		}

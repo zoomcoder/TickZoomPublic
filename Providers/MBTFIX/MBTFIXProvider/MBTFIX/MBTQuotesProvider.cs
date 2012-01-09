@@ -63,9 +63,6 @@ namespace TickZoom.MBTQuotes
 			}
         }
 		
-		public override void PositionChange(Agent agent, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
-		{
-		}
 		
 		public override void OnDisconnect()
 		{

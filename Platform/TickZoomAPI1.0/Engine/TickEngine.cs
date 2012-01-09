@@ -63,7 +63,7 @@ namespace TickZoom.Api
 	/// <summary>
 	/// Description of TickEngine.
 	/// </summary>
-	public interface TickEngine 
+	public interface TickEngine : AgentPerformer
 	{
 		ShowChartCallback ShowChartCallback {
 			get;

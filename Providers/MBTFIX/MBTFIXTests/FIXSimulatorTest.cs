@@ -57,7 +57,7 @@ namespace Test
 		
 		public override void TearDown()
 		{
-			fixServer.Dispose();
+            //fixServer.Dispose();
 			base.TearDown();
 		}
 		
