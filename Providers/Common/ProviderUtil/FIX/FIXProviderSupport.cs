@@ -125,10 +125,10 @@ namespace TickZoom.FIX
             trace = log.IsTraceEnabled;
         }
 
-        public void Start(Agent agent)
+        public void Start(EventItem eventItem)
         {
-            if (debug) log.Debug("Start() Agent: " + agent);
-            this.ClientAgent = (Agent) agent;
+            if (debug) log.Debug("Start() Agent: " + eventItem.Agent);
+            this.ClientAgent = (Agent) eventItem.Agent;
             log.Info(providerName + " Startup");
             if (CheckFailedLoginFile())
             {
@@ -159,6 +159,16 @@ namespace TickZoom.FIX
             {
                 throw new ApplicationException("Sorry, AppDataFolder must be set.");
             }
+            if (debug) log.Debug("> SetupFolders.");
+            string configFile = appDataFolder + @"/Providers/" + providerName + "/Default.config";
+            failedFile = appDataFolder + @"/Providers/" + providerName + "/LoginFailed.txt";
+            if (File.Exists(failedFile))
+            {
+                log.Error("Please correct the username or password error described in " + failedFile + ". Then delete the file before retrying, please.");
+                return;
+            }
+
+            LoadProperties(configFile);
         }
 
         protected void RegenerateSocket()
@@ -202,28 +212,6 @@ namespace TickZoom.FIX
             }
         }
 
-		private void Initialize() {
-        	try { 
-				if( debug) log.Debug("> SetupFolders.");
-				string appDataFolder = Factory.Settings["AppDataFolder"];
-				if( appDataFolder == null) {
-					throw new ApplicationException("Sorry, AppDataFolder must be set in the app.config file.");
-				}
-                string configFile = appDataFolder + @"/Providers/" + providerName + "/Default.config";
-                failedFile = appDataFolder + @"/Providers/" + providerName + "/LoginFailed.txt";
-                if (File.Exists(failedFile))
-                {
-                    log.Error("Please correct the username or password error described in " + failedFile + ". Then delete the file before retrying, please.");
-                    return;
-                }
-				
-				LoadProperties(configFile);
-        	} catch( Exception ex) {
-        		log.Error(ex.Message,ex);
-        		throw;
-        	}
-        }
-		
 		public enum Status {
             None,
 			New,
@@ -389,6 +377,46 @@ namespace TickZoom.FIX
         public Yield Invoke()
         {
             if (isDisposed) return Yield.NoWork.Repeat;
+
+            EventItem eventItem;
+            if( socketTask.Filter.Receive(out eventItem))
+            {
+                switch (eventItem.EventType)
+                {
+                    case EventType.Connect:
+                        Start(eventItem);
+                        socketTask.Filter.Pop();
+                        break;
+                    case EventType.Disconnect:
+                        Stop(eventItem);
+                        socketTask.Filter.Pop();
+                        break;
+                    case EventType.StartSymbol:
+                        StartSymbol(eventItem);
+                        socketTask.Filter.Pop();
+                        break;
+                    case EventType.StopSymbol:
+                        StopSymbol(eventItem);
+                        socketTask.Filter.Pop();
+                        break;
+                    case EventType.PositionChange:
+                        var positionChange = (PositionChangeDetail) eventItem.EventDetail;
+                        if (debug) log.Debug("PositionChangeQueue has " + positionChangeQueue.Count + " items.");
+                        positionChangeQueue.Enqueue(positionChange, TimeStamp.UtcNow.Internal);
+                        socketTask.Filter.Pop();
+                        break;
+                    case EventType.RemoteShutdown:
+                        LogOut();
+                        socketTask.Filter.Pop();
+                        break;
+                    case EventType.Terminate:
+                        Dispose();
+                        socketTask.Filter.Pop();
+                        break;
+                    default:
+                        throw new ApplicationException("Unexpected event type: " + eventItem.EventType);
+                }
+            }
 
             if (positionChangeQueue.Count > 0)
             {
@@ -855,7 +883,7 @@ namespace TickZoom.FIX
             Dispose();
 		}
 		
-        public void Stop(Agent agent) {
+        public void Stop(EventItem eventItem) {
         	
         }
 
@@ -872,11 +900,12 @@ namespace TickZoom.FIX
         
         public abstract void OnStartSymbol( SymbolInfo symbol);
         
-        public void StopSymbol(Agent agent, SymbolInfo symbol)
+        public void StopSymbol(EventItem eventItem)
         {
-        	log.Info("StopSymbol( " + symbol + ")");
-        	if( TryRemoveSymbol(symbol)) {
-        		OnStopSymbol(symbol);
+        	log.Info("StopSymbol( " + eventItem.Symbol + ")");
+            if (TryRemoveSymbol(eventItem.Symbol))
+            {
+                OnStopSymbol(eventItem.Symbol);
         	}
         }
         
@@ -1058,54 +1087,6 @@ namespace TickZoom.FIX
 	            }
     		}
 	    }    
-	        
-		public bool SendEvent( EventItem eventItem)
-		{
-            var result = true;
-		    var receiver = eventItem.Agent;
-		    var symbol = eventItem.Symbol;
-            var eventType = eventItem.EventType;
-		    var eventDetail = eventItem.EventDetail;
-            try
-            {
-                switch ((EventType)eventType)
-                {
-                    case EventType.Initialize:
-                        Initialize();
-                        break;
-                    case EventType.Connect:
-                        Start(receiver);
-                        break;
-                    case EventType.Disconnect:
-                        Stop(receiver);
-                        break;
-                    case EventType.StartSymbol:
-                        StartSymbol(eventItem);
-                        break;
-                    case EventType.StopSymbol:
-                        StopSymbol(receiver, symbol);
-                        break;
-                    case EventType.PositionChange:
-                        var positionChange = (PositionChangeDetail)eventDetail;
-                        if( debug) log.Debug("PositionChangeQueue has " + positionChangeQueue.Count + " items.");
-                        positionChangeQueue.Enqueue(positionChange,TimeStamp.UtcNow.Internal);
-                        break;
-                    case EventType.RemoteShutdown:
-                        LogOut();
-                        break;
-                    case EventType.Terminate:
-                        Dispose();
-                        break;
-                    default:
-                        throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
-                }
-            }
-            catch( Exception ex)
-            {
-                OnException(ex);
-            }
-		    return result;
-		}
 
 	    public void SendMessage(FIXTMessage1_1 fixMsg) {
             if( !fixMsg.IsDuplicate)

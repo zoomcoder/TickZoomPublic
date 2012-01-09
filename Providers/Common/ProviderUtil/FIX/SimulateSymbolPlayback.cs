@@ -51,6 +51,11 @@ namespace TickZoom.FIX
             FillSimulator.OnRejectOrder = onRejectOrder;
         }
 
+        public void Shutdown()
+        {
+            Dispose();
+        }
+
         public void Initialize( Task task)
         {
             queueTask = task;
@@ -102,7 +107,7 @@ namespace TickZoom.FIX
             return FillSimulator.GetOrderById(clientOrderId);
         }
 
-        private Yield Invoke()
+        public Yield Invoke()
         {
             LatencyManager.IncrementSymbolHandler();
             if (tickStatus == TickStatus.None || tickStatus == TickStatus.Sent)

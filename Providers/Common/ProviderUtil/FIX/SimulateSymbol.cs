@@ -3,7 +3,7 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-    public interface SimulateSymbol : IDisposable
+    public interface SimulateSymbol : AgentPerformer
     {
         bool IsOnline { get; set; }
         int ActualPosition { get; }

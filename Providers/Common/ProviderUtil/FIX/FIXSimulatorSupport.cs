@@ -108,6 +108,8 @@ namespace TickZoom.FIX
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
+		    this.fixPort = fixPort;
+		    this.quotesPort = quotesPort;
 		    var randomSeed = new Random().Next(int.MaxValue);
 		    if (randomSeed != 1234)
 		    {
@@ -134,11 +136,25 @@ namespace TickZoom.FIX
             simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
 			this._quoteMessageFactory = _quoteMessageFactory;
-			ListenToFIX(fixPort);
-			ListenToQuotes(quotesPort);
-			MainLoopMethod = Invoke;
-            if( debug) log.Debug("Starting FIX Simulator.");
-            if( allTests)
+        }
+
+        public void Initialize(Task task)
+        {
+            this.task = task;
+            filter = task.GetFilter();
+            task.Scheduler = Scheduler.EarliestTime;
+            quotePacketQueue.ConnectInbound(task);
+            fixPacketQueue.ConnectInbound(task);
+            heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
+            var startTime = TimeStamp.UtcNow;
+            startTime.AddSeconds(1);
+            heartbeatTimer.Start(startTime);
+            task.Start();
+            ListenToFIX();
+            ListenToQuotes();
+            MainLoopMethod = Invoke;
+            if (debug) log.Debug("Starting FIX Simulator.");
+            if (allTests)
             {
                 if (!simulateDisconnect)
                 {
@@ -167,20 +183,6 @@ namespace TickZoom.FIX
             }
         }
 
-        public void Initialize(Task task)
-        {
-            this.task = task;
-            filter = task.GetFilter();
-            task.Scheduler = Scheduler.EarliestTime;
-            quotePacketQueue.ConnectInbound(task);
-            fixPacketQueue.ConnectInbound(task);
-            heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
-            var startTime = TimeStamp.UtcNow;
-            startTime.AddSeconds(1);
-            heartbeatTimer.Start(startTime);
-            task.Start();
-        }
-
         public void DumpHistory()
         {
             for (var i = 0; i <= FixFactory.LastSequence; i++)
@@ -193,9 +195,8 @@ namespace TickZoom.FIX
             }
         }
 
-        private void ListenToFIX(ushort fixPort)
+        private void ListenToFIX()
 		{
-			this.fixPort = fixPort;
             fixListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name, localAddress, fixPort);
 			fixListener.Bind();
 			fixListener.Listen( 5);
@@ -205,9 +206,8 @@ namespace TickZoom.FIX
 			log.Info("Listening for FIX to " + localAddress + " on port " + fixPort);
 		}
 
-		private void ListenToQuotes(ushort quotesPort)
+		private void ListenToQuotes()
 		{
-			this.quotesPort = quotesPort;
             quoteListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name, localAddress, quotesPort);
 			quoteListener.Bind();
 			quoteListener.Listen( 5);
@@ -850,7 +850,7 @@ namespace TickZoom.FIX
                 {
                     if( SyncTicks.Enabled)
                     {
-                        var symbolHandler = new SimulateSymbolSyncTicks(this, symbol, onTick, onPhysicalFill, onOrderReject);
+                        var symbolHandler = (SimulateSymbol) Factory.Parallel.SpawnPerformer(typeof (SimulateSymbolSyncTicks), this, symbol, onTick, onPhysicalFill, onOrderReject);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                     else
@@ -1148,7 +1148,7 @@ namespace TickZoom.FIX
                     {
                         var handler = kvp.Value;
                         if (debug) log.Debug("Disposing symbol handler " + handler);
-                        handler.Dispose();
+                        handler.ToAgent().SendEvent(new EventItem(EventType.RemoteShutdown));
                     }
                     symbolHandlers.Clear();
                 }

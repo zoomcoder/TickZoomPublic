@@ -89,6 +89,11 @@ namespace TickZoom.FIX
            }
 		}
 
+        public void Shutdown()
+        {
+            Dispose();
+        }
+
         public void Initialize(Task task)
         {
             queueTask = task;
@@ -100,7 +105,7 @@ namespace TickZoom.FIX
         }
 
 
-        private Yield Invoke()
+        public Yield Invoke()
         {
             LatencyManager.IncrementSymbolHandler();
             if (!tickSync.TryLock())
@@ -208,12 +213,6 @@ namespace TickZoom.FIX
         {
             FillSimulator.ProcessAdjustments();
         }
-
-        private void OnException(Exception ex)
-        {
-			log.Error("Exception occurred", ex);
-			Dispose();
-		}
 
         public void ChangeOrder(CreateOrChangeOrder order)
         {
