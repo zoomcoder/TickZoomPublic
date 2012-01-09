@@ -54,6 +54,7 @@ namespace TickZoom.Api
         internal ActiveListNode<T> head;
         internal ActiveListNode<T> tail;
         internal int count;
+	    private long version;
         private static int nextListId = 0;
 	    private int id;
 
@@ -337,6 +338,7 @@ namespace TickZoom.Api
             node.prev = newNode;
             newNode.list = (ActiveList<T>) this;
             ++this.count;
+            ++version;
         }
 
         private void InsertNodeAfter(ActiveListNode<T> node, ActiveListNode<T> newNode)
@@ -350,6 +352,7 @@ namespace TickZoom.Api
             node.next = newNode;
             newNode.list = (ActiveList<T>) this;
             ++this.count;
+            ++version;
         }
 
         private void InsertNodeToEmptyList(ActiveListNode<T> newNode)
@@ -360,9 +363,10 @@ namespace TickZoom.Api
             this.tail = newNode;
             newNode.list = (ActiveList<T>) this;
             ++this.count;
+            ++version;
         }
 
-        internal void RemoveNode(ActiveListNode<T> node)
+        private void RemoveNode(ActiveListNode<T> node)
         {
             if( node.next != null)
             {
@@ -382,6 +386,7 @@ namespace TickZoom.Api
                 this.tail = node.prev;
             }
             --this.count;
+            ++version;
         }
 
         public bool Remove(T value)
@@ -508,5 +513,10 @@ namespace TickZoom.Api
         {
             get { return this.tail; }
         }
-    }
+
+	    public long Version
+	    {
+	        get { return version; }
+	    }
+	}
 }

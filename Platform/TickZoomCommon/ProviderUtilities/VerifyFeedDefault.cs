@@ -70,6 +70,7 @@ namespace TickZoom.Common
 
         public void Initialize( Task task)
         {
+            this.task = task;
             task.Scheduler = Scheduler.EarliestTime;
             filter = task.GetFilter();
             task.Start();
@@ -564,8 +565,8 @@ namespace TickZoom.Common
 	    		lock( taskLocker) {
 		            isDisposed = true;   
 		            if (disposing) {
-		            	if( Task != null) {
-			            	Task.Stop();
+		            	if( task != null) {
+			            	task.Stop();
 		            	}
 		            }
 		            task = null;
