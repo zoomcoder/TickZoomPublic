@@ -40,6 +40,7 @@ namespace TickZoom.Starters
 		
 		public override void Run(ModelLoaderInterface loader)
 		{
+		    Factory.Provider.StartSockets();
             parallelMode = ParallelMode.RealTime;
             Factory.SysLog.RegisterHistorical("FIXSimulator", GetDefaultLogConfig());
             Factory.SysLog.RegisterRealTime("FIXSimulator", GetDefaultLogConfig());
@@ -51,7 +52,8 @@ namespace TickZoom.Starters
             { 
 				base.Run(loader);
 			}
-		}
+            Factory.Provider.ShutdownSockets();
+        }
 		
 		private string GetDefaultLogConfig() {
 			return @"<?xml version=""1.0"" encoding=""utf-8"" ?>

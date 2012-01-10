@@ -134,69 +134,56 @@ namespace TickZoom.Starters
         }
 
 
-        public class DesignAgent : Agent
+        public class DesignAgent : AgentPerformer
         {
             private volatile bool isDisposed = false;
+            private Task task;
 
             private DesignAgent()
             {
 
             }
 
-            public Agent GetReceiver()
+            public void Initialize( Task task)
             {
-                throw new NotImplementedException();
+                this.task = task;
+                task.Scheduler = Scheduler.EarliestTime;
+                task.Start();
             }
 
-            public void StartSymbol(Agent agent, SymbolInfo symbol, object eventDetail)
+            public void Shutdown()
             {
-                var tickPool = Factory.Parallel.TickPool(symbol);
+                Dispose();
+            }
+
+            public void StartSymbol(EventItem eventItem)
+            {
+                var tickPool = Factory.Parallel.TickPool(eventItem.Symbol);
                 TickIO tickIO = Factory.TickUtil.TickIO();
                 tickIO.Initialize();
-                tickIO.SetSymbol(symbol.BinaryIdentifier);
+                tickIO.SetSymbol(eventItem.Symbol.BinaryIdentifier);
                 tickIO.SetTime(new TimeStamp(2000, 1, 1));
                 tickIO.SetQuote(100D, 100D);
-                var item = new EventItem(symbol, EventType.StartHistorical);
-                agent.SendEvent(item);
+                var item = new EventItem(eventItem.Symbol, EventType.StartHistorical);
+                eventItem.Agent.SendEvent(item);
                 var binaryBox = tickPool.Create();
                 var tickId = binaryBox.TickBinary.Id;
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
-                item = new EventItem(symbol, EventType.Tick, binaryBox);
-                agent.SendEvent(item);
+                item = new EventItem(eventItem.Symbol, EventType.Tick, binaryBox);
+                eventItem.Agent.SendEvent(item);
                 tickIO.Initialize();
-                tickIO.SetSymbol(symbol.BinaryIdentifier);
+                tickIO.SetSymbol(eventItem.Symbol.BinaryIdentifier);
                 tickIO.SetTime(new TimeStamp(2000, 1, 2));
                 tickIO.SetQuote(101D, 101D);
                 binaryBox = tickPool.Create();
                 tickId = binaryBox.TickBinary.Id;
                 binaryBox.TickBinary = tickIO.Extract();
                 binaryBox.TickBinary.Id = tickId;
-                item = new EventItem(symbol, EventType.Tick, binaryBox);
-                agent.SendEvent(item);
-                item = new EventItem(symbol, EventType.EndHistorical);
-                agent.SendEvent(item);
-            }
-
-            public void StopSymbol(Agent agent, SymbolInfo symbol)
-            {
-            }
-
-            public void PositionChange(Agent agent, SymbolInfo symbol, double signal, Iterable<LogicalOrder> orders)
-            {
-                throw new NotImplementedException();
-            }
-
-            public void Signal(Agent agent, string symbol, double signal)
-            {
-            }
-
-            public void Start(Agent agent)
-            {
-            }
-
-            public void Stop(Agent agent)
-            {
+                item = new EventItem(eventItem.Symbol, EventType.Tick, binaryBox);
+                eventItem.Agent.SendEvent(item);
+                item = new EventItem(eventItem.Symbol, EventType.EndHistorical);
+                eventItem.Agent.SendEvent(item);
             }
 
             private volatile bool isFinalized;
@@ -216,47 +203,40 @@ namespace TickZoom.Starters
                 if (!isDisposed)
                 {
                     isDisposed = true;
+                    if( task != null)
+                    {
+                        task.Stop();
+                    }
                     isFinalized = true;
                 }
             }
 
-            public bool SendEvent(EventItem eventItem)
+            public Yield Invoke()
             {
-                var result = true;
-                var receiver = eventItem.Agent;
-                var symbol = eventItem.Symbol;
-                var eventType = eventItem.EventType;
-                var eventDetail = eventItem.EventDetail;
-                switch ((EventType)eventType)
+                EventItem eventItem;
+                if( task.Filter.Receive(out eventItem))
                 {
-                    case EventType.Initialize:
-                        // Nothing to do.
-                        break;
-                    case EventType.Connect:
-                        Start(receiver);
-                        break;
-                    case EventType.Disconnect:
-                        Stop(receiver);
-                        break;
-                    case EventType.StartSymbol:
-                        StartSymbol(receiver, symbol, eventDetail);
-                        break;
-                    case EventType.StopSymbol:
-                        StopSymbol(receiver, (SymbolInfo)eventDetail);
-                        break;
-                    case EventType.PositionChange:
-                        PositionChangeDetail positionChange = (PositionChangeDetail)eventDetail;
-                        PositionChange(receiver, symbol, positionChange.Position, positionChange.Orders);
-                        break;
-                    case EventType.Terminate:
-                    case EventType.RemoteShutdown:
-                        Dispose();
-                        break;
-                        break;
-                    default:
-                        throw new ApplicationException("Unexpected event type: " + (EventType)eventType);
+                    switch( eventItem.EventType)
+                    {
+                        case EventType.Connect:
+                            break;
+                        case EventType.Disconnect:
+                            break;
+                        case EventType.StartSymbol:
+                            StartSymbol(eventItem);
+                            break;
+                        case EventType.StopSymbol:
+                            break;
+                        case EventType.PositionChange:
+                            break;
+                        case EventType.Terminate:
+                            break;
+                        default:
+                            throw new ApplicationException("Unexpected event type: " + eventItem.EventType);
+                    }
+                    task.Filter.Pop();
                 }
-                return result;
+                return Yield.NoWork.Repeat;
             }
         }
     }

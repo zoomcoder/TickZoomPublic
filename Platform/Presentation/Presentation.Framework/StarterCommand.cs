@@ -79,7 +79,7 @@ namespace TickZoom.Presentation.Framework
             }
             catch( Exception ex)
             {
-                log.Error("Error occured while processing a StarterCommand: " + ex.Message, ex);
+                log.Error("Exception occurred: " + ex.Message,ex);
             }
         }
 

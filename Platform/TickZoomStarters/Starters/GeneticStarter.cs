@@ -215,10 +215,7 @@ namespace TickZoom.Starters
 			// Pre-setup engines. This causes the progress
 			// bar to show a complete set of information for all
 			// generations.
-			var engines = new Stack<TickEngine>();
-			for( int i=0; i<totalEngineCount; i++) {
-				engines.Push( SetupEngine( true, "Iteration"+(i+1)));
-			}
+		    var iteration = 1;
 			
 			for( int genCount =0; genCount < generationCount && !CancelPending; genCount++) {
 				
@@ -245,8 +242,8 @@ namespace TickZoom.Starters
 					passCount++;
 					if (passCount % tasksPerEngine == 0)
 					{
-						var engine = engines.Pop();
-					    engine.Model = topModel;
+						var engine = SetupEngine(true, "Iteration" + ++iteration);
+                        engine.Model = topModel;
 						engine.QueueTask();
 						engineIterations.Add(engine);
 						topModel = new Portfolio();
@@ -258,7 +255,8 @@ namespace TickZoom.Starters
 					
 				if (topModel.Chain.Dependencies.Count > 0)
 				{
-					var engine = ProcessHistorical(topModel, true, "Iteration"+(engineIterations.Count+1));
+                    var engine = SetupEngine(true, "Iteration" + ++iteration);
+				    engine.Model = topModel;
 					engine.QueueTask();
 					engineIterations.Add(engine);
 				}

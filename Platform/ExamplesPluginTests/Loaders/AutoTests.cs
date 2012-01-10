@@ -264,7 +264,7 @@ namespace Loaders
 			
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Default,
+                Mode = AutoTestMode.Historical,
                 Name = "LimitChangeOffsetTest",
                 Loader = new LimitChangeLoader(),
                 Symbols = primarySymbol,

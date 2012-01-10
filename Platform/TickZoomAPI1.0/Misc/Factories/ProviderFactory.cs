@@ -49,6 +49,8 @@ namespace TickZoom.Api
         Selector ManagerSharedMemory { get; }
         EventLog EventLog { get; }
 	    Subprocess Subprocess();
+	    void StartSockets();
+	    void ShutdownSockets();
 	}
 }
 	
