@@ -35,6 +35,7 @@ namespace TickZoom.Presentation.Framework
 
     public class ActionCommand : Command
     {
+        private static readonly Log log = Factory.SysLog.GetLogger(typeof(StartCommand));
         #region Fields
 
         private Action action;
@@ -65,7 +66,14 @@ namespace TickZoom.Presentation.Framework
 
         public override void Execute()
         {
-            action();
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                log.Error("Error occured while processing an ActionCommand: " + ex.Message, ex);
+            }
         }
 
         #endregion Methods

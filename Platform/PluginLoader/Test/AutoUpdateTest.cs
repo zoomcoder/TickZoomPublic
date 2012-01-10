@@ -87,6 +87,7 @@ namespace TickZoom.Utilities
 			AutoUpdate updater = new AutoUpdate();
 			updater.CurrentVersion = testVersion;
 			string[] files = updater.GetFileList();
+            Assert.NotNull(files,"result from getfiles");
 			Assert.AreEqual(2,files.Length);
             
             Assert.IsTrue(files[0].StartsWith("ProviderCommon-1.2.51.51756.dll.zip"), files[0]);

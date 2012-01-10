@@ -33,6 +33,7 @@ namespace TickZoom.Presentation.Framework
     
     public class StartCommand : Command
     {
+        private static readonly Log log = Factory.SysLog.GetLogger(typeof (StartCommand));
         #region Fields
 
         private ModelLoaderInterface loader;
@@ -72,7 +73,14 @@ namespace TickZoom.Presentation.Framework
 
         public override void Execute()
         {
-            starter.Run(loader);
+            try
+            {
+                starter.Run(loader);
+            }
+            catch( Exception ex)
+            {
+                log.Error("Error occured while processing a StarterCommand: " + ex.Message, ex);
+            }
         }
 
         #endregion Methods

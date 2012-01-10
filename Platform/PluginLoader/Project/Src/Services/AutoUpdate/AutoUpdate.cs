@@ -42,7 +42,9 @@ namespace TickZoom.Update
 			string appDataFolder = Factory.Settings["AppDataFolder"];
 			userKeyPath = appDataFolder + @"\" + userKeyFile;
 			try {
-				using( var streamReader = new StreamReader(userKeyPath))
+                var directory = Path.GetDirectoryName(userKeyPath);
+                Directory.CreateDirectory(directory);
+                using (var streamReader = new StreamReader(userKeyPath))
 				{
                     userKey = streamReader.ReadToEnd();
                     userKey = userKey.Replace("-----BEGIN RSA PRIVATE KEY-----", "");
