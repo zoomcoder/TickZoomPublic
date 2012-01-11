@@ -48,9 +48,12 @@ namespace TickZoom.Starters
 		    Address = "inprocess";
 			AddProvider("MBTFIXProvider/Simulate");
             SetupProviderServiceConfig();
-            var providerManager = Factory.Parallel.SpawnProvider("ProviderCommon","ProviderManager");
-		    providerManager.SendEvent(new EventItem(EventType.SetConfig, "WarehouseTest"));
-            base.Run(loader);
+            var providerManager = Factory.Parallel.SpawnProvider("ProviderCommon", "ProviderManager");
+            providerManager.SendEvent(new EventItem(EventType.SetConfig, "WarehouseTest"));
+            using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "FIXSimulator", "Simulate"))
+            { 
+				base.Run(loader);
+			}
             Factory.Provider.ShutdownSockets();
         }
 		

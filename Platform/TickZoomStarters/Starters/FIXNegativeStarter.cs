@@ -13,6 +13,7 @@ namespace TickZoom.Starters
 
         public override void Run(ModelLoaderInterface loader)
         {
+            Factory.Provider.StartSockets();
             parallelMode = ParallelMode.RealTime;
             Factory.SysLog.RegisterHistorical("FIXSimulator", GetDefaultLogConfig());
             Factory.SysLog.RegisterRealTime("FIXSimulator", GetDefaultLogConfig());
@@ -20,10 +21,13 @@ namespace TickZoom.Starters
             Address = "inprocess";
             AddProvider("MBTFIXProvider/Simulate");
             SetupProviderServiceConfig();
+            var providerManager = Factory.Parallel.SpawnProvider("ProviderCommon", "ProviderManager");
+            providerManager.SendEvent(new EventItem(EventType.SetConfig, "WarehouseTest"));
             using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "FIXSimulator", "Negative"))
             { 
                 base.Run(loader);
             }
+            Factory.Provider.ShutdownSockets();
         }
 
         private string GetDefaultLogConfig()
