@@ -371,7 +371,7 @@ namespace TickZoom.FIX
 
         public void Shutdown()
         {
-            Dispose();
+            LogOut();
         }
 
         public Yield Invoke()

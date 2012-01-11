@@ -600,9 +600,6 @@ namespace TickZoom.Presentation
             <add key=""EngineInterval"" value=""Hour"" />
             <add key=""ChartPeriod"" value=""1"" />
             <add key=""ChartInterval"" value=""Hour"" />
-            <add key=""ServiceAddress"" value=""InProcess"" />
-            <add key=""ServicePort"" value=""6490"" />
-            <add key=""ProviderAssembly"" value=""MBTFIXProvider/EquityDemo"" />
             </appSettings>
             </configuration>";
         }

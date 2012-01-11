@@ -39,18 +39,13 @@ namespace TickZoom.Starters
 
 		public override Agent[] SetupProviders(bool quietMode, bool singleLoad)
 		{
-			switch( Address.ToLower()) {
-				case "inprocess":
-					return base.SetupDataProviders("127.0.0.1",Port);
-                case "subprocess":
-                    return base.SetupDataProviders("127.0.0.1",Port);
-                default:
-					return base.SetupDataProviders(Address,Port);
-			}
+			return base.SetupDataProviders();
 		}
 		
 		public override void Run(ModelInterface model)
 		{
+            SetupProviderServiceConfig();
+		    Factory.Provider.StartSockets();
             runMode = RunMode.RealTime;
             try
             {
@@ -59,9 +54,9 @@ namespace TickZoom.Starters
             finally
             {
                 parallelMode = ParallelMode.Normal;
+                Factory.Provider.ShutdownSockets();
             }
 
-            //SetupProviderServiceConfig();
 
             //switch (Address.ToLower())
             //{
@@ -115,8 +110,6 @@ namespace TickZoom.Starters
                 var configFile = Path.Combine(configPath, "WarehouseTest.config");
                 var warehouseConfig = new ConfigFile(configFile);
                 warehouseConfig.SetValue("ServerCacheFolder", "Test\\ServerCache");
-                warehouseConfig.SetValue("ServiceAddress", "0.0.0.0");
-                warehouseConfig.SetValue("ServicePort", Port.ToString());
                 var provider = ProviderPlugins[0];
                 warehouseConfig.SetValue("ProviderAssembly", provider);
                 warehouseConfig.SetValue("ProviderAddress", "inprocess");

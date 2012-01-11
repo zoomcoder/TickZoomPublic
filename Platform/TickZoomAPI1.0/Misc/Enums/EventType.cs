@@ -45,6 +45,7 @@ namespace TickZoom.Api
 	    ControllerCheckPoint,
 	    NextTickTime,
 	    ShowCharts,
+	    SetConfig,
         StartHistorical,
 		EndRealTime,
 		EndHistorical,

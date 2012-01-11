@@ -206,7 +206,6 @@ namespace TickZoom.MBTQuotes
 			if( !this.socket.Port.Equals(socket.Port)) {
 			}
 			log.Info("OnDisconnect( " + socket + " ) ");
-		    log.Error("MBTQuoteProvider disconnected.");
 			ConnectionStatus = Status.Disconnected;
 		    debugDisconnect = true;
             if (debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus);
@@ -214,6 +213,10 @@ namespace TickZoom.MBTQuotes
             if( isDisposed)
             {
                 Finalize();
+            }
+            else
+            {
+                log.Error("MBTQuoteProvider disconnected.");
             }
         }
 	
@@ -674,10 +677,6 @@ namespace TickZoom.MBTQuotes
 	            if (disposing) {
                     if (socket != null)
                     {
-                        //while (socket.ReceiveQueueCount > 0)
-                        //{
-                        //    Factory.Parallel.Yield();
-                        //}
                         socket.Dispose();
                     }
                     if (taskTimer != null)

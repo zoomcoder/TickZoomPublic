@@ -323,7 +323,10 @@ namespace TickZoom.TickUtil
 
         public bool TryReadTick(TickIO tickIO)
         {
-            if( dataIn == null) return false;
+            if( dataIn == null)
+            {
+                return false;
+            }
             try
             {
                 tickIO.SetSymbol(lSymbol);
@@ -359,7 +362,7 @@ namespace TickZoom.TickUtil
                 tickIO.SetTime(utcTime);
                 return true;
             }
-            catch (EndOfStreamException)
+            catch (EndOfStreamException ex)
             {
                 return false;
             }

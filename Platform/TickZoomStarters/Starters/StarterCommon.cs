@@ -128,7 +128,7 @@ namespace TickZoom.Starters
 			return senderList.ToArray();
 		}
 		
-		public Agent[] SetupDataProviders(string address, int port) {
+		public Agent[] SetupDataProviders() {
 			try {
 				List<Agent> senderList = new List<Agent>();
                 SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;

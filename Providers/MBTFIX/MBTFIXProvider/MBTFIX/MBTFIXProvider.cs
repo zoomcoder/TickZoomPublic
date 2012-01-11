@@ -76,7 +76,7 @@ namespace TickZoom.MBTFIX
         private MBTFIXProvider(string name) : base( name)
 		{
             log.Register(this);
-			log.Notice("Using config file name: " + name);
+			log.Notice("Using config section: " + name);
 			if( name.Contains(".config")) {
 				throw new ApplicationException("Please remove .config from config section name.");
 			}
