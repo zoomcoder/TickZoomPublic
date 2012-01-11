@@ -405,7 +405,7 @@ namespace TickZoom.MBTQuotes
             //    sb.AppendLine();
             //    sb.AppendLine(ASCIIEncoding.UTF8.GetString(bytes));
             //}))
-            return sb.ToString();
+            //return sb.ToString();
         }
 		
         public int MaxSize {

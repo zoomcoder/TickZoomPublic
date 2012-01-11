@@ -59,23 +59,27 @@ namespace TickZoom.FIX
 		private YieldMethod MainLoopMethod;
 	    private int heartbeatDelay = 1; 
         private ServerState fixState = ServerState.Startup;
-        private readonly int maxFailtures = 5;
+        private readonly int maxFailures = 5;
         private bool allTests;
         private int simulateDisconnectCounter;
         private int simulateOrderServerOfflineCounter;
         private int simulateOrderBlackHoleCounter;
+        private int simulateSystemOfflineCounter;
         private bool simulateDisconnect;
         protected bool simulateSendOrderServerOffline;
         protected bool simulateRecvOrderServerOffline;
         private bool simulateOrderBlackHole;
         private bool simulateReceiveFailed;
         private bool simulateSendFailed;
+        private bool simulateSystemOffline;
+        private int simulateSystemOfflineFrequency = 50;
         private int simulateOrderBlackHoleFrequency = 20;
         private int simulateDisconnectFrequency = 50;
         private int simulateRecvOrderServerOfflineFrequency = 50;
         protected int simulateSendOrderServerOfflineFrequency = 50;
         private int nextSendDisconnectSequence = 100;
         private int nextRecvDisconnectSequence = 100;
+        private int nextSystemOfflineSequence = 100;
         protected int nextSendOrderServerOfflineSequence = 100;
         private int nextRecvOrderServerOfflineSequence = 100;
 
@@ -129,6 +133,7 @@ namespace TickZoom.FIX
 		            break;
 		    }
             simulateDisconnect = allTests;
+		    simulateSystemOffline = allTests;
             simulateSendOrderServerOffline = allTests;
             simulateRecvOrderServerOffline = allTests;
             simulateOrderBlackHole = allTests;
@@ -159,6 +164,10 @@ namespace TickZoom.FIX
                 if (!simulateDisconnect)
                 {
                     log.Error("SimulateDisconnect is disabled.");
+                }
+                if (!simulateSystemOffline)
+                {
+                    log.Error("SimulateSystemOffline is disabled.");
                 }
                 if (!simulateSendOrderServerOffline)
                 {
@@ -636,6 +645,15 @@ namespace TickZoom.FIX
 			return false;
 		}
 
+        private void SendSystemOffline()
+        {
+            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            mbtMsg.AddHeader("5");
+            mbtMsg.SetText("System offline");
+            SendMessage(mbtMsg);
+            if (trace) log.Trace("Sending system offline simulation: " + mbtMsg);
+        }
+
         public void SendSessionStatusOnline()
         {
             if (debug) log.Debug("Sending session status online.");
@@ -697,6 +715,8 @@ namespace TickZoom.FIX
             if (debug) log.Debug("Set next order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
             nextRecvOrderServerOfflineSequence = packet.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency * symbolHandlers.Count) + simulateRecvOrderServerOfflineFrequency;
             if (debug) log.Debug("Set next order server offline sequence for receive = " + nextRecvOrderServerOfflineSequence);
+            nextSystemOfflineSequence = packet.Sequence + random.Next(simulateSystemOfflineFrequency * symbolHandlers.Count) + simulateSystemOfflineFrequency;
+            if (debug) log.Debug("Set next system offline sequence = " + nextSystemOfflineSequence);
 
             var mbtMsg = (FIXMessage4_4)FixFactory.Create();
             mbtMsg.SetEncryption(0);
@@ -746,7 +766,7 @@ namespace TickZoom.FIX
                 RemoveTickSync(packetFIX);
                 return true;
             }
-            if (simulateDisconnectCounter < maxFailtures && simulateDisconnect && FixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
+            if (simulateDisconnectCounter < maxFailures && simulateDisconnect && FixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
             {
                 if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= receive disconnect sequence " + nextRecvDisconnectSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + packetFIX);
@@ -766,7 +786,7 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Ignoring fix message sequence " + packetFIX.Sequence);
                 return Resend(packetFIX);
             }
-            if (simulateOrderBlackHoleCounter < maxFailtures && simulateRecvOrderServerOffline && IsRecovered && FixFactory != null && packetFIX.Sequence >= nextRecvOrderServerOfflineSequence)
+            if (simulateOrderBlackHoleCounter < maxFailures && simulateRecvOrderServerOffline && IsRecovered && FixFactory != null && packetFIX.Sequence >= nextRecvOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Skipping sequence " + packetFIX.Sequence + " because >= recv order server offline " + nextRecvOrderServerOfflineSequence + " so making session status offline. " + packetFIX);
                 nextRecvOrderServerOfflineSequence = packetFIX.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency * symbolHandlers.Count) + simulateRecvOrderServerOfflineFrequency;
@@ -781,7 +801,7 @@ namespace TickZoom.FIX
             switch (packetFIX.MessageType)
             {
                 case "G":
-                    if (simulateOrderBlackHoleCounter < maxFailtures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
+                    if (simulateOrderBlackHoleCounter < maxFailures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
@@ -793,7 +813,7 @@ namespace TickZoom.FIX
                     }
                     break;
                 case "D":
-                    if (simulateOrderBlackHoleCounter < maxFailtures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
+                    if (simulateOrderBlackHoleCounter < maxFailures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
@@ -805,7 +825,7 @@ namespace TickZoom.FIX
                     }
                     break;
                 case "F":
-                    if (simulateOrderBlackHoleCounter < maxFailtures && simulateOrderBlackHole && FixFactory != null && random.Next(3) == 1)
+                    if (simulateOrderBlackHoleCounter < maxFailures && simulateOrderBlackHole && FixFactory != null && random.Next(3) == 1)
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         ++simulateOrderBlackHoleCounter;
@@ -1058,7 +1078,7 @@ namespace TickZoom.FIX
                 RemoveTickSync(fixMessage);
                 return;
             }
-            if (simulateDisconnectCounter > maxFailtures && simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)
+            if (simulateDisconnectCounter > maxFailures && simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)
             {
                 if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= send disconnect sequence " + nextSendDisconnectSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
@@ -1100,7 +1120,14 @@ namespace TickZoom.FIX
                     throw;
                 }
             }
-            if (simulateOrderServerOfflineCounter < maxFailtures && simulateSendOrderServerOffline && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
+            if (simulateSystemOfflineCounter < maxFailures && simulateSystemOffline && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSystemOfflineSequence)
+            {
+                if (debug) log.Debug("Sending system offline message because " + fixMessage.Sequence + " >= next system offline sequence " + nextSystemOfflineSequence);
+                nextSystemOfflineSequence = fixMessage.Sequence + random.Next(simulateSystemOfflineFrequency * symbolHandlers.Count) + simulateSystemOfflineFrequency;
+                if (trace) log.Trace("Set next send order server offline sequence for send = " + nextSystemOfflineSequence);
+                SendSystemOffline();
+            }
+            if (simulateOrderServerOfflineCounter < maxFailures && simulateSendOrderServerOffline && IsRecovered && FixFactory != null && fixMessage.Sequence >= nextSendOrderServerOfflineSequence)
             {
                 if (debug) log.Debug("Skipping sequence " + fixMessage.Sequence + " because >= send order server offline for send " + nextSendOrderServerOfflineSequence + " so making session status offline. " + fixMessage);
                 nextSendOrderServerOfflineSequence = fixMessage.Sequence + random.Next(simulateSendOrderServerOfflineFrequency * symbolHandlers.Count) + simulateSendOrderServerOfflineFrequency;

@@ -929,7 +929,6 @@ namespace TickZoom.MBTFIX
 			string orderStatus = packetFIX.OrderStatus;
             CreateOrChangeOrder order;
 		    bool removeOriginal = false;
-		    bool removeLogical = false;
 		    OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 			switch( orderStatus) {
 				case "8": // Rejected
@@ -1103,7 +1102,6 @@ namespace TickZoom.MBTFIX
 		{
 		    var rejectReason = false;
 		    bool removeOriginal = false;
-		    bool removeLogical = false;
 		    if (packetFIX.Text.Contains("Cannot change order. Probably already filled or canceled."))
 		    {
 		        rejectReason = true;
@@ -1121,13 +1119,11 @@ namespace TickZoom.MBTFIX
 		             packetFIX.Text.Contains("No position to close"))
 		    {
 		        rejectReason = true;
-		        removeLogical = true;
 		        removeOriginal = true;
 		    }
             else if (packetFIX.Text.Contains("Order Server Not Available"))
             {
                 rejectReason = true;
-                removeLogical = true;
                 removeOriginal = true;
                 TrySendEndBroker();
             }
@@ -1436,7 +1432,6 @@ namespace TickZoom.MBTFIX
 
         private bool TryGetAlgorithm(long symbol, out SymbolAlgorithm algorithm)
         {
-            SymbolAlgorithm symbolAlgorithm;
             lock (orderAlgorithmsLocker)
             {
                 return orderAlgorithms.TryGetValue(symbol, out algorithm);

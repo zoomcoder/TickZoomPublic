@@ -552,8 +552,15 @@ namespace TickZoom.FIX
                                                     HandleReject(messageFIX);
                                                     break;
                                                 case "5": // log off confirm
-                                                    if (debug) log.Debug("Logout confirmation received.");
-                                                    Dispose();
+                                                    if (debug) log.Debug("Logout message received.");
+                                                    if (connectionStatus == Status.PendingLogOut)
+                                                    {
+                                                        Dispose();
+                                                    }
+                                                    else
+                                                    {
+                                                        socket.Dispose();
+                                                    }
                                                     break;
                                                 default:
                                                     ReceiveMessage(messageFIX);
@@ -603,6 +610,7 @@ namespace TickZoom.FIX
                                 Dispose();
                                 return Yield.NoWork.Repeat;
                         }
+                    case SocketState.ShuttingDown:
                     case SocketState.Closing:
                         return Yield.NoWork.Repeat;
                     default:

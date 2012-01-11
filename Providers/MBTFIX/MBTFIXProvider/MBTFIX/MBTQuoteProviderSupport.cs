@@ -212,7 +212,7 @@ namespace TickZoom.MBTQuotes
             if (debug) log.Debug("Socket state now: " + socket.State);
             if( isDisposed)
             {
-                Finalize();
+                Finish();
             }
             else
             {
@@ -440,7 +440,6 @@ namespace TickZoom.MBTQuotes
                             log.Warn("Forces connection state to be: " + ConnectionStatus);
                             return Yield.NoWork.Repeat;
 					}
-                    return Yield.DidWork.Repeat;
                 default:
 					string errorMessage = "Unknown socket state: " + socket.State;
                     log.Error(errorMessage);
@@ -646,15 +645,15 @@ namespace TickZoom.MBTQuotes
 		    
 		}
 
-        private volatile bool isFinalized;
+        private volatile bool isFinished;
         public bool IsFinalized
         {
-            get { return isFinalized && (socketTask == null || !socketTask.IsAlive); }
+            get { return isFinished && (socketTask == null || !socketTask.IsAlive); }
         }
 
-        private void Finalize()
+        public void Finish()
         {
-            isFinalized = true;
+            isFinished = true;
             if (socketTask != null)
             {
                 socketTask.Stop();
