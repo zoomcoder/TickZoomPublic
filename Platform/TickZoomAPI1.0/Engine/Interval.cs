@@ -44,10 +44,6 @@ namespace TickZoom.Api
 			get;
 		}
 		
-		bool IsTimeBased {
-			get;
-		}
-		
 		int Seconds {
 			get;
 		}

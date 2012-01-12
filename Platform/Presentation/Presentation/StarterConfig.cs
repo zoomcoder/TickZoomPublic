@@ -627,7 +627,7 @@ namespace TickZoom.Presentation
             }
             if (isEngineLoaded)
             {
-                initialInterval = Factory.Engine.DefineInterval(BarUnit.Day, 1);
+                initialInterval = new IntervalImpl(BarUnit.Day, 1);
             }
         }
 
@@ -662,9 +662,9 @@ namespace TickZoom.Presentation
 
         public void IntervalsUpdate()
         {
-        	intervalDefault = Factory.Engine.DefineInterval((BarUnit)Enum.Parse(typeof(BarUnit),defaultBarUnit), defaultPeriod);
-        	intervalEngine = Factory.Engine.DefineInterval((BarUnit)Enum.Parse(typeof(BarUnit),engineBarUnit), enginePeriod);
-        	intervalChartBar = Factory.Engine.DefineInterval((BarUnit)Enum.Parse(typeof(BarUnit),chartBarUnit), chartPeriod);
+            intervalDefault = new IntervalImpl((BarUnit)Enum.Parse(typeof(BarUnit), defaultBarUnit), defaultPeriod);
+            intervalEngine = new IntervalImpl((BarUnit)Enum.Parse(typeof(BarUnit), engineBarUnit), enginePeriod);
+            intervalChartBar = new IntervalImpl((BarUnit)Enum.Parse(typeof(BarUnit), chartBarUnit), chartPeriod);
         }
 
 

@@ -63,7 +63,7 @@ namespace TickZoom.Properties
 			startTime = TimeStamp.MinValue;
 			endTime = TimeStamp.MaxValue;
 			try {
-				IntervalDefault = Api.Factory.Engine.DefineInterval(TickZoom.Api.BarUnit.Day,1);
+                IntervalDefault = new IntervalImpl(TickZoom.Api.BarUnit.Day, 1);
 			} catch {
 				
 			}

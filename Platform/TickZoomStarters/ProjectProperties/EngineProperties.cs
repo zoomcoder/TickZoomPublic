@@ -27,6 +27,7 @@
 using System;
 using System.ComponentModel;
 using System.Drawing.Design;
+using TickZoom.Api;
 
 namespace TickZoom.Properties
 {
@@ -38,7 +39,7 @@ namespace TickZoom.Properties
 		public EngineProperties()
 		{
 			try {
-				intervalDefault = TickZoom.Api.Factory.Engine.DefineInterval(TickZoom.Api.BarUnit.Default,0);
+                intervalDefault = new IntervalImpl(TickZoom.Api.BarUnit.Default, 0);
 			} catch {
 				
 			}

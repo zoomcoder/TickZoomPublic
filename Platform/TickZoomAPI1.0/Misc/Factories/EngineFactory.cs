@@ -50,10 +50,6 @@ namespace TickZoom.Api
 		
 		DataSeries<T> Series<T>();
 		
-		Interval DefineInterval(BarUnit unit,int period);
-		
-		Interval DefineInterval(BarUnit unit,int period,BarUnit unit2,int period2);
-		
 		Integers Integers();
 		
 		Integers Integers(int capacity);

@@ -57,7 +57,7 @@ namespace Loaders
 	    		starter.ProjectProperties.Starter.EndTime = new TimeStamp(2009,06,10);
 	    		starter.DataFolder = "Test\\DataCache";
 	    		starter.ProjectProperties.Starter.SetSymbols( Symbols);
-	    		starter.ProjectProperties.Starter.IntervalDefault = Factory.Engine.DefineInterval(BarUnit.Tick,25);
+                starter.ProjectProperties.Starter.IntervalDefault = new IntervalImpl(BarUnit.Tick, 25);
 	    		starter.CreateChartCallback = new CreateChartCallback(HistoricalCreateChart);
 	    		starter.ShowChartCallback = new ShowChartCallback(HistoricalShowChart);
 				// Run the loader.

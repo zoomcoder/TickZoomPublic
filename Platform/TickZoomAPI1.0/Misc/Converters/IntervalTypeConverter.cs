@@ -88,15 +88,8 @@ public class IntervalTypeConverter : TypeConverter
         	string[] strings1 = parts[0].Split( " ".ToCharArray());
         	int period = Convert.ToInt32(strings1[0]);
         	BarUnit unit = (BarUnit) Enum.Parse(typeof(BarUnit),strings1[1],true);
-        	if( parts.Length > 1) {
-            	string[] strings2 = parts[1].Split( " ".ToCharArray());
-            	int secondaryPeriod = Convert.ToInt32(strings2[0]);
-            	BarUnit secondaryUnit = (BarUnit) Enum.Parse(typeof(BarUnit),strings2[1],true);
-            	interval = Factory.Engine.DefineInterval(unit,period,secondaryUnit,secondaryPeriod);
-        	} else {
-            	interval = Factory.Engine.DefineInterval(unit,period);
-        	}
-        	return interval;
+        	interval = new IntervalImpl(unit,period);
+            return interval;
         }
         catch (FormatException exception)
         {

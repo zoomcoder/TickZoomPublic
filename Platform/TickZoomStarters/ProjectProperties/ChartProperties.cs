@@ -39,7 +39,7 @@ namespace TickZoom.Properties
 	/// </summary>
 	public class ChartProperties : PropertiesBase, TickZoom.Api.ChartProperties
 	{
-		public readonly static Interval IntervalDay1 = Factory.Engine.DefineInterval(BarUnit.Day,1);
+        public readonly static Interval IntervalDay1 = new IntervalImpl(BarUnit.Day, 1);
 		
 		TickZoom.Api.Interval intervalChartBar = IntervalDay1;
 		
@@ -47,9 +47,9 @@ namespace TickZoom.Properties
 		{
 			// Avoid exceptions during design mode.
 			try {
-				intervalChartBar = TickZoom.Api.Factory.Engine.DefineInterval(TickZoom.Api.BarUnit.Default,0);
-				intervalChartBar = TickZoom.Api.Factory.Engine.DefineInterval(TickZoom.Api.BarUnit.Default,0);
-				intervalChartBar = TickZoom.Api.Factory.Engine.DefineInterval(TickZoom.Api.BarUnit.Default,0);
+                intervalChartBar = new IntervalImpl(TickZoom.Api.BarUnit.Default, 0);
+                intervalChartBar = new IntervalImpl(TickZoom.Api.BarUnit.Default, 0);
+                intervalChartBar = new IntervalImpl(TickZoom.Api.BarUnit.Default, 0);
 			} catch {
 				
 			}

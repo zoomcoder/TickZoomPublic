@@ -48,7 +48,7 @@ namespace TickZoom.Starters
 	    ShowChartCallback showChartCallback;
 	    CreateChartCallback createChartCallback;
     	string dataFolder = "DataCache";
-   		static Interval initialInterval = Factory.Engine.DefineInterval(BarUnit.Day,1);
+        static Interval initialInterval = new IntervalImpl(BarUnit.Day, 1);
    		long endCount = long.MaxValue;
    		int startCount = 0;
 	    static object callBackLocker = new object();

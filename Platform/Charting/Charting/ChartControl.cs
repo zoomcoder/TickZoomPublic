@@ -98,9 +98,9 @@ namespace TickZoom.Charting
 		        log.Register(this);
 				debug = log.IsDebugEnabled;
 				trace = log.IsTraceEnabled;
-				Interval intervalChartDisplay = Factory.Engine.DefineInterval(BarUnit.Day,1);
-				Interval intervalChartBar = Factory.Engine.DefineInterval(BarUnit.Day,1);
-				Interval intervalChartUpdate = Factory.Engine.DefineInterval(BarUnit.Day,1);
+                Interval intervalChartDisplay = new IntervalImpl(BarUnit.Day, 1);
+                Interval intervalChartBar = new IntervalImpl(BarUnit.Day, 1);
+                Interval intervalChartUpdate = new IntervalImpl(BarUnit.Day, 1);
 		    } catch( Exception) {
 				// This exception means we're running inside the form designer.
 				// TODO: find a better way to determine if running in form designer mode.

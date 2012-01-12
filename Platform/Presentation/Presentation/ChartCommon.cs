@@ -76,9 +76,9 @@ namespace TickZoom.Presentation
                 log = Factory.SysLog.GetLogger(typeof (ChartCommon));
                 debug = log.IsDebugEnabled;
                 trace = log.IsTraceEnabled;
-                Interval intervalChartDisplay = Factory.Engine.DefineInterval(BarUnit.Day, 1);
-                Interval intervalChartBar = Factory.Engine.DefineInterval(BarUnit.Day, 1);
-                Interval intervalChartUpdate = Factory.Engine.DefineInterval(BarUnit.Day, 1);
+                Interval intervalChartDisplay = new IntervalImpl(BarUnit.Day, 1);
+                Interval intervalChartBar = new IntervalImpl(BarUnit.Day, 1);
+                Interval intervalChartUpdate = new IntervalImpl(BarUnit.Day, 1);
                 storageFolder = Factory.Settings["AppDataFolder"];
                 if (storageFolder == null)
                 {
