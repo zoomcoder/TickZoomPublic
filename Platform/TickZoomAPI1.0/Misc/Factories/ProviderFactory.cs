@@ -29,7 +29,7 @@ using System.Reflection;
 
 namespace TickZoom.Api
 {
-	public interface EventLog {
+    public interface EventLog {
 		bool CheckEnabled( Log log);
 		int GetReceiverId( object component);
 		void Capture( int componentId, SymbolInfo symbol, EventType eventType, object eventDetail);
@@ -38,9 +38,6 @@ namespace TickZoom.Api
 	[CLSCompliant(false)]
 	public interface ProviderFactory {
 		void Release();
-		Agent InProcessProvider(string providerAssembly);
-		Agent RemoteProvider(string address, ushort port);
-		Agent ProviderProcess(string address, ushort port, string executableFileName);
 		ServiceConnection ProviderService();
 		ServiceConnection ConnectionManager();
 		Serializers Serializers();
@@ -48,7 +45,6 @@ namespace TickZoom.Api
 		Selector ManagerTCP { get; }
         Selector ManagerSharedMemory { get; }
         EventLog EventLog { get; }
-	    Subprocess Subprocess();
 	    void StartSockets();
 	    void ShutdownSockets();
 	}

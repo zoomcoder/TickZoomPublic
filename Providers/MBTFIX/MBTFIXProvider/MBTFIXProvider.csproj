@@ -67,6 +67,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
+    <Compile Include="MBTFIX\MBTAssemblyFactory.cs" />
     <Compile Include="MBTFIX\MBTFIXFilter.cs" />
     <Compile Include="MBTFIX\MBTFIXProvider.cs" />
     <Compile Include="MBTFIX\ServerState.cs" />

@@ -73,13 +73,8 @@ namespace TickZoom.Test
 			assemblyName = strings[0];
 		}
 		
-		public virtual Agent CreateProvider(bool inProcessFlag) {
-			Agent provider;
-			if( inProcessFlag) {
-				provider = ProviderFactory();
-			} else {
-				provider = Factory.Provider.ProviderProcess("127.0.0.1",6492,providerAssembly);
-			}
+		public virtual Agent CreateProvider() {
+			var provider = Factory.Parallel.SpawnProvider("ProviderCommon", "ClientManager");
 			return provider;
 		}
 		

@@ -78,7 +78,7 @@ namespace TickZoom.Test
 		[Test]		
 		public void DemoConnectionTest() {
 			using( var verify = Factory.Utility.VerifyFeed(symbol))
-			using( var provider = CreateProvider(true)) {
+			using( var provider = CreateProvider()) {
 				verify.PauseSeconds = secondsDelay;
                 provider.SendEvent(new EventItem(verify, EventType.Connect));
 				if(debug) log.Debug("===DemoConnectionTest===");
@@ -225,7 +225,7 @@ namespace TickZoom.Test
 		[Test]
 		public void DemoReConnectionTest() {
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Agent provider = CreateProvider(true)) {
+			using( Agent provider = CreateProvider()) {
 				verify.PauseSeconds = secondsDelay;
 				provider.SendEvent(new EventItem(verify,EventType.Connect));
 				provider.SendEvent(new EventItem(verify,symbol,EventType.StartSymbol,new StartSymbolDetail(TimeStamp.MinValue)));
@@ -240,7 +240,7 @@ namespace TickZoom.Test
 			log.Info("Starting to reconnect---------\n");
 			
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Agent provider = CreateProvider(true)) {
+			using( Agent provider = CreateProvider()) {
 				verify.PauseSeconds = secondsDelay;
                 provider.SendEvent(new EventItem(verify, null, EventType.Connect, null));
                 provider.SendEvent(new EventItem(verify, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));
@@ -256,7 +256,7 @@ namespace TickZoom.Test
 		[Test]	
 		public void DemoStopSymbolTest() {
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Agent provider = CreateProvider(true)) {
+			using( Agent provider = CreateProvider()) {
 				verify.PauseSeconds = secondsDelay;
                 provider.SendEvent(new EventItem(verify, null, EventType.Connect, null));
                 log.Info("===DemoStopSymbolTest===");
@@ -337,7 +337,7 @@ namespace TickZoom.Test
 		public void TestSeperateProcess() {
 			if( !IsTestSeperate) return;
 			using( VerifyFeed verify = Factory.Utility.VerifyFeed(symbol))
-			using( Agent provider = CreateProvider(false)) {
+			using( Agent provider = CreateProvider()) {
 				verify.PauseSeconds = secondsDelay;
                 provider.SendEvent(new EventItem(verify, null, EventType.Connect, null));
                 provider.SendEvent(new EventItem(verify, symbol, EventType.StartSymbol, new StartSymbolDetail(TimeStamp.MinValue)));

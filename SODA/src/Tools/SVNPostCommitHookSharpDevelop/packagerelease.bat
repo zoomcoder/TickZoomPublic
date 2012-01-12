@@ -1,1 +1,0 @@
-call package.bat release

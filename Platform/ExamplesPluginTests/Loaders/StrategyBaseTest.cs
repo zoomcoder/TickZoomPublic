@@ -142,7 +142,15 @@ namespace Loaders
             config.EndDateTime = endTime.DateTime;
             config.StartDateTime = startTime.DateTime;
             config.TestFinishedTimeout = testFinshedTimeout;
-			
+            while (config.IsBusy)
+            {
+                Thread.Sleep(100);
+            }
+            config.AutoUpdate = true;
+            while(config.IsBusy)
+            {
+                Thread.Sleep(100);
+            }
             switch( autoTestMode) {
                 case AutoTestMode.Historical:
                     config.StarterName = "HistoricalStarter";
@@ -195,75 +203,94 @@ namespace Loaders
         [TestFixtureSetUp]
         public virtual void RunStrategy() {
             log.Notice("Beginning RunStrategy()");
-            StaticGlobal.Clear();
-            CleanupFiles(Symbols, null);
-            StartGUIThread();
-            // Clear tick syncs.
-            foreach( var tickSync in SyncTicks.TickSyncs)
+            try
             {
-                tickSync.Value.ForceClear();
-            }
-            try {
-                // Run the loader.
-                try { 
-                    config = SetupConfigStarter(autoTestMode);
-                    while (config.IsBusy)
-                    {
-                        Thread.Sleep(10);
-                    }
-                    config.Start();
-                    var tempStarter = config.Starter;
-                    while (config.IsBusy)
-                    {
-                        Thread.Sleep(10);
-                    }
-                    topModel = config.TopModel;
-
-                    if (tempStarter is FIXPlayBackStarter)
-                    {
-                        var starter = tempStarter as FIXPlayBackStarter;
-                        realTimeOffset = starter.FixServer.RealTimeOffset;
-                        var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
-                        log.Info("Real time offset is " + realTimeOffset + " or " + realTimeOffsetElapsed);
-                    }
-                } catch( ApplicationException ex) {
-                    if( ex.Message.Contains("not found")) {
-                        Assert.Ignore("LoaderName could not be loaded.");
-                        return;
-                    } else {
-                        log.Error("StrategyBaseTest failed: ", ex);
-                        throw;
-                    }
-                }
-                finally
+                StaticGlobal.Clear();
+                CleanupFiles(Symbols, null);
+                StartGUIThread();
+                // Clear tick syncs.
+                foreach (var tickSync in SyncTicks.TickSyncs)
                 {
-                    config.Stop();
-                    Factory.Log.Flush();
-                    Factory.SysLog.Flush();
+                    tickSync.Value.ForceClear();
                 }
+                try
+                {
+                    // Run the loader.
+                    try
+                    {
+                        config = SetupConfigStarter(autoTestMode);
+                        while (config.IsBusy)
+                        {
+                            Thread.Sleep(10);
+                        }
+                        config.Start();
+                        var tempStarter = config.Starter;
+                        while (config.IsBusy)
+                        {
+                            Thread.Sleep(10);
+                        }
+                        topModel = config.TopModel;
 
-                WriteHashes();
-                
-                WriteFinalStats();
-	
-                LoadTransactions();
-                LoadTrades();
-                LoadBarData();
-                LoadStats();
-                LoadFinalStats();
-                LoadReconciliation();
-			}
-            catch (AssertionException ex)
-            {
-                log.Error(ex.Message);
-                testFailed = true;
-                throw;
+                        if (tempStarter is FIXPlayBackStarter)
+                        {
+                            var starter = tempStarter as FIXPlayBackStarter;
+                            realTimeOffset = starter.FixServer.RealTimeOffset;
+                            var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
+                            log.Info("Real time offset is " + realTimeOffset + " or " + realTimeOffsetElapsed);
+                        }
+                    }
+                    catch (ApplicationException ex)
+                    {
+                        if (ex.Message.Contains("not found"))
+                        {
+                            Assert.Ignore("LoaderName could not be loaded.");
+                            return;
+                        }
+                        else
+                        {
+                            log.Error("StrategyBaseTest failed: ", ex);
+                            throw;
+                        }
+                    }
+                    finally
+                    {
+                        if (config != null)
+                        {
+                            config.Stop();
+                        }
+                        Factory.Log.Flush();
+                        Factory.SysLog.Flush();
+                    }
+
+                    WriteHashes();
+
+                    WriteFinalStats();
+
+                    LoadTransactions();
+                    LoadTrades();
+                    LoadBarData();
+                    LoadStats();
+                    LoadFinalStats();
+                    LoadReconciliation();
+                }
+                catch (AssertionException ex)
+                {
+                    log.Error(ex.Message);
+                    testFailed = true;
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    log.Error(ex.Message, ex);
+                    testFailed = true;
+                    throw;
+                }
             }
-            catch (Exception ex)
+            catch( Exception ex)
             {
-                log.Error(ex.Message, ex);
-                testFailed = true;
-                throw;
+                log.Error("Exception while running test: " + ex.Message, ex);
+                Environment.Exit(1);
+
             }
         }
 
@@ -371,8 +398,8 @@ namespace Loaders
             Factory.SysLog.Flush();
             if (testFailed)
             {
-                //log.Error("Exiting because one of the tests failed.");
-                //Environment.Exit(1);
+                log.Error("Exiting because one of the tests failed.");
+                Environment.Exit(1);
             }
         }
 		

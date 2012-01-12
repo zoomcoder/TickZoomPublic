@@ -182,5 +182,6 @@ namespace TickZoom.Api
         Agent SpawnProvider( string assemblyName, string className, params object[] args);
 	    Agent GetAgent(AgentPerformer sender);
 	    AgentPerformer SpawnPerformer(Type typeToSpawn, params object[] args);
+	    object Spawn(Type typeToSpawn, params object[] args);
 	}
 }

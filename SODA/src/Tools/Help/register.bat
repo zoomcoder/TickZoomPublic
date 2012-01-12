@@ -1,1 +1,0 @@
-@"Help2Register.exe" /r register.xml
