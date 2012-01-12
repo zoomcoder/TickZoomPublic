@@ -80,13 +80,14 @@ namespace TickZoom.Common
 			if( fastUpdateInterval != null) {
 				RequestUpdate(fastUpdateInterval);
 			}
-			output =  Doubles();
 			RequestEvent(EventType.Tick);
 		}
 
 		public override void OnConfigure()
 		{
-			if( anyInput == null) {
+            output = Doubles();
+            if (anyInput == null)
+            {
 				input = Doubles(Bars.Close);
 			} else {
 				input = Doubles(anyInput);

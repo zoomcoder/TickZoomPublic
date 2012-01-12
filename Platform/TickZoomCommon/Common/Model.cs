@@ -70,7 +70,7 @@ namespace TickZoom.Common
 			formula = new Formula(this);
 			
 			if( trace) instanceLog.Trace(GetType().Name+".new");
-			chain = Factory.Engine.Chain(this);
+			chain = new ChainImpl(this);
 
 			RequestEvent( EventType.Open);
 			RequestEvent( EventType.Close);

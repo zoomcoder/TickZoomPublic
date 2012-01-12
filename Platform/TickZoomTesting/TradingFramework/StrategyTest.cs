@@ -54,7 +54,7 @@ namespace TickZoom.EngineTests
 			
 			if( trace) log.Trace(GetType().Name+".new");
 			name = GetType().Name;
-			chain = Factory.Engine.Chain(this);
+            chain = new ChainImpl(this);
 		}
 		
 		public ModelInterface NextFormulax {

@@ -37,7 +37,14 @@ namespace TickZoom.Api
 	    public object EventDetail;
         public override string ToString()
         {
-            return Factory.Symbol.LookupSymbol(Symbol) + " " + (EventType) EventType;
+            if( Symbol > 0)
+            {
+                return Factory.Symbol.LookupSymbol(Symbol) + " " + (EventType)EventType;
+            }
+            else
+            {
+                return "" + EventType;
+            }
         }
     }
 

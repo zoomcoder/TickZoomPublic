@@ -46,8 +46,6 @@ namespace TickZoom.Api
 			get;
 		}
 		
-		Chain Chain(ModelInterface model);
-		
 		DataSeries<T> Series<T>();
 		
 		Integers Integers();
