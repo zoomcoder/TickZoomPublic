@@ -48,8 +48,6 @@ namespace TickZoom.GUI
             this.intervalEngineTxt = new System.Windows.Forms.Label();
             this.engineBarUnit = new System.Windows.Forms.ComboBox();
             this.intervals = new System.Windows.Forms.GroupBox();
-            this.loggingConfigLabel = new System.Windows.Forms.Label();
-            this.loggingConfig = new System.Windows.Forms.ComboBox();
             this.autoUpdate = new System.Windows.Forms.CheckBox();
             this.testTheAlarm = new System.Windows.Forms.CheckBox();
             this.stopAlarmLabel = new System.Windows.Forms.Label();
@@ -217,8 +215,6 @@ namespace TickZoom.GUI
             // 
             // intervals
             // 
-            this.intervals.Controls.Add(this.loggingConfigLabel);
-            this.intervals.Controls.Add(this.loggingConfig);
             this.intervals.Controls.Add(this.autoUpdate);
             this.intervals.Controls.Add(this.testTheAlarm);
             this.intervals.Controls.Add(this.stopAlarmLabel);
@@ -248,26 +244,6 @@ namespace TickZoom.GUI
             this.intervals.TabIndex = 25;
             this.intervals.TabStop = false;
             this.intervals.Text = "Intervals";
-            // 
-            // loggingConfigLabel
-            // 
-            this.loggingConfigLabel.AutoSize = true;
-            this.loggingConfigLabel.Location = new System.Drawing.Point(7, 255);
-            this.loggingConfigLabel.Name = "loggingConfigLabel";
-            this.loggingConfigLabel.Size = new System.Drawing.Size(111, 13);
-            this.loggingConfigLabel.TabIndex = 57;
-            this.loggingConfigLabel.Text = "Active Logging Config";
-            this.loggingConfigLabel.Visible = false;
-            // 
-            // loggingConfig
-            // 
-            this.loggingConfig.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.loggingConfig.FormattingEnabled = true;
-            this.loggingConfig.Location = new System.Drawing.Point(10, 270);
-            this.loggingConfig.Name = "loggingConfig";
-            this.loggingConfig.Size = new System.Drawing.Size(256, 21);
-            this.loggingConfig.TabIndex = 56;
-            this.loggingConfig.SelectedIndexChanged += new System.EventHandler(this.loggingConfig_SelectedIndexChanged);
             // 
             // autoUpdate
             // 
@@ -589,10 +565,6 @@ namespace TickZoom.GUI
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.ComboBox modelLoader;
 
-        public System.Windows.Forms.ComboBox LoggingConfig
-        {
-            get { return loggingConfig; }
-        }
         public System.Windows.Forms.ComboBox ModelLoader
         {
 			get { return modelLoader; }
@@ -702,8 +674,6 @@ namespace TickZoom.GUI
 
         private System.Windows.Forms.ComboBox starterName;
         private Label replayLabel;
-        private ComboBox loggingConfig;
-        private Label loggingConfigLabel;
         private Timer refreshTimer;
 
 	    public ComboBox StarterName

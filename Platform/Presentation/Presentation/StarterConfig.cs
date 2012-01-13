@@ -622,7 +622,11 @@ namespace TickZoom.Presentation
             catch (Exception)
             {
             	var version = GetType().Assembly.GetName().Version;
-                string msg = "Sorry, cannot find an engine compatible with version " + version +".";
+                string msg = "Sorry, cannot find engine version " + version +".";
+                if( !autoUpdate)
+                {
+                    msg += " Please enable AutoUpdate.";
+                }
                 log.Notice(msg);
             }
             if (isEngineLoaded)

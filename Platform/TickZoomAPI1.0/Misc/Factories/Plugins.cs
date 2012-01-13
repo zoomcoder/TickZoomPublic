@@ -242,7 +242,7 @@ namespace TickZoom.Api
             }
             if (serializers.Count == 0)
             {
-                log.Warn("Zero Serializer plugins found in " + PluginFolder + " or " + currentDirectory);
+                log.Info("Zero Serializer plugins found in " + PluginFolder + " or " + currentDirectory);
             }
         }
 

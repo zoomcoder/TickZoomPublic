@@ -344,11 +344,12 @@ namespace TickZoom.GUI
             stopMessages = true;
             CloseCharts();
             vm.Stop();
-            var end = Factory.Parallel.TickCount + 10000;
-            while (vm.IsBusy && Factory.Parallel.TickCount < end)
+            var count = 0;
+            while (vm.IsBusy && count < 3000)
             {
                 Application.DoEvents();
                 Thread.Sleep(1);
+                count++;
             }
         }
 
