@@ -27,6 +27,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 
 using NUnit.Framework;
@@ -50,6 +51,7 @@ namespace Orders
 		
 		[SetUp]
 		public void Setup() {
+            var codeBase = Assembly.GetExecutingAssembly().CodeBase;
             strategy = new Strategy();
             strategy.Context = new MockContext();
             physicalCache = Factory.Utility.PhyscalOrderCache();

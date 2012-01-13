@@ -64,7 +64,6 @@ namespace TickZoom.Interceptors
 		
 		public ExitStrategy(Strategy strategy) : base( strategy) {
 			position = new PositionCommon(strategy);
-//			int OptimizeTickEvent = 0;
 			strategy.RequestEvent(EventType.Tick);
 		}
 		
@@ -78,9 +77,8 @@ namespace TickZoom.Interceptors
 			}
 			context.Invoke();
 			this.context = context;
-			if( eventType == EventType.Tick ||
-			    eventType == EventType.LogicalFill) {
-				OnProcessPosition();
+			if( eventType == EventType.Tick || eventType == EventType.LogicalFill) {
+				OnProcessPosition(eventType);
 			}
 		}
 				
@@ -110,14 +108,12 @@ namespace TickZoom.Interceptors
 			sellStopLossOrder.Type = OrderType.SellStop;
 			sellStopLossOrder.Tag = "ExitStrategy" ;
 			Strategy.AddOrder(sellStopLossOrder);
-//			log.WriteFile( LogName + " chain = " + Chain.ToChainString());
 			if( IsTrace) Log.Trace(Strategy.FullName+".Initialize()");
 			Strategy.Drawing.Color = Color.Black;
 		}
 		
-		public void OnProcessPosition() {
+		public void OnProcessPosition(EventType eventType) {
 			Tick tick = Strategy.Data.Ticks[0];
-			// Handle ActiveNow orders.
 			
 			if( stopTradingToday || stopTradingThisWeek || stopTradingThisMonth ) {
 				return; 
@@ -144,67 +140,11 @@ namespace TickZoom.Interceptors
 					pnl = (entryPrice - exitPrice).Round();
 				}
 				maxPnl = pnl > maxPnl ? pnl : maxPnl;
-				if( stopLoss > 0) processStopLoss(tick);
-				if( trailStop > 0) processTrailStop(tick);
-				if( breakEven > 0) processBreakEven(tick);
-				if( targetProfit > 0) processTargetProfit(tick);
-				if( dailyMaxProfit > 0) processDailyMaxProfit(tick);
-				if( dailyMaxLoss > 0) processDailyMaxLoss(tick);
-				if( weeklyMaxProfit > 0) processWeeklyMaxProfit(tick);
-				if( weeklyMaxLoss > 0) processWeeklyMaxLoss(tick);
-				if( monthlyMaxProfit > 0) processMonthlyMaxProfit(tick);
-				if( monthlyMaxLoss > 0) processMonthlyMaxLoss(tick);
+                if( stopLoss > 0) processStopLoss(tick);
+                if( breakEven > 0) processBreakEven(tick);
 			}
 			
 			context.Position.Copy(position);
-		}
-	
-		private void processDailyMaxProfit(Tick tick) {
-			if( Strategy.Performance.Equity.ProfitToday >= dailyMaxProfit) {
-				stopTradingToday = true;
-				LogExit("DailyMaxProfit Exit at " + dailyMaxProfit);
-				flattenSignal(tick,"Daily Profit Target");
-			}
-		}
-		
-		private void processDailyMaxLoss(Tick tick) {
-			if( Strategy.Performance.Equity.ProfitToday >= dailyMaxLoss) {
-				stopTradingToday = true;
-				LogExit("DailyMaxLoss Exit at " + dailyMaxLoss);
-				flattenSignal(tick,"Daily Stop Loss");
-			}
-		}
-		
-		private void processWeeklyMaxProfit(Tick tick) {
-			if( Strategy.Performance.Equity.ProfitForWeek >= weeklyMaxProfit) {
-				stopTradingThisWeek = true;
-				LogExit("WeeklyMaxProfit Exit at " + weeklyMaxProfit);
-				flattenSignal(tick,"Weekly Profit Target");
-			}
-		}
-		
-		private void processWeeklyMaxLoss(Tick tick) {
-			if( - Strategy.Performance.Equity.ProfitForWeek >= weeklyMaxLoss) {
-				stopTradingThisWeek = true;
-				LogExit("WeeklyMaxLoss Exit at " + weeklyMaxLoss);
-				flattenSignal(tick,"Weekly Stop Loss");
-			}
-		}
-		
-		private void processMonthlyMaxProfit(Tick tick) {
-			if( Strategy.Performance.Equity.ProfitForMonth >= monthlyMaxProfit) {
-				stopTradingThisMonth = true;
-				LogExit("MonthlyMaxProfit Exit at " + monthlyMaxProfit);
-				flattenSignal(tick,"Monthly Profit Target");
-			}
-		}
-		
-		private void processMonthlyMaxLoss(Tick tick) {
-			if( - Strategy.Performance.Equity.ProfitForMonth >= monthlyMaxLoss) {
-				stopTradingThisMonth = true;
-				LogExit("MonthlyMaxLoss Exit at " + monthlyMaxLoss);
-				flattenSignal(tick,"Monthly Stop Loss");
-			}
 		}
 		
 		private void CancelOrders() {
@@ -213,41 +153,6 @@ namespace TickZoom.Interceptors
 			breakEvenSellStopOrder.Status = OrderStatus.AutoCancel;
 			buyStopLossOrder.Status = OrderStatus.AutoCancel;
 			sellStopLossOrder.Status = OrderStatus.AutoCancel;
-		}
-		
-		private void flattenSignal(Tick tick, string tag) {
-			marketOrder.Tag = tag;
-			flattenSignal(marketOrder,tick);
-		}
-		
-		private void flattenSignal(LogicalOrder order, Tick tick) {
-// Actual fills of exit strategy orders now handles via the OrderManager interceptor.
-//            if (Strategy.Performance.GraphTrades)
-//            {
-//				double fillPrice = 0;
-//				if( position.IsLong) {
-//					order.Positions = context.Position.Size;
-//					fillPrice = tick.Bid;
-//				}
-//				if( position.IsShort) {
-//					order.Positions = context.Position.Size;
-//					fillPrice = tick.Ask;
-//				}
-//                Strategy.Chart.DrawTrade(order, fillPrice, 0);
-//            }
-//            position.Change(0);
-//			CancelOrders();
-//			if( controlStrategy) {
-//				Strategy.Orders.Exit.ActiveNow.GoFlat();
-//				strategySignal = 0;
-//			}
-		}
-	
-		private void processTargetProfit(Tick tick) {
-			if( pnl >= targetProfit) {
-				LogExit("TargetProfit Exit at " + targetProfit);
-				flattenSignal(tick,"Target Profit");
-			}
 		}
 		
 		private void processStopLoss(Tick tick) {
@@ -270,13 +175,6 @@ namespace TickZoom.Interceptors
 				sellStopLossOrder.Status = OrderStatus.Active;
 			} else {
 				sellStopLossOrder.Status = OrderStatus.Inactive;
-			}
-		}
-		
-		private void processTrailStop(Tick tick) {
-			if( maxPnl - pnl >= trailStop) {
-				LogExit("TailStop Exit at " + trailStop);
-				flattenSignal(tick,"Trail Stop");
 			}
 		}
 		
@@ -312,14 +210,6 @@ namespace TickZoom.Interceptors
 				} else {
 					breakEvenBuyStopOrder.Status = OrderStatus.Inactive;
 				}
-			}
-			if( breakEvenBuyStopOrder.IsActive && pnl <= breakEvenStop) {
-				LogExit("Break Even Exit at " + breakEvenStop);
-				flattenSignal(breakEvenBuyStopOrder,tick);
-			}
-			if( breakEvenSellStopOrder.IsActive && pnl <= breakEvenStop) {
-				LogExit("Break Even Exit at " + breakEvenStop);
-				flattenSignal(breakEvenSellStopOrder,tick);
 			}
 		}
 		

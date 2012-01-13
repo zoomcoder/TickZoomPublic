@@ -39,9 +39,11 @@ namespace TickZoom.Api
 		private readonly string interfaceName = "FactoryLoader";
 	    public FactoryLoader FactoryLoader()
 	    {
-	    	try { 
-	    		
-	    		Assembly assembly = Assembly.LoadFrom(GetExecutablePath() + Path.DirectorySeparatorChar + assemblyName);
+	    	try
+	    	{
+	    	    var executablePath = GetExecutablePath();
+	    	    var path = executablePath + Path.DirectorySeparatorChar + assemblyName;
+	    		Assembly assembly = Assembly.LoadFrom( path);
 				foreach (Type type in assembly.GetTypes())
 				{
 					if (type.IsClass && !type.IsAbstract && !type.IsInterface) {
@@ -59,6 +61,10 @@ namespace TickZoom.Api
 		private string GetExecutablePath()
 		{
             var codeBase = Assembly.GetExecutingAssembly().CodeBase;
+            //if( codeBase.Contains("Release"))
+            //{
+            //    throw new ApplicationException("CodeBase from release!");
+            //}
 		    var directory = Path.GetDirectoryName(codeBase);
 			return directory.Replace("file:\\", "");
 		}
