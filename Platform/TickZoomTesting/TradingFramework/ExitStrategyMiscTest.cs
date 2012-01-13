@@ -60,7 +60,6 @@ namespace TickZoom.TradingFramework
 			Assert.AreEqual(false,strategy.ControlStrategy,"ControlStrategySignal");
 			Assert.AreEqual(0,logic.Position.Current,"Signal");
 			Assert.AreEqual(0,strategy.StopLoss,"Stop");
-			Assert.AreEqual(0,strategy.TargetProfit,"Target");
 		}
 		
 		[Test]

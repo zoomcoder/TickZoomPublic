@@ -65,11 +65,6 @@ namespace TickZoom
 			average = new TEMA(Bars.Close,5);
 			AddIndicator(average);	
 			
-//			avgPace = new SMA(pace,5);
-//			avgPace.PaneType = PaneType.Secondary;
-//			avgPace.GroupName = "Pace";
-//			AddIndicator(avgPace);
-			
 			pace = new IndicatorCommon();
 			pace.Drawing.GraphType = GraphType.Histogram;
 			pace.Drawing.GroupName = "Pace";
@@ -80,9 +75,7 @@ namespace TickZoom
 			equity.Drawing.GroupName = "Equity";
 			AddIndicator(equity);
 			
-//			Exits.DailyMaxProfit = 320;
  		    ExitStrategy.StopLoss = 300;
- 		    ExitStrategy.TargetProfit = 200;
 		}
 
 		public override bool OnProcessTick(Tick tick)

@@ -288,9 +288,8 @@ namespace Loaders
             }
             catch( Exception ex)
             {
-                log.Error("Exception while running test: " + ex.Message, ex);
-                Environment.Exit(1);
-
+                //log.Error("Exception while running test: " + ex.Message, ex);
+                //Environment.Exit(1);
             }
         }
 
@@ -398,8 +397,8 @@ namespace Loaders
             Factory.SysLog.Flush();
             if (testFailed)
             {
-                log.Error("Exiting because one of the tests failed.");
-                Environment.Exit(1);
+                //log.Error("Exiting because one of the tests failed.");
+                //Environment.Exit(1);
             }
         }
 		

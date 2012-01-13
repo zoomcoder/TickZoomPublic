@@ -148,12 +148,10 @@
     <Compile Include="Strategies\Unsupported\ShortBreakout.cs" />
     <Compile Include="Strategies\Unsupported\SimpleStrategy.cs" />
     <Compile Include="Strategies\Unsupported\SimpleStrategy2.cs" />
-    <Compile Include="Strategies\Unsupported\SimpleStrategy3.cs" />
     <Compile Include="Strategies\Unsupported\SMAChopLong.cs" />
     <Compile Include="Strategies\Unsupported\SMAChopShort.cs">
     </Compile>
     <Compile Include="Strategies\Unsupported\SRBreakoutSupport.cs" />
-    <Compile Include="Strategies\Unsupported\SRLongBreakout2.cs" />
     <Compile Include="Strategies\Unsupported\SRLongChannel.cs" />
     <Compile Include="Strategies\Unsupported\SRLongDayHigh.cs" />
     <Compile Include="Strategies\Unsupported\SRLongHourly.cs" />
@@ -161,7 +159,6 @@
     <Compile Include="Strategies\Unsupported\SRRetraceHourly.cs" />
     <Compile Include="Strategies\Unsupported\SRRetraceMinutes.cs" />
     <Compile Include="Strategies\Unsupported\SRShortBreakout.cs" />
-    <Compile Include="Strategies\Unsupported\SRShortBreakout2.cs" />
     <Compile Include="Strategies\Unsupported\SRShortChannel.cs" />
     <Compile Include="Strategies\Unsupported\SRShortDayLow.cs" />
     <Compile Include="Strategies\Unsupported\SRShortIntraday.cs" />

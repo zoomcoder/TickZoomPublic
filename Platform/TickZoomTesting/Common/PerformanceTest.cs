@@ -107,7 +107,6 @@ namespace TickZoom.Common
 
 			// Stops
 			random.ExitStrategy.StopLoss = stop;
-			random.ExitStrategy.TargetProfit = target;
 			
 			Starter starter = new HistoricalStarter();
 			starter.StartCount = 0;

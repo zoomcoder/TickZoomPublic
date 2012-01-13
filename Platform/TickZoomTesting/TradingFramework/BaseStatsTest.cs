@@ -59,7 +59,6 @@ namespace TickZoom.TradingFramework
 			exits = random.ExitStrategy;
 			
 			exits.StopLoss = 0.050;
-			exits.TargetProfit = 0;
 
 			starter.EndCount = maxCount;
 			starter.DataFolder = "Test\\DataCache";
