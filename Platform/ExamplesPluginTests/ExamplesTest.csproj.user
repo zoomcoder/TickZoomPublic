@@ -5,6 +5,6 @@
     <StartAction>Program</StartAction>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <StartProgram>C:\Users\Developer\Desktop\TickZoom\Tools\1.0\NUnit\bin\net-2.0\nunit.exe</StartProgram>
+    <StartProgram>C:\Local\TickZoom\Project\Tools\1.0\NUnit\bin\net-2.0\nunit.exe</StartProgram>
   </PropertyGroup>
 </Project>
