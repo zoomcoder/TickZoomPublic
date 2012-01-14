@@ -71,13 +71,12 @@ namespace TickZoom.Interceptors
 		public override void Intercept(EventContext context, EventType eventType, object eventDetail)
 		{
 			if( eventType == EventType.Initialize) {
-				Strategy.AddInterceptor( EventType.Tick, this);
 				Strategy.AddInterceptor( EventType.LogicalFill, this);
 				OnInitialize();
 			}
 			context.Invoke();
 			this.context = context;
-			if( eventType == EventType.Tick || eventType == EventType.LogicalFill) {
+			if( eventType == EventType.LogicalFill) {
 				OnProcessPosition(eventType);
 			}
 		}
@@ -141,7 +140,6 @@ namespace TickZoom.Interceptors
 				}
 				maxPnl = pnl > maxPnl ? pnl : maxPnl;
                 if( stopLoss > 0) processStopLoss(tick);
-                //if( breakEven > 0) processBreakEven(tick);
 			}
 			
 			context.Position.Copy(position);
