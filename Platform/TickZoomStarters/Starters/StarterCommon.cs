@@ -101,7 +101,7 @@ namespace TickZoom.Starters
 	    	}
 		}
 		
-		public virtual Agent[] SetupProviders(bool quietMode, bool singleLoad) {
+		public virtual Agent[] SetupProvidersXXXX(bool quietMode, bool singleLoad) {
 			List<Agent> senderList = new List<Agent>();
 			SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
 			for(int i=0; i<symbols.Length; i++) {
@@ -113,13 +113,12 @@ namespace TickZoom.Starters
 	    		tickReader.LogProgress = true;
 	    		tickReader.BulkFileLoad = singleLoad;
 	    		tickReader.QuietMode = quietMode;
-                try
-                {
-		    		tickReader.Initialize(DataFolder+@"\DataCache",symbols[i].SymbolFile);
-					senderList.Add(tickReader.ToAgent());
-	    		} catch( System.IO.FileNotFoundException ex) {
-	    			throw new ApplicationException("Error: " + ex.Message);
-	    		}
+                //try { 
+                //    tickReader.Initialize(DataFolder,symbolFiles[i]);
+                //    senderList.Add(tickReader.ToAgent());
+                //} catch( System.IO.FileNotFoundException ex) {
+                //    throw new ApplicationException("Error: " + ex.Message);
+                //}
 			}
 			return senderList.ToArray();
 		}
@@ -171,9 +170,12 @@ namespace TickZoom.Starters
                 engine.IntervalDefault = ProjectProperties.Starter.IntervalDefault;
                 engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
 
-                engine.Providers = SetupProviders(false, false);
                 engine.BackgroundWorker = BackgroundWorker;
                 engine.RunMode = runMode;
+                if( runMode == RunMode.RealTime)
+                {
+                    engine.Providers = SetupDataProviders();
+                }
                 engine.StartCount = StartCount;
                 engine.EndCount = EndCount;
 		        engine.DataFolder = dataFolder;
@@ -425,7 +427,6 @@ namespace TickZoom.Starters
 			engine.IntervalDefault = ProjectProperties.Starter.IntervalDefault;
 			engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
 			
-			engine.Providers = SetupProviders(quietMode,false);
 			engine.BackgroundWorker = BackgroundWorker;
 			engine.RunMode = RunMode.Historical;
 			engine.StartCount = StartCount;

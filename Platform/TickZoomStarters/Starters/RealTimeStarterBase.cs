@@ -37,11 +37,6 @@ namespace TickZoom.Starters
 	{
 		Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-		public override Agent[] SetupProviders(bool quietMode, bool singleLoad)
-		{
-			return base.SetupDataProviders();
-		}
-		
 		public override void Run(ModelInterface model)
 		{
             SetupProviderServiceConfig();

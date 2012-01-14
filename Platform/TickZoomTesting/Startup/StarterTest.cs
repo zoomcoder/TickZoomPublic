@@ -94,6 +94,7 @@ namespace TickZoom.StarterTest
 			long start = Factory.TickCount;
 			Starter starter = new DesignStarter();
 			ModelInterface model = new TestSimpleStrategy();
+		    starter.DataFolder = "Test";
     		starter.Run(model);
     		long elapsed = Factory.TickCount - start;
     		Assert.Less( elapsed, 10000);

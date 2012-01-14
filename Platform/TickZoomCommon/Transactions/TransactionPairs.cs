@@ -50,13 +50,13 @@ namespace TickZoom.Transactions
 		public BinaryStore TradeData {
 			get { return transactionPairs.TradeData; }
 		}
-		
-		public TransactionPairs(Func<double,double> currentPrice, ProfitLoss pnl)
-		{
-			this.currentPrice = currentPrice;
-			ProfitLossCalculation = pnl;
-			this.transactionPairs = new TransactionPairsBinary(TradeData);
-		}
+
+        public TransactionPairs(Func<double, double> currentPrice, ProfitLoss pnl)
+        {
+            this.currentPrice = currentPrice;
+            ProfitLossCalculation = pnl;
+            //this.transactionPairs = new TransactionPairsBinary(TradeData);
+        }
 		public TransactionPairs(Func<double,double> currentPrice, ProfitLoss pnl,TransactionPairsBinary transactionPairs)
 		{
 			this.currentPrice = currentPrice;
@@ -71,7 +71,7 @@ namespace TickZoom.Transactions
 		}
 		
 		public int Count { 
-			get { return transactionPairs.Count; }
+			get { return transactionPairs == null ? 0 : transactionPairs.Count; }
 		}
 		
 		/// <summary>
