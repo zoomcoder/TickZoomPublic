@@ -10,7 +10,6 @@ namespace TickZoom.Api
         internal ActiveList<T> list;
         internal ActiveListNode<T> next;
         internal ActiveListNode<T> prev;
-        private SimpleLock locker = new SimpleLock();
 
         // Methods
         public ActiveListNode(T value)

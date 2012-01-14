@@ -68,7 +68,7 @@ namespace TickZoom.Common
         {
             binary.action = OrderAction.Cancel;
             OrderState = orderState;
-            binary.lastStateChange = TimeStamp.UtcNow;
+            binary.lastStateChange = Factory.Parallel.UtcNow;
             binary.symbol = symbol;
             binary.side = default(OrderSide);
             binary.type = default(OrderType);
@@ -79,7 +79,7 @@ namespace TickZoom.Common
             binary.tag = null;
             binary.reference = null;
             binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
-            binary.utcCreateTime = TimeStamp.UtcNow;
+            binary.utcCreateTime = Factory.Parallel.UtcNow;
             if( origOrder == null)
             {
                 throw new NullReferenceException("original order cannot be null for a cancel order.");
@@ -111,7 +111,7 @@ namespace TickZoom.Common
 		{
             binary.action = OrderAction.Create;
 			OrderState = orderState;
-		    binary.lastStateChange = TimeStamp.UtcNow;
+		    binary.lastStateChange = Factory.Parallel.UtcNow;
 			binary.symbol = symbol;
 			binary.side = side;
 			binary.type = logical.Type;
@@ -132,7 +132,7 @@ namespace TickZoom.Common
 	    {
             binary.action = action;
 			OrderState = orderState;
-		    binary.lastStateChange = TimeStamp.UtcNow;
+		    binary.lastStateChange = Factory.Parallel.UtcNow;
 			binary.symbol = symbol;
 			binary.side = side;
 			binary.type = type;
@@ -215,7 +215,7 @@ namespace TickZoom.Common
                 }
                 else
                 {
-                    lastId = TimeStamp.UtcNow.Internal;
+                    lastId = Factory.Parallel.UtcNow.Internal;
                 }
             }
 			var longId = Interlocked.Increment(ref lastId);
@@ -277,7 +277,7 @@ namespace TickZoom.Common
                 if (value != binary.orderState)
                 {
                     binary.orderState = value;
-                    binary.lastStateChange = TimeStamp.UtcNow;
+                    binary.lastStateChange = Factory.Parallel.UtcNow;
                     if( binary.orderState == OrderState.Pending)
                     {
                         if( debug) log.Debug("Order Changed to Pending: " + this);
@@ -324,7 +324,7 @@ namespace TickZoom.Common
 
         public void ResetLastChange()
         {
-            binary.lastStateChange = TimeStamp.UtcNow;
+            binary.lastStateChange = Factory.Parallel.UtcNow;
         }
 
         public void ResetLastChange(TimeStamp lastChange)

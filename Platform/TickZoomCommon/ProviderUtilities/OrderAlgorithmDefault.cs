@@ -1089,7 +1089,7 @@ namespace TickZoom.Common
 
         public bool CheckForPending()
         {
-            var expiryLimit = TimeStamp.UtcNow;
+            var expiryLimit = Factory.Parallel.UtcNow;
             if( SyncTicks.Enabled)
             {
                 expiryLimit.AddSeconds(-1);
@@ -1121,7 +1121,7 @@ namespace TickZoom.Common
                     else if( Cancel(order))
                     {
 
-                        var diff = TimeStamp.UtcNow - lastChange;
+                        var diff = Factory.Parallel.UtcNow - lastChange;
                         var message = "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " +
                                       diff.TotalSeconds + " seconds.";
                         if( SyncTicks.Enabled)
@@ -1254,8 +1254,9 @@ namespace TickZoom.Common
 		}
 
         private TaskLock performCompareLocker = new TaskLock();
-		private bool PerformCompareProtected() {
-			var count = Interlocked.Increment(ref recursiveCounter);
+		private bool PerformCompareProtected()
+		{
+		    var count = ++recursiveCounter;
 		    var compareSuccess = false;
 		    if( count == 1)
 		    {
@@ -1263,7 +1264,7 @@ namespace TickZoom.Common
 				{
                     for (var i = 0; i < recursiveCounter-1; i++ )
                     {
-                        Interlocked.Decrement(ref recursiveCounter);
+                        --recursiveCounter;
                     }
 					try
 					{
@@ -1286,9 +1287,10 @@ namespace TickZoom.Common
                         }
 
 					}
-                    finally {
-						Interlocked.Decrement( ref recursiveCounter);
-                    }
+                    finally
+					{
+					    --recursiveCounter;
+					}
 				}
             }
             else
@@ -1303,15 +1305,6 @@ namespace TickZoom.Common
                 }
             }
 		    return compareSuccess;
-		}
-		private long nextOrderId = 1000000000;
-		private bool useTimeStampId = true;
-		private long GetUniqueOrderId() {
-			if( useTimeStampId) {
-				return TimeStamp.UtcNow.Internal;
-			} else {
-				return Interlocked.Increment(ref nextOrderId);
-			}
 		}
 		
 		private void TryRemovePhysicalFill(PhysicalFill fill) {

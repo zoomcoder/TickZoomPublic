@@ -225,6 +225,7 @@ namespace TickZoom.Interceptors
                 {
                     node.List.Remove(node);
                 }
+                nodePool.Free(node);
                 lock (orderMapLocker)
                 {
                     orderMap.Remove(oldOrderId);
@@ -824,11 +825,6 @@ namespace TickZoom.Interceptors
 
 		private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
 		{
-		    var stackTrace = new StackTrace().ToString();
-            if (!stackTrace.Contains("Trigger") && !stackTrace.Contains("OrderAlgorithm"))
-		    {
-		        log.Info("Trigger failed: \n" + stackTrace);
-		    }
 		    if( debug) log.Debug("Filling order: " + order );
 			var split = random.Next(maxPartialFillsPerOrder)+1;
 			var lastSize = totalSize / split;

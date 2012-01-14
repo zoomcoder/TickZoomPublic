@@ -35,36 +35,29 @@ namespace TickZoom.Common
 	public class NodePool<T>
 	{
 		private Stack<ActiveListNode<T>> _nodes = new Stack<ActiveListNode<T>>();
-		private TaskLock _sync = new TaskLock();
 		private int count = 0;
 
 		public ActiveListNode<T> Create(T item)
 		{
-			using (_sync.Using()) {
-				if (_nodes.Count == 0) {
-					Interlocked.Increment(ref count);
-					return new ActiveListNode<T>(item);
-				} else {
-					var node = _nodes.Pop();
-					node.Value = item;
-					return node;
-				}
+			if (_nodes.Count == 0)
+			{
+			    ++count;
+				return new ActiveListNode<T>(item);
+			} else {
+				var node = _nodes.Pop();
+				node.Value = item;
+				return node;
 			}
 		}
 
 		public void Free(ActiveListNode<T> node)
 		{
-			using(_sync.Using()) {
-//                Debug.Assert(!_nodes.Contains(node));
-				_nodes.Push(node);
-			}
+			_nodes.Push(node);
 		}
 
 		public void Clear()
 		{
-			using(_sync.Using()) {
-				_nodes.Clear();
-			}
+			_nodes.Clear();
 		}
 		
 		public int Count {
