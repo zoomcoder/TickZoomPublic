@@ -28,7 +28,8 @@ using System;
 
 namespace TickZoom.Api
 {
-	public enum RunMode {
+    public enum RunMode
+    {
 		None,
 		RealTime,
 		Historical

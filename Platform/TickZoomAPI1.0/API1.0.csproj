@@ -120,6 +120,7 @@
     <Compile Include="Misc\Enums\FIXSimulationType.cs" />
     <Compile Include="Misc\Enums\OptionChain.cs" />
     <Compile Include="Misc\Enums\QuoteType.cs" />
+    <Compile Include="Misc\Enums\SymbolMode.cs" />
     <Compile Include="Misc\Enums\TimeAndSales.cs" />
     <Compile Include="Misc\Enums\TimeInForce.cs" />
     <Compile Include="Misc\Events\ErrorDetail.cs" />
