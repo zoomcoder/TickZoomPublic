@@ -54,7 +54,7 @@ namespace TickZoom.TickData
 			string pair = "USD_JPY";
 			TickReader tickReader = new TickReader();
     		tickReader.LogProgress = true;
-    		tickReader.Initialize("Test\\DataCache",pair);
+    		tickReader.Initialize("Test",pair);
     		
 			byte[] previous = new byte[1024];
 			MemoryStream stream = new MemoryStream();

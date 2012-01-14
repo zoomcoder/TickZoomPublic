@@ -51,7 +51,6 @@ namespace TickZoom.Properties
 		TickZoom.Api.TimeStamp endTime;
 		ChartProperties chartProperties;
 		EngineProperties engineProperties;
-		string[] symbolArray;
 	    private int testFinishedTimeout;
 		
 		List<SymbolProperties> symbolInfo = new List<SymbolProperties>();
@@ -73,19 +72,19 @@ namespace TickZoom.Properties
 			SymbolLibrary library = new SymbolLibrary();
 			value = value.StripWhiteSpace();
 			value = value.StripInvalidPathChars();
-			symbolArray = value.Split(new char[] { ',' });
+			var symbolFileArray = value.Split(new char[] { ',' });
 			var symbolList = new List<string>();
-			for( int i=0; i<symbolArray.Length; i++) {
-				var tempSymbol = symbolArray[i].Trim();
-				if( !string.IsNullOrEmpty(tempSymbol)) {
-					SymbolProperties symbol = library.GetSymbolProperties(tempSymbol);
+			for( int i=0; i<symbolFileArray.Length; i++) {
+				var tempSymbolFile = symbolFileArray[i].Trim();
+				if( !string.IsNullOrEmpty(tempSymbolFile)) {
+					var symbol = library.GetSymbolProperties(tempSymbolFile);
+				    symbol.SymbolFile = tempSymbolFile;
 					symbol.ChartGroup = i+1;
 					log.Info(symbol + " set to chart group " + symbol.ChartGroup);
 					symbolInfo.Add(symbol);
-					symbolList.Add(tempSymbol);
+					symbolList.Add(tempSymbolFile);
 				}
 			}
-			symbolArray = symbolList.ToArray();
 		}
 		
 		/// <summary>
@@ -124,10 +123,6 @@ namespace TickZoom.Properties
 			get { return symbolInfo.ToArray(); }
 		}
 		
-		public string[] SymbolArray {
-			get { return symbolArray; }
-		}
-
 	    public int TestFinishedTimeout
 	    {
 	        get { return testFinishedTimeout; }

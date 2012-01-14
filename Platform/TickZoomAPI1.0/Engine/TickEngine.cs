@@ -154,6 +154,12 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
+
+        string DataFolder
+        {
+            get;
+            set;
+        }
     	
     	int OptimizePass {
 			get;

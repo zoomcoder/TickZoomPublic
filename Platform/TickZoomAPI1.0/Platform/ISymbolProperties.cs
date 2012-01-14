@@ -31,6 +31,8 @@ namespace TickZoom.Api
 {
 	public interface ISymbolProperties : SymbolInfo
 	{
+        string SymbolFile { get; set; }
+
 		new Elapsed SessionStart {
 			get;
 			set;

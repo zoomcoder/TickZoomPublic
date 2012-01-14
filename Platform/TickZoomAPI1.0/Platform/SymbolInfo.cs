@@ -37,6 +37,11 @@ namespace TickZoom.Api
 		string Symbol {
 			get;
 		}
+
+        // 
+        // Complete symbol file requested by the user.
+        // 
+	    string SymbolFile { get; }
 	
 		/// <summary>
 		/// The universal symbol ties different symbols together from different

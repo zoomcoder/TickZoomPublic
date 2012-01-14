@@ -39,6 +39,11 @@ namespace TickZoom.TickUtil
         private Action writeFileAction;
         private TickFileMode mode;
         private Stream bufferedStream;
+        private long tickCount;
+        private long maxCount = long.MaxValue;
+        private TimeStamp startTime = TimeStamp.MinValue;
+        private TimeStamp endTime = TimeStamp.MaxValue;
+        private bool endOfData;
 
         public TickFile()
         {
@@ -290,8 +295,6 @@ namespace TickZoom.TickUtil
             }
         }
 
-
-
         public void GetLastTick(TickIO lastTickIO)
         {
             Stream stream;
@@ -323,43 +326,52 @@ namespace TickZoom.TickUtil
 
         public bool TryReadTick(TickIO tickIO)
         {
-            if( dataIn == null)
+            if( dataIn == null || tickCount > MaxCount || endOfData)
             {
                 return false;
             }
             try
             {
-                tickIO.SetSymbol(lSymbol);
-                byte size = dataIn.ReadByte();
-                // Check for old style prior to version 8 where
-                // single byte version # was first.
-                if (dataVersion < 8 && size < 8)
+                do
                 {
-                    dataVersion = tickIO.FromReader((byte)size, dataIn);
-                }
-                else
-                {
-                    // Subtract the size byte.
-                    //if (dataIn.BaseStream.Position + size - 1 > length) {
-                    //    return false;
-                    //}
-                    int count = 1;
-                    memory.SetLength(size);
-                    memory.GetBuffer()[0] = size;
-                    while (count < size)
+                    tickIO.SetSymbol(lSymbol);
+                    byte size = dataIn.ReadByte();
+                    // Check for old style prior to version 8 where
+                    // single byte version # was first.
+                    if (dataVersion < 8 && size < 8)
                     {
-                        var bytesRead = dataIn.Read(buffer, count, size - count);
-                        if (bytesRead == 0)
-                        {
-                            return false;
-                        }
-                        count += bytesRead;
+                        dataVersion = tickIO.FromReader((byte) size, dataIn);
                     }
-                    memory.Position = 0;
-                    dataVersion = tickIO.FromReader(memory);
-                }
-                var utcTime = new TimeStamp(tickIO.lUtcTime);
-                tickIO.SetTime(utcTime);
+                    else
+                    {
+                        // Subtract the size byte.
+                        //if (dataIn.BaseStream.Position + size - 1 > length) {
+                        //    return false;
+                        //}
+                        int count = 1;
+                        memory.SetLength(size);
+                        memory.GetBuffer()[0] = size;
+                        while (count < size)
+                        {
+                            var bytesRead = dataIn.Read(buffer, count, size - count);
+                            if (bytesRead == 0)
+                            {
+                                return false;
+                            }
+                            count += bytesRead;
+                        }
+                        memory.Position = 0;
+                        dataVersion = tickIO.FromReader(memory);
+                    }
+                    var utcTime = new TimeStamp(tickIO.lUtcTime);
+                    if (utcTime > EndTime)
+                    {
+                        endOfData = true;
+                        return false;
+                    }
+                    tickIO.SetTime(utcTime);
+                    tickCount++;
+                } while (tickIO.UtcTime < StartTime);
                 return true;
             }
             catch (EndOfStreamException ex)
@@ -540,6 +552,24 @@ namespace TickZoom.TickUtil
         public long WriteCounter
         {
             get { return writeCounter; }
+        }
+
+        public long MaxCount
+        {
+            get { return maxCount; }
+            set { maxCount = value; }
+        }
+
+        public TimeStamp StartTime
+        {
+            get { return startTime; }
+            set { startTime = value; }
+        }
+
+        public TimeStamp EndTime
+        {
+            get { return endTime; }
+            set { endTime = value; }
         }
     }
 }

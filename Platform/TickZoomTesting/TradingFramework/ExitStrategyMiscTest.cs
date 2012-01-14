@@ -72,7 +72,7 @@ namespace TickZoom.TradingFramework
 			starter.EndCount = 1;
 			starter.ProjectProperties.Starter.SetSymbols("USD_JPY_YEARS");
 			starter.ProjectProperties.Starter.IntervalDefault = Intervals.Hour1;
-			starter.DataFolder = "Test\\DataCache";
+			starter.DataFolder = "Test";
 			starter.Run(logic);
 			
 			Assert.AreSame(logic.Hours,logic.Hours,"Exit Signal before entry");

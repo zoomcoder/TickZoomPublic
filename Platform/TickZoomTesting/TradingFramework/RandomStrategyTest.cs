@@ -60,7 +60,7 @@ namespace TickZoom.TradingFramework
     		starter.ProjectProperties.Starter.EndTime = new TimeStamp(2007,1,1,0,0,0);
 			starter.EndCount = 2049;
 			starter.ProjectProperties.Starter.SetSymbols("USD_JPY_YEARS");
-			starter.DataFolder = "Test\\DataCache";
+			starter.DataFolder = "Test";
 			starter.Run(strategy);
 		}
 		

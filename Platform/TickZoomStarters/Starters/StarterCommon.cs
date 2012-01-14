@@ -68,10 +68,6 @@ namespace TickZoom.Starters
 		protected ParallelMode parallelMode = ParallelMode.Normal;
 		
 		public StarterCommon() {
-			string dataFolder = Factory.Settings["DataFolder"];
-			if( dataFolder != null) {
-				this.dataFolder = dataFolder;
-			}
     		storageFolder = Factory.Settings["AppDataFolder"];
    			if( storageFolder == null) {
        			throw new ApplicationException( "Must set AppDataFolder property in app.config");
@@ -108,7 +104,6 @@ namespace TickZoom.Starters
 		public virtual Agent[] SetupProviders(bool quietMode, bool singleLoad) {
 			List<Agent> senderList = new List<Agent>();
 			SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
-			string[] symbolFiles = projectProperties.Starter.SymbolArray;
 			for(int i=0; i<symbols.Length; i++) {
 	    		TickReader tickReader = Factory.TickUtil.TickReader();
 	    		tickReader.MaxCount = EndCount;	
@@ -118,8 +113,9 @@ namespace TickZoom.Starters
 	    		tickReader.LogProgress = true;
 	    		tickReader.BulkFileLoad = singleLoad;
 	    		tickReader.QuietMode = quietMode;
-	    		try { 
-		    		tickReader.Initialize(DataFolder,symbolFiles[i]);
+                try
+                {
+		    		tickReader.Initialize(DataFolder+@"\DataCache",symbols[i].SymbolFile);
 					senderList.Add(tickReader.ToAgent());
 	    		} catch( System.IO.FileNotFoundException ex) {
 	    			throw new ApplicationException("Error: " + ex.Message);
@@ -180,6 +176,8 @@ namespace TickZoom.Starters
                 engine.RunMode = runMode;
                 engine.StartCount = StartCount;
                 engine.EndCount = EndCount;
+		        engine.DataFolder = dataFolder;
+
                 engine.StartTime = ProjectProperties.Starter.StartTime;
                 engine.EndTime = ProjectProperties.Starter.EndTime;
                 engine.TestFinishedTimeout = ProjectProperties.Starter.TestFinishedTimeout;
@@ -434,6 +432,7 @@ namespace TickZoom.Starters
 			engine.EndCount = EndCount;
 			engine.StartTime = ProjectProperties.Starter.StartTime;
 			engine.EndTime = ProjectProperties.Starter.EndTime;
+		    engine.DataFolder = dataFolder;
 	
 			if( quietMode) {
 				engine.QuietMode = true;
@@ -513,7 +512,13 @@ namespace TickZoom.Starters
 
 		public string DataFolder {
 			get { return dataFolder; }
-			set { dataFolder = value; }
+			set {
+                dataFolder = value;
+                if( dataFolder.Contains("Cache"))
+                {
+                    throw new ApplicationException("Please remove DataCache from DataFolder settings.");
+                }
+            }
 		}
     	
 		public long EndCount {

@@ -52,7 +52,7 @@ namespace Loaders
         readonly bool debug = log.IsDebugEnabled;
         private ModelLoaderInterface loader;
         private string testFileName;
-        string dataFolder = "Test\\DataCache";
+        string dataFolder = "Test";
         string symbols;
         List<PortfolioDoc> portfolioDocs = new List<PortfolioDoc>();
         Dictionary<string,List<StatsInfo>> goodStatsMap = new Dictionary<string,List<StatsInfo>>();
@@ -176,7 +176,7 @@ namespace Loaders
             config.CreateChart = HistoricalCreateChart;
             config.ShowChart = HistoricalShowChart;
     		
-            config.DataSubFolder = "Test\\DataCache";
+            config.DataSubFolder = "Test";
             config.SymbolList = Symbols;
             config.DefaultPeriod = intervalDefault.Period;
             config.DefaultBarUnit = intervalDefault.BarUnit.ToString();
@@ -192,7 +192,7 @@ namespace Loaders
             starter.ProjectProperties.Starter.StartTime = startTime;
             starter.ProjectProperties.Starter.EndTime = endTime;
 
-            starter.DataFolder = "Test\\DataCache";
+            starter.DataFolder = "Test";
             starter.ProjectProperties.Starter.SetSymbols(Symbols);
             starter.ProjectProperties.Starter.IntervalDefault = intervalDefault;
             starter.CreateChartCallback = new CreateChartCallback(HistoricalCreateChart);

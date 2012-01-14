@@ -108,7 +108,7 @@ namespace TickZoom.Utilities
 				storageFolder + @"\Test\\ImportData\KC.csv",
 			};
 	       	var import = new Import();
-	       	import.DataFolder = @"Test\DataCache";
+	       	import.DataFolder = @"Test";
 	       	import.AssemblyName = "tzdata";
 	       	import.Run(args);
 
@@ -179,7 +179,7 @@ namespace TickZoom.Utilities
             };
             var export = new Export();
             export.Output = sb.WriteLine;
-            export.DataFolder = @"Test\DataCache";
+            export.DataFolder = @"Test";
             export.AssemblyName = "tzdata";
             export.Run(args);
             var actual = sb.ToString();

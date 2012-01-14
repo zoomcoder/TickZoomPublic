@@ -70,7 +70,7 @@ namespace Other
 		public void Ticket123()
 		{
 			Starter starter = new HistoricalStarter();
-    		starter.DataFolder = "Test\\DataCache";
+    		starter.DataFolder = "Test";
     		starter.ProjectProperties.Starter.SetSymbols("spyTestBars");
 			Interval intervalDefault = Intervals.Minute1;
 			starter.ProjectProperties.Starter.IntervalDefault = intervalDefault;

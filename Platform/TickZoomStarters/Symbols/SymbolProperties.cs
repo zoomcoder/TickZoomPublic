@@ -71,6 +71,7 @@ namespace TickZoom.Symbols
 	    private LimitOrderTradeSimulation _limitOrderTradeSimulation = LimitOrderTradeSimulation.TradeTouch;
 	    private OptionChain optionChain = OptionChain.None;
 	    private TimeInForce timeInForce;
+	    private string symbolFile;
 
 		public SymbolProperties Copy()
 	    {
@@ -292,6 +293,22 @@ namespace TickZoom.Symbols
 	    {
 	        get { return timeInForce; }
 	        set { timeInForce = value; }
+	    }
+
+	    public string SymbolFile
+	    {
+	        get {
+                if( symbolFile == null)
+                {
+                    return symbol;
+                }
+                else
+                {
+                    
+                }
+                return symbolFile;
+            }
+	        set { symbolFile = value; }
 	    }
 	}
 }
