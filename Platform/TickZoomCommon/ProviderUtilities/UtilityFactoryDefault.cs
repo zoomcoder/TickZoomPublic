@@ -67,8 +67,8 @@ namespace TickZoom.Common
 		public VerifyFeed VerifyFeed(SymbolInfo symbol) {
 			return (VerifyFeed) Factory.Parallel.SpawnPerformer(typeof(VerifyFeedDefault),symbol);
 		}
-		public FillSimulator FillSimulator(string name, SymbolInfo symbol, bool createSimulateFills, bool createActualFills) {
-            return new FillSimulatorPhysical(name, symbol, createSimulateFills, createActualFills);
+		public FillSimulator FillSimulator(string name, SymbolInfo symbol, bool createSimulateFills, bool createActualFills, TriggerController triggers) {
+            return new FillSimulatorPhysical(name, symbol, createSimulateFills, createActualFills, triggers);
 		}
 		public FillHandler FillHandler() {
 			return new FillHandlerDefault();

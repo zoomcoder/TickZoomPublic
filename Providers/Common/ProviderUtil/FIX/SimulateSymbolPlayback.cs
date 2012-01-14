@@ -46,7 +46,7 @@ namespace TickZoom.FIX
             reader = new TickFile();
             this.symbolString = symbolString;
             reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
-            fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true);
+            fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
         }

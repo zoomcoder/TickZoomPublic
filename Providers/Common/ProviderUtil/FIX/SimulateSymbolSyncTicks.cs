@@ -71,7 +71,7 @@ namespace TickZoom.FIX
 			this.onTick = onTick;
 		    this.symbolString = symbolString;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
-            fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true);
+            fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
             tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);

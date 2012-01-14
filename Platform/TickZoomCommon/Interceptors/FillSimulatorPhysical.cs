@@ -26,8 +26,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
-
+using System.Diagnostics;
 using TickZoom.Api;
 using TickZoom.Common;
 
@@ -88,11 +87,15 @@ namespace TickZoom.Interceptors
 	    private volatile bool isOnline = false;
 	    private string name;
         private bool createActualFills;
+	    private TriggerController triggers;
+        private Dictionary<long, long> serialTriggerMap = new Dictionary<long, long>();
 
-        public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills, bool createActualFills)
+
+        public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills, bool createActualFills, TriggerController triggers)
 		{
 			this.symbol = symbol;
             this.name = name;
+            this.triggers = triggers;
 		    limitOrderQuoteSimulation = symbol.LimitOrderQuoteSimulation;
 		    limitOrderTradeSimulation = symbol.LimitOrderTradeSimulation;
 			this.minimumTick = symbol.MinimumTick.ToLong();
@@ -179,9 +182,38 @@ namespace TickZoom.Interceptors
 					throw new ApplicationException("An broker order id of " + order.BrokerOrder + " was already added.");
 				}
 			}
-			SortAdjust(order);
+		    TriggerOperation operation = default(TriggerOperation);
+            switch( order.Type)
+            {
+                case OrderType.BuyMarket:
+                case OrderType.SellMarket:
+                    break;
+                case OrderType.BuyStop:
+                case OrderType.SellLimit:
+                    operation = TriggerOperation.GreaterOrEqual;
+                    break;
+                case OrderType.BuyLimit:
+                case OrderType.SellStop:
+                    operation = TriggerOperation.LessOrEqual;
+                    break;
+                case OrderType.StopLoss:
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            if( triggers != null)
+            {
+                var triggerId = triggers.AddTrigger(order.LogicalSerialNumber, TriggerData.Price, operation, order.Price, TriggerCallback);
+                serialTriggerMap[order.LogicalSerialNumber] = triggerId;
+            }
+
+		    SortAdjust(order);
 			VerifySide(order);
 		}
+
+        private void TriggerCallback( long logicalSerialNumber)
+        {
+            ProcessOrders();
+        }
 
 		private CreateOrChangeOrder CancelBrokerOrder(string oldOrderId)
 		{
@@ -196,6 +228,12 @@ namespace TickZoom.Interceptors
                 lock (orderMapLocker)
                 {
                     orderMap.Remove(oldOrderId);
+                }
+                if( triggers != null)
+                {
+                    var triggerId = serialTriggerMap[createOrChangeOrder.LogicalSerialNumber];
+                    serialTriggerMap.Remove(createOrChangeOrder.LogicalSerialNumber);
+                    triggers.RemoveTrigger(triggerId);
                 }
                 LogOpenOrders();
             }
@@ -784,8 +822,14 @@ namespace TickZoom.Interceptors
             return true;
 		}
 
-		private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order) {
-			if( debug) log.Debug("Filling order: " + order );
+		private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
+		{
+		    var stackTrace = new StackTrace().ToString();
+            if (!stackTrace.Contains("Trigger") && !stackTrace.Contains("OrderAlgorithm"))
+		    {
+		        log.Info("Trigger failed: \n" + stackTrace);
+		    }
+		    if( debug) log.Debug("Filling order: " + order );
 			var split = random.Next(maxPartialFillsPerOrder)+1;
 			var lastSize = totalSize / split;
 			var cumulativeQuantity = 0;

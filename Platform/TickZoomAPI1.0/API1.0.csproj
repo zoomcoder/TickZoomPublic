@@ -98,6 +98,7 @@
     <Compile Include="Engine\LogicalOrderCache.cs" />
     <Compile Include="Engine\ProviderSimulator.cs" />
     <Compile Include="Engine\StrategyPositionDefault.cs" />
+    <Compile Include="Engine\TriggerController.cs" />
     <Compile Include="Locks\NativeMappedFile.cs" />
     <Compile Include="Locks\SharedMemory.cs" />
     <Compile Include="Locks\SimpleLock.cs" />
@@ -123,6 +124,8 @@
     <Compile Include="Misc\Enums\SymbolMode.cs" />
     <Compile Include="Misc\Enums\TimeAndSales.cs" />
     <Compile Include="Misc\Enums\TimeInForce.cs" />
+    <Compile Include="Misc\Enums\TriggerData.cs" />
+    <Compile Include="Misc\Enums\TriggerOperation.cs" />
     <Compile Include="Misc\Events\ErrorDetail.cs" />
     <Compile Include="Misc\Events\NewEventDetail.cs" />
     <Compile Include="Misc\Events\PositionChangeDetail.cs" />
