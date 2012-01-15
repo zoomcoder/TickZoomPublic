@@ -7,8 +7,8 @@ namespace TickZoom.Api
     {
         void SetOrder(CreateOrChangeOrder order);
         CreateOrChangeOrder RemoveOrder(string clientOrderId);
-        Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
-        List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
+        IEnumerable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
+        IEnumerable<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
         bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order);
         bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order);
         CreateOrChangeOrder GetOrderById(string brokerOrder);
@@ -26,6 +26,7 @@ namespace TickZoom.Api
         string StrategyPositionsToString();
         string SymbolPositionsToString();
         string OrdersToString();
+        List<CreateOrChangeOrder> GetOrdersList(Func<CreateOrChangeOrder, bool> func);
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

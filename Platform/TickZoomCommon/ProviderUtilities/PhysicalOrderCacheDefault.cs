@@ -37,7 +37,6 @@ namespace TickZoom.Common
         protected Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
         protected Dictionary<long, SymbolPosition> positions = new Dictionary<long, SymbolPosition>();
         protected Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
-        private TaskLock ordersLocker = new TaskLock();
 
         public PhysicalOrderCacheDefault()
         {
@@ -47,19 +46,17 @@ namespace TickZoom.Common
 
         public virtual void AssertAtomic() { }
 
-        public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
+        public IEnumerable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol)
         {
             AssertAtomic();
-            var result = new ActiveList<CreateOrChangeOrder>();
             var list = GetOrders((o) => o.Symbol == symbol);
             foreach (var order in list)
             {
                 if (order.OrderState != OrderState.Filled)
                 {
-                    result.AddLast(order);
+                    yield return order;
                 }
             }
-            return result;
         }
 
         public void SyncPositions(Iterable<StrategyPosition> strategyPositions)
@@ -175,10 +172,7 @@ namespace TickZoom.Common
                 order = null;
                 return false;
             }
-            using (ordersLocker.Using())
-            {
-                return ordersByBrokerId.TryGetValue((string)brokerOrder, out order);
-            }
+            return ordersByBrokerId.TryGetValue((string)brokerOrder, out order);
         }
 
         public bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order)
@@ -189,24 +183,18 @@ namespace TickZoom.Common
                 order = null;
                 return false;
             }
-            using (ordersLocker.Using())
-            {
-                return ordersBySequence.TryGetValue(sequence, out order);
-            }
+            return ordersBySequence.TryGetValue(sequence, out order);
         }
 
         public CreateOrChangeOrder GetOrderById(string brokerOrder)
         {
             AssertAtomic();
-            using (ordersLocker.Using())
+            CreateOrChangeOrder order;
+            if (!ordersByBrokerId.TryGetValue((string)brokerOrder, out order))
             {
-                CreateOrChangeOrder order;
-                if (!ordersByBrokerId.TryGetValue((string)brokerOrder, out order))
-                {
-                    throw new ApplicationException("Unable to find order for id: " + brokerOrder);
-                }
-                return order;
+                throw new ApplicationException("Unable to find order for id: " + brokerOrder);
             }
+            return order;
         }
 
         public CreateOrChangeOrder RemoveOrder(string clientOrderId)
@@ -217,60 +205,49 @@ namespace TickZoom.Common
             {
                 return null;
             }
-            using (ordersLocker.Using())
+            CreateOrChangeOrder order = null;
+            if (ordersByBrokerId.TryGetValue(clientOrderId, out order))
             {
-                CreateOrChangeOrder order = null;
-                if (ordersByBrokerId.TryGetValue(clientOrderId, out order))
+                var result = ordersByBrokerId.Remove(clientOrderId);
+                if (result && trace) log.Trace("Removed order by broker id " + clientOrderId + ": " + order);
+                CreateOrChangeOrder orderBySerial;
+                if (ordersBySerial.TryGetValue(order.LogicalSerialNumber, out orderBySerial))
                 {
-                    var result = ordersByBrokerId.Remove(clientOrderId);
-                    if (result && trace) log.Trace("Removed order by broker id " + clientOrderId + ": " + order);
-                    CreateOrChangeOrder orderBySerial;
-                    if (ordersBySerial.TryGetValue(order.LogicalSerialNumber, out orderBySerial))
+                    if (orderBySerial.BrokerOrder.Equals(clientOrderId))
                     {
-                        if (orderBySerial.BrokerOrder.Equals(clientOrderId))
-                        {
-                            var result2 = ordersBySerial.Remove(order.LogicalSerialNumber);
-                            if (result2 && trace) log.Trace("Removed order by logical id " + order.LogicalSerialNumber + ": " + orderBySerial);
-                        }
+                        var result2 = ordersBySerial.Remove(order.LogicalSerialNumber);
+                        if (result2 && trace) log.Trace("Removed order by logical id " + order.LogicalSerialNumber + ": " + orderBySerial);
                     }
-                    return order;
                 }
-                else
-                {
-                    return null;
-                }
+                return order;
+            }
+            else
+            {
+                return null;
             }
         }
 
         public bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order)
         {
             AssertAtomic();
-            using (ordersLocker.Using())
-            {
-                return ordersBySerial.TryGetValue(logicalSerialNumber, out order);
-            }
+            return ordersBySerial.TryGetValue(logicalSerialNumber, out order);
         }
 
         public CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber)
         {
             AssertAtomic();
-            using (ordersLocker.Using())
+            CreateOrChangeOrder order;
+            if (!ordersBySerial.TryGetValue(logicalSerialNumber, out order))
             {
-                CreateOrChangeOrder order;
-                if (!ordersBySerial.TryGetValue(logicalSerialNumber, out order))
-                {
-                    throw new ApplicationException("Unable to find order by serial for id: " + logicalSerialNumber);
-                }
-                return order;
+                throw new ApplicationException("Unable to find order by serial for id: " + logicalSerialNumber);
             }
+            return order;
         }
 
         public bool HasCreateOrder(CreateOrChangeOrder order)
         {
-            var createOrderQueue = GetActiveOrders(order.Symbol);
-            for (var current = createOrderQueue.First; current != null; current = current.Next)
+            foreach (var queueOrder in GetActiveOrders(order.Symbol))
             {
-                var queueOrder = current.Value;
                 if (order.Action == OrderAction.Create && order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
                 {
                     if (debug) log.Debug("Create ignored because order was already on create order queue: " + queueOrder);
@@ -282,10 +259,8 @@ namespace TickZoom.Common
 
         public bool HasCancelOrder(PhysicalOrder order)
         {
-            var cancelOrderQueue = GetActiveOrders(order.Symbol);
-            for (var current = cancelOrderQueue.First; current != null; current = current.Next)
+            foreach (var clientId in GetActiveOrders(order.Symbol))
             {
-                var clientId = current.Value;
                 if (clientId.OriginalOrder != null && order.OriginalOrder.BrokerOrder == clientId.OriginalOrder.BrokerOrder)
                 {
                     if (debug) log.Debug("Cancel or Changed ignored because previous order order working for: " + order);
@@ -298,68 +273,65 @@ namespace TickZoom.Common
         public void SetOrder(CreateOrChangeOrder order)
         {
             AssertAtomic();
-            using (ordersLocker.Using())
+            if (trace) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
+            ordersByBrokerId[order.BrokerOrder] = order;
+            if (order.Sequence != 0)
             {
-                if (trace) log.Trace("Assigning order " + order.BrokerOrder + " with " + order.LogicalSerialNumber);
-                ordersByBrokerId[order.BrokerOrder] = order;
-                if (order.Sequence != 0)
+                ordersBySequence[order.Sequence] = order;
+            }
+            if (order.LogicalSerialNumber != 0)
+            {
+                ordersBySerial[order.LogicalSerialNumber] = order;
+                if (order.Action == OrderAction.Cancel && order.OriginalOrder == null)
                 {
-                    ordersBySequence[order.Sequence] = order;
-                }
-                if (order.LogicalSerialNumber != 0)
-                {
-                    ordersBySerial[order.LogicalSerialNumber] = order;
-                    if (order.Action == OrderAction.Cancel && order.OriginalOrder == null)
-                    {
-                        throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
-                    }
+                    throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
                 }
             }
         }
 
-        public List<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select)
+        public List<CreateOrChangeOrder> GetOrdersList(Func<CreateOrChangeOrder, bool> select)
+        {
+            var list = new List<CreateOrChangeOrder>();
+            foreach (var order in GetOrders(select))
+            {
+                list.Add(order);
+            }
+            return list;
+        }
+
+        public IEnumerable<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select)
         {
             AssertAtomic();
             var list = new List<CreateOrChangeOrder>();
-            using (ordersLocker.Using())
+            foreach (var kvp in ordersByBrokerId)
             {
-                foreach (var kvp in ordersByBrokerId)
+                var order = kvp.Value;
+                if (select(order))
                 {
-                    var order = kvp.Value;
-                    if (select(order))
-                    {
-                        list.Add(order);
-                    }
+                    yield return order;
                 }
             }
-            return list;
         }
 
         public void ResetLastChange()
         {
             AssertAtomic();
             if (debug) log.Debug("Resetting last change time for all physical orders.");
-            using (ordersLocker.Using())
+            foreach (var kvp in ordersByBrokerId)
             {
-                foreach (var kvp in ordersByBrokerId)
-                {
-                    var order = kvp.Value;
-                    order.ResetLastChange();
-                }
+                var order = kvp.Value;
+                order.ResetLastChange();
             }
         }
 
         public string OrdersToString()
         {
-            using (ordersLocker.Using())
+            var sb = new StringBuilder();
+            foreach (var kvp in ordersByBrokerId)
             {
-                var sb = new StringBuilder();
-                foreach (var kvp in ordersByBrokerId)
-                {
-                    sb.AppendLine(kvp.Value.ToString());
-                }
-                return sb.ToString();
+                sb.AppendLine(kvp.Value.ToString());
             }
+            return sb.ToString();
         }
 
         private volatile bool isDisposed = false;

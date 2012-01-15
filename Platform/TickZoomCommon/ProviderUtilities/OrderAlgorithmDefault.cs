@@ -50,14 +50,13 @@ namespace TickZoom.Common
         private Log log;
 		private SymbolInfo symbol;
 		private PhysicalOrderHandler physicalOrderHandler;
-        private ActiveList<CreateOrChangeOrder> originalPhysicals;
-        private SimpleLock bufferedLogicalsLocker = new SimpleLock();
         private volatile bool bufferedLogicalsChanged = false;
-		private ActiveList<LogicalOrder> bufferedLogicals;
-        private ActiveList<LogicalOrder> originalLogicals;
-		private ActiveList<LogicalOrder> logicalOrders;
-        private ActiveList<CreateOrChangeOrder> physicalOrders;
-		private List<LogicalOrder> extraLogicals = new List<LogicalOrder>();
+        private List<CreateOrChangeOrder> originalPhysicals;
+        private List<CreateOrChangeOrder> physicalOrders;
+        private List<LogicalOrder> bufferedLogicals;
+        private List<LogicalOrder> originalLogicals;
+        private List<LogicalOrder> logicalOrders;
+        private List<LogicalOrder> extraLogicals;
 		private int desiredPosition;
 		private Action<SymbolInfo,LogicalFillBinary> onProcessFill;
 		private bool handleSimulatedExits = false;
@@ -69,6 +68,16 @@ namespace TickZoom.Common
         private PhysicalOrderCache physicalOrderCache;
         private long recency;
         private string name;
+
+        public class OrderArray<T>
+        {
+            private int capacity = 16;
+            private T[] orders;
+            public OrderArray()
+            {
+                orders = new T[capacity];
+            }
+        }
 
         public struct MissingLevel
         {
@@ -85,12 +94,13 @@ namespace TickZoom.Common
 		    this.name = name;
 			tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.physicalOrderHandler = brokerOrders;
-            this.originalLogicals = new ActiveList<LogicalOrder>();
-			this.bufferedLogicals = new ActiveList<LogicalOrder>();
-            this.originalPhysicals = new ActiveList<CreateOrChangeOrder>();
-			this.logicalOrders = new ActiveList<LogicalOrder>();
-            this.physicalOrders = new ActiveList<CreateOrChangeOrder>();
-		    this.minimumTick = symbol.MinimumTick.ToLong();
+            this.originalLogicals = new List<LogicalOrder>();
+            this.bufferedLogicals = new List<LogicalOrder>();
+            this.logicalOrders = new List<LogicalOrder>();
+            this.originalPhysicals = new List<CreateOrChangeOrder>();
+            this.physicalOrders = new List<CreateOrChangeOrder>();
+            this.extraLogicals = new List<LogicalOrder>();
+            this.minimumTick = symbol.MinimumTick.ToLong();
             if( debug) log.Debug("Starting recency " + recency);
 		}
 
@@ -131,12 +141,11 @@ namespace TickZoom.Common
             return true;
         }
 		
-		private List<CreateOrChangeOrder> TryMatchId( Iterable<CreateOrChangeOrder> list, LogicalOrder logical)
+		private List<CreateOrChangeOrder> TryMatchId( IEnumerable<CreateOrChangeOrder> list, LogicalOrder logical)
 		{
             var physicalOrderMatches = new List<CreateOrChangeOrder>();
-            for (var current = list.First; current != null; current = current.Next)
+            foreach (var physical in list)
 		    {
-		        var physical = current.Value;
 				if( logical.Id == physical.LogicalOrderId) {
                     switch( physical.OrderState)
                     {
@@ -155,7 +164,6 @@ namespace TickZoom.Common
                     }
 				}
 			}
-
 			return physicalOrderMatches;
 		}
 
@@ -915,59 +923,73 @@ namespace TickZoom.Common
 			var pendingAdjustments = 0;
 
             originalPhysicals.Clear();
-            originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
+            originalPhysicals.AddRange(physicalOrderCache.GetActiveOrders(symbol));
 
-			for( var node = originalPhysicals.First; node != null; node = node.Next) {
-				CreateOrChangeOrder order = node.Value;
-				if(order.Type != OrderType.BuyMarket &&
-				   order.Type != OrderType.SellMarket) {
-					continue;
-				}
-			    switch (order.OrderState) 
-			    {
+            for (var i = 0; i < originalPhysicals.Count; i++ )
+            {
+                CreateOrChangeOrder order = originalPhysicals[i];
+                if (order.Type != OrderType.BuyMarket &&
+                   order.Type != OrderType.SellMarket)
+                {
+                    continue;
+                }
+                switch (order.OrderState)
+                {
                     case OrderState.Filled:
                     case OrderState.Lost:
-			            continue;
+                        continue;
                     case OrderState.Active:
                     case OrderState.Pending:
                     case OrderState.PendingNew:
                     case OrderState.Suspended:
-			            break;
+                        break;
                     default:
                         throw new ApplicationException("Unknown order state: " + order.OrderState);
-			    }
-				if( order.LogicalOrderId == 0) {
-					if( order.Type == OrderType.BuyMarket) {
-						pendingAdjustments += order.Size;
-					}
-					if( order.Type == OrderType.SellMarket) {
-						pendingAdjustments -= order.Size;
-					}
-					if( positionDelta > 0) {
-						if( pendingAdjustments > positionDelta) {
-							TryCancelBrokerOrder(order);
-							pendingAdjustments -= order.Size;
-						} else if( pendingAdjustments < 0) {
-							TryCancelBrokerOrder(order);
-							pendingAdjustments += order.Size;
-						}
-					}
-					if( positionDelta < 0) {
-						if( pendingAdjustments < positionDelta) {
-							TryCancelBrokerOrder(order);
-							pendingAdjustments += order.Size;
-						} else if( pendingAdjustments > 0) {
-							TryCancelBrokerOrder(order);
-							pendingAdjustments -= order.Size;
-						}
-					}
-					if( positionDelta == 0) {
-						TryCancelBrokerOrder(order);
-						pendingAdjustments += order.Type == OrderType.SellMarket ? order.Size : -order.Size;
-					}
-					physicalOrders.Remove(order);
-				}
-			}
+                }
+                if (order.LogicalOrderId == 0)
+                {
+                    if (order.Type == OrderType.BuyMarket)
+                    {
+                        pendingAdjustments += order.Size;
+                    }
+                    if (order.Type == OrderType.SellMarket)
+                    {
+                        pendingAdjustments -= order.Size;
+                    }
+                    if (positionDelta > 0)
+                    {
+                        if (pendingAdjustments > positionDelta)
+                        {
+                            TryCancelBrokerOrder(order);
+                            pendingAdjustments -= order.Size;
+                        }
+                        else if (pendingAdjustments < 0)
+                        {
+                            TryCancelBrokerOrder(order);
+                            pendingAdjustments += order.Size;
+                        }
+                    }
+                    if (positionDelta < 0)
+                    {
+                        if (pendingAdjustments < positionDelta)
+                        {
+                            TryCancelBrokerOrder(order);
+                            pendingAdjustments += order.Size;
+                        }
+                        else if (pendingAdjustments > 0)
+                        {
+                            TryCancelBrokerOrder(order);
+                            pendingAdjustments -= order.Size;
+                        }
+                    }
+                    if (positionDelta == 0)
+                    {
+                        TryCancelBrokerOrder(order);
+                        pendingAdjustments += order.Type == OrderType.SellMarket ? order.Size : -order.Size;
+                    }
+                    physicalOrders.Remove(order);
+                }
+            }
 			return pendingAdjustments;
 		}
 
@@ -1052,7 +1074,7 @@ namespace TickZoom.Common
             }
             logicalOrderCache.SetActiveOrders(inputLogicals);
             bufferedLogicals.Clear();
-            bufferedLogicals.AddLast(logicalOrderCache.ActiveOrders);
+            bufferedLogicals.AddRange(logicalOrderCache.GetActiveOrders());
             bufferedLogicalsChanged = true;
             if (debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ")");
         }
@@ -1063,11 +1085,9 @@ namespace TickZoom.Common
 
 		private bool CheckForPendingInternal() {
 			var result = false;
-		    var next = originalPhysicals.First;
-		    for (var current = next; current != null; current = next)
+		    for(var i=0; i< originalPhysicals.Count; i++)
 		    {
-		        next = current.Next;
-		        var order = current.Value;
+		        var order = originalPhysicals[i];
 				if( order.OrderState == OrderState.Pending ||
                     order.OrderState == OrderState.PendingNew || 
                     order.Type == OrderType.BuyMarket ||
@@ -1099,10 +1119,12 @@ namespace TickZoom.Common
                 expiryLimit.AddSeconds(-5);
             }
             if (trace ) log.Trace("Checking for orders pending since: " + expiryLimit);
-            var list = physicalOrderCache.GetOrders((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew || x.Type == OrderType.BuyMarket || x.Type == OrderType.SellMarket));
+            var list = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew || x.Type == OrderType.BuyMarket || x.Type == OrderType.SellMarket));
             var cancelOrders = new List<CreateOrChangeOrder>();
+            var foundAny = false;
             foreach( var order in list)
             {
+                foundAny = true;
                 if( debug) log.Debug("Pending order: " + order);
                 var lastChange = order.LastStateChange;
                 if( lastChange < expiryLimit)
@@ -1149,14 +1171,14 @@ namespace TickZoom.Common
                     }
                 }
             }
-            return list.Count > 0;
+            return foundAny;
         }
 
         private LogicalOrder FindActiveLogicalOrder(long serialNumber)
         {
-            for (var current = originalLogicals.First; current != null; current = current.Next)
+            for(var i=0; i<originalLogicals.Count; i++)
             {
-                var order = current.Value;
+                var order = originalLogicals[i];
                 if (order.SerialNumber == serialNumber)
                 {
                     return order;
@@ -1276,7 +1298,10 @@ namespace TickZoom.Common
                         if (isPositionSynced)
                         {
                             compareSuccess = PerformCompareInternal();
-                            if( debug) log.Debug("PerformCompareInternal() returned: " + compareSuccess);
+                            if( debug)
+                            {
+                                log.Debug("PerformCompareInternal() returned: " + compareSuccess);
+                            }
                             physicalOrderHandler.ProcessOrders();
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
                         }
@@ -1442,9 +1467,9 @@ namespace TickZoom.Common
 					throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
 			}
 			if( clean) {
-			    for (var current = originalLogicals.First; current != null; current = current.Next)
+			    for(var i = 0; i<originalLogicals.Count; i++)
 			    {
-			        var order = current.Value;
+			        var order = originalLogicals[i];
 					if( order.StrategyId == filledOrder.StrategyId) {
 						switch( order.TradeDirection) {
 							case TradeDirection.Entry:
@@ -1504,7 +1529,7 @@ namespace TickZoom.Common
 			}
 				
             originalPhysicals.Clear();
-            originalPhysicals.AddLast(physicalOrderCache.GetActiveOrders(symbol));
+            originalPhysicals.AddRange(physicalOrderCache.GetActiveOrders(symbol));
 
 		    CheckForPending();
 		    var hasPendingOrders = CheckForPendingInternal();
@@ -1528,18 +1553,18 @@ namespace TickZoom.Common
             }
 
             logicalOrders.Clear();
-			logicalOrders.AddLast(originalLogicals);
+			logicalOrders.AddRange(originalLogicals);
 			
 			physicalOrders.Clear();
 			if(originalPhysicals != null) {
-				physicalOrders.AddLast(originalPhysicals);
+				physicalOrders.AddRange(originalPhysicals);
 			}
 
 			CreateOrChangeOrder createOrChange;
 			extraLogicals.Clear();
 			while( logicalOrders.Count > 0)
 			{
-				var logical = logicalOrders.First.Value;
+				var logical = logicalOrders[0];
 			    var matches = TryMatchId(physicalOrders, logical);
                 if( matches.Count > 0)
                 {
@@ -1565,11 +1590,11 @@ namespace TickZoom.Common
             }
 			while( physicalOrders.Count > 0)
 			{
-				createOrChange = physicalOrders.First.Value;
+			    createOrChange = physicalOrders[0];
 				if( TryCancelBrokerOrder(createOrChange)) {
 					cancelCount++;
 				}
-				physicalOrders.Remove(createOrChange);
+				physicalOrders.RemoveAt(0);
 			}
 			
 			if( cancelCount > 0) {
@@ -1599,38 +1624,37 @@ namespace TickZoom.Common
                 originalLogicals.Clear();
                 if (bufferedLogicals != null)
                 {
-                    originalLogicals.AddLast(bufferedLogicals);
+                    originalLogicals.AddRange(bufferedLogicals);
                 }
                 bufferedLogicalsChanged = false;
             }
         }
 
-        private void LogOrders( Iterable<LogicalOrder> orders, string name)
+        private void LogOrders( IEnumerable<LogicalOrder> orders, string name)
         {
-            for (var node = orders.First; node != null; node = node.Next)
+            foreach(var order in orders)
             {
-                var order = node.Value;
                 log.Debug("Logical Order: " + order);
             }
         }
 
-        private void LogOrders( Iterable<CreateOrChangeOrder> orders, string name)
+        private void LogOrders( IEnumerable<CreateOrChangeOrder> orders, string name)
         {
             if( debug)
             {
-                if( orders.Count > 0)
+                var first = true;
+                foreach (var order in orders)
                 {
-                    log.Debug("Listing " + name + " orders:");
+                    if( first)
+                    {
+                        log.Debug("Listing " + name + " orders:");
+                        first = false;
+                    }
+                    log.Debug(name + ": " + order);
                 }
-                else
+                if( first)
                 {
                     log.Debug("Empty list of " + name + " orders.");
-                    return;
-                }
-                for (var current = orders.First; current != null; current = current.Next)
-                {
-                    var order = current.Value;
-                    log.Debug(name + ": " + order);
                 }
             }
         }

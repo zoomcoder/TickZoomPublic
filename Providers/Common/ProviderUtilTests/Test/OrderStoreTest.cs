@@ -127,9 +127,19 @@ namespace Test
                                                       124.34, 1234, 14, logicalSerial + 1, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
                 var list = store.GetOrders((o) => o.Symbol.Symbol == "EUR/USD");
-                Assert.AreEqual(1, list.Count);
-                Assert.AreEqual(order.BrokerOrder, list[0].BrokerOrder);
-                Assert.AreEqual(logicalSerial + 1, list[0].LogicalSerialNumber);
+                var enumerator = list.GetEnumerator();
+                var count = 0;
+                CreateOrChangeOrder firstItem = null;
+                if( enumerator.MoveNext())
+                {
+                    count++;
+                    firstItem = enumerator.Current;
+
+                }
+                
+                Assert.AreEqual(1, count);
+                Assert.AreEqual(order.BrokerOrder, firstItem.BrokerOrder);
+                Assert.AreEqual(logicalSerial + 1, firstItem.LogicalSerialNumber);
             }
         }
 

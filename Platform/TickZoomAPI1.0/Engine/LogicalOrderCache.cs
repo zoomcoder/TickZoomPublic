@@ -25,16 +25,16 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
     public interface LogicalOrderCache
 	{
-        //StrategyPosition GetStrategyPosition(int id);
 		LogicalOrder FindLogicalOrder(int id);
 		void SetActiveOrders(Iterable<LogicalOrder> inputOrders);
 		Iterable<LogicalOrder> ActiveOrders { get; }
 		void RemoveInactive(LogicalOrder order);
-        //void SyncPositions(Iterable<StrategyPosition> strategyPositions);
+        IEnumerable<LogicalOrder> GetActiveOrders();
 	}
 }

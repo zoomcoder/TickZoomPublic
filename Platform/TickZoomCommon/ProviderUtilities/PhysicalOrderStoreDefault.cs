@@ -24,7 +24,6 @@ namespace TickZoom.Common
             }
         }
 
-        private TaskLock ordersLocker = new TaskLock();
         private string databasePath;
         private FileStream fs;
         private MemoryStream memory = null;
@@ -49,7 +48,6 @@ namespace TickZoom.Common
         private object snapshotLocker = new object();
         private bool snapshotNeeded;
         private PhysicalOrderLock physicalOrderLock;
-        protected SimpleLock cacheLocker = new SimpleLock();
 
         public PhysicalOrderStoreDefault(string name)
         {
@@ -82,28 +80,26 @@ namespace TickZoom.Common
 
         public IDisposable BeginTransaction()
         {
-            cacheLocker.Lock();
             return physicalOrderLock;
         }
 
         public void EndTransaction()
         {
-            cacheLocker.Unlock();
         }
 
         public bool IsLocked
         {
-            get { return cacheLocker.IsLocked; }
+            get { return false; }
         }
 
         public void AssertAtomic()
         {
-            if (!IsLocked)
-            {
-                var message = "Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.";
-                log.Error(message + "\n" + Environment.StackTrace);
-                //throw new ApplicationException(message);
-            }
+            //if (!IsLocked)
+            //{
+            //    var message = "Attempt to modify PhysicalOrder w/o locking PhysicalOrderStore first.";
+            //    log.Error(message + "\n" + Environment.StackTrace);
+            //    //throw new ApplicationException(message);
+            //}
         }
 
         public bool TryOpen()
@@ -207,6 +203,7 @@ namespace TickZoom.Common
 
         private void StartSnapShot()
         {
+            SnapShotInMemory();
             lock( snapshotLocker)
             {
                 if(writeFileResult != null)
@@ -324,7 +321,6 @@ namespace TickZoom.Common
                             if (errorList.Count > 0)
                             {
                                 var ex = errorList[errorList.Count - 1];
-                                System.Diagnostics.Debugger.Break();
                                 throw new ApplicationException("Failed to mov " + source + " to " + replace, ex);
                             }
                         }
@@ -380,11 +376,7 @@ namespace TickZoom.Common
             try
             {
                 if( debug) log.Debug("SnapshotHandler()");
-                using( cacheLocker.Using())
-                {
-
-                    SnapShot();
-                }
+                SnapShotFlushToDisk();
             }
             catch (Exception ex)
             {
@@ -392,7 +384,7 @@ namespace TickZoom.Common
             }
         }
 
-        private void SnapShot()
+        private void SnapShotInMemory()
         {
             anySnapShotWritten = true;
             CheckSnapshotRollover();
@@ -401,143 +393,147 @@ namespace TickZoom.Common
             uniqueId = 0;
             unique.Clear();
 
-            using (ordersLocker.Using())
+            // Save space for length.
+            writer.Write((int) memory.Length);
+            // Write the current sequence number
+            writer.Write(remoteSequence);
+            writer.Write(LocalSequence);
+            writer.Write(lastSequenceReset.Internal);
+            if (debug)
+                log.Debug("Snapshot writing Local Sequence  " + localSequence + ", Remote Sequence " +
+                          remoteSequence);
+            foreach (var kvp in ordersByBrokerId)
             {
-                // Save space for length.
-                writer.Write((int)memory.Length);
-                // Write the current sequence number
-                writer.Write(remoteSequence);
-                writer.Write(LocalSequence);
-                writer.Write(lastSequenceReset.Internal);
-                if (debug) log.Debug("Snapshot writing Local Sequence  " + localSequence + ", Remote Sequence " + remoteSequence);
-                foreach (var kvp in ordersByBrokerId)
+                var order = kvp.Value;
+                AddUniqueOrder(order);
+                if (trace) log.Trace("Snapshot found order by Id: " + order);
+                foreach (var reference in OrderReferences(order))
                 {
-                    var order = kvp.Value;
-                    AddUniqueOrder(order);
-                    if( trace) log.Trace("Snapshot found order by Id: " + order);
-                    foreach( var reference in OrderReferences(order))
-                    {
-                        AddUniqueOrder(reference);
-                    }
-                }
-
-                foreach (var kvp in ordersBySerial)
-                {
-                    var order = kvp.Value;
-                    AddUniqueOrder(order);
-                    if (trace) log.Trace("Snapshot found order by serial: " + order);
-                    foreach (var reference in OrderReferences(order))
-                    {
-                        AddUniqueOrder(reference);
-                    }
-                }
-
-                writer.Write(unique.Count);
-                foreach (var kvp in unique)
-                {
-                    var order = kvp.Key;
-                    if (trace) log.Trace("Snapshot writing unique order: " + order);
-                    var id = kvp.Value;
-                    writer.Write(id);
-                    writer.Write((int)order.Action);
-                    writer.Write(order.BrokerOrder);
-                    writer.Write(order.LogicalOrderId);
-                    writer.Write(order.LogicalSerialNumber);
-                    writer.Write((int)order.OrderState);
-                    writer.Write(order.Price);
-                    writer.Write((int)order.OrderFlags);
-                    if (order.ReplacedBy != null)
-                    {
-                        try
-                        {
-                            writer.Write(unique[order.ReplacedBy]);
-                        } catch( KeyNotFoundException ex)
-                        {
-                            var sb = new StringBuilder();
-                            foreach( var kvp2 in unique)
-                            {
-                                var temp = kvp2.Value;
-                                var temp2 = kvp2.Key;
-                                sb.AppendLine(temp.ToString() + ": " + temp2.ToString());
-                            }
-                            throw new ApplicationException("Can't find " + order.ReplacedBy + "\n" + sb, ex);
-                        }
-                    }
-                    else
-                    {
-                        writer.Write((int)0);
-                    }
-                    if (order.OriginalOrder != null)
-                    {
-                        try
-                        {
-                            writer.Write(unique[order.OriginalOrder]);
-                        }
-                        catch (KeyNotFoundException ex)
-                        {
-                            throw new ApplicationException("Can't find " + order.ReplacedBy, ex);
-                        }
-                    }
-                    else
-                    {
-                        writer.Write((int)0);
-                    }
-                    writer.Write((int)order.Side);
-                    writer.Write((int)order.Size);
-                    writer.Write(order.Symbol.Symbol);
-                    if (order.Tag == null)
-                    {
-                        writer.Write("");
-                    }
-                    else
-                    {
-                        writer.Write(order.Tag);
-                    }
-                    writer.Write((int)order.Type);
-                    writer.Write(order.UtcCreateTime.Internal);
-                    writer.Write(order.LastStateChange.Internal);
-                    writer.Write(order.Sequence);
-                }
-
-                writer.Write(ordersBySerial.Count);
-                foreach (var kvp in ordersBySerial)
-                {
-                    var serial = kvp.Key;
-                    var order = kvp.Value;
-                    writer.Write(serial);
-                    writer.Write(unique[order]);
-                }
-
-                using( positionsLocker.Using())
-                {
-                    if (debug) log.Debug("Symbol Positions\n" + SymbolPositionsToStringInternal());
-
-                    var positionCount = 0;
-                    foreach (var kvp in positions)
-                    {
-                        var symbolPosition = kvp.Value;
-                        if (symbolPosition.Position != 0)
-                        {
-                            positionCount++;
-                        }
-                    }
-                    writer.Write(positionCount);
-
-
-                    foreach (var kvp in positions)
-                    {
-                        var symbolPosition = kvp.Value;
-                        if (symbolPosition.Position != 0)
-                        {
-                            positionCount++;
-                            var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
-                            writer.Write(symbol.Symbol);
-                            writer.Write(kvp.Value.Position);
-                        }
-                    }
-
+                    AddUniqueOrder(reference);
                 }
             }
+
+            foreach (var kvp in ordersBySerial)
+            {
+                var order = kvp.Value;
+                AddUniqueOrder(order);
+                if (trace) log.Trace("Snapshot found order by serial: " + order);
+                foreach (var reference in OrderReferences(order))
+                {
+                    AddUniqueOrder(reference);
+                }
+            }
+
+            writer.Write(unique.Count);
+            foreach (var kvp in unique)
+            {
+                var order = kvp.Key;
+                if (trace) log.Trace("Snapshot writing unique order: " + order);
+                var id = kvp.Value;
+                writer.Write(id);
+                writer.Write((int) order.Action);
+                writer.Write(order.BrokerOrder);
+                writer.Write(order.LogicalOrderId);
+                writer.Write(order.LogicalSerialNumber);
+                writer.Write((int) order.OrderState);
+                writer.Write(order.Price);
+                writer.Write((int) order.OrderFlags);
+                if (order.ReplacedBy != null)
+                {
+                    try
+                    {
+                        writer.Write(unique[order.ReplacedBy]);
+                    }
+                    catch (KeyNotFoundException ex)
+                    {
+                        var sb = new StringBuilder();
+                        foreach (var kvp2 in unique)
+                        {
+                            var temp = kvp2.Value;
+                            var temp2 = kvp2.Key;
+                            sb.AppendLine(temp.ToString() + ": " + temp2.ToString());
+                        }
+                        throw new ApplicationException("Can't find " + order.ReplacedBy + "\n" + sb, ex);
+                    }
+                }
+                else
+                {
+                    writer.Write((int) 0);
+                }
+                if (order.OriginalOrder != null)
+                {
+                    try
+                    {
+                        writer.Write(unique[order.OriginalOrder]);
+                    }
+                    catch (KeyNotFoundException ex)
+                    {
+                        throw new ApplicationException("Can't find " + order.ReplacedBy, ex);
+                    }
+                }
+                else
+                {
+                    writer.Write((int) 0);
+                }
+                writer.Write((int) order.Side);
+                writer.Write((int) order.Size);
+                writer.Write(order.Symbol.Symbol);
+                if (order.Tag == null)
+                {
+                    writer.Write("");
+                }
+                else
+                {
+                    writer.Write(order.Tag);
+                }
+                writer.Write((int) order.Type);
+                writer.Write(order.UtcCreateTime.Internal);
+                writer.Write(order.LastStateChange.Internal);
+                writer.Write(order.Sequence);
+            }
+
+            writer.Write(ordersBySerial.Count);
+            foreach (var kvp in ordersBySerial)
+            {
+                var serial = kvp.Key;
+                var order = kvp.Value;
+                writer.Write(serial);
+                writer.Write(unique[order]);
+            }
+
+            using (positionsLocker.Using())
+            {
+                if (debug) log.Debug("Symbol Positions\n" + SymbolPositionsToStringInternal());
+
+                var positionCount = 0;
+                foreach (var kvp in positions)
+                {
+                    var symbolPosition = kvp.Value;
+                    if (symbolPosition.Position != 0)
+                    {
+                        positionCount++;
+                    }
+                }
+                writer.Write(positionCount);
+
+
+                foreach (var kvp in positions)
+                {
+                    var symbolPosition = kvp.Value;
+                    if (symbolPosition.Position != 0)
+                    {
+                        positionCount++;
+                        var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
+                        writer.Write(symbol.Symbol);
+                        writer.Write(kvp.Value.Position);
+                    }
+                }
+
+            }
+        }
+
+        private void SnapShotFlushToDisk() {
+
             memory.Position = 0;
             writer.Write((Int32)memory.Length - sizeof(Int32)); // length excludes the size of the length value.
             if( TryOpen())
@@ -707,30 +703,27 @@ namespace TickZoom.Common
                     uniqueIds[orderId].OriginalOrder = uniqueIds[originalId];
                 }
 
-                using (ordersLocker.Using())
+                ordersByBrokerId.Clear();
+                ordersBySequence.Clear();
+                ordersBySerial.Clear();
+                foreach (var kvp in uniqueIds)
                 {
-                    ordersByBrokerId.Clear();
-                    ordersBySequence.Clear();
-                    ordersBySerial.Clear();
-                    foreach (var kvp in uniqueIds)
+                    var order = kvp.Value;
+                    ordersByBrokerId[order.BrokerOrder] = order;
+                    ordersBySequence[order.Sequence] = order;
+                    if( order.Action == OrderAction.Cancel && order.OriginalOrder == null)
                     {
-                        var order = kvp.Value;
-                        ordersByBrokerId[order.BrokerOrder] = order;
-                        ordersBySequence[order.Sequence] = order;
-                        if( order.Action == OrderAction.Cancel && order.OriginalOrder == null)
-                        {
-                            throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
-                        }
+                        throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
                     }
+                }
 
-                    var bySerialCount = reader.ReadInt32();
-                    for (var i = 0; i < bySerialCount; i++)
-                    {
-                        var logicalSerialNum = reader.ReadInt64();
-                        var orderId = reader.ReadInt32();
-                        var order = uniqueIds[orderId];
-                        ordersBySerial[order.LogicalSerialNumber] = order;
-                    }
+                var bySerialCount = reader.ReadInt32();
+                for (var i = 0; i < bySerialCount; i++)
+                {
+                    var logicalSerialNum = reader.ReadInt64();
+                    var orderId = reader.ReadInt32();
+                    var order = uniqueIds[orderId];
+                    ordersBySerial[order.LogicalSerialNumber] = order;
                 }
 
                 using( positionsLocker.Using())
@@ -760,30 +753,21 @@ namespace TickZoom.Common
         public void Clear()
         {
             if( debug) log.Debug("Clearing all orders.");
-            using( ordersLocker.Using())
-            {
-                ordersByBrokerId.Clear();
-                ordersBySequence.Clear();
-                ordersBySerial.Clear();
-            }
+            ordersByBrokerId.Clear();
+            ordersBySequence.Clear();
+            ordersBySerial.Clear();
         }
 
         public void UpdateLocalSequence(int localSequence)
         {
             AssertAtomic();
-            using (ordersLocker.Using())
-            {
-                this.localSequence = localSequence;
-            }
+            this.localSequence = localSequence;
         }
 
         public void UpdateRemoteSequence(int remoteSequence)
         {
             AssertAtomic();
-            using (ordersLocker.Using())
-            {
-                this.remoteSequence = remoteSequence;
-            }
+            this.remoteSequence = remoteSequence;
         }
 
         public void SetSequences(int remoteSequence, int localSequence)
@@ -795,7 +779,7 @@ namespace TickZoom.Common
 
         public void ForceSnapshot()
         {
-            if (cacheLocker.IsLocked || (writeFileResult != null && !writeFileResult.IsCompleted))
+            if (writeFileResult != null && !writeFileResult.IsCompleted)
             {
                 if (debug) log.Debug("ForceSnapshot() - snapshot write already in progress.");
                 return;
