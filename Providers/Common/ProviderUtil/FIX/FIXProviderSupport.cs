@@ -456,9 +456,9 @@ namespace TickZoom.FIX
                             case Status.PendingLogOut:
                             case Status.PendingRecovery:
                             case Status.Recovered:
-                                if (RetryDelay != retryStart)
+                                if (RetryDelay != RetryStart)
                                 {
-                                    RetryDelay = retryStart;
+                                    RetryDelay = RetryStart;
                                     log.Info("(retryDelay reset to " + RetryDelay + " seconds.)");
                                 }
 
@@ -1264,6 +1264,12 @@ namespace TickZoom.FIX
         public bool IsFinalized
         {
             get { return isFinalized; }
+        }
+
+        public long RetryStart
+        {
+            get { return retryStart; }
+            set { retryStart = value; }
         }
     }
 }

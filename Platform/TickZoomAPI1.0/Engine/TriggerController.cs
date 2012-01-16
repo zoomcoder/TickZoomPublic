@@ -8,5 +8,6 @@ namespace TickZoom.Api
         long AddTrigger(long reference, TriggerData data, TriggerOperation operation, double price, Action<long> callback);
         long AddTrigger(long reference, TriggerData data, TriggerOperation operation, long value, Action<long> callback);
         bool RemoveTrigger(long triggerId);
+        void ProcessTriggers(ref TickBinary binary);
     }
 }

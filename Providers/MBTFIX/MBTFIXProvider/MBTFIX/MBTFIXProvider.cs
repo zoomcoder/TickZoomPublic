@@ -209,6 +209,7 @@ namespace TickZoom.MBTFIX
             {
                 HeartbeatDelay = int.MaxValue;
                 RetryDelay = 1;
+                RetryStart = 1;
             }
             else
             {

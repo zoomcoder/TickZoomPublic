@@ -212,7 +212,14 @@ namespace TickZoom.Interceptors
 
         private void TriggerCallback( long logicalSerialNumber)
         {
-            ProcessOrders();
+            if (hasCurrentTick)
+            {
+                ProcessOrdersInternal(currentTick);
+            }
+            else
+            {
+                if (debug) log.Debug("Skipping TriggerCallback because HasCurrentTick is " + hasCurrentTick);
+            }
         }
 
 		private CreateOrChangeOrder CancelBrokerOrder(string oldOrderId)
