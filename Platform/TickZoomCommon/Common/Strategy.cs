@@ -136,15 +136,6 @@ namespace TickZoom.Common
 			AddInterceptor(postFillManager);
 		}
 		
-		public override void OnEvent(EventContext context, EventType eventType, object eventDetail)
-		{
-			base.OnEvent(context, eventType, eventDetail);
-			if( context.Position == null) {
-				context.Position = new PositionCommon(this);
-			}
-			context.Position.Copy(Position);
-		}
-		
 		[Obsolete("Please, use OnGetOptimizeResult() instead.",true)]
 		public virtual string ToStatistics() {
 			throw new NotImplementedException();

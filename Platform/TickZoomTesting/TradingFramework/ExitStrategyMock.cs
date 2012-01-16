@@ -39,6 +39,7 @@ namespace TickZoom.TradingFramework
 		public List<TimeStamp> signalChanges = new List<TimeStamp>();
 		public List<double> signalDirection = new List<double>();
 		double prevSignal = 0;
+	    private Strategy strategy;
 		
 		public ExitStrategyMock(Strategy strategy) : base(strategy) {
 			signalChanges = new List<TimeStamp>();
@@ -48,12 +49,12 @@ namespace TickZoom.TradingFramework
 		{
 			base.Intercept(context, eventType, eventDetail);
 			if( eventType == EventType.Tick) {
-				if( context.Position.Current != prevSignal) {
+				if( strategy.Position.Current != prevSignal) {
 					Tick tick = Strategy.Data.Ticks[0];
 					signalChanges.Add(tick.Time);
-					signalDirection.Add(context.Position.Current);
-					if( trace) log.Trace( signalChanges.Count + " " + context.Position.Current + " " + tick);
-					prevSignal = context.Position.Current;
+                    signalDirection.Add(strategy.Position.Current);
+                    if (trace) log.Trace(signalChanges.Count + " " + strategy.Position.Current + " " + tick);
+                    prevSignal = strategy.Position.Current;
 				}
 			}
 		}

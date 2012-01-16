@@ -61,8 +61,11 @@ namespace TickZoom.Interceptors
 		bool stopTradingThisWeek = false;
 		bool stopTradingThisMonth = false;
 		PositionCommon position;
+	    private Strategy strategy;
 		
-		public ExitStrategy(Strategy strategy) : base( strategy) {
+		public ExitStrategy(Strategy strategy) : base( strategy)
+		{
+		    this.strategy = strategy;
 			position = new PositionCommon(strategy);
 			strategy.RequestEvent(EventType.Tick);
 		}
@@ -117,12 +120,13 @@ namespace TickZoom.Interceptors
 			if( stopTradingToday || stopTradingThisWeek || stopTradingThisMonth ) {
 				return; 
 			}
-			
-			if( (strategySignal>0) != context.Position.IsLong || (strategySignal<0) != context.Position.IsShort ) {
-				strategySignal = context.Position.Current;
-				entryPrice = context.Position.Price;
+
+            if ((strategySignal > 0) != strategy.Position.IsLong || (strategySignal < 0) != strategy.Position.IsShort)
+            {
+                strategySignal = strategy.Position.Current;
+                entryPrice = strategy.Position.Price;
 				maxPnl = 0;
-				position.Copy(context.Position);
+                position.Copy(strategy.Position);
 				trailStop = 0;
 				breakEvenStop = 0;
 				CancelOrders();
@@ -142,7 +146,6 @@ namespace TickZoom.Interceptors
                 if( stopLoss > 0) processStopLoss(tick);
 			}
 			
-			context.Position.Copy(position);
 		}
 		
 		private void CancelOrders() {
