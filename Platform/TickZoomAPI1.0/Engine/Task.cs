@@ -90,6 +90,7 @@ namespace TickZoom.Api
         bool IsPaused { get; }
         string Name { get; set; }
         QueueFilter Filter { get; }
+        bool IsStopped { get; }
 
         void IncreaseOutbound(int id);
         void DecreaseOutbound(int id);

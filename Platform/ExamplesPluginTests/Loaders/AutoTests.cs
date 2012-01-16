@@ -38,7 +38,7 @@ namespace Loaders
 		}
 		public AutoTestSettings[] GetAutoTestSettings() {
 			var list = new System.Collections.Generic.List<AutoTestSettings>();
-			var storeKnownGood = false;
+			var storeKnownGood = true;
 			var showCharts = false;
 			var primarySymbol = "USD/JPY";
 			try { 
@@ -205,6 +205,20 @@ namespace Loaders
 				IntervalDefault = Intervals.Minute1,
 				Categories = { "Failed" },
 			});
+
+            list.Add(new AutoTestSettings
+            {
+                Mode = AutoTestMode.Historical,
+                Name = "ExampleMixedToTheEnd",
+                Loader = new ExampleMixedLoader(),
+                Symbols = "EUR/USD,CSCO",
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                StartTime = new TimeStamp(2009, 6, 20),
+                EndTime = TimeStamp.MaxValue,
+                IntervalDefault = Intervals.Minute1,
+                Categories = { "Failed" },
+            });
 
             list.Add(new AutoTestSettings
             {
