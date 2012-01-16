@@ -45,7 +45,13 @@ namespace TickZoom.Api
         Cancel = 4
     }
 
-    public interface PhysicalOrder
+    public interface Order
+    {
+        OrderType Type { get; }
+        double Price { get; }
+    }
+
+    public interface PhysicalOrder : Order
     {
         OrderAction Action { get; }
 
@@ -101,20 +107,13 @@ namespace TickZoom.Api
 
 	    OrderSide Side { get; }
 
-	    OrderType Type { get; }
-
-	    double Price { get; }
-		
-		int Size {
-			get;
-			set;
-		}
-
 	    int LogicalOrderId { get; }
 
 	    long LogicalSerialNumber { get; }
 
 	    CreateOrChangeOrder Clone();
 	    void ResetLastChange(TimeStamp lastChange);
-	}
+
+        int Size { get; set;  }
+    }
 }

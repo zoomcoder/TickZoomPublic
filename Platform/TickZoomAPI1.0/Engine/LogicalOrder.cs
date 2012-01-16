@@ -47,7 +47,7 @@ namespace TickZoom.Api
 	/// <summary>
 	/// Description of OrderCommon.
 	/// </summary>
-    public interface LogicalOrder : Serializable, IComparable
+    public interface LogicalOrder : Serializable, IComparable, Order
     {
         Action<LogicalOrder> OnModified { get; set; }
 

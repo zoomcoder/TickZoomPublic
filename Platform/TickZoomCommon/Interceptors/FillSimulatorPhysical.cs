@@ -35,9 +35,11 @@ namespace TickZoom.Interceptors
 	public class FillSimulatorPhysical : FillSimulator, LogAware
 	{
 		private static readonly Log staticLog = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical));
-		private volatile bool trace = staticLog.IsTraceEnabled;
+        private Log log;
+        private volatile bool trace = staticLog.IsTraceEnabled;
         private volatile bool verbose = staticLog.IsVerboseEnabled;
         private volatile bool debug = staticLog.IsDebugEnabled;
+	    private FillSimulatorLogic fillLogic;
         public void RefreshLogLevel()
         {
             if( log != null)
@@ -53,7 +55,6 @@ namespace TickZoom.Interceptors
             public PhysicalFill Fill;
         }
         private Queue<FillWrapper> fillQueue = new Queue<FillWrapper>();
-        private Log log;
 
 		private Dictionary<string,CreateOrChangeOrder> orderMap = new Dictionary<string, CreateOrChangeOrder>();
 		private ActiveList<CreateOrChangeOrder> increaseOrders = new ActiveList<CreateOrChangeOrder>();
@@ -77,8 +78,6 @@ namespace TickZoom.Interceptors
         private PhysicalOrderConfirm confirmOrders;
 		private bool isBarData = false;
 		private bool createSimulatedFills = false;
-	    private LimitOrderQuoteSimulation limitOrderQuoteSimulation;
-	    private LimitOrderTradeSimulation limitOrderTradeSimulation;
         // Randomly rotate the partial fills but using a fixed
 		// seed so that test results are reproducable.
 		private Random random = new Random(1234);
@@ -96,14 +95,13 @@ namespace TickZoom.Interceptors
 			this.symbol = symbol;
             this.name = name;
             this.triggers = triggers;
-		    limitOrderQuoteSimulation = symbol.LimitOrderQuoteSimulation;
-		    limitOrderTradeSimulation = symbol.LimitOrderTradeSimulation;
 			this.minimumTick = symbol.MinimumTick.ToLong();
 			this.tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
 			this.createSimulatedFills = createSimulatedFills;
 			this.log = Factory.SysLog.GetLogger(typeof(FillSimulatorPhysical).FullName + "." + symbol.Symbol.StripInvalidPathChars() + "." + name);
             this.log.Register(this);
             this.createActualFills = createActualFills;
+            fillLogic = new FillSimulatorLogic(name,symbol,FillCallback);
 		}
 
 		private bool hasCurrentTick = false;
@@ -372,6 +370,17 @@ namespace TickZoom.Interceptors
             }
         }
 
+        private void OnProcessOrder( CreateOrChangeOrder order, Tick tick)
+        {
+            if (tick.UtcTime < order.UtcCreateTime)
+            {
+                //if (trace) log.Trace
+                log.Info("Skipping check of " + order.Type + " on tick UTC time " + tick.UtcTime + "." + order.UtcCreateTime.Microsecond + " because earlier than order create UTC time " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond);
+                return;
+            }
+            fillLogic.TryFillOrder(order,tick);
+        }
+
 		private void ProcessOrdersInternal(Tick tick) {
 			if( isOpenTick && tick.Time > openTime) {
 				if( trace) {
@@ -547,6 +556,28 @@ namespace TickZoom.Interceptors
 					break;
 			}
 		}
+
+        private void FillCallback( Order order, double price, Tick tick)
+        {
+            var physicalOrder = (CreateOrChangeOrder) order;
+            int size = 0;
+            switch( order.Type)
+            {
+                case OrderType.BuyMarket:
+                case OrderType.BuyStop:
+                case OrderType.BuyLimit:
+                    size = physicalOrder.Size;
+                    break;
+                case OrderType.SellMarket:
+                case OrderType.SellStop:
+                case OrderType.SellLimit:
+                    size = -physicalOrder.Size;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            CreatePhysicalFillHelper(size, price, tick.Time, tick.UtcTime, physicalOrder);
+        }
 		
 		private void OrderSideWrongReject(CreateOrChangeOrder order) {
 			var message = "Sorry, improper setting of a " + order.Side + " order when position is " + actualPosition;
@@ -584,253 +615,7 @@ namespace TickZoom.Interceptors
 			}
 		}
 		
-		private void OnProcessOrder(CreateOrChangeOrder order, Tick tick)
-		{
-            if (tick.UtcTime < order.UtcCreateTime)
-            {
-                //if (trace) log.Trace
-                log.Info("Skipping check of " + order.Type + " on tick UTC time " + tick.UtcTime + "." + order.UtcCreateTime.Microsecond + " because earlier than order create UTC time " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond);
-                return;
-            }
-            switch (order.Type)
-            {
-				case OrderType.SellMarket:
-					ProcessSellMarket(order, tick);
-					break;
-				case OrderType.SellStop:
-					ProcessSellStop(order, tick);
-					break;
-				case OrderType.SellLimit:
-                    if (tick.IsTrade && limitOrderTradeSimulation != LimitOrderTradeSimulation.None)
-                    {
-                        ProcessSellLimitTrade(order, tick);
-                    }
-                    else if (tick.IsQuote && limitOrderQuoteSimulation != LimitOrderQuoteSimulation.None)
-                    {
-                        ProcessSellLimitQuote(order, tick);
-                    }
-                    break;
-				case OrderType.BuyMarket:
-					ProcessBuyMarket(order, tick);
-					break;
-				case OrderType.BuyStop:
-					ProcessBuyStop(order, tick);
-					break;
-				case OrderType.BuyLimit:
-                    if (tick.IsTrade && limitOrderTradeSimulation != LimitOrderTradeSimulation.None)
-                    {
-                        ProcessBuyLimitTrade(order, tick);
-                    }
-                    else if (tick.IsQuote && limitOrderQuoteSimulation != LimitOrderQuoteSimulation.None)
-                    {
-                        ProcessBuyLimitQuote(order, tick);
-                    }
-					break;
-			}
-		}
-		private bool ProcessBuyStop(CreateOrChangeOrder order, Tick tick)
-		{
-			bool retVal = false;
-		    long price = tick.IsQuote ? tick.lAsk : tick.lPrice;
-			if (price >= order.Price.ToLong()) {
-				CreatePhysicalFillHelper(order.Size, price.ToDouble(), tick.Time, tick.UtcTime, order);
-				retVal = true;
-			}
-			return retVal;
-		}
-
-		private bool ProcessSellStop(CreateOrChangeOrder order, Tick tick)
-		{
-			bool retVal = false;
-			long price = tick.IsQuote ? tick.lBid : tick.lPrice;
-			if (price <= order.Price.ToLong()) {
-				CreatePhysicalFillHelper(-order.Size, price.ToDouble(), tick.Time, tick.UtcTime, order);
-				retVal = true;
-			}
-			return retVal;
-		}
-
-		private bool ProcessBuyMarket(CreateOrChangeOrder order, Tick tick)
-		{
-            if (!tick.IsQuote && !tick.IsTrade)
-            {
-                throw new ApplicationException("tick w/o either trade or quote data? " + tick);
-            }
-            var price = tick.IsQuote ? tick.Ask : tick.Price;
-            CreatePhysicalFillHelper(order.Size, price, tick.Time, tick.UtcTime, order);
-            if (debug) log.Debug("Filling " + order.Type + " at " + price + " created at " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond + " using tick UTC time " + tick.UtcTime + "." + tick.UtcTime.Microsecond);
-            return true;
-		}
-
-        private bool ProcessBuyLimitTrade(CreateOrChangeOrder order, Tick tick)
-        {
-            var result = false;
-            var orderPrice = order.Price.ToLong();
-            var fillPrice = 0D;
-            switch (limitOrderTradeSimulation)
-            {
-                case LimitOrderTradeSimulation.TradeTouch:
-                    if (tick.lPrice <= orderPrice)
-                    {
-                        fillPrice = tick.Price;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderTradeSimulation.TradeThrough:
-                    if (tick.lPrice < orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown limit order trade simulation: " + limitOrderTradeSimulation);
-            }
-            if (result)
-            {
-                CreatePhysicalFillHelper(order.Size, fillPrice, tick.Time, tick.UtcTime, order);
-            }
-            return result;
-        }
-
-        private bool ProcessBuyLimitQuote(CreateOrChangeOrder order, Tick tick)
-		{
-            var orderPrice = order.Price.ToLong();
-            var result = false;
-            var fillPrice = 0D;
-            switch (limitOrderQuoteSimulation)
-            {
-                case LimitOrderQuoteSimulation.SameSideQuoteTouch:
-                    var bid = Math.Min(tick.lBid, tick.lAsk);
-                    if (bid <= orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderQuoteSimulation.SameSideQuoteThrough:
-                    bid = Math.Min(tick.lBid, tick.lAsk);
-                    if (bid < orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderQuoteSimulation.OppositeQuoteTouch:
-                    if (tick.lAsk <= orderPrice)
-                    {
-                        fillPrice = tick.Ask;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderQuoteSimulation.OppositeQuoteThrough:
-                    if (tick.lAsk < orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown limit order quote simulation: " + limitOrderQuoteSimulation);
-            }
-            if (result) {
-                if (debug) log.Debug("Filling " + order.Type + " with " + limitOrderQuoteSimulation + " at ask " + tick.Ask + " / bid " + tick.Bid + " at " + tick.Time);
-                CreatePhysicalFillHelper(order.Size, fillPrice, tick.Time, tick.UtcTime, order);
-			}
-			return result;
-		}
-
-        private bool ProcessSellLimitTrade(CreateOrChangeOrder order, Tick tick)
-        {
-            var result = false;
-            var orderPrice = order.Price.ToLong();
-            var fillPrice = 0D;
-            switch (limitOrderTradeSimulation)
-            {
-                case LimitOrderTradeSimulation.TradeTouch:
-                    if (tick.lPrice >= orderPrice)
-                    {
-                        fillPrice = tick.Price;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderTradeSimulation.TradeThrough:
-                    if (tick.lPrice > orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown limit order trade simulation: " + limitOrderTradeSimulation);
-            }
-            if( result)
-            {
-                CreatePhysicalFillHelper(-order.Size, fillPrice, tick.Time, tick.UtcTime, order);
-            }
-            return true;
-        }
-
-        private bool ProcessSellLimitQuote(CreateOrChangeOrder order, Tick tick)
-		{
-            var orderPrice = order.Price.ToLong();
-            var result = false;
-            var fillPrice = 0D;
-            switch (limitOrderQuoteSimulation)
-            {
-                case LimitOrderQuoteSimulation.SameSideQuoteTouch:
-                    var ask = Math.Max(tick.lAsk, tick.lBid);
-                    if (ask >= orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderQuoteSimulation.SameSideQuoteThrough:
-                    ask = Math.Max(tick.lAsk, tick.lBid);
-                    if (ask > orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderQuoteSimulation.OppositeQuoteTouch:
-                    if (tick.lBid >= orderPrice)
-                    {
-                        fillPrice = tick.Bid;
-                        result = true;
-                    }
-                    break;
-                case LimitOrderQuoteSimulation.OppositeQuoteThrough:
-                    if (tick.lBid > orderPrice)
-                    {
-                        fillPrice = order.Price;
-                        result = true;
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException("Unknown limit order quote simulation: " + limitOrderQuoteSimulation);
-            }
-            if( result) {
-                if (debug) log.Debug("Filling " + order.Type + " with " + limitOrderQuoteSimulation + " at ask " + tick.Ask + " / bid " + tick.Bid + " at " + tick.Time);
-                CreatePhysicalFillHelper(-order.Size, fillPrice, tick.Time, tick.UtcTime, order);
-                result = true;
-            }
-			return result;
-		}
-		
-		private bool ProcessSellMarket(CreateOrChangeOrder order, Tick tick)
-		{
-			if( !tick.IsQuote && !tick.IsTrade) {
-				throw new ApplicationException("tick w/o either trade or quote data? " + tick);
-			}
-            double price = tick.IsQuote ? tick.Bid : tick.Price;
-            CreatePhysicalFillHelper(-order.Size, price, tick.Time, tick.UtcTime, order);
-            if( debug) log.Debug("Filling " + order.Type + " at " + price + " created at " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond + " using tick UTC time " + tick.UtcTime + "." + tick.UtcTime.Microsecond);
-            return true;
-		}
-
-		private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
+	    private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
 		{
 		    if( debug) log.Debug("Filling order: " + order );
 			var split = random.Next(maxPartialFillsPerOrder)+1;
