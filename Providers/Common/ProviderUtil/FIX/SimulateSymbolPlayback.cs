@@ -232,7 +232,10 @@ namespace TickZoom.FIX
             }
             else
             {
-                FillSimulator.ProcessOrders();
+                if( FillSimulator.IsChanged)
+                {
+                    FillSimulator.ProcessOrders();
+                }
             }
             return Yield.DidWork.Invoke(ProcessOnTickCallBack);
         }

@@ -142,14 +142,20 @@ namespace TickZoom.FIX
             else if (tickSync.OnlyReprocessPhysicalOrders)
             {
                 if (trace) log.Trace("Reprocess physical orders - " + tickSync);
-                FillSimulator.ProcessOrders();
+                if( FillSimulator.IsChanged)
+                {
+                    FillSimulator.ProcessOrders();
+                }
                 tickSync.RemoveReprocessPhysicalOrders();
             }
             else if (tickSync.OnlyProcessPhysicalOrders)
             {
                 if (trace) log.Trace("Process physical orders - " + tickSync);
                 FillSimulator.StartTick(nextTick);
-                FillSimulator.ProcessOrders();
+                if (FillSimulator.IsChanged)
+                {
+                    FillSimulator.ProcessOrders();
+                }
                 tickSync.RemoveProcessPhysicalOrders();
             }
         }
@@ -175,8 +181,11 @@ namespace TickZoom.FIX
             FillSimulator.StartTick(currentTick);
             nextTick.Inject(temporaryTick.Extract());
             tickSync.AddTick(nextTick);
-	   		FillSimulator.ProcessOrders();
-		   	if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
+            if (FillSimulator.IsChanged)
+            {
+                FillSimulator.ProcessOrders();
+            }
+		    if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 		    ProcessOnTickCallBack();
 		    TryEnqueuePacket();
 		    return Yield.DidWork.Return;

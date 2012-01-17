@@ -151,6 +151,11 @@ namespace TickZoom.MBTFIX
         {
             return 0;
         }
+
+        public bool IsChanged
+        {
+            get { return false; }
+        }
 		
 		private void TrySendEndBroker() {
 

@@ -38,7 +38,7 @@ namespace Loaders
 		}
 		public AutoTestSettings[] GetAutoTestSettings() {
 			var list = new System.Collections.Generic.List<AutoTestSettings>();
-			var storeKnownGood = true;
+			var storeKnownGood = false;
 			var showCharts = false;
 			var primarySymbol = "USD/JPY";
 			try { 
@@ -278,7 +278,7 @@ namespace Loaders
 			
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Historical,
+                Mode = AutoTestMode.None,
                 Name = "LimitChangeOffsetTest",
                 Loader = new LimitChangeLoader(),
                 Symbols = primarySymbol,

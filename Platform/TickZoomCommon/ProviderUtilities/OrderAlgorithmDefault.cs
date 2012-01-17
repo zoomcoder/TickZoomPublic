@@ -1302,7 +1302,11 @@ namespace TickZoom.Common
                             {
                                 log.Debug("PerformCompareInternal() returned: " + compareSuccess);
                             }
-                            physicalOrderHandler.ProcessOrders();
+                            if( physicalOrderHandler.IsChanged)
+                            {
+                                physicalOrderHandler.ProcessOrders();
+                            }
+
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
                         }
                         else

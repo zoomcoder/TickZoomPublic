@@ -40,6 +40,7 @@ namespace TickZoom.Interceptors
         private volatile bool verbose = staticLog.IsVerboseEnabled;
         private volatile bool debug = staticLog.IsDebugEnabled;
 	    private FillSimulatorLogic fillLogic;
+	    private bool isChanged;
         public void RefreshLogLevel()
         {
             if( log != null)
@@ -102,6 +103,7 @@ namespace TickZoom.Interceptors
             this.log.Register(this);
             this.createActualFills = createActualFills;
             fillLogic = new FillSimulatorLogic(name,symbol,FillCallback);
+            isChanged = true;
 		}
 
 		private bool hasCurrentTick = false;
@@ -114,6 +116,7 @@ namespace TickZoom.Interceptors
 			}
 			currentTick.Inject( tick.Extract());
 			hasCurrentTick = true;
+		    isChanged = true;
 		}
 		
 		public Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol) {
@@ -206,6 +209,7 @@ namespace TickZoom.Interceptors
 
 		    SortAdjust(order);
 			VerifySide(order);
+		    isChanged = true;
 		}
 
         private void TriggerCallback( long logicalSerialNumber)
@@ -318,7 +322,8 @@ namespace TickZoom.Interceptors
 		public int ProcessOrders() {
 			if( hasCurrentTick) {
                 ProcessOrdersInternal(currentTick);
-            }
+			    isChanged = false;
+			}
             else
 			{
 			    if( debug) log.Debug("Skipping ProcessOrders because HasCurrentTick is " + hasCurrentTick);
@@ -343,6 +348,7 @@ namespace TickZoom.Interceptors
 			}
 			currentTick.Inject( lastTick.Extract());
 			hasCurrentTick = true;
+            isChanged = true;
 		}
 
         private void ProcessAdjustmentsInternal(Tick tick)
@@ -752,6 +758,11 @@ namespace TickZoom.Interceptors
                     }
 	            }
 	        }
+	    }
+
+	    public bool IsChanged
+	    {
+	        get { return isChanged; }
 	    }
 	}
 }

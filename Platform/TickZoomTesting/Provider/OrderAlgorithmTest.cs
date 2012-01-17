@@ -1458,6 +1458,11 @@ namespace Orders
                 return 1;
             }
 
+		    public bool IsChanged
+		    {
+                get { return false; }
+		    }
+
 			public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
 			{
 				CanceledOrders.Add(order.OriginalOrder.BrokerOrder);
