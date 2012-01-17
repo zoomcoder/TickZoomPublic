@@ -1461,6 +1461,7 @@ namespace Orders
 		    public bool IsChanged
 		    {
                 get { return false; }
+                set { }
 		    }
 
 			public bool OnCancelBrokerOrder(CreateOrChangeOrder order)

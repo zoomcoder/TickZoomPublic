@@ -89,7 +89,6 @@ namespace TickZoom.FIX
         private int remoteSequence = 1;
         private SocketState lastSocketState = SocketState.New;
         private Status lastConnectionStatus = Status.None;
-        private FastQueue<PositionChangeDetail> positionChangeQueue;
         private FastQueue<MessageFIXT1_1> resendQueue;
         private string name;
         
@@ -146,10 +145,8 @@ namespace TickZoom.FIX
             socketTask.Scheduler = Scheduler.EarliestTime;
             retryTimer = Factory.Parallel.CreateTimer("Retry", socketTask, RetryTimerEvent);
             heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", socketTask, HeartBeatTimerEvent);
-            positionChangeQueue = Factory.Parallel.FastQueue<PositionChangeDetail>(providerName + ".PositonChange");
             resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
             orderStore = Factory.Utility.PhyscalOrderStore(providerName);
-            positionChangeQueue.ConnectInbound(socketTask);
             resendQueue.ConnectInbound(socketTask);
             socketTask.Start();
             string logRecoveryString = Factory.Settings["LogRecovery"];
@@ -401,8 +398,7 @@ namespace TickZoom.FIX
                         break;
                     case EventType.PositionChange:
                         var positionChange = (PositionChangeDetail) eventItem.EventDetail;
-                        if (debug) log.Debug("PositionChangeQueue has " + positionChangeQueue.Count + " items.");
-                        positionChangeQueue.Enqueue(positionChange, TimeStamp.UtcNow.Internal);
+                        PositionChange(positionChange);
                         socketTask.Filter.Pop();
                         break;
                     case EventType.RemoteShutdown:
@@ -415,16 +411,6 @@ namespace TickZoom.FIX
                         break;
                     default:
                         throw new ApplicationException("Unexpected event type: " + eventItem.EventType);
-                }
-            }
-
-            if (positionChangeQueue.Count > 0)
-            {
-                using( OrderStore.BeginTransaction())
-                {
-                    PositionChangeDetail positionChange;
-                    positionChangeQueue.Dequeue(out positionChange);
-                    PositionChange(positionChange);
                 }
             }
 

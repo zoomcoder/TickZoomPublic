@@ -322,13 +322,13 @@ namespace TickZoom.Interceptors
 		public int ProcessOrders() {
 			if( hasCurrentTick) {
                 ProcessOrdersInternal(currentTick);
-			    isChanged = false;
 			}
             else
 			{
 			    if( debug) log.Debug("Skipping ProcessOrders because HasCurrentTick is " + hasCurrentTick);
 			}
-		    return 1;
+            isChanged = false;
+            return 1;
 		}
 
         public int ProcessAdjustments()
@@ -763,6 +763,7 @@ namespace TickZoom.Interceptors
 	    public bool IsChanged
 	    {
 	        get { return isChanged; }
+            set { isChanged = value;  }
 	    }
 	}
 }

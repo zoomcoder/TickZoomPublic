@@ -177,7 +177,7 @@ namespace TickZoom.Api
 
         private string ToString(TickSyncState temp)
         {
-            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Black Hole " + temp.blackHoleOrders + ", Changes " + temp.positionChange + ", Switch Broker " + temp.switchBrokerState + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills Created " + temp.physicalFillsCreated + ", Fills Waiting " + temp.physicalFillsWaiting + ", Simulators " + temp.physicalFillSimulators;
+            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Black Hole " + temp.blackHoleOrders + ", Changes " + temp.positionChange + ", Waiting " + temp.waitingMatch + ", Switch Broker " + temp.switchBrokerState + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills Created " + temp.physicalFillsCreated + ", Fills Waiting " + temp.physicalFillsWaiting + ", Simulators " + temp.physicalFillSimulators;
         }
 
         public void AddTick(Tick tick)

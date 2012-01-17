@@ -155,6 +155,7 @@ namespace TickZoom.MBTFIX
         public bool IsChanged
         {
             get { return false; }
+            set { }
         }
 		
 		private void TrySendEndBroker() {
@@ -1473,7 +1474,10 @@ namespace TickZoom.MBTFIX
 		{
             var symbol = positionChange.Symbol;
 			if( debug) log.Debug( "PositionChange " + positionChange);
-			
+			if( positionChange.Recency == 4)
+			{
+			    int x = 0;
+			}
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             if( algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
             {

@@ -34,6 +34,6 @@ namespace TickZoom.Api
 		bool OnCreateBrokerOrder(CreateOrChangeOrder order);
         bool OnCancelBrokerOrder(CreateOrChangeOrder order);
         int ProcessOrders();
-	    bool IsChanged { get; }
+        bool IsChanged { get; set; }
 	}
 }

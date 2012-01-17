@@ -111,7 +111,10 @@ namespace TickZoom.Common
                 if( debug) log.Debug("PositionChange recency " + positionChange.Recency + " less than " + recency + " so ignoring.");
                 if( SyncTicks.Enabled)
                 {
-                    tickSync.AddWaitingMatch("StalePositionChange");
+                    if (!tickSync.SentWaitingMatch)
+                    {
+                        tickSync.AddWaitingMatch("StalePositionChange");
+                    }
                     tickSync.RemovePositionChange(name);
                 }
                 return false;
@@ -127,7 +130,10 @@ namespace TickZoom.Common
                 var match = PerformCompareProtected();
                 if( !match && SyncTicks.Enabled)
                 {
-                    tickSync.AddWaitingMatch("PositionChange");
+                    if( !tickSync.SentWaitingMatch)
+                    {
+                        tickSync.AddWaitingMatch("PositionChange");
+                    }
                 }
             }
             else
