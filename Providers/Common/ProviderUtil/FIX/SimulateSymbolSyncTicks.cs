@@ -60,6 +60,12 @@ namespace TickZoom.FIX
         private TickIO currentTick = Factory.TickUtil.TickIO();
         private TickIO temporaryTick = Factory.TickUtil.TickIO();
         private string symbolString;
+        private Agent agent;
+        public Agent Agent
+        {
+            get { return agent; }
+            set { agent = value; }
+        }
 	
 		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,

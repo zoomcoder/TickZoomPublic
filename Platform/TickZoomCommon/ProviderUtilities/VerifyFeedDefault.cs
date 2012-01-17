@@ -51,6 +51,7 @@ namespace TickZoom.Common
 	    private SymbolInfo symbol;
         private TickIO lastTick = Factory.TickUtil.TickIO();
 	    private QueueFilter filter;
+	    private Agent agent;
 		
 		public List<TickBinary> GetReceived() {
 			return received;
@@ -609,6 +610,12 @@ namespace TickZoom.Common
 	    public Task Task
 	    {
 	        get { return task; }
+	    }
+
+	    public Agent Agent
+	    {
+	        get { return agent; }
+	        set { agent = value; }
 	    }
 
 	    public void Clear()

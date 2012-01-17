@@ -40,6 +40,12 @@ namespace TickZoom.MBTFIX
 	    private static readonly bool debug = log.IsDebugEnabled;
 		private Agent fixProvider;
 		private Agent quotesProvider;
+        private Agent agent;
+        public Agent Agent
+        {
+            get { return agent; }
+            set { agent = value; }
+        }
 		
 		public MBTProvider(string configName) {
 			fixProvider = Factory.Parallel.SpawnProvider(typeof(MBTFIXProvider),configName);

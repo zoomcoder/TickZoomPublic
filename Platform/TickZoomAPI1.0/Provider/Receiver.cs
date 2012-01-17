@@ -36,14 +36,6 @@ namespace TickZoom.Api
 	public interface IAsyncAgent : Agent, AsyncHandler, IDisposable {
 	}
 
-    public static class ExtentionMethodsForAgent
-    {
-        public static Agent ToAgent( this AgentPerformer performer)
-        {
-            return Factory.Parallel.GetAgent(performer);
-        }
-    }
-
     public interface Agent : IDisposable
     {
         bool SendEvent(EventItem eventItem);

@@ -46,7 +46,7 @@ namespace TickZoom.Transactions
 
 		public TransactionPairsPage()
 		{
-			id = Interlocked.Increment(ref idCount);
+		    id = ++idCount;
 		}
 
 		public void SetCapacity(int capacity)
@@ -106,7 +106,7 @@ namespace TickZoom.Transactions
 
 		unsafe public int PageNumber {
 			get { return pageNumber; }
-			set { Interlocked.Exchange(ref pageNumber, value); }
+			set { pageNumber = value; }
 		}
 
 		public byte[] Buffer {

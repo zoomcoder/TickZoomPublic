@@ -32,6 +32,12 @@ namespace TickZoom.FIX
         private long tickCounter = 0;
         private int diagnoseMetric;
         private string symbolString;
+        private Agent agent;
+        public Agent Agent
+        {
+            get { return agent; }
+            set { agent = value; }
+        }
 
         public SimulateSymbolPlayback(FIXSimulatorSupport fixSimulatorSupport,
                                       string symbolString,

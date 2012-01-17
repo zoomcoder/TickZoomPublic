@@ -114,9 +114,11 @@ namespace TickZoom.Api
 
     public interface AgentPerformer
     {
+        Agent Agent { get; set; }
         void Initialize(Task task);
         Yield Invoke();
         void Shutdown();
+
     }
 	
 	public interface ForLoop {

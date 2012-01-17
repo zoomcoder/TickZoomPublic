@@ -81,6 +81,12 @@ namespace TickZoom.MBTQuotes
         private bool useLocalTickTime = true;
         private volatile bool debugDisconnect = false;
 	    private TrueTimer taskTimer;
+        private Agent agent;
+        public Agent Agent
+        {
+            get { return agent; }
+            set { agent = value; }
+        }
 
 		public MBTQuoteProviderSupport(string name)
 		{

@@ -45,6 +45,12 @@ namespace TickZoom.TickUtil
 		TimeStamp endTime = TimeStamp.MaxValue;
 		double startDouble = double.MinValue;
 		double endDouble = double.MaxValue;
+	    private Agent agent;
+        public Agent Agent
+        {
+            get { return agent; }
+            set { agent = value; }
+        }
 
 		public TickQueue ReadQueue {
 			get {
@@ -88,7 +94,8 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-		public void StartSymbol(EventItem eventItem)
+
+	    public void StartSymbol(EventItem eventItem)
 		{
 			var detail = (StartSymbolDetail)eventItem.EventDetail;
 

@@ -36,7 +36,7 @@ namespace TickZoom.Transactions
 		int count = 0;
 		int capacity = 0;
 		int pageSize = 0;
-		int pageBits = 5;
+		int pageBits = 12;
 		int pageMask = 0;
 		TransactionPairsPages pages;
 		TransactionPairsPage tail = null;

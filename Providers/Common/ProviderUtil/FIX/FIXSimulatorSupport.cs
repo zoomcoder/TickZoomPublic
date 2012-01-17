@@ -109,6 +109,12 @@ namespace TickZoom.FIX
 		private Dictionary<long, SimulateSymbol> symbolHandlers = new Dictionary<long, SimulateSymbol>();
         private TrueTimer heartbeatTimer;
         private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;
+        private Agent agent;
+        public Agent Agent
+        {
+            get { return agent; }
+            set { agent = value; }
+        }
 
 		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
 		{
@@ -1175,7 +1181,7 @@ namespace TickZoom.FIX
                     {
                         var handler = kvp.Value;
                         if (debug) log.Debug("Disposing symbol handler " + handler);
-                        handler.ToAgent().SendEvent(new EventItem(EventType.RemoteShutdown));
+                        handler.Agent.SendEvent(new EventItem(EventType.RemoteShutdown));
                     }
                     symbolHandlers.Clear();
                 }

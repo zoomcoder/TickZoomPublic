@@ -91,6 +91,12 @@ namespace TickZoom.FIX
         private Status lastConnectionStatus = Status.None;
         private FastQueue<MessageFIXT1_1> resendQueue;
         private string name;
+        private Agent agent;
+        public Agent Agent
+        {
+            get { return agent; }
+            set { agent = value; }
+        }
         
 		public bool UseLocalFillTime {
 			get { return useLocalFillTime; }

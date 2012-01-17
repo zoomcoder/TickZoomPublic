@@ -40,7 +40,6 @@ namespace TickZoom.Transactions
 		PagePool<BinaryPage> pagePool;
 		private BinaryStore tradeData;
 		
-		private object dirtyLocker = new object();
 		List<BinaryPage> dirtyPages = new List<BinaryPage>();
 		public struct Page {
 			public long Offset;
@@ -62,43 +61,37 @@ namespace TickZoom.Transactions
 		
 		internal void TryRelease(BinaryPage page) {
 			bool contains = false;
-			lock( dirtyLocker) {
-				contains = dirtyPages.Contains(page);
-				if( page != null && !contains) {
-					try { 
-						pagePool.Free(page);
-					} catch( Exception ex) {
-						throw new ApplicationException("Failure while freeing page: " + page.PageNumber + "(" + page.Id +") :\n" + this, ex);
-					}
+			contains = dirtyPages.Contains(page);
+			if( page != null && !contains) {
+				try { 
+					pagePool.Free(page);
+				} catch( Exception ex) {
+					throw new ApplicationException("Failure while freeing page: " + page.PageNumber + "(" + page.Id +") :\n" + this, ex);
 				}
 			}
 		}
 		
 		private bool TryGetPage(int pageNumber, out BinaryPage binaryPage) {
 			Page page;
-			lock( dirtyLocker) {
-				foreach( var dirtyPage in dirtyPages) {
-					if( dirtyPage.PageNumber == pageNumber) {
-						binaryPage = dirtyPage;
-						pagePool.AddReference(binaryPage);
-						return true;
-					}
+			foreach( var dirtyPage in dirtyPages) {
+				if( dirtyPage.PageNumber == pageNumber) {
+					binaryPage = dirtyPage;
+					pagePool.AddReference(binaryPage);
+					return true;
 				}
-				if( !offsets.TryGetValue(pageNumber,out page)) {
-					binaryPage = null;
-					return false;
-				}
+			}
+			if( !offsets.TryGetValue(pageNumber,out page)) {
+				binaryPage = null;
+				return false;
 			}
 			
 			long offset = page.Offset;
 			int pageSize = tradeData.GetPageSize(offset);
 			
-			lock( dirtyLocker) {
-				binaryPage = pagePool.Create();
-				binaryPage.SetPageSize(pageSize);
-				binaryPage.PageNumber = pageNumber;
-				tradeData.Read(offset,binaryPage.Buffer,0,binaryPage.Buffer.Length);
-			}
+			binaryPage = pagePool.Create();
+			binaryPage.SetPageSize(pageSize);
+			binaryPage.PageNumber = pageNumber;
+			tradeData.Read(offset,binaryPage.Buffer,0,binaryPage.Buffer.Length);
 			return true;
 		}
 		
@@ -125,74 +118,77 @@ namespace TickZoom.Transactions
 			if( TryGetPage(pageNumber,out page)) {
 				throw new ApplicationException("Page number " + pageNumber + " already exists.");
 			}
-			lock( dirtyLocker) {
-				page = pagePool.Create();
-				page.SetCapacity(capacity);
-				page.PageNumber = pageNumber;
-				dirtyPages.Add(page);
-				if( pageNumber > maxPageNumber) {
-					maxPageNumber = pageNumber;
-					maxPageId = page.Id;
-				}
-				if( page.PageNumber == 0) {
-					throw new ApplicationException("Found pageNumber is 0: \n" + this);
-				}
+			page = pagePool.Create();
+			page.SetCapacity(capacity);
+			page.PageNumber = pageNumber;
+			dirtyPages.Add(page);
+			if( pageNumber > maxPageNumber) {
+				maxPageNumber = pageNumber;
+				maxPageId = page.Id;
+			}
+			if( page.PageNumber == 0) {
+				throw new ApplicationException("Found pageNumber is 0: \n" + this);
 			}
 			return page;
 		}
 		
 		private bool asynchronous = true;
 		
-		private object writeLocker = new object();
-		private Queue<TransactionPairsPage> writeQueue = new Queue<TransactionPairsPage>();
 		internal void WritePage(TransactionPairsPage page) {
 			if( asynchronous) {
-				lock( writeLocker) {
-					writeQueue.Enqueue(page);
-				}
+                for (var i = 0; i < dirtyPageList.Length; i++ )
+                {
+                    if( dirtyPageList[i] == null)
+                    {
+                        dirtyPageList[i] = page;
+                        return;
+                    }
+                    throw new ApplicationException("No open slots in dirty page list.");
+                }
 			} else {
 				WritePageInternal(page);
 			}
 		}
+
+        private TransactionPairsPage[] dirtyPageList = new TransactionPairsPage[64];
 		
 		private void WritePageInternal( TransactionPairsPage page) {
 			// Go to end of file.
 			long offset = tradeData.Write(page.Buffer,0,page.Buffer.Length);
-			lock( dirtyLocker) {
-				try {
-					if( page.PageNumber == 0) {
-						throw new ApplicationException("Found pageNumber is 0: \n" + this);
-					}
-					offsets.Add(page.PageNumber,new Page(offset,page.Id));
-				} catch( Exception ex) {
-					string message = "Error while adding PageNumber " + page.PageNumber + ": " + ex.Message;
-					log.Error(message, ex);
-					try { 
-						log.Error( message + "\n" + this, ex);
-					} catch( Exception ex2) {
-						log.Error("Exception while logging ToString of PairsPages: " + ex.Message, ex2);
-					}
-					throw new ApplicationException(message + "\n" + this, ex);
+			try {
+				if( page.PageNumber == 0) {
+					throw new ApplicationException("Found pageNumber is 0: \n" + this);
 				}
+				offsets.Add(page.PageNumber,new Page(offset,page.Id));
+			} catch( Exception ex) {
+				string message = "Error while adding PageNumber " + page.PageNumber + ": " + ex.Message;
+				log.Error(message, ex);
 				try { 
-					pagePool.Free(page);
-				} catch( Exception ex) {
-					throw new ApplicationException("Failure while freeing page: " + page.PageNumber + "(" + page.Id +") :\n" + this, ex);
+					log.Error( message + "\n" + this, ex);
+				} catch( Exception ex2) {
+					log.Error("Exception while logging ToString of PairsPages: " + ex.Message, ex2);
 				}
-				dirtyPages.Remove(page);
+				throw new ApplicationException(message + "\n" + this, ex);
 			}
+			try { 
+				pagePool.Free(page);
+			} catch( Exception ex) {
+				throw new ApplicationException("Failure while freeing page: " + page.PageNumber + "(" + page.Id +") :\n" + this, ex);
+			}
+			dirtyPages.Remove(page);
 		}
 					
 		private bool PageWriter() {
 			bool result = false;
-			while( writeQueue.Count > 0) {
-				result = true;
-				TransactionPairsPage page;
-				lock( writeLocker) {
-					page = writeQueue.Dequeue();
-				}
-				WritePageInternal(page);
-			}
+            for (var i = 0; i < dirtyPageList.Length; i++)
+            {
+                var page = dirtyPageList[i];
+                if( page != null)
+                {
+                    WritePageInternal(page);
+                    dirtyPageList[i] = null;
+                }
+            }
 			return result;
 		}
 		
@@ -201,37 +197,26 @@ namespace TickZoom.Transactions
 			StringBuilder sb = new StringBuilder();
 			sb.AppendLine("Max Page Number: " + maxPageNumber + "(" + maxPageId + ")");
 			sb.Append("Page Offsets: ");
-			lock( dirtyLocker) {
-				foreach( var kvp in offsets) {
-					sb.Append( kvp.Key);
-					sb.Append( "(");
-					sb.Append( kvp.Value.Id);
-					sb.Append( ")");
-					sb.Append( ", ");
-					sb.Append( kvp.Value.Offset);
-					sb.Append( "  ");
-				}
-				sb.AppendLine();
-				sb.Append("Dirty Pages: ");
-				foreach( var temp in dirtyPages) {
-					sb.Append( temp.PageNumber);
-					sb.Append( "(");
-					sb.Append( temp.Id);
-					sb.Append( ")");
-					sb.Append( "  ");
-				}
+			foreach( var kvp in offsets) {
+				sb.Append( kvp.Key);
+				sb.Append( "(");
+				sb.Append( kvp.Value.Id);
+				sb.Append( ")");
+				sb.Append( ", ");
+				sb.Append( kvp.Value.Offset);
+				sb.Append( "  ");
+			}
+			sb.AppendLine();
+			sb.Append("Dirty Pages: ");
+			foreach( var temp in dirtyPages) {
+				sb.Append( temp.PageNumber);
+				sb.Append( "(");
+				sb.Append( temp.Id);
+				sb.Append( ")");
+				sb.Append( "  ");
 			}
 			sb.AppendLine();
 			sb.Append("Pages in Queue: ");
-			lock(writeLocker) {
-				foreach( var temp in writeQueue) {
-					sb.Append( temp.PageNumber);
-					sb.Append( "(");
-					sb.Append( temp.Id);
-					sb.Append( ")");
-					sb.Append( "  ");
-				}
-			}
 			sb.AppendLine();
 			return sb.ToString();
 		}
