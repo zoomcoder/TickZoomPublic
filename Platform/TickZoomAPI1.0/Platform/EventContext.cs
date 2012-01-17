@@ -30,9 +30,5 @@ namespace TickZoom.Api
 {
 	public interface EventContext {
 		void Invoke();
-		PositionInterface PositionX {
-			get;
-			set;
-		}
 	}
 }

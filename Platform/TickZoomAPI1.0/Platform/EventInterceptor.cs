@@ -29,9 +29,6 @@ using System;
 namespace TickZoom.Api
 {
 	public interface EventInterceptor {
-		event Action<EventInterceptor> OnActiveChange;
 		void Intercept( EventContext context, EventType eventType, object eventDetail);
-		bool IsActive { get; set; }
-		int Order { get; set; }
 	}
 }
