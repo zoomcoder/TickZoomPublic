@@ -57,6 +57,8 @@ namespace TickZoom.Interceptors
         }
         private Queue<FillWrapper> fillQueue = new Queue<FillWrapper>();
 
+	    private static PartialFillSimulation partialFillSimulation;
+
 		private Dictionary<string,CreateOrChangeOrder> orderMap = new Dictionary<string, CreateOrChangeOrder>();
 		private ActiveList<CreateOrChangeOrder> increaseOrders = new ActiveList<CreateOrChangeOrder>();
 		private ActiveList<CreateOrChangeOrder> decreaseOrders = new ActiveList<CreateOrChangeOrder>();
@@ -588,7 +590,7 @@ namespace TickZoom.Interceptors
 		private void OrderSideWrongReject(CreateOrChangeOrder order) {
 			var message = "Sorry, improper setting of a " + order.Side + " order when position is " + actualPosition;
 			lock( orderMapLocker) {
-				orderMap.Remove((string)order.BrokerOrder);
+				orderMap.Remove(order.BrokerOrder);
 			}
 			var node = (ActiveListNode<CreateOrChangeOrder>) order.Reference;
 			if( node.List != null) {
@@ -625,12 +627,19 @@ namespace TickZoom.Interceptors
 		{
 		    if( debug) log.Debug("Filling order: " + order );
 			var split = random.Next(maxPartialFillsPerOrder)+1;
+            var numberFills = partialFillSimulation == PartialFillSimulation.PartialFillsTillComplete ? split : random.Next(split) + 1;
+            if( numberFills < split)
+            {
+                if( debug) log.Debug("True Partial of only " + numberFills + " fills out of " + split + " for " + order);
+            }
 			var lastSize = totalSize / split;
 			var cumulativeQuantity = 0;
 			if( lastSize == 0) lastSize = totalSize;
-			while( order.Size > 0) {
-				order.Size -= Math.Abs(lastSize);
-				if( order.Size < Math.Abs(lastSize)) {
+	        var count = 0;
+			while( order.Size > 0 && count < numberFills) {
+                count++;
+                order.Size -= Math.Abs(lastSize);
+				if( count >= split) {
 					lastSize += Math.Sign(lastSize) * order.Size;
 					order.Size = 0;
 				}
@@ -764,6 +773,12 @@ namespace TickZoom.Interceptors
 	    {
 	        get { return isChanged; }
             set { isChanged = value;  }
+	    }
+
+	    public static PartialFillSimulation PartialFillSimulation
+	    {
+	        get { return partialFillSimulation; }
+	        set { partialFillSimulation = value; }
 	    }
 	}
 }

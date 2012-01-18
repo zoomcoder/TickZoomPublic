@@ -28,16 +28,21 @@ using System;
 using System.Collections.Generic;
 using TickZoom.Api;
 using TickZoom.Common;
+using TickZoom.Interceptors;
 
 namespace TickZoom.Examples
 {
-
     /// <summary>
 	/// Description of Starter.
 	/// </summary>
 	public class ExampleMixedLoader : ModelLoaderCommon
-	{
-		public ExampleMixedLoader() {
+    {
+        public ExampleMixedLoader(PartialFillSimulation partialTest) : this()
+        {
+            FillSimulatorPhysical.PartialFillSimulation = partialTest;
+        }
+
+        public ExampleMixedLoader() {
 			/// <summary>
 			/// IMPORTANT: You can personalize the name of each model loader.
 			/// </summary>

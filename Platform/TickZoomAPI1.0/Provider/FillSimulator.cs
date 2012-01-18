@@ -29,6 +29,13 @@ using System.Collections.Generic;
 
 namespace TickZoom.Api
 {
+    public enum PartialFillSimulation
+    {
+        None,
+        PartialFillsTillComplete,
+        PartialFillsIncomplete
+    }
+
 	public interface FillSimulator : PhysicalOrderHandler {
 		void OnOpen(Tick tick);
 		void StartTick(Tick lastTick);

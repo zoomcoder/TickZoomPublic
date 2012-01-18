@@ -192,11 +192,26 @@ namespace Loaders
 				EndTime = new TimeStamp(1990,1,1),
 				IntervalDefault = Intervals.Day1,
 			});
-			
-			list.Add( new AutoTestSettings {
+
+            list.Add(new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
+                Name = "ExampleMixedTruePartial",
+                Loader = new ExampleMixedLoader(PartialFillSimulation.PartialFillsTillComplete),
+                Symbols = primarySymbol + ",EUR/USD,USD/CHF",
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                StartTime = new TimeStamp(1800, 1, 1),
+                EndTime = new TimeStamp(2009, 6, 10),
+                IntervalDefault = Intervals.Minute1,
+                Categories = { "Failed" },
+            });
+
+            list.Add(new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Default,
 			    Name = "ExampleMixedTest",
-			    Loader = new ExampleMixedLoader(),
+                Loader = new ExampleMixedLoader(),
 				Symbols = primarySymbol + ",EUR/USD,USD/CHF",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
