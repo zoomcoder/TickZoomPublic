@@ -110,14 +110,16 @@ namespace TickZoom.FIX
         private TrueTimer heartbeatTimer;
         private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;
         private Agent agent;
+        private PartialFillSimulation partialFillSimulation;
         public Agent Agent
         {
             get { return agent; }
             set { agent = value; }
         }
 
-		public FIXSimulatorSupport(string mode, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
-		{
+        public FIXSimulatorSupport(string mode, PartialFillSimulation partialFillSimulation, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
+        {
+            this.partialFillSimulation = partialFillSimulation;
 		    this.fixPort = fixPort;
 		    this.quotesPort = quotesPort;
 		    var randomSeed = new Random().Next(int.MaxValue);
@@ -876,7 +878,7 @@ namespace TickZoom.FIX
                 {
                     if( SyncTicks.Enabled)
                     {
-                        var symbolHandler = (SimulateSymbol) Factory.Parallel.SpawnPerformer(typeof (SimulateSymbolSyncTicks), this, symbol, onTick, onPhysicalFill, onOrderReject);
+                        var symbolHandler = (SimulateSymbol) Factory.Parallel.SpawnPerformer(typeof (SimulateSymbolSyncTicks), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                     else

@@ -81,5 +81,7 @@ namespace TickZoom.Api
         new LimitOrderTradeSimulation LimitOrderTradeSimulation { get; set; }
 
         new FIXSimulationType FixSimulationType { get; set;  }
-    }
+
+	    PartialFillSimulation PartialFillSimulation { get; set; }
+	}
 }

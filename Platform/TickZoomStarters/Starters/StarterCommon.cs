@@ -101,28 +101,6 @@ namespace TickZoom.Starters
 	    	}
 		}
 		
-		public virtual Agent[] SetupProvidersXXXX(bool quietMode, bool singleLoad) {
-			List<Agent> senderList = new List<Agent>();
-			SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
-			for(int i=0; i<symbols.Length; i++) {
-	    		TickReader tickReader = Factory.TickUtil.TickReader();
-	    		tickReader.MaxCount = EndCount;	
-	    		tickReader.StartTime = ProjectProperties.Starter.StartTime;
-	    		tickReader.EndTime = ProjectProperties.Starter.EndTime;
-	    		tickReader.BackgroundWorker = BackgroundWorker;
-	    		tickReader.LogProgress = true;
-	    		tickReader.BulkFileLoad = singleLoad;
-	    		tickReader.QuietMode = quietMode;
-                //try { 
-                //    tickReader.Initialize(DataFolder,symbolFiles[i]);
-                //    senderList.Add(tickReader.ToAgent());
-                //} catch( System.IO.FileNotFoundException ex) {
-                //    throw new ApplicationException("Error: " + ex.Message);
-                //}
-			}
-			return senderList.ToArray();
-		}
-		
 		public Agent[] SetupDataProviders() {
 			try {
 				List<Agent> senderList = new List<Agent>();

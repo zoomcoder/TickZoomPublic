@@ -52,6 +52,7 @@ namespace TickZoom.Properties
 		ChartProperties chartProperties;
 		EngineProperties engineProperties;
 	    private int testFinishedTimeout;
+	    private PartialFillSimulation partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
 		
 		List<SymbolProperties> symbolInfo = new List<SymbolProperties>();
 		
@@ -127,6 +128,12 @@ namespace TickZoom.Properties
 	    {
 	        get { return testFinishedTimeout; }
 	        set { testFinishedTimeout = value; }
+	    }
+
+	    public PartialFillSimulation PartialFillSimulation
+	    {
+	        get { return partialFillSimulation; }
+	        set { partialFillSimulation = value; }
 	    }
 	}
 }

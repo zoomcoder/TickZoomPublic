@@ -40,6 +40,7 @@ namespace TickZoom.Symbols
 	{
 		private Elapsed sessionStart = new Elapsed( 8, 0, 0);
 		private Elapsed sessionEnd = new Elapsed( 16, 30, 0);
+	    private PartialFillSimulation partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
 		private bool simulateTicks;
 		private string symbol;
 		private double minimumTick;
@@ -309,6 +310,12 @@ namespace TickZoom.Symbols
                 return symbolFile;
             }
 	        set { symbolFile = value; }
+	    }
+
+	    public PartialFillSimulation PartialFillSimulation
+	    {
+	        get { return partialFillSimulation; }
+	        set { partialFillSimulation = value; }
 	    }
 	}
 }

@@ -53,13 +53,14 @@ namespace Loaders
 		public IList<string> categories;
 	    public bool ignoreMissingKnownGood;
 	    public int testFinishedTimeout;
-
+	    public PartialFillSimulation partialFillSimulation;
 	}
 	public class AutoTestSettings {
 		AutoTestSettingsBinary binary;
 		public AutoTestSettings() {
 			binary.endTime = TimeStamp.MaxValue;
 			binary.categories = new List<string>();
+		    binary.partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
 		}
 		
 		public AutoTestSettings(AutoTestSettingsBinary binary) {
@@ -89,6 +90,12 @@ namespace Loaders
         {
             get { return binary.knownGoodName; }
             set { binary.knownGoodName = value; }
+        }
+
+        public PartialFillSimulation PartialFillSimulation
+        {
+            get { return binary.partialFillSimulation; }
+            set { binary.partialFillSimulation = value; }
         }
 
         public string Name

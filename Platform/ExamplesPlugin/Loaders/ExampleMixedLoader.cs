@@ -32,20 +32,9 @@ using TickZoom.Interceptors;
 
 namespace TickZoom.Examples
 {
-    /// <summary>
-	/// Description of Starter.
-	/// </summary>
-	public class ExampleMixedLoader : ModelLoaderCommon
+    public class ExampleMixedLoader : ModelLoaderCommon
     {
-        public ExampleMixedLoader(PartialFillSimulation partialTest) : this()
-        {
-            FillSimulatorPhysical.PartialFillSimulation = partialTest;
-        }
-
         public ExampleMixedLoader() {
-			/// <summary>
-			/// IMPORTANT: You can personalize the name of each model loader.
-			/// </summary>
 			category = "Example";
 			name = "Mixed: Multi-Symbol, Multi-Strategy";
 		}

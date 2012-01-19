@@ -47,6 +47,7 @@ namespace TickZoom.Presentation
 
         private readonly BackgroundWorker commandWorker;
         private readonly Log log;
+        private PartialFillSimulation partialFillSimulation;
         public void RefreshLogLevel()
         {
             NotifyOfPropertyChange(() => LoggingConfig);
@@ -935,6 +936,7 @@ namespace TickZoom.Presentation
             starterInstance.ProjectProperties.Starter.StartTime = (TimeStamp) startDateTime;
             starterInstance.ProjectProperties.Starter.EndTime = (TimeStamp)endDateTime;
             starterInstance.ProjectProperties.Starter.TestFinishedTimeout = TestFinishedTimeout;
+            starterInstance.ProjectProperties.Starter.PartialFillSimulation = partialFillSimulation;
             starterInstance.BackgroundWorker = commandWorker;
             starterInstance.DataFolder = dataSubFolder;
             if (!disableCharting)
@@ -988,6 +990,12 @@ namespace TickZoom.Presentation
                 NotifyOfPropertyChange(() => TestFinishedTimeout);
                 testFinishedTimeout = value;
             }
+        }
+
+        public PartialFillSimulation PartialFillSimulation
+        {
+            get { return partialFillSimulation; }
+            set { partialFillSimulation = value; }
         }
 
         #endregion Methods

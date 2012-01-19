@@ -61,6 +61,7 @@ namespace TickZoom.FIX
         private TickIO temporaryTick = Factory.TickUtil.TickIO();
         private string symbolString;
         private Agent agent;
+        private PartialFillSimulation PartialFillSimulation;
         public Agent Agent
         {
             get { return agent; }
@@ -69,17 +70,20 @@ namespace TickZoom.FIX
 	
 		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,
+            PartialFillSimulation partialFillSimulation,
 		    Action<Message,SymbolInfo,Tick> onTick,
 		    Action<PhysicalFill> onPhysicalFill,
 		    Action<CreateOrChangeOrder,bool,string> onRejectOrder) {
             log.Register(this);
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.onTick = onTick;
+		    this.PartialFillSimulation = partialFillSimulation;
 		    this.symbolString = symbolString;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
+            fillSimulator.PartialFillSimulation = partialFillSimulation;
             tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
             latency = new LatencyMetric("SimulateSymbolSyncTicks-" + symbolString.StripInvalidPathChars());
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");

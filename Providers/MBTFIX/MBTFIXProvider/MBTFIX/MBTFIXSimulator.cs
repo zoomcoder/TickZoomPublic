@@ -49,8 +49,10 @@ namespace TickZoom.MBTFIX
         }
         private ServerState quoteState = ServerState.Startup;
         private Random random = new Random(1234);
-		
-		public MBTFIXSimulator(string mode) : base( mode, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes()) {
+
+        public MBTFIXSimulator(string mode, PartialFillSimulation partialFillSimulation)
+            : base(mode, partialFillSimulation, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes())
+        {
 		    log.Register(this);
             InitializeSnippets();
 		}

@@ -51,49 +51,6 @@ namespace TickZoom.Starters
                 parallelMode = ParallelMode.Normal;
                 Factory.Provider.ShutdownSockets();
             }
-
-
-            //switch (Address.ToLower())
-            //{
-            //    case "inprocess":
-            //        {
-            //            var service = Factory.Provider.ProviderService();
-            //            if (Config != null)
-            //            {
-            //                service.SetConfig(Config);
-            //            }
-            //            try
-            //            {
-            //                service.OnStart();
-            //                base.Run(model);
-            //            }
-            //            finally
-            //            {
-            //                service.OnStop();
-            //                parallelMode = ParallelMode.Normal;
-            //            }
-            //        }
-            //        break;
-            //    case "subprocess":
-            //        {
-            //            var service = Factory.Provider.Subprocess();
-            //            service.ExecutableName = "TickZoomWarehouse.exe";
-            //            service.AddArgument("--config WarehouseTest --run");
-            //            service.TryStart();
-            //            try
-            //            {
-            //                base.Run(model);
-            //            }
-            //            finally
-            //            {
-            //                service.TryKill();
-            //                parallelMode = ParallelMode.Normal;
-            //            }
-            //        }
-            //        break;
-            //    default:
-            //        break;
-            //}
 		}
 
 		public void SetupProviderServiceConfig()

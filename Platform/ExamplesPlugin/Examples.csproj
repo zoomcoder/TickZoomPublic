@@ -104,6 +104,7 @@
     <Compile Include="Loaders\ExampleCustomBarsLoader.cs" />
     <Compile Include="Loaders\ExampleLimitOrderLoader.cs" />
     <Compile Include="Loaders\ExampleMixedLoader.cs" />
+    <Compile Include="Loaders\ExampleMixedTruePartial.cs" />
     <Compile Include="Loaders\ExampleMultiSymbolLoader.cs" />
     <Compile Include="Loaders\ExampleOptionLoader.cs" />
     <Compile Include="Loaders\ExampleOrdersLoader.cs" />

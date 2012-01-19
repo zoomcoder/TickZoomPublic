@@ -195,9 +195,9 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Default,
+                Mode = AutoTestMode.Historical,
                 Name = "ExampleMixedTruePartial",
-                Loader = new ExampleMixedLoader(PartialFillSimulation.PartialFillsTillComplete),
+                Loader = new ExampleMixedTruePartial(),
                 Symbols = primarySymbol + ",EUR/USD,USD/CHF",
                 StoreKnownGood = storeKnownGood,
                 ShowCharts = showCharts,
@@ -205,6 +205,7 @@ namespace Loaders
                 EndTime = new TimeStamp(2009, 6, 10),
                 IntervalDefault = Intervals.Minute1,
                 Categories = { "Failed" },
+                PartialFillSimulation = PartialFillSimulation.PartialFillsIncomplete
             });
 
             list.Add(new AutoTestSettings

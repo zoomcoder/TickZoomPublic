@@ -299,6 +299,12 @@ namespace TickZoom.Api
         /// </summary>
 	    LimitOrderTradeSimulation LimitOrderTradeSimulation { get; }
 
+	    /// <summary>
+	    /// Determines whether random partial fills will completely satify the order
+	    /// or else leave part of the order unsatisfied.
+	    /// </summary>
+	    PartialFillSimulation PartialFillSimulation { get; }
+
         /// <summary>
         /// Does this use a custom simulation type for the FIX Server Simulator?
         /// </summary>

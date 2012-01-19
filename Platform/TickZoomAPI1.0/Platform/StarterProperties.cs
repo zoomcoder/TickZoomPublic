@@ -56,6 +56,11 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
+
+        PartialFillSimulation PartialFillSimulation
+        {
+            get; set;
+        }
 		
 		void SetSymbols( string symbols);
 		

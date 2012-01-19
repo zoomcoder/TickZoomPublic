@@ -57,7 +57,7 @@ namespace TickZoom.Interceptors
         }
         private Queue<FillWrapper> fillQueue = new Queue<FillWrapper>();
 
-	    private static PartialFillSimulation partialFillSimulation;
+	    private PartialFillSimulation partialFillSimulation;
 
 		private Dictionary<string,CreateOrChangeOrder> orderMap = new Dictionary<string, CreateOrChangeOrder>();
 		private ActiveList<CreateOrChangeOrder> increaseOrders = new ActiveList<CreateOrChangeOrder>();
@@ -106,6 +106,7 @@ namespace TickZoom.Interceptors
             this.createActualFills = createActualFills;
             fillLogic = new FillSimulatorLogic(name,symbol,FillCallback);
             isChanged = true;
+            PartialFillSimulation = symbol.PartialFillSimulation;
 		}
 
 		private bool hasCurrentTick = false;
@@ -627,7 +628,11 @@ namespace TickZoom.Interceptors
 		{
 		    if( debug) log.Debug("Filling order: " + order );
 			var split = random.Next(maxPartialFillsPerOrder)+1;
-            var numberFills = partialFillSimulation == PartialFillSimulation.PartialFillsTillComplete ? split : random.Next(split) + 1;
+	        var numberFills = split;
+            if( order.Type != OrderType.BuyMarket && order.Type != OrderType.SellMarket)
+            {
+                numberFills = PartialFillSimulation == PartialFillSimulation.PartialFillsTillComplete ? split : random.Next(split) + 1;
+            }
             if( numberFills < split)
             {
                 if( debug) log.Debug("True Partial of only " + numberFills + " fills out of " + split + " for " + order);
@@ -775,7 +780,7 @@ namespace TickZoom.Interceptors
             set { isChanged = value;  }
 	    }
 
-	    public static PartialFillSimulation PartialFillSimulation
+	    public PartialFillSimulation PartialFillSimulation
 	    {
 	        get { return partialFillSimulation; }
 	        set { partialFillSimulation = value; }

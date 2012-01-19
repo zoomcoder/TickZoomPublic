@@ -49,6 +49,7 @@ namespace TickZoom.Api
 		bool IsBarData { get; set; }
 	    TimeStamp CurrentTick { get; }
 	    bool IsOnline { get; set; }
+	    PartialFillSimulation PartialFillSimulation { get; set; }
 	    void FlushFillQueue();
 	    int ProcessAdjustments();
 	}

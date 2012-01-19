@@ -683,7 +683,7 @@ namespace TickZoom.Common
 		    var result = true;
 			var side = GetOrderSide(logical.Type);
 			if( createOrChange.Side != side) {
-                if (debug) log.Debug("Canceling because " + createOrChange.Side + " != " + side + ": " + createOrChange);
+                if (debug) log.Debug("Cancel because " + createOrChange.Side + " != " + side + ": " + createOrChange);
 				TryCancelBrokerOrder(createOrChange);
                 createOrChange = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, createOrChange.Size, price);
 				TryCreateBrokerOrder(createOrChange);
@@ -1379,14 +1379,16 @@ namespace TickZoom.Common
 			{
                 if (debug) log.Debug("LogicalOrder is completely filled.");
 			    MarkAsFilled(filledOrder);
-			}
-			UpdateOrderCache(filledOrder, fill);
+            }
+            CleanupAfterFill(filledOrder, fill);
+            UpdateOrderCache(filledOrder, fill);
             if (isCompletePhysicalFill && !fill.IsComplete)
             {
                 if (filledOrder.TradeDirection == TradeDirection.Entry && fill.Position == 0)
                 {
                     if (debug) log.Debug("Found a entry order which flattened the position. Likely due to bracketed entries that both get filled: " + filledOrder);
                     MarkAsFilled(filledOrder);
+                    CleanupAfterFill(filledOrder, fill);
                 }
                 else if( isRealTime)
                 {
@@ -1424,7 +1426,6 @@ namespace TickZoom.Common
             {
                 if (debug) log.Debug("Marking order id " + filledOrder.Id + " as completely filled.");
                 originalLogicals.Remove(filledOrder);
-                CleanupAfterFill(filledOrder);
             }
             catch (ApplicationException ex)
             {
@@ -1441,41 +1442,66 @@ namespace TickZoom.Common
             originalLogicals.Remove(order);
         }
 
-		private void CleanupAfterFill(LogicalOrder filledOrder) {
+		private void CleanupAfterFill(LogicalOrder filledOrder, LogicalFillBinary fill) {
 			bool clean = false;
 			bool cancelAllEntries = false;
 			bool cancelAllExits = false;
 			bool cancelAllExitStrategies = false;
 			bool cancelAllReverse = false;
 			bool cancelAllChanges = false;
-		    var strategyPosition = GetStrategyPosition(filledOrder);
-			if( strategyPosition == 0) {
-				cancelAllChanges = true;
-				clean = true;
-			}
-			switch( filledOrder.TradeDirection) {
-				case TradeDirection.Change:
-					break;
-				case TradeDirection.Entry:
-					cancelAllEntries = true;
-					clean = true;
-					break;
-				case TradeDirection.Exit:
-				case TradeDirection.ExitStrategy:
-					cancelAllExits = true;
-					cancelAllExitStrategies = true;
-                    cancelAllEntries = true;
+		    bool cancelDueToPartialFill = false;
+            if( fill.IsComplete)
+            {
+                var strategyPosition = GetStrategyPosition(filledOrder);
+                if (strategyPosition == 0)
+                {
                     cancelAllChanges = true;
-					clean = true;
-					break;
-				case TradeDirection.Reverse:
-					cancelAllReverse = true;
-                    cancelAllEntries = true;
                     clean = true;
-					break;
-				default:
-					throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
-			}
+                }
+                switch (filledOrder.TradeDirection)
+                {
+                    case TradeDirection.Change:
+                        break;
+                    case TradeDirection.Entry:
+                        cancelAllEntries = true;
+                        clean = true;
+                        break;
+                    case TradeDirection.Exit:
+                    case TradeDirection.ExitStrategy:
+                        cancelAllExits = true;
+                        cancelAllExitStrategies = true;
+                        cancelAllEntries = true;
+                        cancelAllChanges = true;
+                        clean = true;
+                        break;
+                    case TradeDirection.Reverse:
+                        cancelAllReverse = true;
+                        cancelAllEntries = true;
+                        clean = true;
+                        break;
+                    default:
+                        throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
+                }
+            }
+            else
+            {
+                switch (filledOrder.TradeDirection)
+                {
+                    case TradeDirection.Change:
+                    case TradeDirection.Entry:
+                        break;
+                    case TradeDirection.Exit:
+                    case TradeDirection.ExitStrategy:
+                    case TradeDirection.Reverse:
+                        cancelAllEntries = true;
+                        cancelAllChanges = true;
+                        cancelDueToPartialFill = true;
+                        clean = true;
+                        break;
+                    default:
+                        throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
+                }
+            }
 			if( clean) {
 			    for(var i = 0; i<originalLogicals.Count; i++)
 			    {
@@ -1483,19 +1509,42 @@ namespace TickZoom.Common
 					if( order.StrategyId == filledOrder.StrategyId) {
 						switch( order.TradeDirection) {
 							case TradeDirection.Entry:
-								if( cancelAllEntries) CancelLogical(order);
+								if( cancelAllEntries)
+								{
+                                    if( cancelDueToPartialFill)
+                                    {
+                                        if( debug) log.Debug("Canceling Entry order due to partial fill: " + order);
+                                    }
+								    CancelLogical(order);
+								}
 								break;
 							case TradeDirection.Change:
-                                if (cancelAllChanges) CancelLogical(order);
+                                if (cancelAllChanges)
+                                {
+                                    if (cancelDueToPartialFill)
+                                    {
+                                        if (debug) log.Debug("Canceling Entry order due to partial fill: " + order);
+                                    }
+                                    CancelLogical(order);
+                                }
 								break;
 							case TradeDirection.Exit:
-                                if (cancelAllExits) CancelLogical(order);
+                                if (cancelAllExits)
+                                {
+                                    CancelLogical(order);
+                                }
 								break;
 							case TradeDirection.ExitStrategy:
-                                if (cancelAllExitStrategies) CancelLogical(order);
+                                if (cancelAllExitStrategies)
+                                {
+                                    CancelLogical(order);
+                                }
 								break;
 							case TradeDirection.Reverse:
-                                if (cancelAllReverse) CancelLogical(order);
+                                if (cancelAllReverse)
+                                {
+                                    CancelLogical(order);
+                                }
 								break;
 							default:
 								throw new ApplicationException("Unknown trade direction: " + filledOrder.TradeDirection);
