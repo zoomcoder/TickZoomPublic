@@ -1561,9 +1561,16 @@ namespace TickZoom.MBTFIX
 				case OrderType.BuyLimit:
 					fixMsg.SetOrderType(2);
 					fixMsg.SetPrice(order.Price);
-                    if( order.Symbol.TimeInForce == TimeInForce.GTC)
+                    switch( order.Symbol.TimeInForce)
                     {
-                        fixMsg.SetTimeInForce(1);
+                        case TimeInForce.Day:
+                            fixMsg.SetTimeInForce(0);
+                            break;
+                        case TimeInForce.GTC:
+                            fixMsg.SetTimeInForce(1);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
 					break;
 				case OrderType.BuyMarket:
@@ -1574,17 +1581,31 @@ namespace TickZoom.MBTFIX
 					fixMsg.SetOrderType(3);
 					fixMsg.SetPrice(order.Price);
 					fixMsg.SetStopPrice(order.Price);
-                    if (order.Symbol.TimeInForce == TimeInForce.GTC)
+                    switch (order.Symbol.TimeInForce)
                     {
-                        fixMsg.SetTimeInForce(1);
+                        case TimeInForce.Day:
+                            fixMsg.SetTimeInForce(0);
+                            break;
+                        case TimeInForce.GTC:
+                            fixMsg.SetTimeInForce(1);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                     break;
 				case OrderType.SellLimit:
 					fixMsg.SetOrderType(2);
 					fixMsg.SetPrice(order.Price);
-                    if (order.Symbol.TimeInForce == TimeInForce.GTC)
+                    switch (order.Symbol.TimeInForce)
                     {
-                        fixMsg.SetTimeInForce(1);
+                        case TimeInForce.Day:
+                            fixMsg.SetTimeInForce(0);
+                            break;
+                        case TimeInForce.GTC:
+                            fixMsg.SetTimeInForce(1);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                     break;
 				case OrderType.SellMarket:
@@ -1595,9 +1616,16 @@ namespace TickZoom.MBTFIX
 					fixMsg.SetOrderType(3);
 					fixMsg.SetPrice(order.Price);
 					fixMsg.SetStopPrice(order.Price);
-                    if (order.Symbol.TimeInForce == TimeInForce.GTC)
+                    switch (order.Symbol.TimeInForce)
                     {
-                        fixMsg.SetTimeInForce(1);
+                        case TimeInForce.Day:
+                            fixMsg.SetTimeInForce(0);
+                            break;
+                        case TimeInForce.GTC:
+                            fixMsg.SetTimeInForce(1);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
                     }
                     break;
 			}
