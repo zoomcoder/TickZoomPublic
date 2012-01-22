@@ -31,9 +31,9 @@ using TickZoom.TickUtil;
 
 namespace TickZoom.FIX
 {
-    public class SimulateSymbolSyncTicks : SimulateSymbol, LogAware
+    public class SimulateSymbolRealTime : SimulateSymbol, LogAware
     {
-		private static Log log = Factory.SysLog.GetLogger(typeof(SimulateSymbolSyncTicks));
+		private static Log log = Factory.SysLog.GetLogger(typeof(SimulateSymbolRealTime));
         private volatile bool debug;
         private volatile bool trace;
         private volatile bool verbose;
@@ -47,7 +47,6 @@ namespace TickZoom.FIX
 		private TickFile reader;
 		private Action<Message,SymbolInfo,Tick> onTick;
 		private Task queueTask;
-		private TickSync tickSync;
 		private SymbolInfo symbol;
 		private TickIO nextTick = Factory.TickUtil.TickIO();
 		private bool isFirstTick = true;
@@ -65,8 +64,8 @@ namespace TickZoom.FIX
             get { return agent; }
             set { agent = value; }
         }
-	
-		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
+
+        public SimulateSymbolRealTime(FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,
             PartialFillSimulation partialFillSimulation,
 		    Action<Message,SymbolInfo,Tick> onTick,
@@ -82,10 +81,9 @@ namespace TickZoom.FIX
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
             fillSimulator.PartialFillSimulation = partialFillSimulation;
-            tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
-            latency = new LatencyMetric("SimulateSymbolSyncTicks-" + symbolString.StripInvalidPathChars());
+            latency = new LatencyMetric("SimulateSymbolRealTime-" + symbolString.StripInvalidPathChars());
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");
-            if (debug) log.Debug("Opening tick file for reading.");
+            if (debug) log.Debug("Openning tick file for reading.");
             reader = new TickFile();
             try
             {
@@ -109,22 +107,12 @@ namespace TickZoom.FIX
             queueTask.Scheduler = Scheduler.RoundRobin;
             fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();
-            tickSync.ChangeCallBack = TickSyncChangedEvent;
         }
 
 
         public Yield Invoke()
         {
             LatencyManager.IncrementSymbolHandler();
-            if (!tickSync.TryLock())
-            {
-                TryCompleteTick();
-                return Yield.NoWork.Repeat;
-            }
-            else
-            {
-                if (trace) log.Trace("Locked tickSync for " + Symbol);
-            }
             if( DequeueTick())
             {
                 return Yield.DidWork.Repeat;
@@ -132,46 +120,6 @@ namespace TickZoom.FIX
             return Yield.NoWork.Repeat;
         }
 
-        private void TickSyncChangedEvent()
-        {
-            if (tickSync.Completed || tickSync.OnlyProcessPhysicalOrders || tickSync.OnlyReprocessPhysicalOrders)
-            {
-                if (verbose) log.Verbose("TickSyncChangedEvent(" + symbol + ") resuming task.");
-                queueTask.Resume();
-            }
-            else
-            {
-                if (verbose) log.Verbose("TickSyncChangedEvent(" + symbol + ") not ready to resume task.");
-            }
-        }
-
-        private void TryCompleteTick()
-        {
-	    	if( tickSync.Completed) {
-		    	if( verbose) log.Verbose("TryCompleteTick() Next Tick");
-		    	tickSync.Clear();
-            }
-            else if (tickSync.OnlyReprocessPhysicalOrders)
-            {
-                if (trace) log.Trace("Reprocess physical orders - " + tickSync);
-                if( FillSimulator.IsChanged)
-                {
-                    FillSimulator.ProcessOrders();
-                }
-                tickSync.RemoveReprocessPhysicalOrders();
-            }
-            else if (tickSync.OnlyProcessPhysicalOrders)
-            {
-                if (trace) log.Trace("Process physical orders - " + tickSync);
-                FillSimulator.StartTick(nextTick);
-                if (FillSimulator.IsChanged)
-                {
-                    FillSimulator.ProcessOrders();
-                }
-                tickSync.RemoveProcessPhysicalOrders();
-            }
-        }
-		
 		private bool DequeueTick() {
             LatencyManager.IncrementSymbolHandler();
             var result = false;
@@ -192,7 +140,6 @@ namespace TickZoom.FIX
             isFirstTick = false;
             FillSimulator.StartTick(currentTick);
             nextTick.Inject(temporaryTick.Extract());
-            tickSync.AddTick(nextTick);
             if (FillSimulator.IsChanged)
             {
                 FillSimulator.ProcessOrders();
@@ -225,7 +172,6 @@ namespace TickZoom.FIX
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
             quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
             queueTask.Pause();
-            TickSyncChangedEvent();            
 		}
 
         public void TryProcessAdjustments()
@@ -283,7 +229,6 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("fillSimulator is null.");
                     }
-                    tickSync.ForceClear();
                 }
     		}
             else

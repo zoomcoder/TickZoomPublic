@@ -95,7 +95,7 @@
     <Compile Include="FIX\FIXSimulatorSupport.cs" />
     <Compile Include="FIX\SimulateSymbol.cs" />
     <Compile Include="FIX\SimulateSymbolPlayback.cs" />
-    <Compile Include="FIX\SimulateSymbolSyncTicks.cs" />
+    <Compile Include="FIX\SimulateSymbolRealTime.cs" />
     <Compile Include="FIX\FIXTBuffer.cs" />
     <Compile Include="FIX\FIXTFactory.cs" />
     <Compile Include="FIX\FIXTFactory1_1.cs" />
@@ -105,6 +105,9 @@
     <Compile Include="FIX\MessageFactoryFix44.cs" />
     <Compile Include="FIX\PacketFIX4_4.cs" />
     <Compile Include="FIX\PacketFIXT1_1.cs">
+    </Compile>
+    <Compile Include="FIX\SimulateSymbolSyncTicks.cs">
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

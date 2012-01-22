@@ -501,6 +501,7 @@ namespace TickZoom.FIX
                                         if (HandleLogon(messageFIX))
                                         {
                                             ConnectionStatus = Status.PendingRecovery;
+                                            TryEndRecovery();
                                         }
                                     }
                                 }
@@ -787,6 +788,7 @@ namespace TickZoom.FIX
                         missingMessage.SetDuplicate(true);
                         switch (missingMessage.Type)
                         {
+                            case "g":
                             case "5": // Logoff
                                 if (previous < i)
                                 {
@@ -798,7 +800,6 @@ namespace TickZoom.FIX
                                 break;
                             case "A":
                             case "2":
-                            case "g":
                             case "0":
                             case "AN":
                                 break;

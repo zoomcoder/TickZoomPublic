@@ -57,7 +57,7 @@ namespace TickZoom.FIX
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
-	    private int heartbeatDelay = 1; 
+        private int heartbeatDelay = 1;
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailures = 5;
         private bool allTests;
@@ -623,7 +623,10 @@ namespace TickZoom.FIX
                                 {
                                     // Sequences are synchronized now. Send TradeSessionStatus.
                                     fixState = ServerState.Recovered;
-                                    SendSessionStatusOnline();
+                                    if( requestSessionStatus)
+                                    {
+                                        SendSessionStatusOnline();
+                                    }
                                     // Setup disconnect simulation.
                                     nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
                                     if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
@@ -652,6 +655,7 @@ namespace TickZoom.FIX
 			}
 			return false;
 		}
+	    protected bool requestSessionStatus;
 
         private void SendSystemOffline()
         {
@@ -801,7 +805,14 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Set next recv order server offline sequence = " + nextRecvOrderServerOfflineSequence);
                 SwitchBrokerState("disconnect");
                 SetOrderServerOffline();
-                SendSessionStatus("3"); //offline
+                if( requestSessionStatus)
+                {
+                    SendSessionStatus("3"); //offline
+                }
+                else
+                {
+                    log.Info("RequestSessionStatus is false so not sending order server offline message.");
+                }
                 ++simulateOrderServerOfflineCounter;
                 return true;
             }
@@ -876,9 +887,11 @@ namespace TickZoom.FIX
             {
                 if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier))
                 {
-                    if( SyncTicks.Enabled)
+                    //var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
+                    //symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
+                    if (SyncTicks.Enabled)
                     {
-                        var symbolHandler = (SimulateSymbol) Factory.Parallel.SpawnPerformer(typeof (SimulateSymbolSyncTicks), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
+                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolSyncTicks), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                     else
@@ -1143,7 +1156,14 @@ namespace TickZoom.FIX
                 SwitchBrokerState("offline");
                 SetOrderServerOffline();
                 ++simulateOrderServerOfflineCounter;
-                SendSessionStatus("3");
+                if( requestSessionStatus)
+                {
+                    SendSessionStatus("3");
+                }
+                else
+                {
+                    log.Info("RequestSessionStatus is false so not sending order server offline message.");
+                }
             }
         }
 

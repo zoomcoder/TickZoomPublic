@@ -185,7 +185,8 @@ namespace TickZoom.MBTFIX
                 throw new ApplicationException("Expected unique trading session request id but was:" + packet.TradingSessionRequestId);
             }
 
-            if( onlineNextTime)
+            requestSessionStatus = true;
+            if (onlineNextTime)
             {
                 SetOrderServerOnline();
                 onlineNextTime = false;

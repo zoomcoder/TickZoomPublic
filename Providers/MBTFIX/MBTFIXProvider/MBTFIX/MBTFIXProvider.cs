@@ -244,14 +244,6 @@ namespace TickZoom.MBTFIX
                         CreateAlgorithm(symbolId);
                     }
                 }
-                //if( SyncTicks.Enabled)
-                //{
-                //    foreach (var order in OrderStore.GetOrders((x) => x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew))
-                //    {
-                //        var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
-                //        tickSync.AddPhysicalOrder(order);
-                //    }
-                //}
                 if (debug) log.Debug("Recovered from snapshot Local Sequence " + OrderStore.LocalSequence + ", Remote Sequence " + OrderStore.RemoteSequence);
                 if (debug) log.Debug("Recovered orders from snapshot: \n" + OrderStore.OrdersToString());
                 if (debug) log.Debug("Recovered symbol positions from snapshot:\n" + OrderStore.SymbolPositionsToString());
@@ -479,6 +471,7 @@ namespace TickZoom.MBTFIX
                         OrderStore.RequestSnapshot();
                         EndRecovery();
                         RequestPositions();
+                        RequestSessionUpdate();
                         StartPositionSync();
                         return;
                     }
@@ -1121,14 +1114,16 @@ namespace TickZoom.MBTFIX
 		    else if (packetFIX.Text.Contains("Outside trading hours") ||
 		             packetFIX.Text.Contains("not accepted this session") ||
 		             packetFIX.Text.Contains("Pending live orders") ||
-		             packetFIX.Text.Contains("Trading temporarily unavailable") ||
 		             packetFIX.Text.Contains("improper setting") ||
-		             packetFIX.Text.Contains("No position to close"))
+                     packetFIX.Text.Contains("No position to close"))
 		    {
 		        rejectReason = true;
 		        removeOriginal = true;
 		    }
-            else if (packetFIX.Text.Contains("Order Server Not Available"))
+
+            else if (packetFIX.Text.Contains("Order Server Offline") ||
+                packetFIX.Text.Contains("Trading temporarily unavailable") ||
+                packetFIX.Text.Contains("Order Server Not Available"))
             {
                 rejectReason = true;
                 removeOriginal = true;
