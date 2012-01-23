@@ -100,24 +100,39 @@ namespace TickZoom.FIX
             Dispose();
         }
 
+        private TrueTimer tickTimer;
         public void Initialize(Task task)
         {
             queueTask = task;
             queueTask.Name = "SimulateSymbolSyncTicks-" + symbolString;
-            queueTask.Scheduler = Scheduler.RoundRobin;
+            queueTask.Scheduler = Scheduler.EarliestTime;
             fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();
+            tickTimer = Factory.Parallel.CreateTimer("TickTimer", queueTask, Invoke);
+            startTime = Factory.Parallel.UtcNow;
+            startTime.AddMicroseconds(1);
+            tickTimer.Start(startTime);
         }
 
+        private TimeStamp startTime;
 
         public Yield Invoke()
         {
+            var result = Yield.NoWork.Repeat;
+            if( (tickCounter % 1000) == 0)
+            {
+                var elapsed = Factory.Parallel.UtcNow - startTime;
+                log.Info("Elapsed " + elapsed.Internal + "us or " + elapsed.TotalMilliseconds + "ms");
+            }
             LatencyManager.IncrementSymbolHandler();
             if( DequeueTick())
             {
-                return Yield.DidWork.Repeat;
+                result = Yield.DidWork.Repeat;
             }
-            return Yield.NoWork.Repeat;
+            startTime = TimeStamp.UtcNow;
+            startTime.AddMicroseconds(1);
+            tickTimer.Start(startTime);
+            return result;
         }
 
 		private bool DequeueTick() {

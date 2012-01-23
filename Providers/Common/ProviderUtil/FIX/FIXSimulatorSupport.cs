@@ -887,8 +887,6 @@ namespace TickZoom.FIX
             {
                 if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier))
                 {
-                    //var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
-                    //symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     if (SyncTicks.Enabled)
                     {
                         var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolSyncTicks), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
@@ -896,8 +894,10 @@ namespace TickZoom.FIX
                     }
                     else
                     {
-                        var symbolHandler = new SimulateSymbolPlayback(this, symbol, onTick, onPhysicalFill, onOrderReject);
+                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
+                        //var symbolHandler = new SimulateSymbolPlayback(this, symbol, onTick, onPhysicalFill, onOrderReject);
+                        //symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                 }
             }
