@@ -303,11 +303,6 @@ namespace Loaders
             return (ModelLoaderInterface) type.Assembly.CreateInstance(type.FullName);
         }
 
-        //public static void CleanupFiles()
-        //{
-        //    CleanupFiles(null);
-        //}
-		
         public static void CleanupFiles(string symbols, string dummyArg) {
             CleanupServerCache(symbols);
             var appDataFolder = Factory.Settings["AppDataFolder"];

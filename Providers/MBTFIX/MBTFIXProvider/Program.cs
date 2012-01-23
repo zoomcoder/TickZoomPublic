@@ -36,27 +36,7 @@ namespace TickZoom.MBTFIX
 		/// </summary>
 		static void Main(string[] args)
 		{
-			try {
-				Console.WriteLine( "Command line: " + string.Join(" ",args));
-				ServiceConnection connection = Factory.Provider.ConnectionManager();
-				connection.OnCreateProvider = () => Factory.Parallel.SpawnProvider(typeof(MBTProvider),connection.Config);
-				if( args.Length > 0 ) {
-					// Connection port provided on command line.
-					ProviderService commandLine = Factory.Utility.CommandLineProcess();
-					commandLine.Connection = connection;
-					commandLine.Run(args);
-				} else {
-					// Connection port set via ServicePort in app.config 
-					ProviderService service = Factory.Utility.WindowsService();
-					service.Connection = connection;
-					service.Run(args);
-				}
-			} catch( Exception ex) {
-				string exception = ex.ToString();
-				System.Diagnostics.Debug.WriteLine( exception);
-				Console.WriteLine( exception);
-				Environment.Exit(1);
-			}
+            throw new InvalidOperationException("This program is no longer runnable. It is only a library now.");
 		}
 	}
 }

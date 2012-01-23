@@ -419,7 +419,8 @@ namespace TickZoom.MBTFIX
 					break;
 				case "9":
 					CancelRejected( packetFIX);
-					break;
+                    CheckForExcessiveRejects();
+                    break;
 				case "1":
 					SendHeartbeat();
 					break;
@@ -427,13 +428,23 @@ namespace TickZoom.MBTFIX
 					// Received heartbeat
 					break;
 				case "j":
-					BusinessReject( packetFIX);
-					break;
+                    BusinessReject(packetFIX);
+                    CheckForExcessiveRejects();
+                    break;
 				default:
 					log.Warn("Ignoring Message: '" + packetFIX.MessageType + "'\n" + packetFIX);
 					break;
 			}
 		}
+
+        private void CheckForExcessiveRejects()
+        {
+            if( rejectCount > 3)
+            {
+                throw new ApplicationException("More then " + rejectCount + " rejects occurred.");
+            }
+            ++rejectCount;
+        }
 
         private void BusinessReject(MessageFIX4_4 packetFIX) {
 			var lower = packetFIX.Text.ToLower();
@@ -671,7 +682,8 @@ namespace TickZoom.MBTFIX
                 tickSync.RemovePhysicalOrder(packetFIX.ClientOrderId);
             }
         }
-		
+
+        private int rejectCount;
 		private void ExecutionReport( MessageFIX4_4 packetFIX) {
             if (packetFIX.Text == "END")
             {
@@ -684,6 +696,7 @@ namespace TickZoom.MBTFIX
                 switch (orderStatus)
                 {
                     case "0": // New
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport New: " + packetFIX);
@@ -712,6 +725,7 @@ namespace TickZoom.MBTFIX
                         }
                         break;
                     case "1": // Partial
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Partial: " + packetFIX);
@@ -720,6 +734,7 @@ namespace TickZoom.MBTFIX
                         SendFill(packetFIX);
                         break;
                     case "2":  // Filled 
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Filled: " + packetFIX);
@@ -737,6 +752,7 @@ namespace TickZoom.MBTFIX
                         SendFill(packetFIX);
                         break;
                     case "5": // Replaced
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Replaced: " + packetFIX);
@@ -760,6 +776,7 @@ namespace TickZoom.MBTFIX
                         }
                         break;
                     case "4": // Canceled
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Canceled: " + packetFIX);
@@ -816,6 +833,7 @@ namespace TickZoom.MBTFIX
                             break;
                         }
                     case "6": // Pending Cancel
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Pending Cancel: " + packetFIX);
@@ -842,8 +860,10 @@ namespace TickZoom.MBTFIX
                             log.Debug("ExecutionReport Reject: " + packetFIX);
                         }
                         RejectOrder(packetFIX);
+                        CheckForExcessiveRejects();
                         break;
                     case "9": // Suspended
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Suspended: " + packetFIX);
@@ -852,6 +872,7 @@ namespace TickZoom.MBTFIX
                         // Ignore 
                         break;
                     case "A": // PendingNew
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Pending New: " + packetFIX);
@@ -888,6 +909,7 @@ namespace TickZoom.MBTFIX
                         }
                         break;
                     case "E": // Pending Replace
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Pending Replace: " + packetFIX);
@@ -902,6 +924,7 @@ namespace TickZoom.MBTFIX
                         TryHandlePiggyBackFill(packetFIX);
                         break;
                     case "R": // Resumed.
+                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Resumed: " + packetFIX);
@@ -1002,18 +1025,6 @@ namespace TickZoom.MBTFIX
 				default:
 					throw new ApplicationException("Unknown cancel rejected order status: '" + orderStatus + "'");
 			}
-		}
-		
-		private bool GetLogicalOrderId( string clientOrderId, out int logicalOrderId) {
-			logicalOrderId = 0;
-			string[] parts = clientOrderId.Split(DOT_SEPARATOR);
-			try {
-				logicalOrderId = int.Parse(parts[0]);
-			} catch( FormatException) {
-				log.Warn("Fill received from order " + clientOrderId + " created externally. So it lacks any logical order id. That means a fill cannot be sent to the strategy. This will get resolved at next synchronization.");
-				return false;
-			}
-			return true;
 		}
 		
 		private int SideToSign( string side) {

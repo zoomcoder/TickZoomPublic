@@ -246,11 +246,18 @@ namespace TickZoom.MBTFIX
             SendPositionUpdate(cancelOrder.Symbol, GetPosition(cancelOrder.Symbol));
 		}
 
+	    private int rejectOrderCount;
         private void FIXCreateOrder(MessageFIX4_4 packet)
         {
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
+            //++rejectOrderCount;
+            //if( rejectOrderCount > 20)
+            //{
+            //    OnRejectOrder(order,true,"Insufficient buying power.");
+            //    return;
+            //}
             if (!IsOrderServerOnline)
             {
                 if(debug) log.Debug(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
