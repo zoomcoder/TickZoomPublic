@@ -195,41 +195,112 @@ namespace TickZoom.Api
 			return new TimeStamp(value);
 		}
 
-        private static object originalTimeStampLocker = new object();
-	    private static long originalSystemClock;
-        private static TimeStamp originalTimeStamp;
-	    private static long lastTimeStamp;
+        private struct HardwareTimeStamp
+        {
+            public long OriginalSystemClock;
+            public TimeStamp OriginalTimeStamp;
+            public long LastSystemClock;
+            public long LastTimeStamp;
+            public long SynchronizeOffset;
+            public override string ToString()
+            {
+                return LastTimeStamp.ToString();
+            }
+        }
+
+	    private static int hardwareTimestampsCount;
+	    private static HardwareTimeStamp[] hardwareTimeStamps = new HardwareTimeStamp[64];
 	    private static long adjustedFrequency;
+
+        private static TimeStamp ResetUtcNow(int index)
+        {
+            var process = Process.GetCurrentProcess();
+            var thread = Thread.CurrentThread;
+            var priorityClass = process.PriorityClass;
+            var threadPriority = thread.Priority;
+            thread.Priority = ThreadPriority.Highest;
+            process.PriorityClass = ProcessPriorityClass.RealTime;
+            var dtUtcNow = DateTime.UtcNow;
+            var timeStamp = new TimeStamp(dtUtcNow);
+            hardwareTimeStamps[index].OriginalTimeStamp = timeStamp;
+            stopWatchFrequency = Stopwatch.Frequency;
+            adjustedFrequency = (stopWatchFrequency << 20) / 1000000L;
+            hardwareTimeStamps[index].OriginalSystemClock = Stopwatch.GetTimestamp();
+            thread.Priority = threadPriority;
+            process.PriorityClass = priorityClass;
+            return timeStamp;
+        }
 		
 		public static TimeStamp UtcNow {
-			get {
-                if (originalTimeStamp == default(TimeStamp))
+			get
+			{
+                var index = Thread.CurrentThread.ManagedThreadId;
+                if( index > hardwareTimestampsCount)
                 {
-                    lock (originalTimeStampLocker)
-                    {
-                        var dtUtcNow = DateTime.UtcNow;
-                        originalTimeStamp = new TimeStamp(dtUtcNow);
-                        stopWatchFrequency = Stopwatch.Frequency;
-                        adjustedFrequency = (stopWatchFrequency << 20) / 1000000L;
-                        originalSystemClock = Stopwatch.GetTimestamp();
-                    }
+                    hardwareTimestampsCount = index;
                 }
-                var result = originalTimeStamp;
-			    var clock = Stopwatch.GetTimestamp();
-			    var clockChange = clock - originalSystemClock;
-                var change = (clockChange << 20) / adjustedFrequency;
-                result.AddMicroseconds(change);
-                if( result.Internal < lastTimeStamp - 1800000000) // 30 minutes sanity check.
+                if( index >= hardwareTimeStamps.Length)
                 {
-                    throw new InvalidOperationException("timestamp " + result + " was less that last utc now time stamp " + new TimeStamp(lastTimeStamp));
+                    Array.Resize(ref hardwareTimeStamps, hardwareTimeStamps.Length * 2);
                 }
-                else
+                if (hardwareTimeStamps[index].OriginalTimeStamp == default(TimeStamp))
                 {
-                    Interlocked.Exchange(ref lastTimeStamp, result.Internal);
+                    var timeStamp = ResetUtcNow(index);
+                    hardwareTimeStamps[index].LastTimeStamp = timeStamp.Internal;
+                    hardwareTimeStamps[index].LastSystemClock = Stopwatch.GetTimestamp();
+                }
+			    TimeStamp result;
+			    var count = 0;
+                while (!CalculateTimeStamp(index, out result))
+                {
+                    ResetUtcNow(index);
+                    ++count;
+                }
+                if( count > 0)
+                {
+                    Interlocked.Increment(ref adjustedClockCounter);
                 }
                 return result;
             }
 		}
+
+	    private static long adjustedClockCounter;
+	    private static Log log;
+
+        private static bool CalculateTimeStamp(int index, out TimeStamp timeStamp)
+        {
+            var result = true;
+            var systemClock = Stopwatch.GetTimestamp();
+            var systemClockChange = systemClock - hardwareTimeStamps[index].OriginalSystemClock + hardwareTimeStamps[index].SynchronizeOffset;
+            var adjustedClockChange = (systemClockChange << 20) / adjustedFrequency;
+            if (adjustedClockChange < 0)
+            {
+                result = false;
+            }
+            timeStamp = hardwareTimeStamps[index].OriginalTimeStamp;
+            timeStamp.AddMicroseconds(adjustedClockChange);
+            var timeDiff = timeStamp.Internal - hardwareTimeStamps[index].LastTimeStamp;
+            if (timeDiff < 0)
+            {
+                result = false;
+            }
+            for (var i = 0; i < hardwareTimestampsCount; i++ )
+            {
+                var diff = timeStamp.Internal - hardwareTimeStamps[i].LastTimeStamp;
+                if( diff < 0)
+                {
+                    hardwareTimeStamps[i].SynchronizeOffset = -diff;
+                    result = false;
+                    break;
+                }
+            }
+            if (result)
+            {
+                hardwareTimeStamps[index].LastSystemClock = systemClock;
+                hardwareTimeStamps[index].LastTimeStamp = timeStamp.Internal;
+            }
+            return result;
+        }
 		
 
         private static void Error(string timeString, int pos)
