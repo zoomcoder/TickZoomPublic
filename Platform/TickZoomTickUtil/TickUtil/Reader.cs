@@ -60,9 +60,6 @@ namespace TickZoom.TickUtil
 			lock(readerListLocker) {
 				readerList.Add(this);
 			}
-			TickEventMethod = TickEvent;
-			SendFinishMethod = SendFinish;
-			StartEventMethod = StartEvent;
             tickFile = new TickFile();
         }
 
@@ -181,10 +178,6 @@ namespace TickZoom.TickUtil
             }
         }
 		
-		private YieldMethod TickEventMethod;
-		private YieldMethod SendFinishMethod;
-		private YieldMethod StartEventMethod;
-
 		public virtual Yield Invoke()
 		{
             EventItem eventItem;
@@ -200,13 +193,20 @@ namespace TickZoom.TickUtil
             lock (taskLocker)
             {
 				if (isDisposed)
-					return Yield.Terminate;
-				try {
-                    if (tickBoxPool.AllocatedCount > 1000)
-                    {
-                        return Yield.NoWork.Repeat;
-                    }
-					if (!CancelPending && tickFile.TryReadTick(tickIO)) {
+				{
+                    return Yield.Terminate;
+                }
+				try
+				{
+				    var loopCount = 0;
+                    while (!CancelPending && loopCount < 1000)
+					{
+                        ++loopCount;
+                        if( !tickFile.TryReadTick(tickIO) )
+                        {
+                            if (debug) log.Debug("Finished reading to file length: " + tickFile.Length);
+                            return SendFinish();
+                        }
 
 						tick = tickIO.Extract();
 						isDataRead = true;
@@ -223,11 +223,12 @@ namespace TickZoom.TickUtil
 						if (maxCount > 0 && Count > maxCount) {
 							if (debug)
 								log.Debug("Ending data read because count reached " + maxCount + " ticks.");
-							return Yield.DidWork.Invoke(SendFinishMethod);
+						    return SendFinish();
 						}
 
-						if (IsAtEnd(tick)) {
-							return Yield.DidWork.Invoke(SendFinishMethod);
+						if (IsAtEnd(tick))
+						{
+						    return SendFinish();
 						}
 
 						if (IsAtStart(tick)) {
@@ -246,7 +247,7 @@ namespace TickZoom.TickUtil
 
 							if (isFirstTick) {
 								isFirstTick = false;
-								return Yield.DidWork.Invoke(StartEventMethod);
+							    StartEvent();
 							} else {
 								tickCount++;
 							}
@@ -256,35 +257,28 @@ namespace TickZoom.TickUtil
 							box.TickBinary = tick;
 						    box.TickBinary.Id = tickId;
 
-							return Yield.DidWork.Invoke(TickEventMethod);
+						    TickEvent();
 						}
 						tickCount++;
 
-					} else {
-                        if( debug) log.Debug("Finished reading to file length: " + tickFile.Length);
-						return Yield.DidWork.Invoke(SendFinishMethod);
 					}
-				} catch (ObjectDisposedException) {
-					return Yield.DidWork.Invoke(SendFinishMethod);
+				}
+                catch (ObjectDisposedException)
+				{
+				    return SendFinish();
 				}
 				return Yield.DidWork.Repeat;
 			}
 		}
 
-        private Yield StartEvent()
+        private void StartEvent()
 		{
 		    var item = new EventItem(tickFile.Symbol,EventType.StartHistorical);
             agent.SendEvent(item);
             LogInfo("Starting loading for " + tickFile.Symbol + " from " + tickIO.ToPosition());
-			box = tickBoxPool.Create();
-		    var tickId = box.TickBinary.Id;
-			box.TickBinary = tick;
-		    box.TickBinary.Id = tickId;
-
-			return Yield.DidWork.Invoke(TickEventMethod);
 		}
 
-		private Yield TickEvent()
+		private void TickEvent()
 		{
 			if( box == null) {
 				throw new ApplicationException("Box is null.");
@@ -293,7 +287,6 @@ namespace TickZoom.TickUtil
             agent.SendEvent(item);
             if (Diagnose.TraceTicks) Diagnose.AddTick(diagnoseMetric, ref box.TickBinary);
             box = null;
-            return Yield.DidWork.Return;
 		}
 
 		private Yield SendFinish()
@@ -301,11 +294,6 @@ namespace TickZoom.TickUtil
             var item = new EventItem(tickFile.Symbol, EventType.EndHistorical);
             agent.SendEvent(item);
             if (debug) log.Debug("EndHistorical for " + tickFile.Symbol);
-			return Yield.DidWork.Invoke(FinishTask);
-		}
-
-		private Yield FinishTask()
-		{
 			try {
 				if (isDataRead) {
                     LogInfo("Processing ended for " + tickFile.Symbol + " at " + tickIO.ToPosition());

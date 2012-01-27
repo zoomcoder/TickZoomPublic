@@ -770,7 +770,6 @@ namespace TickZoom.MBTFIX
             {
                 lastTicks[symbol.BinaryIdentifier] = lastTick = Factory.TickUtil.TickIO();
             }
-            //quoteBuilder.Length = 0;
             var buffer = quoteMessage.Data.GetBuffer();
             var position = quoteMessage.Data.Position;
             quoteMessage.Data.SetLength(1024);

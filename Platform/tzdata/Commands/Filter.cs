@@ -46,33 +46,33 @@ namespace TickZoom.TZData
 		
 		public override void Run(string[] args)
 		{
-			if( args.Length != 3 && args.Length != 5) {
+			if( args.Length != 2 && args.Length != 4) {
 				Output("Filter Usage:");
 				Output("tzdata " + Usage()); 
 				return;
 			}
-			string symbol = args[0];
-			string from = args[1];
-			string to = args[2];
+		    var field = 0;
+			string from = args[field++];
+            string to = args[field++];
 			TimeStamp startTime;
 			TimeStamp endTime;
-			if( args.Length > 3) {
-				startTime = new TimeStamp(args[3]);
-				endTime = new TimeStamp(args[4]);
+			if( args.Length > field) {
+                startTime = new TimeStamp(args[field++]);
+                endTime = new TimeStamp(args[field++]);
 			} else {
 				startTime = TimeStamp.MinValue;
 				endTime = TimeStamp.MaxValue;
 			}
-			FilterFile(symbol,from,to,startTime,endTime);
+			FilterFile(from,to,startTime,endTime);
 		}
 		
-		private void FilterFile(string symbol, string inputPath, string outputPath, TimeStamp startTime, TimeStamp endTime)
+		private void FilterFile(string inputPath, string outputPath, TimeStamp startTime, TimeStamp endTime)
 		{
 		    using( var reader = new TickFile())
 		    using( var writer = new TickFile())
 		    {
-                writer.Initialize(outputPath, symbol, TickFileMode.Write);
-                reader.Initialize(inputPath, symbol, TickFileMode.Read);
+                writer.Initialize(outputPath, TickFileMode.Write);
+                reader.Initialize(inputPath, TickFileMode.Read);
                 TickIO firstTick = Factory.TickUtil.TickIO();
                 TickIO lastTick = Factory.TickUtil.TickIO();
                 TickIO prevTick = Factory.TickUtil.TickIO();
@@ -126,7 +126,7 @@ namespace TickZoom.TZData
 		}
 
 		public override string[] Usage() {
-			return new string[] { assemblyName + " filter <symbol> <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
+			return new string[] { assemblyName + " filter <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
 		}
 		
 		public string AssemblyName {

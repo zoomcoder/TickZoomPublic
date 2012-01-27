@@ -355,8 +355,12 @@ namespace TickZoom.MBTQuotes
                             if( VerifyLogin())
                             {
                                 StartRecovery();
+                                return Yield.DidWork.Repeat;
                             }
-					        return Yield.DidWork.Repeat;
+                            else
+                            {
+                                return Yield.NoWork.Repeat;
+                            }
 						case Status.PendingRecovery:
 						case Status.Recovered:
 							if( retryDelay != retryStart) {

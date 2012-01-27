@@ -79,7 +79,6 @@ namespace TickZoom.Utilities
 	       		throw new ApplicationException( "Must set AppDataFolder property in app.config");
 	       	}
 			string[] args = {
-				"USD_JPY",
 				storageFolder + @"\Test\\DataCache\USD_JPY.tck",
 				storageFolder + @"\Test\\DataCache\USD_JPY_Back.tck",
 				"2005/05/05",

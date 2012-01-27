@@ -176,25 +176,43 @@ namespace TickZoom.TickUtil
             }
         }
 
+        private FastQueue<MemoryStream> streamsToWrite = Factory.Parallel.FastQueue<MemoryStream>("TickFileDirtyPages");
+        private FastQueue<MemoryStream> streamsAvailable = Factory.Parallel.FastQueue<MemoryStream>("TickFileAvailable");
+
+        private void MoveMemoryToQueue()
+        {
+            using (memoryLocker.Using())
+            {
+                streamsToWrite.Enqueue(memory, 0L);
+            }
+            if (streamsAvailable.Count == 0)
+            {
+                memory = new MemoryStream();
+            }
+            else
+            {
+                using (memoryLocker.Using())
+                {
+                    streamsAvailable.Dequeue(out memory);
+                }
+            }
+        }
+
         public bool TryWriteTick(TickIO tickIO)
         {
-            if (!memoryLocker.TryLock()) return false;
-            try
+            TryCompleteAsyncWrite();
+            if (trace) log.Trace("Writing to file buffer: " + tickIO);
+            tickIO.ToWriter(memory);
+            if (memory.Position > 5000)
             {
-                if (trace) log.Trace("Writing to file buffer: " + tickIO);
+                MoveMemoryToQueue();
                 TryCompleteAsyncWrite();
-                if (trace) log.Trace("Writing to file buffer: " + tickIO);
-                tickIO.ToWriter(memory);
-                if (memory.Position > 5000)
+                if( writeFileResult == null)
                 {
                     writeFileResult = writeFileAction.BeginInvoke(null, null);
                 }
-                return true;
             }
-            finally
-            {
-                memoryLocker.Unlock();
-            }
+            return true;
         }
 
         public void WriteTick(TickIO tickIO)
@@ -394,15 +412,22 @@ namespace TickZoom.TickUtil
         public void Flush()
         {
             if (debug) log.Debug("Before flush memory " + memory.Position);
-            TryCompleteAsyncWrite();
-            if (writeFileResult == null)
+            while (memory.Position > 0 || streamsToWrite.Count > 0 || writeFileResult != null)
             {
-                writeFileResult = writeFileAction.BeginInvoke(null, null);
-            }
-            while (writeFileResult != null)
-            {
+                if( memory.Position > 0)
+                {
+                    MoveMemoryToQueue();
+                }
                 TryCompleteAsyncWrite();
-                Thread.Sleep(100);
+                if (writeFileResult == null)
+                {
+                    writeFileResult = writeFileAction.BeginInvoke(null, null);
+                }
+                while (writeFileResult != null)
+                {
+                    TryCompleteAsyncWrite();
+                    Thread.Sleep(100);
+                }
             }
             if (debug) log.Debug("After flush memory " + memory.Position);
         }
@@ -410,36 +435,54 @@ namespace TickZoom.TickUtil
         private int origSleepSeconds = 3;
         private int currentSleepSeconds = 3;
         private long writeCounter = 0;
+        private object writeToFileLocker = new object();
         private void WriteToFile()
         {
             int errorCount = 0;
-            if (memory.Position == 0) return;
-            do
+            if( streamsToWrite.Count == 0) return;
+            if( !Monitor.TryEnter(writeToFileLocker))
             {
-                try
+                throw new InvalidOperationException("Only one thread at a time allowed for this method.");
+            }
+            try
+            {
+                do
                 {
-                    using (memoryLocker.Using())
+                    MemoryStream memory;
+                    try
                     {
+                        using (memoryLocker.Using())
+                        {
+                            streamsToWrite.Peek(out memory);
+                        }
                         if (debug) log.Debug("Writing buffer size: " + memory.Position);
                         fs.Write(memory.GetBuffer(), 0, (int)memory.Position);
                         fs.Flush();
                         memory.Position = 0;
-                        Interlocked.Increment(ref writeCounter);
+                        using (memoryLocker.Using())
+                        {
+                            streamsToWrite.Dequeue(out memory);
+                            streamsAvailable.Enqueue(memory, 0L);
+                        }
+                        if (errorCount > 0)
+                        {
+                            log.Notice(Symbol + ": Retry successful.");
+                        }
+                        errorCount = 0;
+                        currentSleepSeconds = origSleepSeconds;
                     }
-                    if (errorCount > 0)
+                    catch (IOException e)
                     {
-                        log.Notice(Symbol + ": Retry successful.");
+                        errorCount++;
+                        log.Debug(Symbol + ": " + e.Message + "\nPausing " + currentSleepSeconds + " seconds before retry.");
+                        Factory.Parallel.Sleep(3000);
                     }
-                    errorCount = 0;
-                    currentSleepSeconds = origSleepSeconds;
-                }
-                catch (IOException e)
-                {
-                    errorCount++;
-                    log.Debug(Symbol + ": " + e.Message + "\nPausing " + currentSleepSeconds + " seconds before retry.");
-                    Factory.Parallel.Sleep(3000);
-                }
-            } while (errorCount > 0);
+                } while (errorCount > 0);
+            }
+            finally
+            {
+                Monitor.Exit(writeToFileLocker);
+            }
         }
 
         private volatile bool isDisposed = false;

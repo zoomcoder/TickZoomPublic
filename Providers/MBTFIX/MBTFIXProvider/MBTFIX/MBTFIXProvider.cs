@@ -872,7 +872,6 @@ namespace TickZoom.MBTFIX
                         // Ignore 
                         break;
                     case "A": // PendingNew
-                        rejectCount = 0;
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Pending New: " + packetFIX);

@@ -49,14 +49,7 @@ namespace TickZoom.TZData
             commands["project"] = new Project();
 			
 			if( args.Length == 0) {
-				Console.WriteLine("tzdata Usage:");
-				Console.WriteLine();
-				foreach( var kvp in commands) {
-					Command command = kvp.Value;
-					foreach( var line in command.Usage()) {
-						Console.WriteLine("  " + line);
-					}
-				}
+                Usage();
 				return;
 			}
 			List<string> taskArgs = new List<string>(args);
@@ -70,7 +63,30 @@ namespace TickZoom.TZData
 			taskArgs.Remove("-d");
 			taskArgs.Remove("--debug");
 
-			commands[args[0]].Run(taskArgs.ToArray());
+		    Command tempCommand;
+            if (commands.TryGetValue(args[0], out tempCommand))
+            {
+                tempCommand.Run(taskArgs.ToArray());
+            }
+            else
+            {
+                Usage();
+                return;
+            }
 		}
+
+        private static void Usage()
+        {
+            Console.WriteLine("tzdata Usage:");
+            Console.WriteLine();
+            foreach (var kvp in commands)
+            {
+                Command command = kvp.Value;
+                foreach (var line in command.Usage())
+                {
+                    Console.WriteLine("  " + line);
+                }
+            }
+        }
 	}
 }

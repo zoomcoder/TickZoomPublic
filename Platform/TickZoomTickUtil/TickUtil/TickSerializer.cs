@@ -26,12 +26,6 @@ namespace TickZoom.TickUtil
         private long pricePrecision;
         private int priceDecimals;
 
-        long lastOptionExpiration;
-        long lastStrike;
-        long lastBid;
-        long lastAsk;
-        long lastPrice;
-        int lastSize;
         TickBinary lastBinary;
 
         public enum BinaryField
@@ -173,6 +167,7 @@ namespace TickZoom.TickUtil
         private unsafe void ToWriterVersion11(ref TickBinary binary, MemoryStream writer)
         {
             if (verbose) log.Verbose("Before Cx " + lastBinary);
+            //var tempBinary = lastBinary;
             var dataVersion = (byte)11;
             writer.SetLength(writer.Position + minTickSize);
             byte[] buffer = writer.GetBuffer();
@@ -204,25 +199,25 @@ namespace TickZoom.TickUtil
 
                 if (binary.IsQuote)
                 {
-                    WriteField2(BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBid);
-                    WriteField2(BinaryField.Ask, &ptr, binary.Ask / pricePrecision - lastAsk);
-                    lastBid = binary.Bid / pricePrecision;
-                    lastAsk = binary.Ask / pricePrecision;
+                    WriteField2(BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBinary.Bid);
+                    WriteField2(BinaryField.Ask, &ptr, binary.Ask / pricePrecision - lastBinary.Ask);
+                    lastBinary.Bid = binary.Bid / pricePrecision;
+                    lastBinary.Ask = binary.Ask / pricePrecision;
                 }
                 if (binary.IsTrade)
                 {
-                    WriteField2(BinaryField.Price, &ptr, binary.Price / pricePrecision - lastPrice);
-                    WriteField2(BinaryField.Size, &ptr, binary.Size - lastSize);
-                    lastPrice = binary.Price / pricePrecision;
-                    lastSize = binary.Size;
+                    WriteField2(BinaryField.Price, &ptr, binary.Price / pricePrecision - lastBinary.Price);
+                    WriteField2(BinaryField.Size, &ptr, binary.Size - lastBinary.Size);
+                    lastBinary.Price = binary.Price / pricePrecision;
+                    lastBinary.Size = binary.Size;
                 }
                 if (binary.IsOption)
                 {
-                    WriteField2(BinaryField.Strike, &ptr, binary.Strike / pricePrecision - lastStrike);
-                    lastStrike = binary.Strike / pricePrecision;
-                    diff = (binary.UtcOptionExpiration - lastOptionExpiration);
+                    WriteField2(BinaryField.Strike, &ptr, binary.Strike / pricePrecision - lastBinary.Strike);
+                    lastBinary.Strike = binary.Strike / pricePrecision;
+                    diff = (binary.UtcOptionExpiration - lastBinary.UtcOptionExpiration);
                     WriteField2(BinaryField.OptionExpiration, &ptr, diff);
-                    lastOptionExpiration = binary.UtcOptionExpiration;
+                    lastBinary.UtcOptionExpiration = binary.UtcOptionExpiration;
                 }
                 if (binary.HasDepthOfMarket)
                 {
@@ -239,16 +234,19 @@ namespace TickZoom.TickUtil
                             WriteAskSize(ref binary, field, i, &ptr);
                         }
                 }
-                writer.Position += ptr - fptr;
+                int length = (int) (ptr - fptr);
+                writer.Position += length;
                 writer.SetLength(writer.Position);
                 *fptr = (byte)(ptr - fptr);
-                *(fptr + 2) = CalcChecksum(ref binary, "Cx");
+                var checkSum = CalcChecksum(ref binary, "Cx");
+                *(fptr + 2) = checkSum;
                 //lastBinary = binary;
                 if (verbose)
                 {
                     toWriterTickIO.Inject(binary);
                     log.Verbose("Cx tick: " + toWriterTickIO);
                 }
+                //FromFileVersion11(ref tempBinary, fptr + 2, length-2);
             }
         }
 
@@ -280,25 +278,25 @@ namespace TickZoom.TickUtil
                 WriteField(BinaryField.Time, &ptr, diff);
                 if (binary.IsQuote)
                 {
-                    WriteField(BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBid);
-                    WriteField(BinaryField.Ask, &ptr, binary.Ask / pricePrecision - lastAsk);
-                    lastBid = binary.Bid / pricePrecision;
-                    lastAsk = binary.Ask / pricePrecision;
+                    WriteField(BinaryField.Bid, &ptr, binary.Bid / pricePrecision - lastBinary.Bid);
+                    WriteField(BinaryField.Ask, &ptr, binary.Ask / pricePrecision - lastBinary.Ask);
+                    lastBinary.Bid = binary.Bid / pricePrecision;
+                    lastBinary.Ask = binary.Ask / pricePrecision;
                 }
                 if (binary.IsTrade)
                 {
-                    WriteField(BinaryField.Price, &ptr, binary.Price / pricePrecision - lastPrice);
-                    WriteField(BinaryField.Size, &ptr, binary.Size - lastSize);
-                    lastPrice = binary.Price / pricePrecision;
-                    lastSize = binary.Size;
+                    WriteField(BinaryField.Price, &ptr, binary.Price / pricePrecision - lastBinary.Price);
+                    WriteField(BinaryField.Size, &ptr, binary.Size - lastBinary.Size);
+                    lastBinary.Price = binary.Price / pricePrecision;
+                    lastBinary.Size = binary.Size;
                 }
                 if (binary.IsOption)
                 {
-                    WriteField(BinaryField.Strike, &ptr, binary.Strike / pricePrecision - lastStrike);
-                    lastStrike = binary.Strike / pricePrecision;
-                    diff = (binary.UtcOptionExpiration - lastOptionExpiration);
+                    WriteField(BinaryField.Strike, &ptr, binary.Strike / pricePrecision - lastBinary.Strike);
+                    lastBinary.Strike = binary.Strike / pricePrecision;
+                    diff = (binary.UtcOptionExpiration - lastBinary.UtcOptionExpiration);
                     WriteField(BinaryField.OptionExpiration, &ptr, diff);
-                    lastOptionExpiration = binary.UtcOptionExpiration;
+                    lastBinary.UtcOptionExpiration = binary.UtcOptionExpiration;
                 }
                 if (binary.HasDepthOfMarket)
                 {

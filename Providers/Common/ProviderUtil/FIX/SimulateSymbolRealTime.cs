@@ -100,70 +100,65 @@ namespace TickZoom.FIX
             Dispose();
         }
 
-        private TrueTimer tickTimer;
         public void Initialize(Task task)
         {
             queueTask = task;
-            queueTask.Name = "SimulateSymbolSyncTicks-" + symbolString;
-            queueTask.Scheduler = Scheduler.EarliestTime;
+            queueTask.Name = "SimulateSymbolRealTime-" + symbolString;
+            queueTask.Scheduler = Scheduler.RoundRobin;
             fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();
-            tickTimer = Factory.Parallel.CreateTimer("TickTimer", queueTask, Invoke);
-            startTime = Factory.Parallel.UtcNow;
-            startTime.AddMicroseconds(1);
-            tickTimer.Start(startTime);
         }
 
-        private TimeStamp startTime;
-
+        private long nextMessageCounter;
         public Yield Invoke()
         {
             var result = Yield.NoWork.Repeat;
-            if( (tickCounter % 1000) == 0)
-            {
-                var elapsed = Factory.Parallel.UtcNow - startTime;
-                log.Info("Elapsed " + elapsed.Internal + "us or " + elapsed.TotalMilliseconds + "ms");
-            }
             LatencyManager.IncrementSymbolHandler();
             if( DequeueTick())
             {
+                if (tickCounter > nextMessageCounter)
+                {
+                    log.Info("Transmitted " + tickCounter + " ticks.");
+                    nextMessageCounter += 10000;
+                }
                 result = Yield.DidWork.Repeat;
             }
-            startTime = TimeStamp.UtcNow;
-            startTime.AddMicroseconds(1);
-            tickTimer.Start(startTime);
             return result;
         }
 
 		private bool DequeueTick() {
             LatencyManager.IncrementSymbolHandler();
             var result = false;
-
-            if (!reader.TryReadTick(temporaryTick))
+            while (!fixSimulatorSupport.QuotePacketQueue.IsFull)
             {
-                return result;
+                if( !reader.TryReadTick(temporaryTick))
+                {
+                    queueTask.Stop();
+                    break;
+                }
+                tickCounter++;
+                if (isFirstTick)
+                {
+                    currentTick.Inject(temporaryTick.Extract());
+                }
+                else
+                {
+                    currentTick.Inject(nextTick.Extract());
+                }
+                isFirstTick = false;
+                FillSimulator.StartTick(currentTick);
+                nextTick.Inject(temporaryTick.Extract());
+                if (FillSimulator.IsChanged)
+                {
+                    FillSimulator.ProcessOrders();
+                }
+                if (trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
+                ProcessOnTickCallBack();
+                TryEnqueuePacket();
+                result = true;
             }
-			tickCounter++;
-            if (isFirstTick)
-            {
-                currentTick.Inject(temporaryTick.Extract());
-            }
-            else
-            {
-                currentTick.Inject(nextTick.Extract());
-            }
-            isFirstTick = false;
-            FillSimulator.StartTick(currentTick);
-            nextTick.Inject(temporaryTick.Extract());
-            if (FillSimulator.IsChanged)
-            {
-                FillSimulator.ProcessOrders();
-            }
-		    if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
-		    ProcessOnTickCallBack();
-		    TryEnqueuePacket();
-		    return true;
-		}
+		    return result;
+		} 
 		
 		private Message quoteMessage;
 		private void ProcessOnTickCallBack() {
@@ -186,7 +181,6 @@ namespace TickZoom.FIX
 		    fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
 			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
             quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
-            queueTask.Pause();
 		}
 
         public void TryProcessAdjustments()

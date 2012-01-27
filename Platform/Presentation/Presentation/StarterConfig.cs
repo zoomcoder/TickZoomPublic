@@ -954,7 +954,7 @@ namespace TickZoom.Presentation
             }
             else
             {
-                log.Notice("You have the \"disable charts\" check box enabled.");
+                log.Warn("You have the \"disable charts\" check box enabled.");
             }
             starterInstance.ProjectProperties.Chart.ChartType = chartType;
             starterInstance.ProjectProperties.Starter.SetSymbols(symbolList);

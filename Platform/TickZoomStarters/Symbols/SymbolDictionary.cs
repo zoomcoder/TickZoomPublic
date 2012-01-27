@@ -334,6 +334,8 @@ namespace TickZoom.Symbols
       <symbol name=""Design"" />
       <symbol name=""FullTick"" />
       <symbol name=""Daily4Ticks"" />
+      <symbol name=""Daily4SimZB"" />
+      <symbol name=""USD_JPY_Back"" />
       <symbol name=""MockFull"" />
       <symbol name=""Mock4Ticks"" />
       <symbol name=""Mock4Sim"" />
@@ -412,6 +414,7 @@ namespace TickZoom.Symbols
         <symbol name=""USDJPYBenchMark"">
 		   <property name=""FullPointValue"" value=""0.0076651847309520159435842403801932"" />
         </symbol>
+        <symbol name=""USDJPY2ndHalfBenchMark"" />
         <symbol name=""USD_JPY_Volume"" />
         <symbol name=""USD_JPY_TEST"">
           <property name=""SessionEnd"" value=""09:22:13.000"" />
