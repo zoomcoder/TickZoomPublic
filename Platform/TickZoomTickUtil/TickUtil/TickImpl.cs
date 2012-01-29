@@ -240,6 +240,15 @@ namespace TickZoom.TickUtil
             tickSerializer.ToWriter(ref binary, writer);
         }
 
+        public void ResetCompression()
+        {
+            if (tickSerializer == null)
+            {
+                tickSerializer = new TickSerializerDefault();
+            }
+            tickSerializer.ResetCompression();
+        }
+
         public int FromReader(MemoryStream reader)
         {
             if (tickSerializer == null)

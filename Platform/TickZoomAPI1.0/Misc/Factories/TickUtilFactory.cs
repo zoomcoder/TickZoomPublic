@@ -38,6 +38,7 @@ namespace TickZoom.Api
 		TickIO TickIO();
 		TickWriter TickWriter(bool overwriteFile);
 		TickReader TickReader();
+	    TickFile TickFile();
 		void Release();
 
 	}

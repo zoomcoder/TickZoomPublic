@@ -165,7 +165,7 @@ namespace TickZoom.TZData
 		    }
 		}
 		
-		public override string[] Usage() {
+		public override string[] UsageLines() {
 			List<string> lines = new List<string>();
 			string name = Assembly.GetEntryAssembly().GetName().Name;
 			lines.Add(name + " register");

@@ -39,64 +39,54 @@ namespace TickZoom.TZData
 	{
 		public override void Run(string[] args)
 		{
-			if( args.Length != 2) {
+			if( args.Length != 1) {
 				Output("Migrate Usage:");
-                Output("tzdata " + Usage());
-				return;
+                Usage();
+                return;
 			}
-			MigrateFile(args[1],args[0]);
+			MigrateFile(args[0]);
 		}
 		
-		private void MigrateFile(string file, string symbol) {
+		private void MigrateFile(string file) {
 			if( File.Exists(file + ".back")) {
                 Output("A backup file already exists. Please delete it first at: " + file + ".back");
 				return;
 			}
-			using( var reader = new TickFile())
+		    TickFile reader;
+		    TickFile writer;
+            int count = 0;
+            TickIO firstTick = Factory.TickUtil.TickIO();
+            TickIO tickIO = Factory.TickUtil.TickIO();
+            using (reader = Factory.TickUtil.TickFile())
 			{
-                using (var writer = new TickFile())
+                using( writer = Factory.TickUtil.TickFile())
                 {
                     writer.EraseFileToStart = true;
-                    reader.Initialize(file, symbol, TickFileMode.Read);
+                    reader.Initialize(file, TickFileMode.Read);
 
                     writer.Initialize(file + ".temp", TickFileMode.Write);
 
-                    TickIO firstTick = Factory.TickUtil.TickIO();
-                    TickIO tickIO = Factory.TickUtil.TickIO();
-                    int count = 0;
                     bool first = true;
-                    try
+                    while (reader.TryReadTick(tickIO))
                     {
-                        while (reader.TryReadTick(tickIO))
+                        writer.WriteTick(tickIO);
+                        if (first)
                         {
-                            writer.WriteTick(tickIO);
-                            if (first)
-                            {
-                                firstTick.Copy(tickIO);
-                                first = false;
-                            }
-                            count++;
+                            firstTick.Copy(tickIO);
+                            first = false;
                         }
+                        count++;
                     }
-                    catch (QueueException ex)
-                    {
-                        if (ex.EntryType != EventType.EndHistorical)
-                        {
-                            throw new ApplicationException("Unexpected QueueException: " + ex);
-                        }
-                    }
-                    Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
                 }
             }
-			Alter.MoveFile( file, file + ".back");
+            Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
+            Alter.MoveFile(file, file + ".back");
             Alter.MoveFile(file + ".temp", file);
 		}
 		
-		public override string[] Usage() {
-			List<string> lines = new List<string>();
-			string name = Assembly.GetEntryAssembly().GetName().Name;
-			lines.Add( name + " migrate <symbol> <file>");
-			return lines.ToArray();
+		public override string[] UsageLines()
+		{
+		    return new string[] {AssemblyName + " migrate <file>"};
 		}
 	}
 }

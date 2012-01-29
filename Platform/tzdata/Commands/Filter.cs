@@ -36,20 +36,15 @@ namespace TickZoom.TZData
 {
 	public class Filter : Command
 	{
-		string assemblyName;
 		public Filter() {
-			Assembly assembly = Assembly.GetEntryAssembly();
-			if( assembly != null) {
-				assemblyName = assembly.GetName().Name;
-			}
 		}
 		
 		public override void Run(string[] args)
 		{
 			if( args.Length != 2 && args.Length != 4) {
 				Output("Filter Usage:");
-				Output("tzdata " + Usage()); 
-				return;
+                Usage();
+                return;
 			}
 		    var field = 0;
 			string from = args[field++];
@@ -68,8 +63,8 @@ namespace TickZoom.TZData
 		
 		private void FilterFile(string inputPath, string outputPath, TimeStamp startTime, TimeStamp endTime)
 		{
-		    using( var reader = new TickFile())
-		    using( var writer = new TickFile())
+		    using( var reader = Factory.TickUtil.TickFile())
+		    using( var writer = Factory.TickUtil.TickFile())
 		    {
                 writer.Initialize(outputPath, TickFileMode.Write);
                 reader.Initialize(inputPath, TickFileMode.Read);
@@ -125,13 +120,9 @@ namespace TickZoom.TZData
             }
 		}
 
-		public override string[] Usage() {
-			return new string[] { assemblyName + " filter <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
+		public override string[] UsageLines() {
+			return new string[] { AssemblyName + " filter <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
 		}
 		
-		public string AssemblyName {
-			get { return assemblyName; }
-			set { assemblyName = value; }
-		}
 	}
 }

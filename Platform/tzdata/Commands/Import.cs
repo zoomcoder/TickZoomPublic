@@ -13,17 +13,7 @@ using TickZoom.TickUtil;
 
 namespace TickZoom.TZData
 {
-    public abstract class Command : CommandInterface
-    {
-		private Action<string> output = Console.WriteLine;
-		public Action<string> Output {
-			get { return output; }
-			set { output = value; }
-		}
-		public abstract void Run(string[] args);
-		public abstract string[] Usage();
-	}
-	/// <summary>
+    /// <summary>
 	/// Convert tick data exported from TradeStation into TickZoom format.
 	/// </summary>
 	public class Import : Command
@@ -61,8 +51,8 @@ namespace TickZoom.TZData
 		{
 			if( args.Length != 2 && args.Length != 4) {
 				Console.Write("Import Usage:");
-				Console.Write("tzdata " + Usage()); 
-				return;
+                Usage();
+                return;
 			}
 			SymbolInfo symbol;
 			string symbolString = args[0];
@@ -202,7 +192,7 @@ namespace TickZoom.TZData
 
 			if( tickWriter == null)
 			{
-			    tickWriter = new TickFile();
+			    tickWriter = Factory.TickUtil.TickFile();
 				string folder = "DataCache";
 			    tickWriter.EraseFileToStart = true;
 				tickWriter.Initialize(folder, symbol.Symbol, TickFileMode.Write);
@@ -269,7 +259,7 @@ namespace TickZoom.TZData
 		
 		}
 		
-		public override string[] Usage() {
+		public override string[] UsageLines() {
 			return new string[] { assemblyName + " import <symbol> <fromfile> <tofile> [<starttimestamp> <endtimestamp>]" };
 		}
 		

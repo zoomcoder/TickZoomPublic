@@ -289,7 +289,7 @@ namespace Other
 				string appData = Factory.Settings["AppDataFolder"];
 				string compareFile1 = appData + @"\Test\MockProviderData\ESZ9.tck";
 				string compareFile2 = appData + @"\Test\ServerCache\ESZ9.tck";
-				using ( var reader1 = new TickFile()) {
+				using ( var reader1 = Factory.TickUtil.TickFile()) {
 					reader1.Initialize(compareFile1,config.SymbolList,TickFileMode.Read);
 				    var tickIO = Factory.TickUtil.TickIO();
 					try {
@@ -302,8 +302,8 @@ namespace Other
                         Assert.IsTrue(ex.EntryType == EventType.StartHistorical || ex.EntryType == EventType.EndHistorical,"start or end historical");
 					}
 				}
-				using ( var reader1 = new TickFile())
-				using ( var reader2 = new TickFile()) {
+				using ( var reader1 = Factory.TickUtil.TickFile())
+				using ( var reader2 = Factory.TickUtil.TickFile()) {
 					reader1.Initialize(compareFile1,TickFileMode.Read);
 					reader2.Initialize(compareFile2,TickFileMode.Read);
 				    var tickIO1 = Factory.TickUtil.TickIO();

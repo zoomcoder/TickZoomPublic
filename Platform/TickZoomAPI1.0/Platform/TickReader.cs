@@ -54,7 +54,6 @@ namespace TickZoom.Api
 		long MaxCount { get; set; }
         long Count { get; }
         bool QuietMode { get; set; }
-		bool BulkFileLoad { get; set; }
 		TickIO LastTick { get; }
 		void CloseAll();
 	}

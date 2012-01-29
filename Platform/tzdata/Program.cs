@@ -81,11 +81,8 @@ namespace TickZoom.TZData
             Console.WriteLine();
             foreach (var kvp in commands)
             {
-                Command command = kvp.Value;
-                foreach (var line in command.Usage())
-                {
-                    Console.WriteLine("  " + line);
-                }
+                var command = kvp.Value;
+                command.Usage();
             }
         }
 	}

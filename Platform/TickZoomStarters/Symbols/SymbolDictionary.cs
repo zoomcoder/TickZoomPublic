@@ -421,6 +421,7 @@ namespace TickZoom.Symbols
         </symbol>
         <category name=""TCK file testing"">
           <property name=""MinimumTick"" value=""0.0001"" />
+          <symbol name=""TEST"" />
           <symbol name=""TST_TST"" />
           <symbol name=""TST_VR2"" />
           <symbol name=""TST_VR3"" />

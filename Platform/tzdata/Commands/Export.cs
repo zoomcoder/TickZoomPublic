@@ -15,7 +15,7 @@ namespace TickZoom.TZData
 
         // Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         TickIO tickIO = Factory.TickUtil.TickIO();
-        TickFile reader = new TickFile();
+        TickFile reader = Factory.TickUtil.TickFile();
 
         private TimeStamp startTime = TimeStamp.MinValue;
         private TimeStamp endTime = TimeStamp.MaxValue;
@@ -62,7 +62,7 @@ namespace TickZoom.TZData
             else
             {
                 Output("Export Usage:");
-                Output("tzdata " + Usage());
+                Usage();
                 return;
             }
             ReadFile();
@@ -94,7 +94,7 @@ namespace TickZoom.TZData
             }
         }
 
-        public override string[] Usage()
+        public override string[] UsageLines()
         {
             return new string[] { assemblyName + " export [<symbol>] <file> [<starttimestamp> <endtimestamp>]" };
         }

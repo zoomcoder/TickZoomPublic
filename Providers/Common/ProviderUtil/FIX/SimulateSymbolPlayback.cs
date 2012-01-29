@@ -49,7 +49,7 @@ namespace TickZoom.FIX
             this.fixSimulatorSupport = fixSimulatorSupport;
             this.onTick = onTick;
             this.symbol = Factory.Symbol.LookupSymbol(symbolString);
-            reader = new TickFile();
+            reader = Factory.TickUtil.TickFile();
             this.symbolString = symbolString;
             reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);

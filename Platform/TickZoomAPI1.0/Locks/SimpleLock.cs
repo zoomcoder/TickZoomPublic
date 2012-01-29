@@ -32,7 +32,7 @@ namespace TickZoom.Api
 {
 	public class SimpleLock : IDisposable
 	{
-	    private static readonly Log log = Factory.Log.GetLogger(typeof (SimpleLock));
+	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (SimpleLock));
 	    private static readonly bool debug = log.IsDebugEnabled;
 	    private int isLocked = 0;
 	    

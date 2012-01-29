@@ -15,7 +15,7 @@ namespace TickZoom.TZData
             if (args.Length != 1)
             {
                 Output("Alter Usage:");
-                Output("tzdata " + Usage());
+                Usage();
                 return;
             }
             AlterFile(args[0]);
@@ -28,24 +28,28 @@ namespace TickZoom.TZData
                 Output("A backup file already exists. Please delete it first at: " + file + ".back");
                 return;
             }
-            using (var reader = new TickFile())
-            using (var writer = new TickFile())
+            TickFile reader;
+            TickFile writer;
+            var firstTick = Factory.TickUtil.TickIO();
+            var tickIO = Factory.TickUtil.TickIO();
+            int count = 0;
+            using (reader = Factory.TickUtil.TickFile())
             {
-                reader.Initialize(file,TickFileMode.Read);
-
-                writer.Initialize(file + ".temp", TickFileMode.Write);
-
-                var firstTick = Factory.TickUtil.TickIO();
-                var tickIO = Factory.TickUtil.TickIO();
-                int count = 0;
-                while (reader.TryReadTick(tickIO))
+                using (writer = Factory.TickUtil.TickFile())
                 {
-                    tickIO.IsSimulateTicks = false;
-                    writer.WriteTick(tickIO);
-                    count++;
+                    reader.Initialize(file, TickFileMode.Read);
+
+                    writer.Initialize(file + ".temp", TickFileMode.Write);
+
+                    while (reader.TryReadTick(tickIO))
+                    {
+                        tickIO.IsSimulateTicks = false;
+                        writer.WriteTick(tickIO);
+                        count++;
+                    }
                 }
-                Output(reader.Symbol + ": Altered " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
             }
+            Output(reader.Symbol + ": Altered " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
             MoveFile(file, file + ".back");
             MoveFile(file + ".temp", file);
         }
@@ -81,7 +85,7 @@ namespace TickZoom.TZData
                 throw new IOException("Can't move " + path + " to " + topath, ex);
             }
         }
-        public override string[] Usage()
+        public override string[] UsageLines()
         {
             List<string> lines = new List<string>();
             string name = Assembly.GetEntryAssembly().GetName().Name;

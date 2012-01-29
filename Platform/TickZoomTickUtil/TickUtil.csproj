@@ -81,9 +81,12 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TickUtil\DataReceiverQueueWrapper.cs" />
+    <Compile Include="TickUtil\FileBlock.cs" />
     <Compile Include="TickUtil\NodePool.cs" />
     <Compile Include="TickUtil\Reader.cs" />
     <Compile Include="TickUtil\TickFile.cs" />
+    <Compile Include="TickUtil\TickFileBlocked.cs" />
+    <Compile Include="TickUtil\TickFileLegacy.cs" />
     <Compile Include="TickUtil\TickMemoryStream.cs" />
     <Compile Include="TickUtil\BarWriter.cs" />
     <Compile Include="TickUtil\BitArray.cs" />

@@ -55,7 +55,7 @@ namespace TickZoom.TickUtil
 		
 		public TickWriterDefault(bool eraseFileToStart)
 		{
-            tickFile = new TickFile();
+            tickFile = Factory.TickUtil.TickFile();
 		    tickFile.EraseFileToStart = eraseFileToStart;
 			writeQueue = Factory.Parallel.TickQueue(typeof(TickWriter));
 			writeQueue.StartEnqueue = Start;

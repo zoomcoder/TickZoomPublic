@@ -30,8 +30,7 @@ using System.IO;
 
 namespace TickZoom.Api
 {
-
-	/// <summary>
+    /// <summary>
 	/// Description of TickIO
 	/// </summary>
 	[CLSCompliant(false)]
@@ -120,5 +119,6 @@ namespace TickZoom.Api
 		}
 
 	    long lUtcTime { get; }
+        void ResetCompression();
 	}
 }

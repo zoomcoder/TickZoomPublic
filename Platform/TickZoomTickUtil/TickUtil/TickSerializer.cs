@@ -10,6 +10,7 @@ namespace TickZoom.TickUtil
         void ToWriter(ref TickBinary binary, MemoryStream writer);
         int FromReader(ref TickBinary binary, MemoryStream reader);
         int FromReader(ref TickBinary binary, byte dataVersion, BinaryReader reader);
+        void ResetCompression();
     }
 
     unsafe public class TickSerializerDefault : TickSerializer
@@ -149,6 +150,12 @@ namespace TickZoom.TickUtil
                 }
             }
         }
+
+        public void ResetCompression()
+        {
+            isCompressStarted = false;
+        }
+
         private void SetPricePrecision(ref TickBinary binary)
         {
             var symbol = Factory.Symbol.LookupSymbol(binary.Symbol);
@@ -186,6 +193,7 @@ namespace TickZoom.TickUtil
                 if (!isCompressStarted)
                 {
                     if (debug) log.Debug("Writing Reset token during tick compression.");
+                    lastBinary = default(TickBinary);
                     WriteField2(BinaryField.Reset, &ptr, 1);
                     isCompressStarted = true;
                     if (verbose) log.Verbose("Reset Dx " + lastBinary);

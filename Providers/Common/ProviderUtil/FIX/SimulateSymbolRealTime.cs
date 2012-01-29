@@ -84,7 +84,7 @@ namespace TickZoom.FIX
             latency = new LatencyMetric("SimulateSymbolRealTime-" + symbolString.StripInvalidPathChars());
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");
             if (debug) log.Debug("Openning tick file for reading.");
-            reader = new TickFile();
+            reader = Factory.TickUtil.TickFile();
             try
             {
                 reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);

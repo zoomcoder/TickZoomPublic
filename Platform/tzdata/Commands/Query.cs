@@ -39,7 +39,7 @@ namespace TickZoom.TZData
 	public class Query : Command
 	{
 		StringBuilder stringBuilder = new StringBuilder();
-	    private TickFile reader = new TickFile();
+	    private TickFile reader = Factory.TickUtil.TickFile();
 		
 		public override void Run(string[] args)
 		{
@@ -180,7 +180,7 @@ namespace TickZoom.TZData
 			return stringBuilder.ToString();
 		}
 		
-		public override string[] Usage() {
+		public override string[] UsageLines() {
 			List<string> lines = new List<string>();
 			string name = Assembly.GetEntryAssembly().GetName().Name;
 			lines.Add( name + " query <symbol> <file>");

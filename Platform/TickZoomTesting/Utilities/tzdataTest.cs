@@ -65,8 +65,7 @@ namespace TickZoom.Utilities
 				"2005/05/05",
 				"2005/05/10"
 			};
-	       	Filter filter = new Filter();
-	       	filter.AssemblyName = "tzdata";
+	       	var filter = new Filter();
 	       	filter.Run(args);
 		}
 		
@@ -84,8 +83,7 @@ namespace TickZoom.Utilities
 				"2005/05/05",
 				"2005/05/10"
 			};
-	       	Filter filter = new Filter();
-	       	filter.AssemblyName = "tzdata";
+	       	var filter = new Filter();
 	       	var sb = new StringBuilder();
 	       	filter.Output = sb.WriteLine;
 	       	filter.Run(args);
@@ -111,7 +109,7 @@ namespace TickZoom.Utilities
 	       	import.AssemblyName = "tzdata";
 	       	import.Run(args);
 
-		    var reader = new TickFile();
+		    var reader = Factory.TickUtil.TickFile();
 	       	reader.Initialize(@"DataCache", symbol.ToString(), TickFileMode.Read);
 	       	var tickIO = Factory.TickUtil.TickIO();
 	       	var sb = new StringBuilder();
@@ -243,7 +241,7 @@ namespace TickZoom.Utilities
 	       	}
 	       	File.Copy(fileName, origFile);
 	       	
-	       	string[] args = { "USD/JPY", origFile };
+	       	string[] args = { origFile };
 	       	
 	       	Migrate migrate = new Migrate();
 	       	migrate.Run(args);

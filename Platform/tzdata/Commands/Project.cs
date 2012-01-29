@@ -40,13 +40,13 @@ namespace TickZoom.TZData
 		{
 			if( args.Length != 1) {
 				Console.Write("Solution Usage:");
-				Console.Write("tzdata " + Usage());
-				return;
+                Usage();
+                return;
 			}
 			GenerateProject(args[0]);
 		}
 		
-		public override string[] Usage() {
+		public override string[] UsageLines() {
 			List<string> lines = new List<string>();
 			string name = Assembly.GetEntryAssembly().GetName().Name;
 			lines.Add( name + " project <path>");

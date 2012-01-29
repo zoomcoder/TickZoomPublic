@@ -60,8 +60,8 @@ namespace TickZoom.TickUtil
 			lock(readerListLocker) {
 				readerList.Add(this);
 			}
-            tickFile = new TickFile();
-        }
+		    tickFile = Factory.TickUtil.TickFile();
+		}
 
         public void Initialize(Task task)
         {
@@ -422,11 +422,6 @@ namespace TickZoom.TickUtil
 		public bool QuietMode {
 			get { return tickFile.QuietMode; }
 			set { tickFile.QuietMode = value; }
-		}
-
-		public bool BulkFileLoad {
-			get { return tickFile.BulkFileLoad; }
-			set { tickFile.BulkFileLoad = value; }
 		}
 
 		public TickIO LastTick {

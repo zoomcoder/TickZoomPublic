@@ -59,5 +59,10 @@ namespace TickZoom.TickUtil
                 new TickReaderDefault().CloseAll();
             }
         }
+
+        public TickFile TickFile()
+        {
+            return new TickFileBlocked();
+        }
     }
 }

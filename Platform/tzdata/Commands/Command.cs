@@ -25,13 +25,46 @@
 #endregion
 
 using System;
+using System.Reflection;
 using Microsoft.Win32;
 
 namespace TickZoom.TZData
 {
-	public interface CommandInterface {
+    public abstract class Command : CommandInterface
+    {
+        private Action<string> output = Console.WriteLine;
+        public Action<string> Output {
+            get { return output; }
+            set { output = value; }
+        }
+        public abstract void Run(string[] args);
+        public abstract string[] UsageLines();
+        public void Usage()
+        {
+            foreach( var line in UsageLines())
+            {
+                Output(line);
+            }
+        }
+
+        public string AssemblyName
+        {
+            get
+            {
+                string assemblyName = "tzdata";
+                Assembly assembly = Assembly.GetEntryAssembly();
+                if (assembly != null)
+                {
+                    assemblyName = assembly.GetName().Name;
+                }
+                return assemblyName;
+            }
+        }
+    }
+
+    public interface CommandInterface {
 		void Run(string[] args);
-		string[] Usage();
+		string[] UsageLines();
 		Action<string> Output { get; set; }
 	}
 }
