@@ -36,6 +36,7 @@ namespace TickZoom.TickUtil
         private bool endOfData = true;
         private FileBlock fileBlock;
         private long startCount;
+        private bool isInitialized;
 
         public unsafe TickFileBlocked()
         {
@@ -56,7 +57,7 @@ namespace TickZoom.TickUtil
 
         private void InitLogging()
         {
-            log = Factory.SysLog.GetLogger("TickZoom.TickUtil.TickFileBlocked." + mode + "." + Symbol.Symbol.StripInvalidPathChars());
+            log = Factory.SysLog.GetLogger("TickZoom.TickUtil.TickFileBlocked." + mode + "." + symbol.Symbol.StripInvalidPathChars());
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
         }
@@ -97,6 +98,7 @@ namespace TickZoom.TickUtil
                 isLegacy = true;
                 legacy.Initialize(folderOrfile,symbolFile,mode);
             }
+            isInitialized = true;
         }
 
         public void Initialize(string fileName, TickFileMode mode)
@@ -104,10 +106,10 @@ namespace TickZoom.TickUtil
             this.mode = mode;
             this.fileName = fileName = Path.GetFullPath(fileName);
             string baseName = Path.GetFileNameWithoutExtension(fileName);
-            if (Symbol == null)
+            if (symbol == null)
             {
                 symbol = Factory.Symbol.LookupSymbol(baseName.Replace("_Tick", ""));
-                lSymbol = Symbol.BinaryIdentifier;
+                lSymbol = symbol.BinaryIdentifier;
             }
             InitLogging();
             Directory.CreateDirectory(Path.GetDirectoryName(fileName));
@@ -124,11 +126,12 @@ namespace TickZoom.TickUtil
                 isLegacy = true;
                 legacy.Initialize(fileName, mode);
             }
+            isInitialized = true;
         }
 
         private void OpenFile()
         {
-            lSymbol = Symbol.BinaryIdentifier;
+            lSymbol = symbol.BinaryIdentifier;
             switch (mode)
             {
                 case TickFileMode.Read:
@@ -147,7 +150,7 @@ namespace TickZoom.TickUtil
 
         private void OpenFileForWriting()
         {
-            if (EraseFileToStart)
+            if (eraseFileToStart)
             {
                 log.Notice("TickWriter file will be erased to begin writing.");
                 CreateFileForWriting();
@@ -253,6 +256,7 @@ namespace TickZoom.TickUtil
 
         public bool TryWriteTick(TickIO tickIO)
         {
+            if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
             if (isLegacy) return legacy.TryWriteTick(tickIO);
             TryCompleteAsyncWrite();
             if (trace) log.Trace("Writing to file buffer: " + tickIO);
@@ -276,6 +280,7 @@ namespace TickZoom.TickUtil
 
         public void WriteTick(TickIO tickIO)
         {
+            if (!isInitialized) throw new InvalidOperationException("Please call one of the Initialize() methods first.");
             TryWriteTick(tickIO);
         }
 
@@ -359,12 +364,12 @@ namespace TickZoom.TickUtil
                 {
                     if (!quietMode)
                     {
-                        LogInfo("Reading from file: " + FileName);
+                        LogInfo("Reading from file: " + fileName);
                     }
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(FileName));
+                    Directory.CreateDirectory(Path.GetDirectoryName(fileName));
 
-                    fs = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                     var headerBytes = new byte[sizeof(TickFileHeader)];
                     var headerSize = sizeof (TickFileHeader);
                     var readBytes = fs.Read(headerBytes, 0, headerSize);
@@ -424,7 +429,7 @@ namespace TickZoom.TickUtil
             do
             {
                 fileBlock.ReadNextBlock(fs);
-            } while (fileBlock.LastUtcTimeStamp < StartTime.Internal);
+            } while (fileBlock.LastUtcTimeStamp < startTime.Internal);
         }
 
 
@@ -435,11 +440,11 @@ namespace TickZoom.TickUtil
             {
                 if (fileName.Contains("_Tick.tck"))
                 {
-                    locatedFile = FindFile(FileName.Replace("_Tick.tck", ".tck"));
+                    locatedFile = FindFile(fileName.Replace("_Tick.tck", ".tck"));
                 }
                 else
                 {
-                    locatedFile = FindFile(FileName.Replace(".tck", "_Tick.tck"));
+                    locatedFile = FindFile(fileName.Replace(".tck", "_Tick.tck"));
                 }
                 if (locatedFile != null)
                 {
@@ -448,7 +453,7 @@ namespace TickZoom.TickUtil
                 }
                 else if( mode == TickFileMode.Read)
                 {
-                    throw new FileNotFoundException("Sorry, unable to find the file: " + FileName);
+                    throw new FileNotFoundException("Sorry, unable to find the file: " + fileName);
                 }
                 else
                 {
@@ -463,7 +468,9 @@ namespace TickZoom.TickUtil
 
         public void GetLastTick(TickIO lastTickIO)
         {
-            if( isLegacy) {
+            if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+            if (isLegacy)
+            {
                 legacy.GetLastTick(lastTickIO);
                 return; 
             }
@@ -484,6 +491,7 @@ namespace TickZoom.TickUtil
 
         public bool TryReadTick(TickIO tickIO)
         {
+            if (!isInitialized) return false;
             if (isLegacy) return legacy.TryReadTick(tickIO);
             if( tickCount > MaxCount || endOfData)
             {
@@ -531,7 +539,8 @@ namespace TickZoom.TickUtil
 
         public void Flush()
         {
-            if( isLegacy)
+            if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+            if (isLegacy)
             {
                 legacy.Flush();
                 return;
@@ -662,6 +671,7 @@ namespace TickZoom.TickUtil
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.Length;
                 return fs.Length;
             }
@@ -671,6 +681,7 @@ namespace TickZoom.TickUtil
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.Position;
                 return fs.Position;
             }
@@ -680,6 +691,7 @@ namespace TickZoom.TickUtil
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.DataVersion;
                 return dataVersion;
             }
@@ -687,18 +699,24 @@ namespace TickZoom.TickUtil
 
         public int BlockVersion
         {
-            get { return fileHeader.blockHeader.version; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return fileHeader.blockHeader.version;
+            }
         }
 
         public bool QuietMode
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.QuietMode;
                 return quietMode;
             }
             set
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy)
                 {
                     legacy.QuietMode = value;
@@ -712,6 +730,7 @@ namespace TickZoom.TickUtil
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.FileName;
                 return fileName;
             }
@@ -721,6 +740,7 @@ namespace TickZoom.TickUtil
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.Symbol;
                 return symbol;
             }
@@ -735,11 +755,8 @@ namespace TickZoom.TickUtil
             }
             set
             {
-                if (isLegacy)
-                {
-                    legacy.EraseFileToStart = value;
-                    return;
-                }
+                if (isInitialized) throw new InvalidStateException("Please set EraseFileToStart before any Initialize() method.");
+                legacy.EraseFileToStart = value;
                 eraseFileToStart = value;
             }
         }
@@ -748,6 +765,7 @@ namespace TickZoom.TickUtil
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.WriteCounter;
                 return writeCounter;
             }
@@ -757,11 +775,13 @@ namespace TickZoom.TickUtil
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.MaxCount;
                 return maxCount;
             }
             set
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy)
                 {
                     legacy.MaxCount = value;
@@ -773,19 +793,29 @@ namespace TickZoom.TickUtil
 
         public long StartCount
         {
-            get { return startCount; }
-            set { startCount = value; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return startCount;
+            }
+            set
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                startCount = value;
+            }
         }
 
         public TimeStamp StartTime
         {
             get
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy) return legacy.StartTime;
                 return startTime;
             }
             set
             {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 if (isLegacy)
                 {
                     legacy.StartTime = value;
@@ -796,8 +826,16 @@ namespace TickZoom.TickUtil
 
         public TimeStamp EndTime
         {
-            get { return endTime; }
-            set { endTime = value; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return endTime;
+            }
+            set
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                endTime = value;
+            }
         }
     }
 }

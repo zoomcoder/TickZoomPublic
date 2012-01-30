@@ -39,6 +39,7 @@ namespace TickZoom.TickUtil
         private TimeStamp startTime = TimeStamp.MinValue;
         private TimeStamp endTime = TimeStamp.MaxValue;
         private bool endOfData;
+        private bool isInitialized = false;
 
         public TickFileLegacy()
         {
@@ -62,7 +63,7 @@ namespace TickZoom.TickUtil
 
         private void InitLogging()
         {
-            log = Factory.SysLog.GetLogger("TickZoom.TickUtil.TickFileLegacy." + mode + "." + Symbol.Symbol.StripInvalidPathChars());
+            log = Factory.SysLog.GetLogger("TickZoom.TickUtil.TickFileLegacy." + mode + "." + symbol.Symbol.StripInvalidPathChars());
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
         }
@@ -93,6 +94,7 @@ namespace TickZoom.TickUtil
             CheckFileExtension();
             if (debug) log.Debug("File Name = " + fileName);
             OpenFile();
+            isInitialized = true;
         }
 
         public void Initialize(string fileName, TickFileMode mode)
@@ -110,11 +112,12 @@ namespace TickZoom.TickUtil
             CheckFileExtension();
             if (debug) log.Debug("File Name = " + fileName);
             OpenFile();
+            isInitialized = true;
         }
 
         private void OpenFile()
         {
-            lSymbol = Symbol.BinaryIdentifier;
+            lSymbol = symbol.BinaryIdentifier;
             switch (mode)
             {
                 case TickFileMode.Read:
@@ -195,6 +198,7 @@ namespace TickZoom.TickUtil
 
         public bool TryWriteTick(TickIO tickIO)
         {
+            if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
             TryCompleteAsyncWrite();
             if (trace) log.Trace("Writing to file buffer: " + tickIO);
             tickIO.ToWriter(memory);
@@ -212,6 +216,7 @@ namespace TickZoom.TickUtil
 
         public void WriteTick(TickIO tickIO)
         {
+            if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
             tickIO.ToWriter(memory);
             if (memory.Position > 5000)
             {
@@ -219,7 +224,7 @@ namespace TickZoom.TickUtil
             }
         }
 
-        public void OpenFileForReading()
+        private void OpenFileForReading()
         {
             for (int retry = 0; retry < 3; retry++)
             {
@@ -227,12 +232,12 @@ namespace TickZoom.TickUtil
                 {
                     if (!quietMode)
                     {
-                        LogInfo("Reading from file: " + FileName);
+                        LogInfo("Reading from file: " + fileName);
                     }
 
-                    Directory.CreateDirectory(Path.GetDirectoryName(FileName));
+                    Directory.CreateDirectory(Path.GetDirectoryName(fileName));
 
-                    fs = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
                     bufferedStream = new BufferedStream(fs, 15 * 1024);
 
                     dataIn = new BinaryReader(bufferedStream, Encoding.Unicode);
@@ -294,6 +299,7 @@ namespace TickZoom.TickUtil
 
         public void GetLastTick(TickIO lastTickIO)
         {
+            if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
             Stream stream;
             stream = new FileStream(FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             dataIn = new BinaryReader(stream, Encoding.Unicode);
@@ -323,7 +329,8 @@ namespace TickZoom.TickUtil
 
         public bool TryReadTick(TickIO tickIO)
         {
-            if( dataIn == null || tickCount > MaxCount || endOfData)
+            if (!isInitialized) return false;
+            if (dataIn == null || tickCount > MaxCount || endOfData)
             {
                 return false;
             }
@@ -399,6 +406,7 @@ namespace TickZoom.TickUtil
 
         public void Flush()
         {
+            if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
             if (debug) log.Debug("Before flush memory " + memory.Position);
             while (memory.Position > 0 || streamsToWrite.Count > 0 || writeFileResult != null)
             {
@@ -539,62 +547,125 @@ namespace TickZoom.TickUtil
 
         public long Length
         {
-            get { return dataIn == null ? 0 : dataIn.BaseStream.Length; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return dataIn == null ? 0 : dataIn.BaseStream.Length;
+            }
         }
 
         public long Position
         {
-            get { return dataIn == null ? 0 : dataIn.BaseStream.Position; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return dataIn == null ? 0 : dataIn.BaseStream.Position;
+            }
         }
 
         public int DataVersion
         {
-            get { return dataVersion; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return dataVersion;
+            }
         }
 
         public bool QuietMode
         {
-            get { return quietMode; }
-            set { quietMode = value; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return quietMode;
+            }
+            set
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                quietMode = value;
+            }
         }
 
         public string FileName
         {
-            get { return fileName; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return fileName;
+            }
         }
 
         public SymbolInfo Symbol
         {
-            get { return symbol; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return symbol;
+            }
         }
 
         public bool EraseFileToStart
         {
-            get { return eraseFileToStart; }
-            set { eraseFileToStart = value; }
+            get
+            {
+                return eraseFileToStart;
+            }
+            set
+            {
+                if (isInitialized) throw new InvalidStateException("Please set EraseFileToStart before any Initialize() method.");
+                eraseFileToStart = value;
+            }
         }
 
         public long WriteCounter
         {
-            get { return writeCounter; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return writeCounter;
+            }
         }
 
         public long MaxCount
         {
-            get { return maxCount; }
-            set { maxCount = value; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return maxCount;
+            }
+            set
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                maxCount = value;
+            }
         }
 
         public TimeStamp StartTime
         {
-            get { return startTime; }
-            set { startTime = value; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return startTime;
+            }
+            set
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                startTime = value;
+            }
         }
 
         public TimeStamp EndTime
         {
-            get { return endTime; }
-            set { endTime = value; }
+            get
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                return endTime;
+            }
+            set
+            {
+                if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                endTime = value;
+            }
         }
     }
 }

@@ -23,6 +23,13 @@ namespace TickZoom.Common
             }
         }
 
+        protected Dictionary<long, int> rejectCountBySerial = new Dictionary<long, int>();
+        protected Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
+        protected Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
+        protected Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
+        protected Dictionary<long, SymbolPosition> positions = new Dictionary<long, SymbolPosition>();
+        protected Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
+
         protected class SymbolPosition
         {
             public long Position;
@@ -32,11 +39,39 @@ namespace TickZoom.Common
             }
         }
 
-        protected Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
-        protected Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
-        protected Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
-        protected Dictionary<long, SymbolPosition> positions = new Dictionary<long, SymbolPosition>();
-        protected Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
+        public void ClearRejects()
+        {
+            rejectCountBySerial.Clear();
+        }
+
+        public void CheckForExcessiveRejects(CreateOrChangeOrder order)
+        {
+            int count;
+            var serialNumber = order.LogicalSerialNumber;
+            if( serialNumber == 0)
+            {
+                if (order.OriginalOrder == null)
+                {
+                    serialNumber = order.LogicalSerialNumber;
+                }
+                else
+                {
+                    order = order.OriginalOrder;
+                }
+            }
+            if (rejectCountBySerial.TryGetValue(serialNumber, out count))
+            {
+                if (count > 3)
+                {
+                    throw new ApplicationException("More then " + count + " rejects occurred for logical serial number " + order.LogicalSerialNumber);
+                }
+                rejectCountBySerial[serialNumber] += 1;
+            }
+            else
+            {
+                rejectCountBySerial[serialNumber] = 1;
+            }
+        }
 
         public PhysicalOrderCacheDefault()
         {
@@ -216,7 +251,9 @@ namespace TickZoom.Common
                     if (orderBySerial.BrokerOrder.Equals(clientOrderId))
                     {
                         var result2 = ordersBySerial.Remove(order.LogicalSerialNumber);
-                        if (result2 && trace) log.Trace("Removed order by logical id " + order.LogicalSerialNumber + ": " + orderBySerial);
+                        if (result2 && trace) log.Trace("Removed order by logical serial " + order.LogicalSerialNumber + ": " + orderBySerial);
+                        var result3 = rejectCountBySerial.Remove(order.LogicalSerialNumber);
+                        if (result3 && trace) log.Trace("Removed reject count by logical serial " + order.LogicalSerialNumber);
                     }
                 }
                 return order;

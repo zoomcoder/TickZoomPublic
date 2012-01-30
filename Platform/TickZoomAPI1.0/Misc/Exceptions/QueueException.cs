@@ -28,7 +28,7 @@ using System;
 
 namespace TickZoom.Api
 {
-	/// <summary>
+    /// <summary>
 	/// Description of Class1.
 	/// </summary>
 	[Serializable]
