@@ -267,8 +267,21 @@ namespace TickZoom.Utilities
             string output = query.ToString();
 			Assert.AreEqual(expectedOutput,output);			
 		}
-		
-		[Test]
+
+        [Test]
+        public void TestQuery2()
+        {
+            var appData = Factory.Settings["AppDataFolder"];
+            string[] args = { appData + @"\Test\\DataCache\USDJPY.AfterMigrate.tck" };
+            Query query = new Query();
+            query.Run(args);
+            string expectedOutput =
+                "Symbol: USD/JPY\r\nVersion: 11\r\nTicks: 65774\r\nQuote Only: 65774\r\nFrom: 2005-05-02 03:01:34.606000 (local), 2005-05-02 07:01:34.606000 (UTC)\r\n  To: 2005-05-31 11:59:50.027000 (local), 2005-05-31 15:59:50.027000 (UTC)\r\nPrices duplicates: 25\r\n";
+            string output = query.ToString();
+            Assert.AreEqual(expectedOutput, output);
+        }
+
+        [Test]
 		public void TestRegister()
 		{
 	       	Register register = new Register();

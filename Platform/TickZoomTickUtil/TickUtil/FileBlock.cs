@@ -65,7 +65,7 @@ namespace TickZoom.TickUtil
             {
                 tickBlockHeader.lastUtcTimeStamp = tickIO.lUtcTime;
             }
-            return true;
+            return result;
         }
 
         public unsafe void ReadNextBlock(FileStream fs)
@@ -115,12 +115,12 @@ namespace TickZoom.TickUtil
         {
             try
             {
-                tickIO.SetSymbol(tickIO.lSymbol);
-                var size = memory.GetBuffer()[memory.Position];
-                if (size == 0)
+                if( memory.Position >= tickBlockHeader.blockHeader.length)
                 {
                     return false;
                 }
+                tickIO.SetSymbol(tickIO.lSymbol);
+                var size = memory.GetBuffer()[memory.Position];
                 dataVersion = tickIO.FromReader(memory);
                 var utcTime = new TimeStamp(tickIO.lUtcTime);
                 tickIO.SetTime(utcTime);
@@ -128,6 +128,11 @@ namespace TickZoom.TickUtil
             }
             catch (EndOfStreamException ex)
             {
+                return false;
+            }
+            catch( IndexOutOfRangeException)
+            {
+                int x = 0;
                 return false;
             }
         }
