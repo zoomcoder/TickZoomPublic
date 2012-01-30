@@ -35,6 +35,7 @@ namespace TickZoom.TickUtil
         private TimeStamp endTime = TimeStamp.MaxValue;
         private bool endOfData;
         private FileBlock fileBlock;
+        private long startCount;
 
         public unsafe TickFileBlocked()
         {
@@ -767,6 +768,12 @@ namespace TickZoom.TickUtil
                 }
                 maxCount = value;
             }
+        }
+
+        public long StartCount
+        {
+            get { return startCount; }
+            set { startCount = value; }
         }
 
         public TimeStamp StartTime

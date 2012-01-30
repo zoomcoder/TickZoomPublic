@@ -24,5 +24,6 @@ namespace TickZoom.Api
         long MaxCount { get; set; }
         TimeStamp StartTime { get; set; }
         TimeStamp EndTime { get; set; }
+        long StartCount { get; set; }
     }
 }

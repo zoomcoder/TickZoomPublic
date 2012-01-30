@@ -279,7 +279,7 @@ namespace TickZoom.FIX
                     throw new ApplicationException("HeartBeat response was never received.");
                 }
                 isHeartbeatPending = TimeStamp.UtcNow;
-                isHeartbeatPending.AddSeconds(15);
+                isHeartbeatPending.AddSeconds(heartbeatResponseTimeoutSeconds);
                 OnHeartbeat();
             }
             currentTime.AddSeconds(1);
@@ -1185,6 +1185,7 @@ namespace TickZoom.FIX
 		}
 
 		protected volatile bool isDisposed = false;
+        private int heartbeatResponseTimeoutSeconds = System.Diagnostics.Debugger.IsAttached ? int.MaxValue : 15;
 
         public void Dispose()
 		{

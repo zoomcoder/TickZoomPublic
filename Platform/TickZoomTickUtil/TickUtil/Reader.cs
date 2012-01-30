@@ -36,7 +36,6 @@ namespace TickZoom.TickUtil
     public abstract class Reader
 	{
 		BackgroundWorker backgroundWorker;
-		long maxCount = long.MaxValue;
 	    private Log log;
 	    private bool debug;
 	    private bool trace;
@@ -136,9 +135,6 @@ namespace TickZoom.TickUtil
 			Dispose();
 		}
 
-		public abstract bool IsAtStart(TickBinary tick);
-		public abstract bool IsAtEnd(TickBinary tick);
-
 		public bool LogTicks = false;
 
 		TickImpl tickIO = new TickImpl();
@@ -220,9 +216,9 @@ namespace TickZoom.TickUtil
 							nextUpdate = Factory.TickCount + 2000;
 						}
 
-						if (maxCount > 0 && Count > maxCount) {
+						if (MaxCount > 0 && Count > MaxCount) {
 							if (debug)
-								log.Debug("Ending data read because count reached " + maxCount + " ticks.");
+								log.Debug("Ending data read because count reached " + MaxCount + " ticks.");
 						    return SendFinish();
 						}
 
@@ -381,7 +377,35 @@ namespace TickZoom.TickUtil
 			}
 		}
 
-		public BackgroundWorker BackgroundWorker {
+        public bool IsAtEnd(TickBinary tick)
+        {
+            return tick.UtcTime >= tickFile.EndTime.Internal;
+        }
+
+        public bool IsAtStart(TickBinary tick)
+        {
+            return tick.UtcTime > tickFile.StartTime.Internal && tickCount >= tickFile.StartCount;
+        }
+
+        public long StartCount
+        {
+            get { return tickFile.StartCount; }
+            set { tickFile.StartCount = value; }
+        }
+
+        public TimeStamp StartTime
+        {
+            get { return tickFile.StartTime; }
+            set { tickFile.StartTime = value; }
+        }
+
+        public TimeStamp EndTime
+        {
+            get { return tickFile.EndTime; }
+            set { tickFile.EndTime = value; }
+        }
+
+        public BackgroundWorker BackgroundWorker {
 			get { return backgroundWorker; }
 			set { backgroundWorker = value; }
 		}
@@ -415,8 +439,8 @@ namespace TickZoom.TickUtil
 		}
 
 		public long MaxCount {
-			get { return maxCount; }
-			set { maxCount = value; }
+			get { return tickFile.MaxCount; }
+			set { tickFile.MaxCount = value; }
 		}
 
 		public bool QuietMode {

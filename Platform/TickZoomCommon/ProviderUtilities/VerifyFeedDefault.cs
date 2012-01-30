@@ -111,6 +111,10 @@ namespace TickZoom.Common
                     case EventType.Tick:
                         TickBinaryBox box = (TickBinaryBox)eventItem.EventDetail;
                         tickBinary = box.TickBinary;
+                        if( symbolState == SymbolState.RealTime)
+                        {
+                            int x = 0; // log.Info(tickBinary.ToString());
+                        }
                         box.Free();
                         result = true;
                         filter.Pop();

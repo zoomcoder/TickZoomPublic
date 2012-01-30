@@ -34,7 +34,7 @@ namespace TickZoom.Api
 	public interface TickReader : AgentPerformer
 	{
 		TickQueue ReadQueue { get; }
-		int StartCount { get; set; }
+		long StartCount { get; set; }
 		TimeStamp StartTime { get; set; }
 		TimeStamp EndTime { get; set; }
 		void Initialize(string _folder, SymbolInfo symbolInfo);

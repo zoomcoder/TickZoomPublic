@@ -40,9 +40,6 @@ namespace TickZoom.TickUtil
 	{
 		static readonly Log log = Factory.SysLog.GetLogger(typeof(TickReader));
 		readonly bool debug = log.IsDebugEnabled;
-		int startCount = 0;
-		TimeStamp startTime = TimeStamp.MinValue;
-		TimeStamp endTime = TimeStamp.MaxValue;
 		double startDouble = double.MinValue;
 		double endDouble = double.MaxValue;
 	    private Agent agent;
@@ -62,37 +59,6 @@ namespace TickZoom.TickUtil
         {
             throw new NotImplementedException();
         }
-
-		public override sealed bool IsAtEnd(TickBinary tick)
-		{
-			return tick.UtcTime >= endTime.Internal;
-		}
-
-		public override sealed bool IsAtStart(TickBinary tick)
-		{
-			return tick.UtcTime > startTime.Internal && tickCount >= startCount;
-		}
-
-		public int StartCount {
-			get { return startCount; }
-			set { startCount = value; }
-		}
-
-		public TimeStamp StartTime {
-			get { return startTime; }
-			set {
-				startTime = value;
-				startDouble = startTime.Internal;
-			}
-		}
-
-		public TimeStamp EndTime {
-			get { return endTime; }
-			set {
-				endTime = value;
-				endDouble = endTime.Internal;
-			}
-		}
 
 
 	    public void StartSymbol(EventItem eventItem)

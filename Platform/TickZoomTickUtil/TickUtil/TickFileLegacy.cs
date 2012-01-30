@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -328,6 +329,9 @@ namespace TickZoom.TickUtil
             }
             try
             {
+                var sw = new Stopwatch();
+                sw.Start();
+                var whileCount = 0;
                 do
                 {
                     tickIO.SetSymbol(lSymbol);
@@ -367,7 +371,13 @@ namespace TickZoom.TickUtil
                     }
                     tickIO.SetTime(utcTime);
                     tickCount++;
+                    ++whileCount;
                 } while (tickIO.UtcTime < StartTime);
+                if( whileCount > 1)
+                {
+                    var elapsed = sw.Elapsed;
+                    int x = 0;
+                }
                 return true;
             }
             catch (EndOfStreamException ex)
