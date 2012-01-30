@@ -33,7 +33,7 @@ namespace TickZoom.TickUtil
         private long maxCount = long.MaxValue;
         private TimeStamp startTime = TimeStamp.MinValue;
         private TimeStamp endTime = TimeStamp.MaxValue;
-        private bool endOfData;
+        private bool endOfData = true;
         private FileBlock fileBlock;
         private long startCount;
 
@@ -142,6 +142,7 @@ namespace TickZoom.TickUtil
                 default:
                     throw new ApplicationException("Unknown file mode: " + mode);
             }
+            endOfData = false;
         }
 
         private void OpenFileForWriting()

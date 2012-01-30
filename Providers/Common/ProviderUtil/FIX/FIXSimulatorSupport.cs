@@ -1185,7 +1185,8 @@ namespace TickZoom.FIX
 		}
 
 		protected volatile bool isDisposed = false;
-        private int heartbeatResponseTimeoutSeconds = System.Diagnostics.Debugger.IsAttached ? int.MaxValue : 15;
+        //private int heartbeatResponseTimeoutSeconds = System.Diagnostics.Debugger.IsAttached ? int.MaxValue : 15;
+        private int heartbeatResponseTimeoutSeconds = 15;
 
         public void Dispose()
 		{

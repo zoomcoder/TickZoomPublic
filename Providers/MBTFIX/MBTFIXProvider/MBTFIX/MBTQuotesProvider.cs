@@ -58,12 +58,13 @@ namespace TickZoom.MBTQuotes
 			RetryMaximum = 30;
 			if( SyncTicks.Enabled) {
 	  			HeartbeatDelay = int.MaxValue;
-			} else if( System.Diagnostics.Debugger.IsAttached) {
-	  			HeartbeatDelay = int.MaxValue;
+            //} else if( System.Diagnostics.Debugger.IsAttached) {
+            //    HeartbeatDelay = int.MaxValue;
 			} else {
 	  			HeartbeatDelay = 10;
 			}
-        }
+		    log.Info("Ping timeout is " + HeartbeatDelay + " seconds.");
+		}
 		
 		
 		public override void OnDisconnect()

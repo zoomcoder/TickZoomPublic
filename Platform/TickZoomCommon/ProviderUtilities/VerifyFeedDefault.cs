@@ -161,7 +161,7 @@ namespace TickZoom.Common
 		                    {
 		                        assertTick(tickIO, lastTick, symbol.BinaryIdentifier);
 		                    }
-		                    if (count%5000 == 0)
+		                    if (count%10000 == 0)
 		                    {
 		                        log.Notice("Read " + count + " ticks");
 		                    }
@@ -516,7 +516,7 @@ namespace TickZoom.Common
 					if( count == 0) {
 						log.Notice("First tick received: " + tickIO.ToPosition());
 					}
-					if (count % 5000 == 0) {
+					if (count % 10000 == 0) {
 						log.Notice("Read " + count + " ticks");
 					}
 					if( SyncTicks.Enabled && symbolState == SymbolState.RealTime)
