@@ -71,6 +71,7 @@ namespace TickZoom.TickUtil
         public unsafe void ReadNextBlock(FileStream fs)
         {
             var tempPosition = fs.Position;
+            var tempLength = fs.Length;
             memory.SetLength(blockSize);
             var buffer = memory.GetBuffer();
             memory.Position = 0;
@@ -91,7 +92,7 @@ namespace TickZoom.TickUtil
             memory.Position = tickBlockHeaderSize;
             if (!tickBlockHeader.VerifyChecksum())
             {
-                throw new InvalidOperationException("Tick block header checksum failed at " + tempPosition + ": " + fs.Name);
+                throw new InvalidOperationException("Tick block header checksum failed at " + tempPosition + ", length " + tempLength + ", current length " + fs.Length + ", current position " + fs.Position + ": " + fs.Name + "\n" + BitConverter.ToString(memory.GetBuffer(),0,blockSize));
             }
         }
 

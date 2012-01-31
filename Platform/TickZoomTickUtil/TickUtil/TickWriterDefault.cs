@@ -52,11 +52,12 @@ namespace TickZoom.TickUtil
 		private string appDataFolder;
 		private Progress progress = new Progress();
 	    private TickFile tickFile;
+	    private bool eraseFileToStart;
 		
 		public TickWriterDefault(bool eraseFileToStart)
 		{
+		    this.eraseFileToStart = eraseFileToStart;
             tickFile = Factory.TickUtil.TickFile();
-		    tickFile.EraseFileToStart = eraseFileToStart;
 			writeQueue = Factory.Parallel.TickQueue(typeof(TickWriter));
 			writeQueue.StartEnqueue = Start;
 			var property = "PriceDataFolder";
@@ -90,7 +91,9 @@ namespace TickZoom.TickUtil
 		
 		public void Initialize(string folderOrfile, string _symbol) {
             tickFile.Initialize(folderOrfile,_symbol,TickFileMode.Write);
-     		if( !CancelPending ) {
+            tickFile.EraseFileToStart = eraseFileToStart;
+            if (!CancelPending)
+            {
 				StartAppendThread();
 			}
 			isInitialized = true;

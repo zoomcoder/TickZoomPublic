@@ -102,10 +102,10 @@ namespace TickZoom.TickUtil
             this.mode = mode;
             this.fileName = fileName = Path.GetFullPath(fileName);
             string baseName = Path.GetFileNameWithoutExtension(fileName);
-            if (Symbol == null)
+            if (symbol == null)
             {
                 symbol = Factory.Symbol.LookupSymbol(baseName.Replace("_Tick", ""));
-                lSymbol = Symbol.BinaryIdentifier;
+                lSymbol = symbol.BinaryIdentifier;
             }
             InitLogging();
             Directory.CreateDirectory(Path.GetDirectoryName(fileName));
@@ -133,7 +133,7 @@ namespace TickZoom.TickUtil
 
         private void OpenFileForWriting()
         {
-            if (EraseFileToStart)
+            if (eraseFileToStart)
             {
                 File.Delete(fileName);
                 log.Notice("TickWriter file was erased to begin writing.");
@@ -271,11 +271,11 @@ namespace TickZoom.TickUtil
             {
                 if (fileName.Contains("_Tick.tck"))
                 {
-                    locatedFile = FindFile(FileName.Replace("_Tick.tck", ".tck"));
+                    locatedFile = FindFile(fileName.Replace("_Tick.tck", ".tck"));
                 }
                 else
                 {
-                    locatedFile = FindFile(FileName.Replace(".tck", "_Tick.tck"));
+                    locatedFile = FindFile(fileName.Replace(".tck", "_Tick.tck"));
                 }
                 if (locatedFile != null)
                 {
@@ -284,7 +284,7 @@ namespace TickZoom.TickUtil
                 }
                 else if( mode == TickFileMode.Read)
                 {
-                    throw new FileNotFoundException("Sorry, unable to find the file: " + FileName);
+                    throw new FileNotFoundException("Sorry, unable to find the file: " + fileName);
                 }
                 else
                 {
@@ -336,9 +336,6 @@ namespace TickZoom.TickUtil
             }
             try
             {
-                var sw = new Stopwatch();
-                sw.Start();
-                var whileCount = 0;
                 do
                 {
                     tickIO.SetSymbol(lSymbol);
@@ -378,13 +375,7 @@ namespace TickZoom.TickUtil
                     }
                     tickIO.SetTime(utcTime);
                     tickCount++;
-                    ++whileCount;
                 } while (tickIO.UtcTime < StartTime);
-                if( whileCount > 1)
-                {
-                    var elapsed = sw.Elapsed;
-                    int x = 0;
-                }
                 return true;
             }
             catch (EndOfStreamException ex)
