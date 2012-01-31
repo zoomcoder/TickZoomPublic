@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
 using TickZoom.Api;
@@ -136,7 +134,14 @@ namespace TickZoom.TickUtil
             {
                 case TickFileMode.Read:
                     OpenFileForReading();
-                    ReadNextTickBlock();
+                    try
+                    {
+                        ReadNextTickBlock();
+                    }
+                    catch( EndOfStreamException)
+                    {
+                        throw new EndOfStreamException("File was empty: " + fileName);
+                    }
                     break;
                 case TickFileMode.Write:
                     OpenFileForWriting();

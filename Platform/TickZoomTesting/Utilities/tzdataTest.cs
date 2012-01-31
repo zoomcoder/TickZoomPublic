@@ -119,41 +119,37 @@ namespace TickZoom.Utilities
 				var heading = inputFile.ReadLine();
 		       	while( reader.TryReadTick(tickIO))
                 {
-	       			try {
-			       		lineCount++;
-						sb.Length = 0;
-						sb.AppendFormat("{0:00}",tickIO.Time.Month);
-						sb.Append("/");
-						sb.AppendFormat("{0:00}",tickIO.Time.Day);
-						sb.Append("/");
-						sb.AppendFormat("{0:00}",tickIO.Time.Year);
-						sb.Append(",");
-						
-						sb.AppendFormat("{0:00}",tickIO.Time.Hour);
-						sb.Append(":");
-						sb.AppendFormat("{0:00}",tickIO.Time.Minute);
-						sb.Append(":");
-						sb.AppendFormat("{0:00}",tickIO.Time.Second);
-						sb.Append(",");
-						
-						sb.AppendFormat("{0:.00}", tickIO.Price);
-						sb.Append(",");
-						
-						sb.AppendFormat("{0:.00}", tickIO.Price);
-						sb.Append(",");
-						
-						sb.AppendFormat("{0:.00}", tickIO.Price);
-						sb.Append(",");
-						
-						sb.AppendFormat("{0:.00}", tickIO.Price);
-						sb.Append(",");
-						
-						sb.Append(tickIO.Size);
-						var original = inputFile.ReadLine();
-						Assert.AreEqual(original,sb.ToString(),"comparing at line " + lineCount);
-	       			} catch( QueueException) {
-	       				break;
-	       			}
+		       		lineCount++;
+					sb.Length = 0;
+					sb.AppendFormat("{0:00}",tickIO.Time.Month);
+					sb.Append("/");
+					sb.AppendFormat("{0:00}",tickIO.Time.Day);
+					sb.Append("/");
+					sb.AppendFormat("{0:00}",tickIO.Time.Year);
+					sb.Append(",");
+					
+					sb.AppendFormat("{0:00}",tickIO.Time.Hour);
+					sb.Append(":");
+					sb.AppendFormat("{0:00}",tickIO.Time.Minute);
+					sb.Append(":");
+					sb.AppendFormat("{0:00}",tickIO.Time.Second);
+					sb.Append(",");
+					
+					sb.AppendFormat("{0:.00}", tickIO.Price);
+					sb.Append(",");
+					
+					sb.AppendFormat("{0:.00}", tickIO.Price);
+					sb.Append(",");
+					
+					sb.AppendFormat("{0:.00}", tickIO.Price);
+					sb.Append(",");
+					
+					sb.AppendFormat("{0:.00}", tickIO.Price);
+					sb.Append(",");
+					
+					sb.Append(tickIO.Size);
+					var original = inputFile.ReadLine();
+					Assert.AreEqual(original,sb.ToString(),"comparing at line " + lineCount);
 		       	}
 	       	}
 		}

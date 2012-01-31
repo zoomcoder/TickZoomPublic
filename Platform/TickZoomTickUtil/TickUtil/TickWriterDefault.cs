@@ -90,8 +90,7 @@ namespace TickZoom.TickUtil
 		}
 		
 		public void Initialize(string folderOrfile, string _symbol) {
-            tickFile.Initialize(folderOrfile,_symbol,TickFileMode.Write);
-            tickFile.EraseFileToStart = eraseFileToStart;
+            tickFile.Initialize(folderOrfile, _symbol, TickFileMode.Write);
             if (!CancelPending)
             {
 				StartAppendThread();

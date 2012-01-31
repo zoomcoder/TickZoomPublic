@@ -270,7 +270,9 @@ namespace Other
 		[Test]
 		public void TestCapturedDataMatchesProvider()
 		{
-			try {
+            Assert.Ignore();
+            try
+			{
                 var config = CreateSimulateConfig();
 	            StarterConfigView form;
 	            StartGUI(config, out form);
@@ -282,7 +284,7 @@ namespace Other
 				config.ModelLoader = "Example: Reversal Multi-Symbol";
                 config.StarterName = "FIXSimulatorStarter";
 				config.Start();
-				config.WaitComplete(30);
+				config.WaitComplete(short.MaxValue);
 				config.Stop();
 				config.WaitComplete(1200, () => { return !config.CommandWorker.IsBusy; } );
 				Assert.IsFalse(config.CommandWorker.IsBusy,"ProcessWorker.Busy");
