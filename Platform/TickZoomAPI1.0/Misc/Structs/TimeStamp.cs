@@ -209,7 +209,7 @@ namespace TickZoom.Api
         }
 
 	    private static int hardwareTimestampsCount;
-	    private static HardwareTimeStamp[] hardwareTimeStamps = new HardwareTimeStamp[64];
+	    private static HardwareTimeStamp[] hardwareTimeStamps = new HardwareTimeStamp[1024];
 	    private static long adjustedFrequency;
 
         private static TimeStamp ResetUtcNow(int index)
@@ -235,32 +235,39 @@ namespace TickZoom.Api
 			get
 			{
                 var index = Thread.CurrentThread.ManagedThreadId;
-                if( index > hardwareTimestampsCount)
+                try
                 {
-                    hardwareTimestampsCount = index;
+                    if (index > hardwareTimestampsCount)
+                    {
+                        hardwareTimestampsCount = index;
+                    }
+                    if (index >= hardwareTimeStamps.Length)
+                    {
+                        Array.Resize(ref hardwareTimeStamps, hardwareTimeStamps.Length * 2);
+                    }
+                    if (hardwareTimeStamps[index].OriginalTimeStamp == default(TimeStamp))
+                    {
+                        var timeStamp = ResetUtcNow(index);
+                        hardwareTimeStamps[index].LastTimeStamp = timeStamp.Internal;
+                        hardwareTimeStamps[index].LastSystemClock = Stopwatch.GetTimestamp();
+                    }
+                    TimeStamp result;
+                    var count = 0;
+                    while (!CalculateTimeStamp(index, out result))
+                    {
+                        ResetUtcNow(index);
+                        ++count;
+                    }
+                    if (count > 0)
+                    {
+                        Interlocked.Increment(ref adjustedClockCounter);
+                    }
+                    return result;
                 }
-                if( index >= hardwareTimeStamps.Length)
+                catch( IndexOutOfRangeException ex)
                 {
-                    Array.Resize(ref hardwareTimeStamps, hardwareTimeStamps.Length * 2);
+                    throw new IndexOutOfRangeException("Index is " + index + " but array length is " + hardwareTimeStamps.Length, ex);
                 }
-                if (hardwareTimeStamps[index].OriginalTimeStamp == default(TimeStamp))
-                {
-                    var timeStamp = ResetUtcNow(index);
-                    hardwareTimeStamps[index].LastTimeStamp = timeStamp.Internal;
-                    hardwareTimeStamps[index].LastSystemClock = Stopwatch.GetTimestamp();
-                }
-			    TimeStamp result;
-			    var count = 0;
-                while (!CalculateTimeStamp(index, out result))
-                {
-                    ResetUtcNow(index);
-                    ++count;
-                }
-                if( count > 0)
-                {
-                    Interlocked.Increment(ref adjustedClockCounter);
-                }
-                return result;
             }
 		}
 

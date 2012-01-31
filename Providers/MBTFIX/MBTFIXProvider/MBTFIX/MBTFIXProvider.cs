@@ -957,7 +957,7 @@ namespace TickZoom.MBTFIX
 		    bool removeOriginal = false;
 		    if( OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order))
 		    {
-                OrderStore.CheckForExcessiveRejects(order);
+                OrderStore.CheckForExcessiveRejects(order, packetFIX.Text);
             }
             else
 		    {
@@ -1164,7 +1164,7 @@ namespace TickZoom.MBTFIX
             CreateOrChangeOrder order;
             if( OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order))
             {
-                OrderStore.CheckForExcessiveRejects(order);
+                OrderStore.CheckForExcessiveRejects(order, packetFIX.Text);
             }
             else
             {
