@@ -569,6 +569,8 @@ namespace TickZoom.TickUtil
             }
         }
 
+        private long lastTimeWritten;
+
         private long writeCounter = 0;
         private object writeToFileLocker = new object();
         private void WriteToFile()
@@ -589,6 +591,7 @@ namespace TickZoom.TickUtil
                     }
                     if (debug) log.Debug(streamsToWrite.Count + " blocks in queue.");
                     fileBlock.Write(fs);
+                    lastTimeWritten = fileBlock.LastUtcTimeStamp;
                     using (memoryLocker.Using())
                     {
                         streamsToWrite.Dequeue(out fileBlock);
@@ -635,6 +638,10 @@ namespace TickZoom.TickUtil
                     }
 
                     if (debug) log.Debug("Exiting Close()");
+                    if( lastTimeWritten > 0)
+                    {
+                        log.Notice("Last tick written for " + symbol + ": " + new TimeStamp(lastTimeWritten));
+                    }
                 }
             }
         }

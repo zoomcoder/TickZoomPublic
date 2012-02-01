@@ -36,8 +36,10 @@ namespace TickZoom.Api
     public interface TickUtilFactory
 	{
 		TickIO TickIO();
-		TickWriter TickWriter(bool overwriteFile);
-		TickReader TickReader();
+        [Obsolete("Please use TickFile instead.", true)]
+        TickWriter TickWriter(bool overwriteFile);
+        [Obsolete("Please use TickFile instead.")]
+        TickReader TickReader();
 	    TickFile TickFile();
 		void Release();
 

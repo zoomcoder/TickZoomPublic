@@ -116,7 +116,6 @@ namespace TickZoom.TZData
                 Output(reader.Symbol + ": " + count + " ticks.");
                 Output("From " + firstTick.Time + " to " + lastTick.Time);
                 Output(dups + " duplicates elimated.");
-                Factory.TickUtil.TickReader().CloseAll();
             }
 		}
 

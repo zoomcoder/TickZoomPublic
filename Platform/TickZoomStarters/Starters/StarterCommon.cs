@@ -118,17 +118,6 @@ namespace TickZoom.Starters
 			}
 		}
 		
-		public virtual TickQueue[] SetupTickWriters() {
-			List<TickQueue> queueList = new List<TickQueue>();
-			SymbolInfo[] symbols = ProjectProperties.Starter.SymbolProperties;
-			for(int i=0; i<symbols.Length; i++) {
-				TickWriter tickWriter = Factory.TickUtil.TickWriter(false);
-	    		tickWriter.Initialize(DataFolder,symbols[i].Symbol);
-				queueList.Add(tickWriter.WriteQueue);
-			}
-			return queueList.ToArray();
-		}
-	    
 		public virtual void Run(ModelInterface model)
 		{
 		    Factory.Parallel.SetMode(parallelMode);

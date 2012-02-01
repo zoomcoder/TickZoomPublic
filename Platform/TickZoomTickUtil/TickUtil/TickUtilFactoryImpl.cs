@@ -43,12 +43,14 @@ namespace TickZoom.TickUtil
 			return new TickImpl();
 		}
 
-		
+		[Obsolete("Please use TickFile instead.",true)]
 		public TickWriter TickWriter(bool overwriteFile) {
 			return new TickWriterDefault(overwriteFile);
 		}
-		
-		public TickReader TickReader() {
+
+        [Obsolete("Please use TickFile instead.")]
+        public TickReader TickReader()
+        {
 			return (TickReader) Factory.Parallel.SpawnPerformer(typeof (TickReaderDefault));
 		}
 

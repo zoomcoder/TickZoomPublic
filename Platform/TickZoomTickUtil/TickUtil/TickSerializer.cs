@@ -587,7 +587,7 @@ namespace TickZoom.TickUtil
                         pricePrecision = ReadField2(&ptr);
                         break;
                     case BinaryField.Reset:
-                        if (debug) log.Debug("Processing Reset during tick de-compression.");
+                        if (trace) log.Trace("Processing Reset during tick de-compression.");
                         ReadField2(&ptr);
                         var symbol = binary.Symbol;
                         binary = default(TickBinary);
