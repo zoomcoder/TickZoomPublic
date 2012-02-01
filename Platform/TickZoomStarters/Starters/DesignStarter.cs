@@ -108,11 +108,6 @@ namespace TickZoom.Starters
             engine.WaitTask();
             var parallel = Factory.Parallel;
             parallel.Dispose();
-            while (!parallel.IsFinalized)
-            {
-                Thread.Sleep(100);
-            }
-            parallel.Release();
 
         }
 
@@ -121,11 +116,6 @@ namespace TickZoom.Starters
             engine.WaitTask();
             var parallel = Factory.Parallel;
             parallel.Dispose();
-            while (!parallel.IsFinalized)
-            {
-                Thread.Sleep(100);
-            }
-            parallel.Release();
         }
 
     }

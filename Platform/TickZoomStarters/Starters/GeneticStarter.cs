@@ -355,11 +355,6 @@ namespace TickZoom.Starters
 			}
 		    var parallel = Factory.Parallel;
             parallel.Dispose();
-            while( !parallel.IsFinalized)
-            {
-                Thread.Sleep(100);
-            }
-            parallel.Release();
 		}
 	    
 		static Random random;

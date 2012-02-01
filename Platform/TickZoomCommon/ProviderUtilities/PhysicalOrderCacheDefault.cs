@@ -17,7 +17,7 @@ namespace TickZoom.Common
         {
             if (log != null)
             {
-                info = log.IsDebugEnabled;
+                info = log.IsInfoEnabled;
                 debug = log.IsDebugEnabled;
                 trace = log.IsTraceEnabled;
             }

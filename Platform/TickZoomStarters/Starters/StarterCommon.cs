@@ -173,11 +173,6 @@ namespace TickZoom.Starters
                 engine.Run();
 		        var parallel = Factory.Parallel;
                 parallel.Dispose();
-                while( !parallel.IsFinalized)
-                {
-                    Thread.Sleep(100);
-                }
-                parallel.Release();
                 if (CancelPending) return;
             }
             finally

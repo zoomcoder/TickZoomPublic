@@ -159,7 +159,6 @@ namespace TickZoom.Api
 	    int ThreadCount { get; }
 	    TimeStamp UtcNow { get; }
 	    bool IsWorkerThread { get; }
-	    bool IsFinalized { get; }
 	    void ReleaseIOTasks();
 	    void ExcuteAsync( Action asyncAction);
 	    void StackTrace();
@@ -179,7 +178,6 @@ namespace TickZoom.Api
         EventQueue EventQueue(SymbolInfo symbol, string name);
         EventQueue EventQueue(string name);
 
-	    void Release();
 	    Agent SpawnProvider( Type typeToSpawn, params object[] args);
         Agent SpawnProvider( string assemblyName, string className, params object[] args);
 	    Agent GetAgent(AgentPerformer sender);
