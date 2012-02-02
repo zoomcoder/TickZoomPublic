@@ -25,5 +25,6 @@ namespace TickZoom.Api
         TimeStamp StartTime { get; set; }
         TimeStamp EndTime { get; set; }
         long StartCount { get; set; }
+        Action<Progress> ReportProgressCallback { get; set; }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using Microsoft.Win32.SafeHandles;
 using TickZoom.Api;
@@ -127,6 +129,17 @@ namespace TickZoom.TickUtil
             isInitialized = true;
         }
 
+        private Action<Progress> reportProgressCallback;
+        private Progress progress = new Progress();
+        private void progressCallback(string text, Int64 current, Int64 final)
+        {
+            if (ReportProgressCallback != null )
+            {
+                progress.UpdateProgress(text, current, final);
+                ReportProgressCallback(progress);
+            }
+        }
+
         private void OpenFile()
         {
             lSymbol = symbol.BinaryIdentifier;
@@ -194,7 +207,7 @@ namespace TickZoom.TickUtil
             log.Debug("OpenFileForWriting()");
             fileHeader.blockHeader.version = 1;
             fileHeader.blockHeader.type = BlockType.FileHeader;
-            fileHeader.blockSize = 5 * 1024;
+            fileHeader.blockSize = 64 * 1024;
             fileHeader.utcTimeStamp = Factory.Parallel.UtcNow.Internal;
             fileHeader.SetChecksum();
             var headerBytes = new byte[fileHeader.blockSize];
@@ -407,6 +420,8 @@ namespace TickZoom.TickUtil
                         if (debug) log.Debug("Starting to read data.");
                     }
                     fileBlock = new FileBlock(fileHeader.blockSize);
+                    readFileStopwatch = new Stopwatch();
+                    readFileStopwatch.Start();
                     break;
                 }
                 catch( InvalidOperationException)
@@ -429,11 +444,20 @@ namespace TickZoom.TickUtil
             }
         }
 
+        private Stopwatch readFileStopwatch;
+        private long nextProgressUpdateSecond;
+
         private unsafe void ReadNextTickBlock()
         {
             do
             {
                 fileBlock.ReadNextBlock(fs);
+                var currentSecond = readFileStopwatch.Elapsed.TotalSeconds;
+                if( currentSecond > nextProgressUpdateSecond)
+                {
+                    progressCallback("Loading file...", fs.Position, fs.Length);
+                    nextProgressUpdateSecond = (long) currentSecond + 1;
+                }
             } while (fileBlock.LastUtcTimeStamp < startTime.Internal);
         }
 
@@ -518,7 +542,7 @@ namespace TickZoom.TickUtil
                     dataVersion = fileBlock.DataVersion;
                     if (tickIO.lUtcTime > EndTime.Internal)
                     {
-                        endOfData = true;
+                        ReportEndOfData();
                         return false;
                     }
                     tickCount++;
@@ -527,8 +551,43 @@ namespace TickZoom.TickUtil
             }
             catch (EndOfStreamException ex)
             {
+                ReportEndOfData();
                 return false;
             }
+        }
+
+        private void ReportEndOfData()
+        {
+            progressCallback("Completed loading file...", fs.Position, fs.Position);
+            var elapsed = readFileStopwatch.Elapsed;
+            var sb = new StringBuilder();
+            if ((long)elapsed.TotalDays > 0)
+            {
+                sb.Append((long) elapsed.TotalDays + " days, ");
+                sb.Append((long) elapsed.Hours + " hours, ");
+                sb.Append((long) elapsed.Minutes + " minutes");
+            }
+            else if ((long)elapsed.TotalHours > 0)
+            {
+                sb.Append((long) elapsed.TotalHours + " hours, ");
+                sb.Append((long) elapsed.Minutes + " minutes");
+            }
+            else if ((long)elapsed.TotalMinutes > 0)
+            {
+                sb.Append((long) elapsed.TotalMinutes + " minutes, ");
+                sb.Append((long) elapsed.Seconds + " seconds");
+            }
+            else if ((long)elapsed.TotalSeconds > 0)
+            {
+                sb.Append((long) elapsed.TotalSeconds + " seconds, ");
+                sb.Append((long) elapsed.Milliseconds + " milliseconds");
+            }
+            else 
+            {
+                sb.Append((long)elapsed.TotalMilliseconds + " milliseconds");
+            }
+            log.Notice(tickCount.ToString("0,0") + " ticks read for " + symbol + ". Finished in " + sb);
+            endOfData = true;
         }
 
         private IAsyncResult writeFileResult;
@@ -848,6 +907,12 @@ namespace TickZoom.TickUtil
                 if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
                 endTime = value;
             }
+        }
+
+        public Action<Progress> ReportProgressCallback
+        {
+            get { return reportProgressCallback; }
+            set { reportProgressCallback = value; }
         }
     }
 }

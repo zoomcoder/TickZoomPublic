@@ -53,7 +53,7 @@ namespace TickZoom.TZData
 		}
 		
 		public void AddToPath() {
-			Console.WriteLine("Adding to PATH environment variable.");
+			Output("Adding to PATH environment variable.");
 			RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Environment",true);
 			string variable = "TickZoom";
 			string tickZoom = (string) key.GetValue(variable);
@@ -85,7 +85,8 @@ namespace TickZoom.TZData
 				key.SetValue(variable,directory);
 				BroadCastPathChange();
 			}
-		}
+            Output("NOTE: Path only takes effect after you close and re-open the command window.");
+        }
 		
 		[DllImport("user32.dll", SetLastError=true, CharSet=CharSet.Auto)]
 		private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg,
