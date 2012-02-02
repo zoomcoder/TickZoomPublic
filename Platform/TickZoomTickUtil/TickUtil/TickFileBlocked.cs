@@ -98,6 +98,11 @@ namespace TickZoom.TickUtil
                 isLegacy = true;
                 legacy.Initialize(folderOrfile,symbolFile,mode);
             }
+            catch( EndOfStreamException)
+            {
+                endOfData = true;
+                log.Notice("File was empty: " + fileName);
+            }
             isInitialized = true;
         }
 
@@ -125,6 +130,11 @@ namespace TickZoom.TickUtil
                 // Must a be a legacy format
                 isLegacy = true;
                 legacy.Initialize(fileName, mode);
+            }
+            catch (EndOfStreamException)
+            {
+                endOfData = true;
+                log.Notice("File was empty: " + fileName);
             }
             isInitialized = true;
         }
