@@ -115,15 +115,15 @@ namespace TickZoom.MBTFIX
             {
                 throw new InvalidOperationException("Can't find symbol request for " + symbol);
             }
-            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if( symbolAlgorithm.IsBrokerStarted)
-            {
-                if (debug) log.Debug("Attempted StartBroker but isBrokerStarted is " + symbolAlgorithm.IsBrokerStarted);
-                return;
-            }
             if( !IsRecovered)
             {
                 if (debug) log.Debug("Attempted StartBroker but IsRecovered is " + IsRecovered);
+                return;
+            }
+            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if (symbolAlgorithm.IsBrokerStarted)
+            {
+                if (debug) log.Debug("Attempted StartBroker but isBrokerStarted is " + symbolAlgorithm.IsBrokerStarted);
                 return;
             }
             TrySend(EventType.StartBroker, symbol, symbolReceiver.Agent);
@@ -440,7 +440,7 @@ namespace TickZoom.MBTFIX
         {
             if( rejectCount > 3)
             {
-                throw new ApplicationException("More then " + rejectCount + " rejects occurred.");
+                throw new ApplicationException("More than " + rejectCount + " rejects occurred.");
             }
             ++rejectCount;
         }
@@ -462,7 +462,8 @@ namespace TickZoom.MBTFIX
 			errorOkay = text.Contains("FXORD01") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD02") ? true : errorOkay;
             log.Error(packetFIX.Text + " -- Sending EndBroker event.");
-            TrySendEndBroker();
+            CancelRecovered();
+            TryEndRecovery();
             log.Info(packetFIX.Text + " Sent EndBroker event due to Message:\n" + packetFIX);
             if (!errorOkay)
             {
@@ -1497,10 +1498,6 @@ namespace TickZoom.MBTFIX
 		{
             var symbol = positionChange.Symbol;
 			if( debug) log.Debug( "PositionChange " + positionChange);
-			if( positionChange.Recency == 4)
-			{
-			    int x = 0;
-			}
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             if( algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
             {
