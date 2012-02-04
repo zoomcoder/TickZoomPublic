@@ -85,12 +85,18 @@ namespace TickZoom.Api
 			set;
 		}
 		
-		RunMode RunMode {
+		RunMode DesiredRunMode {
 			get;
 			set;
 		}
-		
- 		bool EnableTickFilter {
+
+        RunMode CurrentRunMode
+        {
+            get;
+        }
+
+        bool EnableTickFilter
+        {
 			get;
 			set;
 		}

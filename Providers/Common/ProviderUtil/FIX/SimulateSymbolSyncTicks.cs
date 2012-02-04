@@ -73,6 +73,7 @@ namespace TickZoom.FIX
             PartialFillSimulation partialFillSimulation,
 		    Action<long,SymbolInfo,Tick> onTick,
             Action<long> onEndTick,
+            TimeStamp endTime,
             Action<PhysicalFill> onPhysicalFill,
 		    Action<CreateOrChangeOrder,bool,string> onRejectOrder, long id)
 		{
@@ -96,6 +97,7 @@ namespace TickZoom.FIX
             try
             {
                 reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
+                reader.EndTime = endTime;
             }
            catch( FileNotFoundException ex)
            {

@@ -50,8 +50,8 @@ namespace TickZoom.MBTFIX
         private ServerState quoteState = ServerState.Startup;
         private Random random = new Random(1234);
 
-        public MBTFIXSimulator(string mode, PartialFillSimulation partialFillSimulation)
-            : base(mode, partialFillSimulation, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes())
+        public MBTFIXSimulator(string mode, PartialFillSimulation partialFillSimulation, TimeStamp endTime)
+            : base(mode, partialFillSimulation, endTime, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes())
         {
 		    log.Register(this);
             InitializeSnippets();
@@ -809,10 +809,11 @@ namespace TickZoom.MBTFIX
             }
             var currentTick = currentTicks[id];
             currentTick.State = TickState.Finish;
+            TrySendTick();
         }
 
         private unsafe void OnTick( long id, SymbolInfo anotherSymbol, Tick anotherTick)
-		{
+        {
             if (trace) log.Trace("Sending tick: " + anotherTick);
 
             if (anotherSymbol.BinaryIdentifier >= lastTicks.Length)
@@ -820,7 +821,7 @@ namespace TickZoom.MBTFIX
                 ExtendLastTicks();
             }
 
-            if( nextSimulateSymbolId >= currentTicks.Length)
+            if (nextSimulateSymbolId >= currentTicks.Length)
             {
                 ExtendCurrentTicks();
             }
@@ -830,8 +831,11 @@ namespace TickZoom.MBTFIX
             currentTick.Symbol = anotherSymbol;
             currentTick.State = TickState.Tick;
 
+            TrySendTick();
+        }
 
-            currentTick = null;
+        private void TrySendTick() {
+    	    CurrentTick currentTick = null;
             for( var i=0; i< nextSimulateSymbolId; i++)
             {
                 var temp = currentTicks[i];
@@ -849,9 +853,11 @@ namespace TickZoom.MBTFIX
                         break;
                 }
             }
+            if( currentTick == null) return;
 
             var tick = currentTick.TickIO;
             var symbol = currentTick.Symbol;
+            if( trace) log.Trace("TrySendTick( " + symbol + " " + tick + ")");
             var quoteMessage = QuoteSocket.MessageFactory.Create();
 		    var lastTick = lastTicks[symbol.BinaryIdentifier];
             var buffer = quoteMessage.Data.GetBuffer();

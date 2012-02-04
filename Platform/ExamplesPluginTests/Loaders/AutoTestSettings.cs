@@ -61,6 +61,7 @@ namespace Loaders
 			binary.endTime = TimeStamp.MaxValue;
 			binary.categories = new List<string>();
 		    binary.partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
+		    binary.testFinishedTimeout = 10;
 		}
 		
 		public AutoTestSettings(AutoTestSettingsBinary binary) {

@@ -915,6 +915,10 @@ namespace TickZoom.TickUtil
             set
             {
                 if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+                if (isLegacy)
+                {
+                    legacy.EndTime = value;
+                }
                 endTime = value;
             }
         }

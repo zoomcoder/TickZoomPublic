@@ -138,7 +138,7 @@ namespace TickZoom.Starters
                 engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
 
                 engine.BackgroundWorker = BackgroundWorker;
-                engine.RunMode = runMode;
+                engine.DesiredRunMode = runMode;
                 if( runMode == RunMode.RealTime)
                 {
                     engine.Providers = SetupDataProviders();
@@ -390,7 +390,7 @@ namespace TickZoom.Starters
 			engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
 			
 			engine.BackgroundWorker = BackgroundWorker;
-			engine.RunMode = RunMode.Historical;
+			engine.DesiredRunMode = RunMode.Historical;
 			engine.StartCount = StartCount;
 			engine.EndCount = EndCount;
 			engine.StartTime = ProjectProperties.Starter.StartTime;

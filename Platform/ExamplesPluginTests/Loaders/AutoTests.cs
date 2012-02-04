@@ -248,7 +248,6 @@ namespace Loaders
                 ShowCharts = showCharts,
                 StartTime = new TimeStamp(1800, 1, 1),
                 EndTime = new TimeStamp(2009, 6, 10),
-                TestFinishedTimeout = 15,
                 IntervalDefault = Intervals.Minute1,
                 Categories = { "Failed" },
             });

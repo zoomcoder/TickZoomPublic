@@ -96,7 +96,7 @@ namespace TickZoom.Starters
             SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol("Design");
             engine.SymbolInfo = new SymbolInfo[] { symbolInfo };
             engine.IntervalDefault = ProjectProperties.Starter.IntervalDefault;
-            engine.RunMode = RunMode.Historical;
+            engine.DesiredRunMode = RunMode.Historical;
             engine.DataFolder = DataFolder;
             engine.EnableTickFilter = ProjectProperties.Engine.EnableTickFilter;
 

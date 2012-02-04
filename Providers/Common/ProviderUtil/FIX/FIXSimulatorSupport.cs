@@ -111,18 +111,21 @@ namespace TickZoom.FIX
         private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;
         private Agent agent;
         private PartialFillSimulation partialFillSimulation;
+        private TimeStamp endTime;
         public Agent Agent
         {
             get { return agent; }
             set { agent = value; }
         }
 
-        public FIXSimulatorSupport(string mode, PartialFillSimulation partialFillSimulation, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
+        public FIXSimulatorSupport(string mode, PartialFillSimulation partialFillSimulation, TimeStamp endTime, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
         {
             this.partialFillSimulation = partialFillSimulation;
 		    this.fixPort = fixPort;
 		    this.quotesPort = quotesPort;
+            this.endTime = endTime;
 		    var randomSeed = new Random().Next(int.MaxValue);
+
 		    if (randomSeed != 1234)
 		    {
 		        Console.WriteLine("Random seed for fix simulator:" + randomSeed);
@@ -891,13 +894,13 @@ namespace TickZoom.FIX
                     if (SyncTicks.Enabled)
                     {
                         var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolSyncTicks),
-                            this, symbol, partialFillSimulation, onTick, onEndTick, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
+                            this, symbol, partialFillSimulation, onTick, onEndTick, endTime, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                     else
                     {
                         var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime),
-                            this, symbol, partialFillSimulation, onTick, onEndTick, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
+                            this, symbol, partialFillSimulation, onTick, onEndTick, endTime, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                 }
