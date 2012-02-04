@@ -709,7 +709,7 @@ namespace TickZoom.FIX
                     throw new InvalidOperationException("Found reset sequence number flag is true but sequence was " + packet.Sequence + " instead of 1.");
                 }
                 if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
-                FixFactory = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
+                FixFactory  = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
                 remoteSequence = packet.Sequence;
             }
             else if (FixFactory == null)
@@ -880,7 +880,8 @@ namespace TickZoom.FIX
 			return realTimeOffset;
 		}
 
-		public void AddSymbol(string symbol, Action<Message, SymbolInfo, Tick> onTick, Action<PhysicalFill> onPhysicalFill, Action<CreateOrChangeOrder,bool,string> onOrderReject)
+        protected long nextSimulateSymbolId;
+		public void AddSymbol(string symbol, Action<long, SymbolInfo, Tick> onTick, Action<long> onEndTick, Action<PhysicalFill> onPhysicalFill, Action<CreateOrChangeOrder,bool,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
             using (symbolHandlersLocker.Using())
@@ -889,15 +890,15 @@ namespace TickZoom.FIX
                 {
                     if (SyncTicks.Enabled)
                     {
-                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolSyncTicks), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
+                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolSyncTicks),
+                            this, symbol, partialFillSimulation, onTick, onEndTick, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                     else
                     {
-                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime), this, symbol, partialFillSimulation, onTick, onPhysicalFill, onOrderReject);
+                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime),
+                            this, symbol, partialFillSimulation, onTick, onEndTick, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
-                        //var symbolHandler = new SimulateSymbolPlayback(this, symbol, onTick, onPhysicalFill, onOrderReject);
-                        //symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                 }
             }

@@ -45,7 +45,8 @@ namespace TickZoom.FIX
         }
         private FillSimulator fillSimulator;
 		private TickFile reader;
-		private Action<Message,SymbolInfo,Tick> onTick;
+        private Action<long> onEndTick;
+        private Action<long, SymbolInfo, Tick> onTick;
 		private Task queueTask;
 		private TickSync tickSync;
 		private SymbolInfo symbol;
@@ -60,6 +61,7 @@ namespace TickZoom.FIX
         private string symbolString;
         private Agent agent;
         private PartialFillSimulation PartialFillSimulation;
+        private long id;
         public Agent Agent
         {
             get { return agent; }
@@ -69,11 +71,15 @@ namespace TickZoom.FIX
 		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,
             PartialFillSimulation partialFillSimulation,
-		    Action<Message,SymbolInfo,Tick> onTick,
-		    Action<PhysicalFill> onPhysicalFill,
-		    Action<CreateOrChangeOrder,bool,string> onRejectOrder) {
+		    Action<long,SymbolInfo,Tick> onTick,
+            Action<long> onEndTick,
+            Action<PhysicalFill> onPhysicalFill,
+		    Action<CreateOrChangeOrder,bool,string> onRejectOrder, long id)
+		{
             log.Register(this);
-			this.fixSimulatorSupport = fixSimulatorSupport;
+            this.id = id;
+		    this.onEndTick = onEndTick;
+            this.fixSimulatorSupport = fixSimulatorSupport;
 			this.onTick = onTick;
 		    this.PartialFillSimulation = partialFillSimulation;
 		    this.symbolString = symbolString;
@@ -125,11 +131,11 @@ namespace TickZoom.FIX
             {
                 if (trace) log.Trace("Locked tickSync for " + Symbol);
             }
-            if( DequeueTick())
+            if( !DequeueTick())
             {
-                return Yield.DidWork.Repeat;
+                return Yield.Terminate;
             }
-            return Yield.NoWork.Repeat;
+            return Yield.DidWork.Repeat;
         }
 
         private void TickSyncChangedEvent()
@@ -178,6 +184,14 @@ namespace TickZoom.FIX
 
             if (!reader.TryReadTick(temporaryTick))
             {
+                if( onEndTick != null)
+                {
+                    onEndTick(id);
+                }
+                else
+                {
+                    throw new ApplicationException("OnEndTick was null");
+                }
                 return result;
             }
 			tickCounter++;
@@ -199,7 +213,6 @@ namespace TickZoom.FIX
             }
 		    if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 		    ProcessOnTickCallBack();
-		    TryEnqueuePacket();
 		    return true;
 		}
 		
@@ -210,23 +223,10 @@ namespace TickZoom.FIX
             {
                 quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
             }
-			onTick( quoteMessage, Symbol, nextTick);
-			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
-            quoteMessage.SendUtcTime = nextTick.UtcTime.Internal;
-		}
-
-		private void TryEnqueuePacket() {
-            LatencyManager.IncrementSymbolHandler();
-            if (quoteMessage.Data.GetBuffer().Length == 0)
-            {
-				return;
-			}
-		    fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
-			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
-            quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+			onTick( id, Symbol, nextTick);
             queueTask.Pause();
-            TickSyncChangedEvent();            
-		}
+            TickSyncChangedEvent();
+        }
 
         public void TryProcessAdjustments()
         {

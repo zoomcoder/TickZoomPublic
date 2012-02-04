@@ -45,7 +45,7 @@ namespace TickZoom.FIX
         }
         private FillSimulator fillSimulator;
 		private TickFile reader;
-		private Action<Message,SymbolInfo,Tick> onTick;
+		private Action<long,SymbolInfo,Tick> onTick;
 		private Task queueTask;
 		private SymbolInfo symbol;
 		private TickIO nextTick = Factory.TickUtil.TickIO();
@@ -59,6 +59,7 @@ namespace TickZoom.FIX
         private string symbolString;
         private Agent agent;
         private PartialFillSimulation PartialFillSimulation;
+        private long id;
         public Agent Agent
         {
             get { return agent; }
@@ -68,9 +69,11 @@ namespace TickZoom.FIX
         public SimulateSymbolRealTime(FIXSimulatorSupport fixSimulatorSupport, 
 		    string symbolString,
             PartialFillSimulation partialFillSimulation,
-		    Action<Message,SymbolInfo,Tick> onTick,
+		    Action<long,SymbolInfo,Tick> onTick,
 		    Action<PhysicalFill> onPhysicalFill,
-		    Action<CreateOrChangeOrder,bool,string> onRejectOrder) {
+		    Action<CreateOrChangeOrder,bool,string> onRejectOrder, long id)
+        {
+            this.id = id;
             log.Register(this);
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.onTick = onTick;
@@ -154,33 +157,20 @@ namespace TickZoom.FIX
                 }
                 if (trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
                 ProcessOnTickCallBack();
-                TryEnqueuePacket();
                 result = true;
             }
 		    return result;
 		} 
 		
 		private Message quoteMessage;
-		private void ProcessOnTickCallBack() {
-            LatencyManager.IncrementSymbolHandler();
-            if (quoteMessage == null)
-            {
-                quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
-            }
-			onTick( quoteMessage, Symbol, nextTick);
-			if( trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
-            quoteMessage.SendUtcTime = nextTick.UtcTime.Internal;
-		}
-
-		private void TryEnqueuePacket() {
-            LatencyManager.IncrementSymbolHandler();
-            if (quoteMessage.Data.GetBuffer().Length == 0)
-            {
-				return;
-			}
-		    fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
-			if( trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
-            quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+		private void ProcessOnTickCallBack()
+		{
+		    LatencyManager.IncrementSymbolHandler();
+		    if (quoteMessage == null)
+		    {
+		        quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+		    }
+		    onTick(id, Symbol, nextTick);
 		}
 
         public void TryProcessAdjustments()

@@ -629,7 +629,7 @@ namespace TickZoom.MBTFIX
 		private unsafe Yield SymbolRequest(MessageMbtQuotes message) {
 			var symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
 			log.Info("Received symbol request for " + symbolInfo);
-			AddSymbol(symbolInfo.Symbol, OnTick, OnPhysicalFill, OnRejectOrder);
+			AddSymbol(symbolInfo.Symbol, OnTick, OnEndTick, OnPhysicalFill, OnRejectOrder);
 			switch( message.FeedType) {
 				case "20000": // Level 1
 					if( symbolInfo.QuoteType != QuoteType.Level1) {
@@ -662,7 +662,8 @@ namespace TickZoom.MBTFIX
         private SimpleLock quoteBuildersLocker = new SimpleLock();
         //private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
         private SimpleLock lastTicksLocker = new SimpleLock();
-        private TickIO[] lastTicks = new TickIO[1024];
+        private TickIO[] lastTicks = new TickIO[0];
+        private CurrentTick[] currentTicks = new CurrentTick[0];
 
 	    private byte[][] tradeSnippetBytes;
 	    private string[] tradeSnippets;
@@ -758,18 +759,101 @@ namespace TickZoom.MBTFIX
             return pos;
         }
 
-        private unsafe void OnTick(Message quoteMessage, SymbolInfo symbol, Tick tick)
+        public enum TickState
+        {
+            Start,
+            Tick,
+            Finish,
+        }
+
+        private class CurrentTick
+        {
+
+            public TickState State;
+            public SymbolInfo Symbol;
+            public TickIO TickIO = Factory.TickUtil.TickIO();
+        }
+
+        private void ExtendLastTicks()
+        {
+            var length = lastTicks.Length == 0 ? 256 : lastTicks.Length * 2;
+            Array.Resize(ref lastTicks, length);
+            for (var i = 0; i < lastTicks.Length; i++)
+            {
+                if (lastTicks[i] == null)
+                {
+                    lastTicks[i] = Factory.TickUtil.TickIO();
+                }
+            }
+        }
+
+        private void ExtendCurrentTicks()
+        {
+            var length = currentTicks.Length == 0 ? 256 : currentTicks.Length * 2;
+            Array.Resize(ref currentTicks, length);
+            for (var i = 0; i < currentTicks.Length; i++)
+            {
+                if (currentTicks[i] == null)
+                {
+                    currentTicks[i] = new CurrentTick();
+                }
+            }
+        }
+
+
+        private void OnEndTick( long id)
+        {
+            if (nextSimulateSymbolId >= currentTicks.Length)
+            {
+                ExtendCurrentTicks();
+            }
+            var currentTick = currentTicks[id];
+            currentTick.State = TickState.Finish;
+        }
+
+        private unsafe void OnTick( long id, SymbolInfo anotherSymbol, Tick anotherTick)
 		{
-            if (trace) log.Trace("Sending tick: " + tick);
-            if( symbol.BinaryIdentifier > lastTicks.Length)
+            if (trace) log.Trace("Sending tick: " + anotherTick);
+
+            if (anotherSymbol.BinaryIdentifier >= lastTicks.Length)
             {
-                Array.Resize(ref lastTicks, lastTicks.Length * 2);
+                ExtendLastTicks();
             }
+
+            if( nextSimulateSymbolId >= currentTicks.Length)
+            {
+                ExtendCurrentTicks();
+            }
+
+            var currentTick = currentTicks[id];
+            currentTick.TickIO.Inject(anotherTick.Extract());
+            currentTick.Symbol = anotherSymbol;
+            currentTick.State = TickState.Tick;
+
+
+            currentTick = null;
+            for( var i=0; i< nextSimulateSymbolId; i++)
+            {
+                var temp = currentTicks[i];
+                switch( temp.State)
+                {
+                    case TickState.Start:
+                        return;
+                    case TickState.Tick:
+                        if (currentTick == null || temp.TickIO.lUtcTime < currentTick.TickIO.lUtcTime)
+                        {
+                            currentTick = temp;
+                        }
+                        break;
+                    case TickState.Finish:
+                        break;
+                }
+            }
+
+            var tick = currentTick.TickIO;
+            var symbol = currentTick.Symbol;
+            var quoteMessage = QuoteSocket.MessageFactory.Create();
 		    var lastTick = lastTicks[symbol.BinaryIdentifier];
-            if( lastTick == null)
-            {
-                lastTicks[symbol.BinaryIdentifier] = lastTick = Factory.TickUtil.TickIO();
-            }
             var buffer = quoteMessage.Data.GetBuffer();
             var position = quoteMessage.Data.Position;
             quoteMessage.Data.SetLength(1024);
@@ -971,7 +1055,17 @@ namespace TickZoom.MBTFIX
             quoteMessage.Data.Position = position;
             quoteMessage.Data.SetLength(position);
             lastTick.Inject(tick.Extract());
-		}
+
+            if (trace) log.Trace("Added tick to packet: " + tick.UtcTime);
+            quoteMessage.SendUtcTime = tick.UtcTime.Internal;
+
+            if (quoteMessage.Data.GetBuffer().Length == 0)
+            {
+                return;
+            }
+            quotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
+            if (trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
+        }
 
 		private void CloseWithQuotesError(MessageMbtQuotes message, string textMessage) {
 		}
