@@ -618,6 +618,7 @@ namespace TickZoom.Presentation
             try
             {
                 var engine = Factory.Engine.TickEngine("StarterConfig");
+                engine.Agent.SendEvent(new EventItem(EventType.RemoteShutdown));
                 isEngineLoaded = true;
             }
             catch (Exception)
