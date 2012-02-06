@@ -62,14 +62,7 @@ namespace TickZoom.Api
                 {
                     if (!loggedFlag)
                     {
-                        try
-                        {
-                            throw new ApplicationException("Either deadlocked thread or else sleeping thread while locked.");
-                        }
-                        catch( Exception ex)
-                        {
-                            if (debug) log.Warn(ex.Message, ex);
-                        }
+                        if (debug) log.Warn("Either deadlocked thread or else sleeping thread while locked.\n" + new StackTrace());
                         loggedFlag = true;
                     }
                     Thread.Sleep(1);

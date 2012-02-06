@@ -900,7 +900,7 @@ namespace TickZoom.FIX
                     else
                     {
                         var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime),
-                            this, symbol, partialFillSimulation, onTick, onEndTick, endTime, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
+                            this, symbol, partialFillSimulation, onTick, onEndTick, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
                         symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
                     }
                 }

@@ -58,6 +58,7 @@ namespace TickZoom.FIX
         private TickIO temporaryTick = Factory.TickUtil.TickIO();
         private string symbolString;
         private Agent agent;
+        private Action<long> onEndTick;
         private PartialFillSimulation PartialFillSimulation;
         private long id;
         public Agent Agent
@@ -70,11 +71,13 @@ namespace TickZoom.FIX
 		    string symbolString,
             PartialFillSimulation partialFillSimulation,
 		    Action<long,SymbolInfo,Tick> onTick,
-		    Action<PhysicalFill> onPhysicalFill,
+            Action<long> onEndTick,
+            Action<PhysicalFill> onPhysicalFill,
 		    Action<CreateOrChangeOrder,bool,string> onRejectOrder, long id)
         {
             this.id = id;
             log.Register(this);
+            this.onEndTick = onEndTick;
 			this.fixSimulatorSupport = fixSimulatorSupport;
 			this.onTick = onTick;
 		    this.PartialFillSimulation = partialFillSimulation;
@@ -136,8 +139,16 @@ namespace TickZoom.FIX
             {
                 if( !reader.TryReadTick(temporaryTick))
                 {
+                    if (onEndTick != null)
+                    {
+                        onEndTick(id);
+                    }
+                    else
+                    {
+                        throw new ApplicationException("OnEndTick was null");
+                    }
                     queueTask.Stop();
-                    break;
+                    return result;
                 }
                 tickCounter++;
                 if (isFirstTick)

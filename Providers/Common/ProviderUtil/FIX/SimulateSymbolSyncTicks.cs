@@ -194,6 +194,7 @@ namespace TickZoom.FIX
                 {
                     throw new ApplicationException("OnEndTick was null");
                 }
+                queueTask.Stop();
                 return result;
             }
 			tickCounter++;

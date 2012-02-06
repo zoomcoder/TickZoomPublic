@@ -1178,14 +1178,5 @@ namespace TickZoom.TickUtil
             return dataVersion;
         }
 
-        private bool memcmp(ushort* array1, ushort* array2)
-        {
-            for (int i = 0; i < TickBinary.DomLevels; i++)
-            {
-                if (*(array1 + i) != *(array2 + i)) return false;
-            }
-            return true;
-        }
-
     }
 }
