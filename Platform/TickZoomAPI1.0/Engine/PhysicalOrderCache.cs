@@ -27,8 +27,6 @@ namespace TickZoom.Api
         string SymbolPositionsToString();
         string OrdersToString();
         List<CreateOrChangeOrder> GetOrdersList(Func<CreateOrChangeOrder, bool> func);
-        void CheckForExcessiveRejects(CreateOrChangeOrder order, string reason);
-        void ClearRejects();
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

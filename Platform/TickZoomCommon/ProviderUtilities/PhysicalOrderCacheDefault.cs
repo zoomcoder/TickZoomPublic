@@ -23,13 +23,6 @@ namespace TickZoom.Common
             }
         }
 
-        protected class RejectInfo
-        {
-            public string Reason;
-            public int Count;
-        }
-
-        protected Dictionary<long, RejectInfo> rejectCountBySerial = new Dictionary<long, RejectInfo>();
         protected Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
         protected Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
         protected Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
@@ -43,52 +36,6 @@ namespace TickZoom.Common
             {
                 return Position.ToString();
             }
-        }
-
-        public void ClearRejects()
-        {
-            rejectCountBySerial.Clear();
-        }
-
-        public void CheckForExcessiveRejects(CreateOrChangeOrder order, string reason)
-        {
-            RejectInfo info;
-            var serialNumber = order.LogicalSerialNumber;
-            if( serialNumber == 0)
-            {
-                if (order.OriginalOrder == null)
-                {
-                    serialNumber = order.LogicalSerialNumber;
-                }
-                else
-                {
-                    order = order.OriginalOrder;
-                }
-            }
-            if (rejectCountBySerial.TryGetValue(serialNumber, out info))
-            {
-                if( reason == info.Reason)
-                {
-                    ++info.Count;
-                }
-                else
-                {
-                    info.Reason = reason;
-                    info.Count = 1;
-                }
-                if (info.Count >= 20)
-                {
-                    throw new ApplicationException("More then " + info.Count + " rejects for '" + info.Reason + "' occurred for logical serial number " + order.LogicalSerialNumber);
-                }
-            }
-            else
-            {
-                info = new RejectInfo();
-                info.Reason = reason;
-                info.Count = 1;
-                rejectCountBySerial[serialNumber] = info;
-            }
-            if (debug) log.Debug("Reject Count " + info.Count + " because '" + info.Reason + "' for " + serialNumber + " from order:" + order);
         }
 
         public PhysicalOrderCacheDefault()
@@ -270,8 +217,6 @@ namespace TickZoom.Common
                     {
                         var result2 = ordersBySerial.Remove(order.LogicalSerialNumber);
                         if (result2 && trace) log.Trace("Removed order by logical serial " + order.LogicalSerialNumber + ": " + orderBySerial);
-                        var result3 = rejectCountBySerial.Remove(order.LogicalSerialNumber);
-                        if (result3 && trace) log.Trace("Removed reject count by logical serial " + order.LogicalSerialNumber);
                     }
                 }
                 return order;

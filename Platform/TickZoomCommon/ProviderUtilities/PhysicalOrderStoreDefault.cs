@@ -706,7 +706,6 @@ namespace TickZoom.Common
                 ordersByBrokerId.Clear();
                 ordersBySequence.Clear();
                 ordersBySerial.Clear();
-                rejectCountBySerial.Clear();
                 
                 foreach (var kvp in uniqueIds)
                 {
@@ -758,7 +757,6 @@ namespace TickZoom.Common
             ordersByBrokerId.Clear();
             ordersBySequence.Clear();
             ordersBySerial.Clear();
-            rejectCountBySerial.Clear();
         }
 
         public void UpdateLocalSequence(int localSequence)

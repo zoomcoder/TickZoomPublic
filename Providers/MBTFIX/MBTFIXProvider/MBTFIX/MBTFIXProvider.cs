@@ -283,7 +283,7 @@ namespace TickZoom.MBTFIX
 			}
 		    CancelRecovered();
             TryEndRecovery();
-		}
+        }
 
         protected override void OnFinishRecovery()
         {
@@ -428,28 +428,12 @@ namespace TickZoom.MBTFIX
 					break;
 				case "j":
                     BusinessReject(packetFIX);
-                    CheckForExcessiveRejects();
                     break;
 				default:
 					log.Warn("Ignoring Message: '" + packetFIX.MessageType + "'\n" + packetFIX);
 					break;
 			}
 		}
-
-        private void CheckForExcessiveRejects()
-        {
-            if( rejectCount > 3)
-            {
-                throw new ApplicationException("More than " + rejectCount + " rejects occurred.");
-            }
-            ++rejectCount;
-        }
-
-        private void ClearRejects()
-        {
-            rejectCount = 0;
-            OrderStore.ClearRejects();
-        }
 
         private void BusinessReject(MessageFIX4_4 packetFIX) {
 			var lower = packetFIX.Text.ToLower();
@@ -463,6 +447,7 @@ namespace TickZoom.MBTFIX
 			errorOkay = text.Contains("FXORD02") ? true : errorOkay;
             log.Error(packetFIX.Text + " -- Sending EndBroker event.");
             CancelRecovered();
+            TrySendEndBroker();
             TryEndRecovery();
             log.Info(packetFIX.Text + " Sent EndBroker event due to Message:\n" + packetFIX);
             if (!errorOkay)
@@ -577,6 +562,7 @@ namespace TickZoom.MBTFIX
                 if (isOrderServerOnline)
                 {
                     CancelRecovered();
+                    TrySendEndBroker();
                     TryEndRecovery();
                 }
                 else
@@ -591,6 +577,7 @@ namespace TickZoom.MBTFIX
                     }
                     CancelRecovered();
                     TrySendEndBroker();
+                    TryEndRecovery();
                 }
             }
             else if( trace)
@@ -609,6 +596,8 @@ namespace TickZoom.MBTFIX
                 algorithm.OrderAlgorithm.IsPositionSynced = false;
             }
         }
+
+
 
         private void PositionUpdate( MessageFIX4_4 packetFIX) {
 			if( packetFIX.MessageType == "AO") {
@@ -689,7 +678,6 @@ namespace TickZoom.MBTFIX
             }
         }
 
-        private int rejectCount;
 		private void ExecutionReport( MessageFIX4_4 packetFIX) {
             if (packetFIX.Text == "END")
             {
@@ -702,7 +690,6 @@ namespace TickZoom.MBTFIX
                 switch (orderStatus)
                 {
                     case "0": // New
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport New: " + packetFIX);
@@ -731,7 +718,6 @@ namespace TickZoom.MBTFIX
                         }
                         break;
                     case "1": // Partial
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Partial: " + packetFIX);
@@ -740,7 +726,6 @@ namespace TickZoom.MBTFIX
                         SendFill(packetFIX);
                         break;
                     case "2":  // Filled 
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Filled: " + packetFIX);
@@ -758,7 +743,6 @@ namespace TickZoom.MBTFIX
                         SendFill(packetFIX);
                         break;
                     case "5": // Replaced
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Replaced: " + packetFIX);
@@ -782,7 +766,6 @@ namespace TickZoom.MBTFIX
                         }
                         break;
                     case "4": // Canceled
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Canceled: " + packetFIX);
@@ -839,7 +822,6 @@ namespace TickZoom.MBTFIX
                             break;
                         }
                     case "6": // Pending Cancel
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Pending Cancel: " + packetFIX);
@@ -868,7 +850,6 @@ namespace TickZoom.MBTFIX
                         RejectOrder(packetFIX);
                         break;
                     case "9": // Suspended
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Suspended: " + packetFIX);
@@ -913,7 +894,6 @@ namespace TickZoom.MBTFIX
                         }
                         break;
                     case "E": // Pending Replace
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Pending Replace: " + packetFIX);
@@ -928,7 +908,6 @@ namespace TickZoom.MBTFIX
                         TryHandlePiggyBackFill(packetFIX);
                         break;
                     case "R": // Resumed.
-                        ClearRejects();
                         if (debug && (LogRecovery || !IsRecovery))
                         {
                             log.Debug("ExecutionReport Resumed: " + packetFIX);
@@ -956,21 +935,16 @@ namespace TickZoom.MBTFIX
 			string orderStatus = packetFIX.OrderStatus;
             CreateOrChangeOrder order;
 		    bool removeOriginal = false;
-		    if( OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order))
-		    {
-                OrderStore.CheckForExcessiveRejects(order, packetFIX.Text);
-            }
-            else
-		    {
-                CheckForExcessiveRejects();
-            }
+		    OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 			switch( orderStatus) {
 				case "8": // Rejected
 					var rejectReason = false;
                     if( packetFIX.Text.Contains("Order Server Not Available"))
                     {
                         rejectReason = true;
+                        CancelRecovered();
                         TrySendEndBroker();
+                        TryEndRecovery();
                     }
                     else if( packetFIX.Text.Contains("Cannot cancel order. Probably already filled or canceled."))
                     {
@@ -1023,10 +997,9 @@ namespace TickZoom.MBTFIX
                     if (!rejectReason && IsRecovered)
                     {
 						var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-						var ignore = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
-						var handle = "If this reject causes any other problems please report it to have it added and properly handled.";
+						var stopping = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. So trading will stop. ";
 						log.Warn( message);
-						log.Error( ignore + handle);
+						log.Error( stopping );
 					} else {
 						if( LogRecovery || !IsRecovery) {
 							log.Info( "CancelReject(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId);
@@ -1119,7 +1092,9 @@ namespace TickZoom.MBTFIX
             var item = new EventItem(symbol, EventType.LogicalFill, fill);
             symbolReceiver.Agent.SendEvent(item);
 		}
-
+        // *baladj* Continue
+        // *user logged in elsewhere*  ShutdownTrading 770-920-9618  713-681-3444.
+        // 
 		public void RejectOrder( MessageFIX4_4 packetFIX)
 		{
 		    var rejectReason = false;
@@ -1149,28 +1124,22 @@ namespace TickZoom.MBTFIX
             {
                 rejectReason = true;
                 removeOriginal = true;
+                CancelRecovered();
                 TrySendEndBroker();
+                TryEndRecovery();
             }
 
 		    if( IsRecovered && !rejectReason ) {
 			    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-			    var ignore = "The reject error message '" + packetFIX.Text + "' was unrecognized. So it is being ignored. ";
-			    var handle = "If this reject causes any other problems please report it to have it added and properly handled.";
+			    var stopping = "The reject error message '" + packetFIX.Text + "' was unrecognized. So stopping trading. ";
 			    log.Warn( message);
-			    log.Error( ignore + handle);
+                throw new ApplicationException(stopping);
 		    } else if( LogRecovery || IsRecovered) {
 			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + packetFIX.ClientOrderId);
 		    }
 
             CreateOrChangeOrder order;
-            if( OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order))
-            {
-                OrderStore.CheckForExcessiveRejects(order, packetFIX.Text);
-            }
-            else
-            {
-                CheckForExcessiveRejects();
-            }
+		    OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 		    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
             SymbolAlgorithm algorithm;
             if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))

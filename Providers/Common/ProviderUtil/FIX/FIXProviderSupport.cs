@@ -546,7 +546,7 @@ namespace TickZoom.FIX
                                                     break;
                                                 case "5": // log off confirm
                                                     if (debug) log.Debug("Logout message received.");
-                                                    if (connectionStatus == Status.PendingLogOut)
+                                                    if (ConnectionStatus == Status.PendingLogOut)
                                                     {
                                                         Dispose();
                                                     }
@@ -1249,6 +1249,7 @@ namespace TickZoom.FIX
             {
                 if( connectionStatus != value)
                 {
+                    if (debug) log.Debug("ConnectionStatus changed from " + connectionStatus + " to " + value);
                     connectionStatus = value;
                 }
             }
