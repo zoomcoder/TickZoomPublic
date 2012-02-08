@@ -294,7 +294,7 @@ namespace Loaders
             catch( Exception ex)
             {
                 log.Error("Exception while running test: " + ex.Message, ex);
-                //Environment.Exit(1);
+                Environment.Exit(1);
             }
         }
 
@@ -398,7 +398,7 @@ namespace Loaders
             if (testFailed)
             {
                 log.Error("Exiting because one of the tests failed.");
-                //Environment.Exit(1);
+                Environment.Exit(1);
             }
         }
 		
@@ -882,45 +882,6 @@ namespace Loaders
                 throw;
             }
         }
-
-/**************************
- * This was found to be useless because
- * A) we already compare all combo trades to known good.
- * B) the partial fills can some times vary due to the random
- * sequence and on occasion a order is lost and resent which changes
- * the sequence.
- * C) But we'll still store transactions for reconciliation
- * to the back end during real time or FIX Simulation.
-		public void DynamicTransactions(string strategyName) {
-			if( string.IsNullOrEmpty(strategyName)) return;
-			var model = GetModelByName(strategyName);
-			if( model is PortfolioInterface) return;
-			try {
-				assertFlag = false;
-				List<TransactionInfo> goodTransactions = null;
-				goodTransactionMap.TryGetValue(strategyName,out goodTransactions);
-				List<TransactionInfo> testTransactions = null;
-				testTransactionMap.TryGetValue(strategyName,out testTransactions);
-				if( goodTransactions == null) {
-					Assert.IsNull(testTransactions, "test transactions empty like good transactions");
-					return;
-				}
-				Assert.IsNotNull(testTransactions, "test transactions");
-				for( int i=0; i<testTransactions.Count && i<goodTransactions.Count; i++) {
-					var testInfo = testTransactions[i];
-					var goodInfo = goodTransactions[i];
-					var goodFill = goodInfo.Fill;
-					var testFill = testInfo.Fill;
-					AssertReconcile(goodFill,testFill,"Transaction Fill at " + i);
-					AssertEqual(goodInfo.Symbol,testInfo.Symbol,"Transaction symbol at " + i);
-				}
-				Assert.IsFalse(assertFlag,"Checking for transaction fill errors.");
-			} catch { 
-				testFailed = true;
-				throw;
-			}
-		}
-**************************************/
 
         public void PerformReconciliation(SymbolInfo symbolInfo) {
             try {

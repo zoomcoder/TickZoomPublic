@@ -934,7 +934,7 @@ namespace TickZoom.MBTFIX
 			}
 			string orderStatus = packetFIX.OrderStatus;
             CreateOrChangeOrder order;
-		    bool removeOriginal = false;
+		    bool removeOriginalX = false;
 		    OrderStore.TryGetOrderById(packetFIX.ClientOrderId, out order);
 			switch( orderStatus) {
 				case "8": // Rejected
@@ -949,12 +949,14 @@ namespace TickZoom.MBTFIX
                     else if( packetFIX.Text.Contains("Cannot cancel order. Probably already filled or canceled."))
                     {
                         rejectReason = true;
-                        removeOriginal = true;
+                        log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
+                        //removeOriginal = true;
                     }
 			        else if( packetFIX.Text.Contains("No such order"))
                     {
                         rejectReason = true;
-                        removeOriginal = true;
+                        log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
+                        //removeOriginal = true;
                     }
                     else if( packetFIX.Text.Contains("Order pending remote") ||
                         packetFIX.Text.Contains("Cancel request already pending") ||
@@ -965,7 +967,7 @@ namespace TickZoom.MBTFIX
                     }
 
                     OrderStore.RemoveOrder(packetFIX.ClientOrderId);
-                    if (removeOriginal)
+                    if (removeOriginalX)
                     {
                         OrderStore.RemoveOrder(packetFIX.OriginalClientOrderId);
                     }
@@ -983,7 +985,7 @@ namespace TickZoom.MBTFIX
                             log.Info("Cancel rejected but OrderAlgorithm not found for " + symbol + ". Ignoring.");
                             break;
                         }
-                        algorithm.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
+                        algorithm.OrderAlgorithm.RejectOrder(order, removeOriginalX, IsRecovered);
                     }
                     else
                     {
@@ -1098,16 +1100,16 @@ namespace TickZoom.MBTFIX
 		public void RejectOrder( MessageFIX4_4 packetFIX)
 		{
 		    var rejectReason = false;
-		    bool removeOriginal = false;
+		    bool removeOriginalX = false;
 		    if (packetFIX.Text.Contains("Cannot change order. Probably already filled or canceled."))
 		    {
 		        rejectReason = true;
-		        removeOriginal = true;
+                //removeOriginal = true;
 		    }
 		    else if( packetFIX.Text.Contains("No such order"))
 		    {
 		        rejectReason = true;
-                removeOriginal = true;
+                //removeOriginal = true;
             }
 		    else if (packetFIX.Text.Contains("Outside trading hours") ||
 		             packetFIX.Text.Contains("not accepted this session") ||
@@ -1143,7 +1145,7 @@ namespace TickZoom.MBTFIX
             SymbolAlgorithm algorithm;
             if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
             {
-                algorithm.OrderAlgorithm.RejectOrder(order, removeOriginal, IsRecovered);
+                algorithm.OrderAlgorithm.RejectOrder(order, removeOriginalX, IsRecovered);
             }
             else
             {
