@@ -1107,7 +1107,8 @@ namespace TickZoom.MBTFIX
 		    else if( packetFIX.Text.Contains("No such order"))
 		    {
 		        rejectReason = true;
-		    }
+                removeOriginal = true;
+            }
 		    else if (packetFIX.Text.Contains("Outside trading hours") ||
 		             packetFIX.Text.Contains("not accepted this session") ||
 		             packetFIX.Text.Contains("Pending live orders") ||
@@ -1115,7 +1116,6 @@ namespace TickZoom.MBTFIX
                      packetFIX.Text.Contains("No position to close"))
 		    {
 		        rejectReason = true;
-		        removeOriginal = true;
 		    }
 
             else if (packetFIX.Text.Contains("Order Server Offline") ||
@@ -1123,7 +1123,6 @@ namespace TickZoom.MBTFIX
                 packetFIX.Text.Contains("Order Server Not Available"))
             {
                 rejectReason = true;
-                removeOriginal = true;
                 CancelRecovered();
                 TrySendEndBroker();
                 TryEndRecovery();
