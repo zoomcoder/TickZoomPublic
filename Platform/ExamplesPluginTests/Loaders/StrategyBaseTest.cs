@@ -83,11 +83,12 @@ namespace Loaders
         private Thread guiThread;
         private Execute execute;
         private int testFinshedTimeout;
-        private PartialFillSimulation partialFillSimulation;
+        private AutoTestSettings testSettings;
 
 
         public StrategyBaseTest( AutoTestSettings testSettings )
         {
+            this.testSettings = testSettings;
             this.autoTestMode = testSettings.Mode;
             this.loader = testSettings.Loader;
             this.symbols = testSettings.Symbols;
@@ -98,7 +99,6 @@ namespace Loaders
             this.endTime = testSettings.EndTime;
             this.relativeEndTime = testSettings.RelativeEndTime;
             this.testFinshedTimeout = testSettings.TestFinishedTimeout;
-            this.partialFillSimulation = testSettings.PartialFillSimulation;
             this.testFileName = string.IsNullOrEmpty(testSettings.KnownGoodName)
                                     ? testSettings.Name
                                     : testSettings.KnownGoodName;
@@ -146,7 +146,7 @@ namespace Loaders
             config.EndDateTime = endTime.DateTime;
             config.StartDateTime = startTime.DateTime;
             config.TestFinishedTimeout = testFinshedTimeout;
-            config.PartialFillSimulation = partialFillSimulation;
+            config.SimulatorProperties = testSettings.SimulatorProperties;
             while (config.IsBusy)
             {
                 Thread.Sleep(100);

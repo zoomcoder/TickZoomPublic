@@ -164,6 +164,7 @@
     <Compile Include="Platform\ReportWriter.cs" />
     <Compile Include="Platform\ResultInterface.cs" />
     <Compile Include="Platform\ServiceConnection.cs" />
+    <Compile Include="Platform\SimulatorProperties.cs" />
     <Compile Include="Platform\Starter.cs" />
     <Compile Include="Platform\StarterProperties.cs" />
     <Compile Include="Platform\StrategyInterceptor.cs" />

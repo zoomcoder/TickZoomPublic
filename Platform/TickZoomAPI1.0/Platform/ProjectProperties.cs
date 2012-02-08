@@ -36,6 +36,8 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
+
+        SimulatorProperties Simulator { get; set; }
 		
 		ConfigFile ConfigFile {
 			get;
@@ -56,6 +58,5 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
-		
     }
 }

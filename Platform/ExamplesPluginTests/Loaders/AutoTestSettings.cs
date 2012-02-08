@@ -53,14 +53,15 @@ namespace Loaders
 		public IList<string> categories;
 	    public bool ignoreMissingKnownGood;
 	    public int testFinishedTimeout;
-	    public PartialFillSimulation partialFillSimulation;
+	    public SimulatorProperties simulatorProperties;
+
 	}
 	public class AutoTestSettings {
 		AutoTestSettingsBinary binary;
 		public AutoTestSettings() {
 			binary.endTime = TimeStamp.MaxValue;
 			binary.categories = new List<string>();
-		    binary.partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
+		    binary.simulatorProperties = Factory.Starter.SimulatorProperties();
 		    binary.testFinishedTimeout = 10;
 		}
 		
@@ -95,8 +96,8 @@ namespace Loaders
 
         public PartialFillSimulation PartialFillSimulation
         {
-            get { return binary.partialFillSimulation; }
-            set { binary.partialFillSimulation = value; }
+            get { return binary.simulatorProperties.PartialFillSimulation; }
+            set { binary.simulatorProperties.PartialFillSimulation = value; }
         }
 
         public string Name
@@ -155,6 +156,11 @@ namespace Loaders
         {
             get { return binary.testFinishedTimeout; }
             set { binary.testFinishedTimeout = value; }
+        }
+
+        public SimulatorProperties SimulatorProperties
+        {
+            get { return binary.simulatorProperties; }
         }
     }
 }

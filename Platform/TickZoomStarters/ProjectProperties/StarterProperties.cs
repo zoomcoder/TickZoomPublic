@@ -26,20 +26,13 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration;
-using System.Drawing.Design;
-using System.IO;
-using System.Reflection;
-using System.Text;
-using System.Xml;
 
 using TickZoom.Api;
 using TickZoom.Symbols;
 
 namespace TickZoom.Properties
 {
-	/// <summary>
+    /// <summary>
 	/// Description of StarterProperties.
 	/// </summary>
 	public class StarterProperties : PropertiesBase, TickZoom.Api.StarterProperties
@@ -52,7 +45,6 @@ namespace TickZoom.Properties
 		ChartProperties chartProperties;
 		EngineProperties engineProperties;
 	    private int testFinishedTimeout;
-	    private PartialFillSimulation partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
 		
 		List<SymbolProperties> symbolInfo = new List<SymbolProperties>();
 		
@@ -128,12 +120,6 @@ namespace TickZoom.Properties
 	    {
 	        get { return testFinishedTimeout; }
 	        set { testFinishedTimeout = value; }
-	    }
-
-	    public PartialFillSimulation PartialFillSimulation
-	    {
-	        get { return partialFillSimulation; }
-	        set { partialFillSimulation = value; }
 	    }
 	}
 }

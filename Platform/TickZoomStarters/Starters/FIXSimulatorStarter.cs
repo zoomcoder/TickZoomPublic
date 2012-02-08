@@ -50,7 +50,7 @@ namespace TickZoom.Starters
             SetupProviderServiceConfig();
             var providerManager = Factory.Parallel.SpawnProvider("ProviderCommon", "ProviderManager");
             providerManager.SendEvent(new EventItem(EventType.SetConfig, "WarehouseTest"));
-            using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "MBTFIXSimulator", "Simulate", ProjectProperties.Starter.PartialFillSimulation, ProjectProperties.Starter.EndTime))
+            using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "MBTFIXSimulator", "Simulate", ProjectProperties))
             { 
 				base.Run(loader);
 			}

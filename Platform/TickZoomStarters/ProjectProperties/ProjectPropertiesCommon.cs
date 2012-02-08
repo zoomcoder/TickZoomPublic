@@ -45,6 +45,7 @@ namespace TickZoom.Properties
 		ConfigFile configFile = new ConfigFile();
 		ChartProperties chartProperties = new ChartProperties();
 		EngineProperties engineProperties = new EngineProperties();
+        private TickZoom.Api.SimulatorProperties simulatorProperties = new SimulatorProperties();
 		TickZoom.Api.ModelProperties modelProperties = new ModelPropertiesCommon();
 		StarterProperties starterProperties;
 		public ProjectPropertiesCommon()
@@ -263,5 +264,11 @@ namespace TickZoom.Properties
 			get { return configFile; }
 			set { configFile = value; }
 		}
+
+        public TickZoom.Api.SimulatorProperties Simulator
+	    {
+	        get { return simulatorProperties; }
+	        set { simulatorProperties = value; }
+	    }
 	}
 }

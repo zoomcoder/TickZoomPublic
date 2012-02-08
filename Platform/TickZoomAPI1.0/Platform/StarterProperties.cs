@@ -28,7 +28,7 @@ using System;
 
 namespace TickZoom.Api
 {
-	/// <summary>
+    /// <summary>
 	/// Description of StarterProperties.
 	/// </summary>
 	public interface StarterProperties
@@ -57,11 +57,6 @@ namespace TickZoom.Api
 			set;
 		}
 
-        PartialFillSimulation PartialFillSimulation
-        {
-            get; set;
-        }
-		
 		void SetSymbols( string symbols);
 		
 		[Obsolete("Please call SetSymbols() method instead.",true)]

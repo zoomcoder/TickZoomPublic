@@ -118,12 +118,12 @@ namespace TickZoom.FIX
             set { agent = value; }
         }
 
-        public FIXSimulatorSupport(string mode, PartialFillSimulation partialFillSimulation, TimeStamp endTime, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
+        public FIXSimulatorSupport(string mode, ProjectProperties projectProperties, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
         {
-            this.partialFillSimulation = partialFillSimulation;
+            this.partialFillSimulation = projectProperties.Simulator.PartialFillSimulation;
 		    this.fixPort = fixPort;
 		    this.quotesPort = quotesPort;
-            this.endTime = endTime;
+            this.endTime = projectProperties.Starter.EndTime;
 		    var randomSeed = new Random().Next(int.MaxValue);
 
 		    if (randomSeed != 1234)

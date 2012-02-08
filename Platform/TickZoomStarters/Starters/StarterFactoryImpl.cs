@@ -75,8 +75,14 @@ namespace TickZoom.Starters
 		public ISymbolProperties SymbolProperties() {
 			return new SymbolProperties();
 		}
-		
-		public ProjectProperties ProjectProperties(string path) {
+
+        public TickZoom.Api.SimulatorProperties SimulatorProperties()
+        {
+            return new TickZoom.Properties.SimulatorProperties();
+        }
+
+        public ProjectProperties ProjectProperties(string path)
+        {
 			return ProjectPropertiesCommon.Create(new StreamReader(path));
 		}
 		
