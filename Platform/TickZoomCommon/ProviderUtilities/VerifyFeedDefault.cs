@@ -163,7 +163,7 @@ namespace TickZoom.Common
 		                    }
 		                    if (count%10000 == 0)
 		                    {
-		                        log.Notice("Read " + count + " ticks");
+		                        log.Info("Read " + count + " ticks");
 		                    }
 		                }
 		                lastTick.Copy(tickIO);
@@ -517,7 +517,7 @@ namespace TickZoom.Common
 						log.Notice("First tick received: " + tickIO.ToPosition());
 					}
 					if (count % 10000 == 0) {
-						log.Notice("Read " + count + " ticks");
+						log.Info("Read " + count + " ticks");
 					}
 					if( SyncTicks.Enabled && symbolState == SymbolState.RealTime)
 					{
