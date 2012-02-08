@@ -43,6 +43,7 @@ namespace TickZoom.Api
         Starter CreateStarter(string name);
         ISymbolProperties SymbolProperties();
         SimulatorProperties SimulatorProperties();
+        ProjectProperties ProjectProperties();
         ProjectProperties ProjectProperties(string path);
 	    Starter FIXNegativeStarter();
 	}

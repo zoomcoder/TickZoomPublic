@@ -85,8 +85,14 @@ namespace TickZoom.Starters
         {
 			return ProjectPropertiesCommon.Create(new StreamReader(path));
 		}
-		
-		public Starter DesignStarter() {
+
+        public ProjectProperties ProjectProperties()
+        {
+            return new ProjectPropertiesCommon();
+        }
+
+        public Starter DesignStarter()
+        {
 			return new DesignStarter();
 		}
 		

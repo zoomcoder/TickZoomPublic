@@ -496,7 +496,7 @@ namespace TickZoom.TickUtil
                 }
                 else
                 {
-                    log.Warn("File was not found. Will create it. " + fileName);
+                    log.Info("File was not found. Will create it. " + fileName);
                 }
             }
             else
