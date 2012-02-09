@@ -26,8 +26,10 @@
 
 using System;
 using System.Configuration;
+using System.IO;
+using System.Text;
+using System.Threading;
 using TickZoom.Api;
-using TickZoom.Common;
 
 namespace TickZoom.Starters
 {
@@ -40,6 +42,7 @@ namespace TickZoom.Starters
 		
 		public override void Run(ModelLoaderInterface loader)
 		{
+            SetupSymbolData();
 		    Factory.Provider.StartSockets();
             parallelMode = ParallelMode.RealTime;
             Factory.SysLog.RegisterHistorical("FIXSimulator", GetDefaultLogConfig());
@@ -56,8 +59,63 @@ namespace TickZoom.Starters
 			}
             Factory.Provider.ShutdownSockets();
         }
-		
-		private string GetDefaultLogConfig() {
+
+        public void SetupSymbolData()
+        {
+            string appDataFolder = Factory.Settings["AppDataFolder"];
+            var directory = appDataFolder + Path.DirectorySeparatorChar +
+                            "Test" + Path.DirectorySeparatorChar +
+                            "MockProviderData";
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, true);
+            }
+            Directory.CreateDirectory(directory);
+            foreach (var symbol in ProjectProperties.Starter.SymbolProperties)
+            {
+                CopySymbol(directory,symbol.Symbol);
+            }
+        }
+
+        public void CopySymbol(string directory, string symbol)
+        {
+            while (true)
+            {
+                try
+                {
+                    symbol = symbol.StripInvalidPathChars();
+                    string appData = Factory.Settings["AppDataFolder"];
+                    var fromDirectory = appData + Path.DirectorySeparatorChar +
+                                    "Test" + Path.DirectorySeparatorChar +
+                                    "DataCache";
+                    var files = Directory.GetFiles(fromDirectory, symbol + ".tck", SearchOption.AllDirectories);
+                    if( files.Length > 1)
+                    {
+                        var sb = new StringBuilder();
+                        foreach (var file in files)
+                        {
+                            sb.AppendLine(file);
+                        }
+                        throw new ApplicationException("Sorry more than one file matches " + symbol + ".tck:\n" + sb);
+                    }
+                    else if( files.Length == 1)
+                    {
+                        var fromFile = files[0];
+                        var toFile = directory + Path.DirectorySeparatorChar + symbol + ".tck";
+                        File.Copy(fromFile, toFile);
+                    }
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    throw new ApplicationException("Copy " + symbol + " to simulator failed. Retrying...", ex);
+                }
+            }
+            Thread.Sleep(2000);
+        }
+
+        private string GetDefaultLogConfig()
+        {
 			return @"<?xml version=""1.0"" encoding=""utf-8"" ?>
 <configuration>
  <log4net>

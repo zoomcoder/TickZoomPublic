@@ -161,7 +161,8 @@ namespace Loaders
                     config.StarterName = "HistoricalStarter";
                     break;
                 case AutoTestMode.TestNegativeFIX:
-                    config.StarterName = "FIXNegativeStarter";
+                    config.StarterName = "FIXSimulatorStarter";
+                    config.SimulatorProperties.EnableNegativeTests = true;
                     break;
                 case AutoTestMode.SimulateFIX:
                     config.StarterName = "FIXSimulatorStarter";
@@ -306,6 +307,10 @@ namespace Loaders
         public static void CleanupFiles(string symbols, string dummyArg) {
             CleanupServerCache(symbols);
             var appDataFolder = Factory.Settings["AppDataFolder"];
+            if( Directory.Exists(appDataFolder + Path.DirectorySeparatorChar + "MockProviderData"))
+            {
+                Directory.Delete(appDataFolder + Path.DirectorySeparatorChar + "MockProviderData", true);
+            }
             var providersFolder = Path.Combine(appDataFolder,"Providers");
             var mbtfixFolder = Path.Combine(providersFolder,"MBTFIXProvider");
             var databaseFolder = Path.Combine(appDataFolder, "Database");

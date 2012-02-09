@@ -45,6 +45,5 @@ namespace TickZoom.Api
         SimulatorProperties SimulatorProperties();
         ProjectProperties ProjectProperties();
         ProjectProperties ProjectProperties(string path);
-	    Starter FIXNegativeStarter();
 	}
 }

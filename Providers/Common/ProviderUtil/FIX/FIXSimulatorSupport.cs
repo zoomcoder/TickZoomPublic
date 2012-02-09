@@ -137,12 +137,10 @@ namespace TickZoom.FIX
 		    {
 		        case "PlayBack":
 		            break;
-                case "Negative":
-		            allTests = true;
-		            break;
                 default:
 		            break;
 		    }
+            allTests = projectProperties.Simulator.EnableNegativeTests;
             simulateDisconnect = allTests;
 		    simulateSystemOffline = allTests;
             simulateSendOrderServerOffline = allTests;

@@ -112,11 +112,6 @@ namespace TickZoom.Starters
 			return new FIXSimulatorStarter();
 		}
 
-        public Starter FIXNegativeStarter()
-        {
-            return new FIXNegativeStarter();
-        }
-
         public Starter CreateStarter(string starterName)
         {
 			var starterType = Type.GetType("TickZoom.Starters."+starterName);
