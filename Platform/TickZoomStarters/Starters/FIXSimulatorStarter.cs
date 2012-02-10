@@ -25,16 +25,19 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Text;
 using System.Threading;
 using TickZoom.Api;
+using TickZoom.TZData;
 
 namespace TickZoom.Starters
 {
     public class FIXSimulatorStarter : RealTimeStarterBase
     {
+        private static readonly Log log = Factory.SysLog.GetLogger(typeof (FIXSimulatorStarter));
 		public FIXSimulatorStarter() {
 			SyncTicks.Enabled = true;
 			ConfigurationManager.AppSettings.Set("ProviderAddress","InProcess");
@@ -63,21 +66,53 @@ namespace TickZoom.Starters
         public void SetupSymbolData()
         {
             string appDataFolder = Factory.Settings["AppDataFolder"];
-            var directory = appDataFolder + Path.DirectorySeparatorChar +
+            var realTimeDirectory = appDataFolder + Path.DirectorySeparatorChar +
                             "Test" + Path.DirectorySeparatorChar +
                             "MockProviderData";
-            if (Directory.Exists(directory))
-            {
-                Directory.Delete(directory, true);
-            }
-            Directory.CreateDirectory(directory);
+            var historicalDirectory = appDataFolder + Path.DirectorySeparatorChar +
+                            "Test" + Path.DirectorySeparatorChar +
+                            "ServerCache";
+            DeleteDirectory(realTimeDirectory);
+            DeleteDirectory(historicalDirectory);
+            Directory.CreateDirectory(realTimeDirectory);
+            Directory.CreateDirectory(historicalDirectory);
             foreach (var symbol in ProjectProperties.Starter.SymbolProperties)
             {
-                CopySymbol(directory,symbol.Symbol);
+                CopySymbol(historicalDirectory,realTimeDirectory,symbol.Symbol);
             }
         }
 
-        public void CopySymbol(string directory, string symbol)
+        public static void DeleteDirectory(string path)
+        {
+            var errors = new List<Exception>();
+            var errorCount = 0;
+            while (errorCount < 30)
+            {
+                try
+                {
+                    if( Directory.Exists(path))
+                    {
+                        Directory.Delete(path,true);
+                    }
+                    errors.Clear();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    log.Info("Delete " + path + " error " + errorCount + ": " + ex.Message);
+                    errors.Add(ex);
+                    Thread.Sleep(1000);
+                    errorCount++;
+                }
+            }
+            if (errors.Count > 0)
+            {
+                var ex = errors[errors.Count - 1];
+                throw new IOException("Can't delete " + path, ex);
+            }
+        }
+
+        public void CopySymbol(string historical, string realTime, string symbol)
         {
             while (true)
             {
@@ -101,8 +136,16 @@ namespace TickZoom.Starters
                     else if( files.Length == 1)
                     {
                         var fromFile = files[0];
-                        var toFile = directory + Path.DirectorySeparatorChar + symbol + ".tck";
-                        File.Copy(fromFile, toFile);
+                        var realTimeFile = realTime + Path.DirectorySeparatorChar + symbol + ".tck";
+                        var historyFile = historical + Path.DirectorySeparatorChar + symbol + ".tck";
+                        if( ProjectProperties.Simulator.WarmStartTime < ProjectProperties.Starter.EndTime)
+                        {
+                            SplitAndCopy(fromFile, historyFile, realTimeFile, ProjectProperties.Simulator.WarmStartTime);
+                        }
+                        else
+                        {
+                            File.Copy(fromFile, realTimeFile);
+                        }
                     }
                     break;
                 }
@@ -112,6 +155,29 @@ namespace TickZoom.Starters
                 }
             }
             Thread.Sleep(2000);
+        }
+
+        private void SplitAndCopy(string fromFile, string historyFile, string realTimeFile, TimeStamp cutoverTime)
+        {
+            // Setup historical
+            var subproc = Factory.Provider.SubProcess();
+            subproc.ExecutableName = "tzdata.exe";
+            subproc.AddArgument("filter");
+            subproc.AddArgument(fromFile);
+            subproc.AddArgument(historyFile);
+            subproc.AddArgument(ProjectProperties.Starter.StartTime.ToString());
+            subproc.AddArgument(cutoverTime.ToString());
+            subproc.Run();
+
+            // Setup real time
+            subproc = Factory.Provider.SubProcess();
+            subproc.ExecutableName = "tzdata.exe";
+            subproc.AddArgument("filter");
+            subproc.AddArgument(fromFile);
+            subproc.AddArgument(realTimeFile);
+            subproc.AddArgument(cutoverTime.ToString());
+            subproc.AddArgument(ProjectProperties.Starter.EndTime.ToString());
+            subproc.Run();
         }
 
         private string GetDefaultLogConfig()

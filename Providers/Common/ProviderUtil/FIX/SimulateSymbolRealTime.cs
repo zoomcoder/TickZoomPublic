@@ -84,6 +84,7 @@ namespace TickZoom.FIX
 		    this.symbolString = symbolString;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
+            fillSimulator.EnableSyncTicks = SyncTicks.Enabled;
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
             fillSimulator.PartialFillSimulation = partialFillSimulation;

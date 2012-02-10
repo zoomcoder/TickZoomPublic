@@ -2,8 +2,8 @@
 {
     public enum SymbolMode
     {
-        CacheData,
+        Historical,
         RealTime,
-        Historical
+        BackFill
     }
 }

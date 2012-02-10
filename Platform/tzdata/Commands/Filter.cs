@@ -90,18 +90,8 @@ namespace TickZoom.TZData
                                 firstTick.IsSimulateTicks = true;
                             }
                             count++;
-                            //						if( tickIO.Bid == prevTick.Bid && tickIO.Ask == prevTick.Ask) {
-                            //							dups++;
-                            //						} else {
-                            //							Elapsed elapsed = tickIO.Time - prevTick.Time;
                             prevTick.Copy(tickIO);
-                            prevTick.IsSimulateTicks = true;
-                            //							if( elapsed.TotalMilliseconds < 5000) {
-                            //								fast++;
-                            //							} else {
                             writer.WriteTick(prevTick);
-                            //							}	
-                            //						}
                         }
                     }
                 }

@@ -41,6 +41,7 @@ namespace TickZoom.Interceptors
         private volatile bool debug = staticLog.IsDebugEnabled;
 	    private FillSimulatorLogic fillLogic;
 	    private bool isChanged;
+	    private bool enableSyncTicks;
         public void RefreshLogLevel()
         {
             if( log != null)
@@ -450,7 +451,7 @@ namespace TickZoom.Interceptors
             {
                 var wrapper = fillQueue.Dequeue();
                 if (debug) log.Debug("Dequeuing fill ( isOnline " + isOnline + "): " + wrapper.Fill);
-                if (SyncTicks.Enabled && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
+                if (enableSyncTicks && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
                 onPhysicalFill(wrapper.Fill);
             }
         }
@@ -670,7 +671,7 @@ namespace TickZoom.Interceptors
 		                          IsCounterSet = isOnline,
 		                          Fill = fill,
 		                      };
-            if (SyncTicks.Enabled && wrapper.IsCounterSet) tickSync.AddPhysicalFill(fill);
+            if (enableSyncTicks && wrapper.IsCounterSet) tickSync.AddPhysicalFill(fill);
             fillQueue.Enqueue(wrapper);
         }
 		
@@ -784,6 +785,12 @@ namespace TickZoom.Interceptors
 	    {
 	        get { return partialFillSimulation; }
 	        set { partialFillSimulation = value; }
+	    }
+
+	    public bool EnableSyncTicks
+	    {
+	        get { return enableSyncTicks; }
+	        set { enableSyncTicks = value; }
 	    }
 	}
 }

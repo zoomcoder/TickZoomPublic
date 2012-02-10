@@ -407,6 +407,10 @@ namespace TickZoom.MBTFIX
 					PositionUpdate( packetFIX);
 					break;
 				case "8":
+                    if( string.IsNullOrEmpty(packetFIX.TransactionTime))
+                    {
+                        throw new ApplicationException("Found FIX message with empty transaction time: " + packetFIX);
+                    }
                     var transactTime = new TimeStamp(packetFIX.TransactionTime);
                     if( transactTime >= OrderStore.LastSequenceReset)
                     {
@@ -1423,6 +1427,7 @@ namespace TickZoom.MBTFIX
                     var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
                     var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
                     var algorithm = Factory.Utility.OrderAlgorithm("mbtfix", symbolInfo, this, orderCache, OrderStore);
+                    algorithm.EnableSyncTicks = SyncTicks.Enabled;
                     symbolAlgorithm = new SymbolAlgorithm { OrderAlgorithm = algorithm };
                     orderAlgorithms.Add(symbol, symbolAlgorithm);
                     algorithm.OnProcessFill = ProcessFill;

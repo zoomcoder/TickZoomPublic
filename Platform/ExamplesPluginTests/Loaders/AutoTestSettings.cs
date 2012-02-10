@@ -62,7 +62,7 @@ namespace Loaders
 			binary.endTime = TimeStamp.MaxValue;
 			binary.categories = new List<string>();
 		    binary.simulatorProperties = Factory.Starter.SimulatorProperties();
-		    binary.testFinishedTimeout = 10;
+		    binary.testFinishedTimeout = 15;
 		}
 		
 		public AutoTestSettings(AutoTestSettingsBinary binary) {
@@ -156,6 +156,12 @@ namespace Loaders
         {
             get { return binary.testFinishedTimeout; }
             set { binary.testFinishedTimeout = value; }
+        }
+
+        public TimeStamp WarmStartTime
+        {
+            get { return binary.simulatorProperties.WarmStartTime; }
+            set { binary.simulatorProperties.WarmStartTime = value; }
         }
 
         public SimulatorProperties SimulatorProperties

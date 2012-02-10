@@ -4,5 +4,6 @@
     {
         PartialFillSimulation PartialFillSimulation { get; set;  }
         bool EnableNegativeTests { get; set; }
+        TimeStamp WarmStartTime { get; set; }
     }
 }

@@ -49,7 +49,6 @@ namespace Loaders
 					Symbols = primarySymbol + ",EUR/USD,USD/CHF",
 					StoreKnownGood = storeKnownGood,
 					ShowCharts = showCharts,
-					StartTime = new TimeStamp( 1800, 1, 1),
 					EndTime = new TimeStamp( 2009, 6, 10),
 					IntervalDefault = Intervals.Minute1,
 				});
@@ -67,7 +66,6 @@ namespace Loaders
 				    Symbols = "/NQU0",
 					StoreKnownGood = storeKnownGood,
 					ShowCharts = showCharts,
-					StartTime = new TimeStamp( 1800, 1, 1),
 					EndTime = new TimeStamp( "2010-08-25 15:00:00"),
 					IntervalDefault = Intervals.Second10,
 				});
@@ -103,7 +101,6 @@ namespace Loaders
                 Symbols = "USD/JPY",
                 StoreKnownGood = storeKnownGood,
                 ShowCharts = showCharts,
-                StartTime = new TimeStamp(1800, 1, 1),
                 EndTime = new TimeStamp(2009, 6, 22),
                 IntervalDefault = Intervals.Minute1,
             });
@@ -116,8 +113,7 @@ namespace Loaders
 				Symbols = primarySymbol + ",EUR/USD",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
-				EndTime = new TimeStamp( 2009, 6, 10),
+                EndTime = new TimeStamp(2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
 			
@@ -128,19 +124,18 @@ namespace Loaders
 				Symbols = "Daily4Sim",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
 				EndTime = new TimeStamp( 1990, 1, 1),
 				IntervalDefault = Intervals.Day1,
 			});
-			
-			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.Default,
-			    Name = "LimitOrderTest",
-			    Loader = new TestLimitOrderLoader(),
-				Symbols = primarySymbol,
-				StoreKnownGood = storeKnownGood,
-				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
+
+		    list.Add(new AutoTestSettings {
+                Mode = AutoTestMode.Default,
+                Name = "LimitOrderTest",
+                Loader = new TestLimitOrderLoader(),
+                Symbols = primarySymbol,
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                WarmStartTime = new TimeStamp("2009-06-09 16:00"),
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
@@ -152,7 +147,6 @@ namespace Loaders
 				Symbols = primarySymbol,
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
@@ -164,7 +158,6 @@ namespace Loaders
 				Symbols = "USD/JPY_Synthetic",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
@@ -176,7 +169,6 @@ namespace Loaders
 				Symbols = "Daily4Sim",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp(1800,1,1),
 				EndTime = new TimeStamp(1990,1,1),
 				IntervalDefault = Intervals.Day1,
 			});
@@ -188,7 +180,6 @@ namespace Loaders
 				Symbols = "FullTick,Daily4Sim",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp(1800,1,1),
 				EndTime = new TimeStamp(1990,1,1),
 				IntervalDefault = Intervals.Day1,
 			});
@@ -201,7 +192,6 @@ namespace Loaders
                 Symbols = primarySymbol + ",EUR/USD,USD/CHF",
                 StoreKnownGood = storeKnownGood,
                 ShowCharts = showCharts,
-                StartTime = new TimeStamp(1800, 1, 1),
                 EndTime = new TimeStamp(2009, 6, 10),
                 IntervalDefault = Intervals.Minute1,
                 Categories = { "Failed" },
@@ -216,7 +206,6 @@ namespace Loaders
 				Symbols = primarySymbol + ",EUR/USD,USD/CHF",
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 				Categories = { "Failed" },
@@ -246,7 +235,6 @@ namespace Loaders
                 KnownGoodName = "ExampleMixedTest",
                 IgnoreMissingKnownGood = true,
                 ShowCharts = showCharts,
-                StartTime = new TimeStamp(1800, 1, 1),
                 EndTime = new TimeStamp(2009, 6, 10),
                 IntervalDefault = Intervals.Minute1,
                 Categories = { "Failed" },
@@ -260,7 +248,6 @@ namespace Loaders
                 Symbols = "USD/CHF",
                 StoreKnownGood = storeKnownGood,
                 ShowCharts = showCharts,
-                StartTime = new TimeStamp(1800, 1, 1),
                 EndTime = new TimeStamp(2009, 6, 10),
                 IntervalDefault = Intervals.Minute1,
                 Categories = { "Failed" },
@@ -274,7 +261,6 @@ namespace Loaders
 				Symbols = primarySymbol,
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
@@ -286,7 +272,6 @@ namespace Loaders
 				Symbols = primarySymbol,
 				StoreKnownGood = storeKnownGood,
 				ShowCharts = showCharts,
-				StartTime = new TimeStamp( 1800, 1, 1),
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
             });
@@ -299,7 +284,6 @@ namespace Loaders
                 Symbols = primarySymbol,
                 StoreKnownGood = storeKnownGood,
                 ShowCharts = showCharts,
-                StartTime = new TimeStamp(1800, 1, 1),
                 EndTime = new TimeStamp(2009, 6, 10),
                 IntervalDefault = Intervals.Minute1,
             });
@@ -385,10 +369,10 @@ namespace Loaders
                 Mode = AutoTestMode.Default,
                 Name = "TenSymbolOrders",
                 Loader = new ExampleOrdersLoader(),
-                Symbols = @"CL.1month, ES.1month, GC.1month, EC.1month, BP.1month,
-                    NQ.1month, ER.1month, NG.1month, JY.1month, AD.1month",
+                Symbols = @"CL, ES, GC, EC, BP, NQ, ER, NG, JY, AD",
                 StoreKnownGood = storeKnownGood,
                 ShowCharts = showCharts,
+                WarmStartTime = new TimeStamp("2010-03-02"),
                 EndTime = new TimeStamp(2010, 3, 3),
                 IntervalDefault = Intervals.Hour1,
                 Categories = { "MultiSymbolOrders" },

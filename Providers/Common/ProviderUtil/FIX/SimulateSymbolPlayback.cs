@@ -53,6 +53,7 @@ namespace TickZoom.FIX
             this.symbolString = symbolString;
             reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
+            fillSimulator.EnableSyncTicks = SyncTicks.Enabled;
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
         }

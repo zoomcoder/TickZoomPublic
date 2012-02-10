@@ -187,12 +187,12 @@ namespace TickZoom.TickUtil
                 if (pricePrecision == 0L)
                 {
                     SetPricePrecision(ref binary);
-                    if (debug) log.Debug("Writing decimal places used in price compression.");
+                    if (trace) log.Trace("Writing decimal places used in price compression.");
                     WriteField2(BinaryField.Precision, &ptr, pricePrecision);
                 }
                 if (!isCompressStarted)
                 {
-                    if (debug) log.Debug("Writing Reset token during tick compression.");
+                    if (trace) log.Trace("Writing Reset token during tick compression.");
                     lastBinary = default(TickBinary);
                     WriteField2(BinaryField.Reset, &ptr, 1);
                     isCompressStarted = true;

@@ -68,7 +68,11 @@ namespace MockProvider
 			while( true) {
 				try {
 					string appData = Factory.Settings["AppDataFolder"];
-		 			File.Delete( appData + @"\Test\\ServerCache\USDJPY.tck");
+				    var file = appData + @"\Test\\ServerCache\USDJPY.tck";
+		 			if( File.Exists(file))
+		 			{
+		 			    File.Delete(file);
+		 			}
 					break;
 				} catch( Exception) {
 				}

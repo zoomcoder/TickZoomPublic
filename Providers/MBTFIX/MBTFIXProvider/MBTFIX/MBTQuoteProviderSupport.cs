@@ -80,6 +80,7 @@ namespace TickZoom.MBTQuotes
 	    private string configSection;
         private bool useLocalTickTime = true;
         private volatile bool debugDisconnect = false;
+	    private int timeSeconds = int.MaxValue;
 	    private TrueTimer taskTimer;
         private Agent agent;
         public Agent Agent
@@ -268,7 +269,7 @@ namespace TickZoom.MBTQuotes
         {
             if (isDisposed) return Yield.NoWork.Repeat;
             TimeStamp currentTime = TimeStamp.UtcNow;
-            currentTime.AddSeconds(1);
+            currentTime.AddSeconds(timeSeconds);
             taskTimer.Start(currentTime);
             return Invoke();
         }
@@ -497,7 +498,7 @@ namespace TickZoom.MBTQuotes
             log.Info(providerName + " Startup");
 
             TimeStamp currentTime = TimeStamp.UtcNow;
-            currentTime.AddSeconds(1);
+            currentTime.AddSeconds(timeSeconds);
             taskTimer.Start(currentTime);
 
             RegenerateSocket();

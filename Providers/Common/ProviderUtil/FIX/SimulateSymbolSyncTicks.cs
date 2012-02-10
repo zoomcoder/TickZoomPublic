@@ -86,6 +86,7 @@ namespace TickZoom.FIX
 		    this.symbolString = symbolString;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
+		    fillSimulator.EnableSyncTicks = SyncTicks.Enabled;
             FillSimulator.OnPhysicalFill = onPhysicalFill;
             FillSimulator.OnRejectOrder = onRejectOrder;
             fillSimulator.PartialFillSimulation = partialFillSimulation;
@@ -99,10 +100,10 @@ namespace TickZoom.FIX
                 reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
                 reader.EndTime = endTime;
             }
-           catch( FileNotFoundException ex)
-           {
-               log.Info("File for symbol " + symbolString + " not found: " + ex.Message);
-           }
+            catch( FileNotFoundException ex)
+            {
+                log.Info("File for symbol " + symbolString + " not found: " + ex.Message);
+            }
 		}
 
         public void Shutdown()

@@ -96,5 +96,9 @@
       <Project>{3272A53F-7A88-4A5B-BBCA-1C3A9EA2E21F}</Project>
       <Name>Common</Name>
     </ProjectReference>
+    <ProjectReference Include="..\tzdata\tzdata.csproj">
+      <Project>{B5CA9174-96DB-43D8-B4AB-230E44227D59}</Project>
+      <Name>tzdata</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

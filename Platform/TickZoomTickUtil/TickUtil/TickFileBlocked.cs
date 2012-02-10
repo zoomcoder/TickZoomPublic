@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -37,6 +38,10 @@ namespace TickZoom.TickUtil
         private FileBlock fileBlock;
         private long startCount;
         private bool isInitialized;
+        private StackTrace constructorTrace;
+
+        private static object tickFilesLocker = new object();
+        private static List<TickFileBlocked> tickFiles = new List<TickFileBlocked>();
 
         public unsafe TickFileBlocked()
         {
@@ -53,6 +58,11 @@ namespace TickZoom.TickUtil
                 throw new ApplicationException("Must set " + property + " property in app.config");
             }
             writeFileAction = WriteToFile;
+            lock( tickFilesLocker)
+            {
+                tickFiles.Add(this);
+            }
+            constructorTrace = new StackTrace(true);
         }
 
         private void InitLogging()
@@ -658,7 +668,7 @@ namespace TickZoom.TickUtil
                     {
                         streamsToWrite.Peek(out fileBlock);
                     }
-                    if (debug) log.Debug(streamsToWrite.Count + " blocks in queue.");
+                    if (trace) log.Trace(streamsToWrite.Count + " blocks in queue.");
                     fileBlock.Write(fs);
                     lastTimeWritten = fileBlock.LastUtcTimeStamp;
                     using (memoryLocker.Using())
@@ -681,7 +691,6 @@ namespace TickZoom.TickUtil
             if( isLegacy)
             {
                 legacy.Dispose();
-                return;
             }
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -746,6 +755,46 @@ namespace TickZoom.TickUtil
                 fs = null;
                 log.Info("Flushed and closed file " + fileName);
             }
+        }
+
+        public static void VerifyClosed()
+        {
+            lock( tickFilesLocker)
+            {
+                foreach( var file in tickFiles)
+                {
+                    file.VerifyClosedInternal();
+                }
+                tickFiles.Clear();
+            }
+        }
+
+        public long VerifyClosedInternal()
+        {
+            var result = 0L;
+            if( !isDisposed)
+            {
+                var message = "TickFile " + fileName + " was never disposed.\n" + constructorTrace;
+                if (log == null) log = Factory.SysLog.GetLogger(typeof (TickFileBlocked));
+                log.Error(message);
+                throw new ApplicationException(message);
+            }
+            if (fs != null)
+            {
+                try
+                {
+                    result = fs.Length;
+                    var message = "TickFile " + fileName + " is still open.\n" + constructorTrace;
+                    if (log == null) log = Factory.SysLog.GetLogger(typeof(TickFileBlocked));
+                    log.Error(message);
+                    throw new ApplicationException(message);
+                }
+                catch
+                {
+
+                }
+            }
+            return result;
         }
 
         public long Length

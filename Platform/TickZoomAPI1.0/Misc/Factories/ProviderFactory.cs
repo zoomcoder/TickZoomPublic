@@ -47,6 +47,7 @@ namespace TickZoom.Api
         EventLog EventLog { get; }
 	    void StartSockets();
 	    void ShutdownSockets();
+	    Subprocess SubProcess();
 	}
 }
 	

@@ -53,6 +53,7 @@ namespace TickZoom.Api
         Action<SymbolInfo, LogicalFillBinary> OnProcessFill { get; set; }
         long ActualPosition { get; }
         bool IsPositionSynced { get; set; }
+	    bool EnableSyncTicks { get; set; }
 	    int ProcessOrders();
 	    void RemovePending(CreateOrChangeOrder order, bool isRealTime);
 	    bool CheckForPending();

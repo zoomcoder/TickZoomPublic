@@ -32,5 +32,6 @@ namespace TickZoom.Api
         void TryKill();
         string ExecutableName { get; set; }
         void AddArgument(string value);
+        void Run();
     }
 }

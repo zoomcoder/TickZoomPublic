@@ -41,6 +41,7 @@ using TickZoom.Interceptors;
 using TickZoom.Presentation;
 using TickZoom.Starters;
 using TickZoom.Statistics;
+using TickZoom.TickUtil;
 using TickZoom.Transactions;
 using ZedGraph;
 
@@ -400,6 +401,7 @@ namespace Loaders
             topModel = null;
             Factory.Log.Flush();
             Factory.SysLog.Flush();
+            TickFileBlocked.VerifyClosed();
             if (testFailed)
             {
                 log.Error("Exiting because one of the tests failed.");

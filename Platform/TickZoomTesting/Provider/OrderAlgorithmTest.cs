@@ -1567,6 +1567,7 @@ namespace Orders
                 orders = new MockPhysicalOrderHandler(symbol, physicalCache);
                 var logicalCache = Factory.Engine.LogicalOrderCache(symbol, false);
                 orderAlgorithm = Factory.Utility.OrderAlgorithm("test", symbol, orders, logicalCache, physicalCache);
+			    orderAlgorithm.EnableSyncTicks = SyncTicks.Enabled;
                 orderAlgorithm.OnProcessFill = onProcessFill;
                 orderAlgorithm.TrySyncPosition(new ActiveList<StrategyPosition>());
                 orders.ConfirmOrders = orderAlgorithm;

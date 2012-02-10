@@ -13,6 +13,7 @@ namespace TickZoom.Properties
         private readonly bool debug = log.IsDebugEnabled;
         private readonly bool trace = log.IsTraceEnabled;
         private  bool enableNegativeTests;
+        private TimeStamp warmStartTime = TimeStamp.MaxValue;
         private PartialFillSimulation partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
 
         public PartialFillSimulation PartialFillSimulation
@@ -25,6 +26,12 @@ namespace TickZoom.Properties
         {
             get { return enableNegativeTests; }
             set { enableNegativeTests = value; }
+        }
+
+        public TimeStamp WarmStartTime
+        {
+            get { return warmStartTime; }
+            set { warmStartTime = value; }
         }
     }
 }
