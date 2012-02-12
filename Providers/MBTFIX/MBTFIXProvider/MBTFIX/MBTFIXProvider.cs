@@ -1003,7 +1003,7 @@ namespace TickZoom.MBTFIX
                     if (!rejectReason && IsRecovered)
                     {
 						var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-						var stopping = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. So trading will stop. ";
+						var stopping = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. ";
 						log.Warn( message);
 						log.Error( stopping );
 					} else {
@@ -1136,9 +1136,8 @@ namespace TickZoom.MBTFIX
 
 		    if( IsRecovered && !rejectReason ) {
 			    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-			    var stopping = "The reject error message '" + packetFIX.Text + "' was unrecognized. So stopping trading. ";
+			    var stopping = "The reject error message '" + packetFIX.Text + "' was unrecognized.";
 			    log.Warn( message);
-                throw new ApplicationException(stopping);
 		    } else if( LogRecovery || IsRecovered) {
 			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + packetFIX.ClientOrderId);
 		    }

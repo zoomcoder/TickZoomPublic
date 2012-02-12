@@ -172,7 +172,7 @@ namespace TickZoom.Common
 			base.OnEvent(context, eventType, eventDetail);
 			
 			if( eventType == EventType.LogicalFill) {
-				ProcessFill();
+				TryMergeEquity();
 			}
 
             if (eventType == EventType.SynchronizePortfolio)
@@ -181,9 +181,8 @@ namespace TickZoom.Common
             }
 		}
 
-		public void ProcessFill() {
-			if( trace) log.Trace("LogicalFill event found for " + Name);
-			log.Trace("LogicalFill event found for " + Name);
+		public void TryMergeEquity() {
+            if (trace) log.Trace("TryMergeEquity for " + Name);
 			TryMergeSingleSymbolPositions();
 			TryMergeMultiSymbolEquity();
 		}
@@ -214,7 +213,7 @@ namespace TickZoom.Common
 			}
 		}
 		
-		public void TryMergeMultiSymbolEquity() {
+		private void TryMergeMultiSymbolEquity() {
 			if( portfolioType != PortfolioType.MultiSymbol) return;
 			double tempClosedEquity = 0;
 			double tempOpenEquity = 0;
