@@ -54,6 +54,7 @@ namespace TickZoom.Api
         SynchronizeBroker,
         EndBroker,
         TickBatch,
+ 	    SynchronizePortfolio,
         RemoteShutdown,
 	    VerifyHeartbeat,
 		

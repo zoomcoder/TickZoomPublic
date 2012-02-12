@@ -78,7 +78,8 @@ namespace TickZoom.Common
 			RequestEvent( EventType.CloseInterval);
 			RequestEvent( EventType.LogicalFill);
 			RequestEvent( EventType.EndHistorical);
-		}
+            RequestEvent( EventType.SynchronizePortfolio);
+        }
 
 		[Diagram(AttributeExclude=true)]
 		public void AddInterceptor(StrategyInterceptorInterface interceptor) {
