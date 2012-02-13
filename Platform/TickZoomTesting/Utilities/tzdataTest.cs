@@ -52,6 +52,7 @@ namespace TickZoom.Utilities
 			var fixture = new tzdataTest();
 			fixture.TestImport();
 		}
+
 		[Test]
 		public void TestFilter()
 		{
@@ -68,7 +69,26 @@ namespace TickZoom.Utilities
 	       	var filter = new Filter();
 	       	filter.Run(args);
 		}
-		
+
+        [Test]
+        public void TestFilter2()
+        {
+            string storageFolder = Factory.Settings["AppDataFolder"];
+            if (storageFolder == null)
+            {
+                throw new ApplicationException("Must set AppDataFolder property in app.config");
+            }
+            var fromFile = storageFolder + @"\Test\\DataCache\Daily4Ticks.tck";
+		    var toFile = storageFolder + @"\Test\\DataCache\Daily4SimZB.tck";
+            if( File.Exists(toFile))
+            {
+                File.Delete(toFile);
+            }
+            string[] args = {fromFile, toFile, "2010/05/05", "2010/05/10"};
+            var filter = new Filter();
+            filter.Run(args);
+            Assert.IsFalse(File.Exists(toFile),"output file exists.");
+        }
 		
 		[Test]
 		public void TestFilterDates()

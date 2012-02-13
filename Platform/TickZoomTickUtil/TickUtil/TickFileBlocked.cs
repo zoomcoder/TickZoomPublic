@@ -39,6 +39,7 @@ namespace TickZoom.TickUtil
         private long startCount;
         private bool isInitialized;
         private StackTrace constructorTrace;
+        private bool isFirstTick = true;
 
         private static object tickFilesLocker = new object();
         private static List<TickFileBlocked> tickFiles = new List<TickFileBlocked>();
@@ -170,6 +171,7 @@ namespace TickZoom.TickUtil
                     try
                     {
                         ReadNextTickBlock();
+                        endOfData = false;
                     }
                     catch( EndOfStreamException)
                     {
@@ -177,13 +179,10 @@ namespace TickZoom.TickUtil
                     }
                     break;
                 case TickFileMode.Write:
-                    OpenFileForWriting();
-                    fileBlock.ReserveHeader();
                     break;
                 default:
                     throw new ApplicationException("Unknown file mode: " + mode);
             }
-            endOfData = false;
         }
 
         private void OpenFileForWriting()
@@ -292,9 +291,36 @@ namespace TickZoom.TickUtil
             }
         }
 
+        private void HandleFirstWrite()
+        {
+            try
+            {
+                OpenFileForWriting();
+                fileBlock.ReserveHeader();
+                endOfData = false;
+            }
+            catch (InvalidOperationException)
+            {
+                CloseFileForReading();
+                // Must a be a legacy format
+                isLegacy = true;
+                legacy.Initialize(fileName, mode);
+            }
+            catch (EndOfStreamException)
+            {
+                endOfData = true;
+                log.Notice("File was empty: " + fileName);
+            }
+        }
+
         public bool TryWriteTick(TickIO tickIO)
         {
             if (!isInitialized) throw new InvalidStateException("Please call one of the Initialize() methods first.");
+            if( isFirstTick)
+            {
+                HandleFirstWrite();
+                isFirstTick = false;
+            }
             if (isLegacy) return legacy.TryWriteTick(tickIO);
             TryCompleteAsyncWrite();
             if (trace) log.Trace("Writing to file buffer: " + tickIO);
