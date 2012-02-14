@@ -34,15 +34,25 @@ namespace TickZoom.FIX
         public void UpdateNext(int sequence)
         {
             NextSequence = sequence + random.Next(Frequency * getSymbolCount()) + Frequency;
-            if (debug) log.Debug("Set " + ToString() + " sequence for = " + NextSequence);
+            if (debug) log.Debug("Set " + Type + " sequence for = " + NextSequence);
         }
         public bool CheckSequence(int sequence)
         {
-            return Enabled && Counter < MaxFailures && sequence >= NextSequence;
+            var result = Enabled && Counter < MaxFailures && sequence >= NextSequence;
+            if( result && debug)
+            {
+                log.Debug("Sequence " + sequence + " >= " + Type + " sequence " + NextSequence + " so causing negative test.");
+            }
+            return result;
         }
         public bool CheckFrequency()
         {
-            return Enabled && Counter < MaxFailures && random.Next(Frequency * getSymbolCount()) == 1;
+            var result = Enabled && Counter < MaxFailures && random.Next(Frequency * getSymbolCount()) == 1;
+            if( result)
+            {
+                log.Debug("Random " + Type + " occured so causing negative test.");
+            }
+            return result;
         }
         public override string ToString()
         {
@@ -58,5 +68,6 @@ namespace TickZoom.FIX
         BlackHole,
         CancelBlackHole,
         ReceiveFailed,
+        SystemOffline
     }
 }
