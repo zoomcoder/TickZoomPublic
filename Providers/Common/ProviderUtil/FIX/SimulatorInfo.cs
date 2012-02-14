@@ -22,12 +22,14 @@ namespace TickZoom.FIX
         private int Frequency = 50;
         public int NextSequence = 100;
         public int Counter;
-        public SimulatorInfo( SimulatorType type)
+        private Random random;
+        public SimulatorInfo( SimulatorType type, Random random)
         {
             log.Register(this);
             this.Type = type;
+            this.random = random;
         }
-        public void UpdateNext(int sequence, Random random, int handlersCount)
+        public void UpdateNext(int sequence, int handlersCount)
         {
             NextSequence = sequence + random.Next(Frequency * handlersCount) + Frequency;
             if (debug) log.Debug("Set " + ToString() + " sequence for = " + NextSequence);
