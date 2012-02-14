@@ -61,14 +61,11 @@ namespace TickZoom.FIX
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailures = 5;
         private bool allTests;
-        private int simulateOrderBlackHoleCounter;
         private int simulateSystemOfflineCounter;
-        private bool simulateOrderBlackHole;
         private bool simulateReceiveFailed;
         private bool simulateSendFailed;
         private bool simulateSystemOffline;
         private int simulateSystemOfflineFrequency = 50;
-        private int simulateOrderBlackHoleFrequency = 20;
         private int nextSystemOfflineSequence = 100;
 
         private bool isOrderServerOnline = false;
@@ -131,22 +128,25 @@ namespace TickZoom.FIX
 		            break;
 		    }
 
-            foreach (SimulatorType simulatorType in Enum.GetValues(typeof(SimulatorType)))
-            {
-                var simulator = new SimulatorInfo(simulatorType, random);
-                simulators.Add(simulatorType, simulator);
-            }
 
             allTests = projectProperties.Simulator.EnableNegativeTests;
 
-            foreach (var kvp in simulators)
+            foreach (SimulatorType simulatorType in Enum.GetValues(typeof(SimulatorType)))
             {
-                var simulator = kvp.Value;
+                var simulator = new SimulatorInfo(simulatorType, random, () => symbolHandlers.Count);
                 simulator.Enabled = allTests;
                 simulator.MaxFailures = maxFailures;
+                simulators.Add(simulatorType, simulator);
             }
+
+            {
+                var simulator = simulators[SimulatorType.CancelBlackHole];
+                simulator.Frequency = 3;
+                simulator = simulators[SimulatorType.BlackHole];
+                simulator.Frequency = 20;
+            }
+
             simulateSystemOffline = allTests;
-            simulateOrderBlackHole = allTests;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
@@ -186,10 +186,6 @@ namespace TickZoom.FIX
                 if (!simulateReceiveFailed)
                 {
                     log.Error("SimulateReceiveFailed is disabled.");
-                }
-                if (!simulateOrderBlackHole)
-                {
-                    log.Error("SimulateOrderBlackHole is disabled.");
                 }
                 if (!simulateSendFailed)
                 {
@@ -626,8 +622,8 @@ namespace TickZoom.FIX
                                         SendSessionStatusOnline();
                                     }
                                     // Setup disconnect simulation.
-                                    simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packetFIX.Sequence, symbolHandlers.Count);
-                                    simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence, symbolHandlers.Count);
+                                    simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packetFIX.Sequence);
+                                    simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence);
                                 }
                                 switch (packetFIX.MessageType)
                                 {
@@ -719,10 +715,10 @@ namespace TickZoom.FIX
                     " but simulator has no sequence history.");
             }
 
-            simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence, symbolHandlers.Count);
-            simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packet.Sequence, symbolHandlers.Count);
-            simulators[SimulatorType.SendServerOffline].UpdateNext(FixFactory.LastSequence, symbolHandlers.Count);
-            simulators[SimulatorType.ReceiveServerOffline].UpdateNext(packet.Sequence, symbolHandlers.Count);
+            simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence);
+            simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packet.Sequence);
+            simulators[SimulatorType.SendServerOffline].UpdateNext(FixFactory.LastSequence);
+            simulators[SimulatorType.ReceiveServerOffline].UpdateNext(packet.Sequence);
 
             nextSystemOfflineSequence = packet.Sequence + random.Next(simulateSystemOfflineFrequency * symbolHandlers.Count) + simulateSystemOfflineFrequency;
             if (debug) log.Debug("Set next system offline sequence = " + nextSystemOfflineSequence);
@@ -780,7 +776,7 @@ namespace TickZoom.FIX
             {
                 if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= receive disconnect sequence " + simulator.NextSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + packetFIX);
-                simulator.UpdateNext(packetFIX.Sequence, symbolHandlers.Count);
+                simulator.UpdateNext(packetFIX.Sequence);
                 if (debug) log.Debug("Set next disconnect sequence = " + simulator.NextSequence);
                 // Ignore this message. Pretend we never received it AND disconnect.
                 // This will test the message recovery.)
@@ -800,7 +796,7 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
             {
                 if (debug) log.Debug("Skipping sequence " + packetFIX.Sequence + " because >= recv order server offline " + simulator.NextSequence + " so making session status offline. " + packetFIX);
-                simulator.UpdateNext(packetFIX.Sequence, symbolHandlers.Count);
+                simulator.UpdateNext(packetFIX.Sequence);
                 if (debug) log.Debug("Set next recv order server offline sequence = " + simulator.NextSequence);
                 SwitchBrokerState("disconnect");
                 SetOrderServerOffline();
@@ -819,10 +815,11 @@ namespace TickZoom.FIX
             switch (packetFIX.MessageType)
             {
                 case "G":
-                    if (simulateOrderBlackHoleCounter < maxFailures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
+                    simulator = simulators[SimulatorType.BlackHole];
+                    if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        ++simulateOrderBlackHoleCounter;
+                        ++simulator.Counter;
                         var message = (MessageFIX4_4) packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
@@ -831,10 +828,11 @@ namespace TickZoom.FIX
                     }
                     break;
                 case "D":
-                    if (simulateOrderBlackHoleCounter < maxFailures && simulateOrderBlackHole && FixFactory != null && random.Next(simulateOrderBlackHoleFrequency * symbolHandlers.Count) == 1)
+                    simulator = simulators[SimulatorType.BlackHole];
+                    if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        ++simulateOrderBlackHoleCounter;
+                        ++simulator.Counter;
                         var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
@@ -843,10 +841,11 @@ namespace TickZoom.FIX
                     }
                     break;
                 case "F":
-                    if (simulateOrderBlackHoleCounter < maxFailures && simulateOrderBlackHole && FixFactory != null && random.Next(3) == 1)
+                    simulator = simulators[SimulatorType.CancelBlackHole];
+                    if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        ++simulateOrderBlackHoleCounter;
+                        ++simulator.Counter;
                         var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
@@ -1104,7 +1103,7 @@ namespace TickZoom.FIX
             {
                 if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= send disconnect sequence " + simulator.NextSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
-                simulator.UpdateNext(fixMessage.Sequence, symbolHandlers.Count);
+                simulator.UpdateNext(fixMessage.Sequence);
                 if (trace) log.Trace("Set next disconnect sequence for send = " + simulator.NextSequence);
                 SwitchBrokerState("disconnect");
                 isConnectionLost = true;
@@ -1153,7 +1152,7 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence( fixMessage.Sequence))
             {
                 if (debug) log.Debug("Skipping sequence " + fixMessage.Sequence + " because >= send order server offline for send " + simulator.NextSequence + " so making session status offline. " + fixMessage);
-                simulator.UpdateNext(fixMessage.Sequence, symbolHandlers.Count);
+                simulator.UpdateNext(fixMessage.Sequence);
                 if (trace) log.Trace("Set next send order server offline sequence for send = " + simulator.NextSequence);
                 SwitchBrokerState("offline");
                 SetOrderServerOffline();

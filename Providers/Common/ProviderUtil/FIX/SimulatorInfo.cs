@@ -19,24 +19,30 @@ namespace TickZoom.FIX
         public int MaxFailures;
         public bool Enabled;
         public bool Active;
-        private int Frequency = 50;
+        public int Frequency = 50;
         public int NextSequence = 100;
         public int Counter;
         private Random random;
-        public SimulatorInfo( SimulatorType type, Random random)
+        private Func<int> getSymbolCount;
+        public SimulatorInfo( SimulatorType type, Random random, Func<int> getSymbolCount)
         {
             log.Register(this);
             this.Type = type;
             this.random = random;
+            this.getSymbolCount = getSymbolCount;
         }
-        public void UpdateNext(int sequence, int handlersCount)
+        public void UpdateNext(int sequence)
         {
-            NextSequence = sequence + random.Next(Frequency * handlersCount) + Frequency;
+            NextSequence = sequence + random.Next(Frequency * getSymbolCount()) + Frequency;
             if (debug) log.Debug("Set " + ToString() + " sequence for = " + NextSequence);
         }
         public bool CheckSequence(int sequence)
         {
             return Enabled && Counter < MaxFailures && sequence >= NextSequence;
+        }
+        public bool CheckFrequency()
+        {
+            return Enabled && Counter < MaxFailures && random.Next(Frequency * getSymbolCount()) == 1;
         }
         public override string ToString()
         {
@@ -50,6 +56,7 @@ namespace TickZoom.FIX
         SendServerOffline,
         ReceiveServerOffline,
         BlackHole,
+        CancelBlackHole,
         ReceiveFailed,
     }
 }
