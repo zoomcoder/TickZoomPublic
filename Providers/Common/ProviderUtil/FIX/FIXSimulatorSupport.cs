@@ -682,8 +682,12 @@ namespace TickZoom.FIX
         public void SendSessionStatusOnline()
         {
             if (debug) log.Debug("Sending session status online.");
-            SwitchBrokerState("online");
+            var wasOrderServerOnline = isOrderServerOnline;
             SendSessionStatus("2");
+            if( !wasOrderServerOnline)
+            {
+                SwitchBrokerState("online");
+            }
             var handlers = new List<SimulateSymbol>();
             using( symbolHandlersLocker.Using())
             {
