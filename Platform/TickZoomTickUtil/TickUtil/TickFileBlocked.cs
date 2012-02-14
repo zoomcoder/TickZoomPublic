@@ -226,7 +226,7 @@ namespace TickZoom.TickUtil
             log.Debug("OpenFileForWriting()");
             fileHeader.blockHeader.version = 1;
             fileHeader.blockHeader.type = BlockType.FileHeader;
-            fileHeader.blockSize = 64 * 1024;
+            fileHeader.blockSize =  1024 * 8;
             fileHeader.utcTimeStamp = Factory.Parallel.UtcNow.Internal;
             fileHeader.SetChecksum();
             var headerBytes = new byte[fileHeader.blockSize];

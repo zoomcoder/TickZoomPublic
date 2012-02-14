@@ -85,6 +85,7 @@ namespace TickZoom.TickUtil
         public int Capacity
         {
             get { return tickQueue.Capacity; }
+            set { tickQueue.Capacity = value;  }
         }
 
         public bool IsFull

@@ -44,7 +44,7 @@ namespace TickZoom.Api
 		int Count { get; }
 	    void SetException(Exception ex);
 		bool IsStarted { get; }
-		int Capacity { get; }
+        int Capacity { get; set;  }
 	    bool IsFull { get; }
         bool IsEmpty { get; }
         void ConnectInbound(Task task);

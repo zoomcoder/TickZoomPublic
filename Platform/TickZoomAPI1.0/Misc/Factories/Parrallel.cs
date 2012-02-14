@@ -170,8 +170,8 @@ namespace TickZoom.Api
         Pool<TickBinaryBox> TickPool(SymbolInfo symbol);
         TickQueue TickQueue(Type type);
         TickQueue TickQueue(string name);
-        FastFillQueue FastFillQueue(string name, int maxSize);
-        FastEventQueue FastEventQueue(string name, int maxSize);
+        FastFillQueue FastFillQueue(string name);
+        FastEventQueue FastEventQueue(string name);
         FastQueue<T> FastQueue<T>(string name);
         Pool<T> Pool<T>() where T : new();
         Pool<T> PoolChecked<T>() where T : new();
