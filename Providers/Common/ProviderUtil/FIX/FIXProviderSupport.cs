@@ -407,7 +407,7 @@ namespace TickZoom.FIX
                         PositionChange(positionChange);
                         socketTask.Filter.Pop();
                         break;
-                    case EventType.RemoteShutdown:
+                    case EventType.Shutdown:
                         LogOut();
                         socketTask.Filter.Pop();
                         break;

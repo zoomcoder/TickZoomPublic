@@ -36,6 +36,7 @@ namespace TickZoom.Api
 		// Provider/Receiver Connection Events.
 		Initialize,
 		Terminate,
+	    Dispose,
 		Connect,
 		Disconnect,
 		StartSymbol,
@@ -55,7 +56,7 @@ namespace TickZoom.Api
         EndBroker,
         TickBatch,
  	    SynchronizePortfolio,
-        RemoteShutdown,
+        Shutdown,
 	    VerifyHeartbeat,
 		
 		// TCP/IP Events

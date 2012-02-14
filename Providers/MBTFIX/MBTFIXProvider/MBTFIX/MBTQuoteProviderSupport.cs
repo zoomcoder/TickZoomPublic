@@ -307,7 +307,7 @@ namespace TickZoom.MBTQuotes
                         PositionChange(eventItem);
                         filter.Pop();
                         break;
-                    case EventType.RemoteShutdown:
+                    case EventType.Shutdown:
                     case EventType.Terminate:
                         Dispose();
                         filter.Pop();

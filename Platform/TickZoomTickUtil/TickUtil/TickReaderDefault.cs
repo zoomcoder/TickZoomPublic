@@ -105,7 +105,7 @@ namespace TickZoom.TickUtil
                         PositionChange(eventItem);
                         fileReaderTask.Filter.Pop();
                         break;
-                    case EventType.RemoteShutdown:
+                    case EventType.Shutdown:
                     case EventType.Terminate:
                         Dispose();
                         fileReaderTask.Filter.Pop();

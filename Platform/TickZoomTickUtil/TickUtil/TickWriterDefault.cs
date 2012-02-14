@@ -135,7 +135,7 @@ namespace TickZoom.TickUtil
             {
                 switch( (EventType) eventItem.EventType)
                 {
-                    case EventType.RemoteShutdown:
+                    case EventType.Shutdown:
                         Dispose();
                         filter.Pop();
                         break;

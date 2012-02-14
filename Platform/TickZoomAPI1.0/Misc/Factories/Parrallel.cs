@@ -118,7 +118,7 @@ namespace TickZoom.Api
         void Initialize(Task task);
         Yield Invoke();
         void Shutdown();
-
+        void Dispose();
     }
 	
 	public interface ForLoop {

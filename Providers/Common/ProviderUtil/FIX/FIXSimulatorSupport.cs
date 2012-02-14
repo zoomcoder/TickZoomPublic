@@ -1207,7 +1207,7 @@ namespace TickZoom.FIX
                     {
                         var handler = kvp.Value;
                         if (debug) log.Debug("Disposing symbol handler " + handler);
-                        handler.Agent.SendEvent(new EventItem(EventType.RemoteShutdown));
+                        handler.Agent.SendEvent(new EventItem(EventType.Shutdown));
                     }
                     symbolHandlers.Clear();
                 }
