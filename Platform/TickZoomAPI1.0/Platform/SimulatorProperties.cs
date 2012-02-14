@@ -6,4 +6,5 @@
         bool EnableNegativeTests { get; set; }
         TimeStamp WarmStartTime { get; set; }
     }
+
 }

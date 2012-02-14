@@ -61,11 +61,9 @@ namespace TickZoom.FIX
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailures = 5;
         private bool allTests;
-        private int simulateDisconnectCounter;
         private int simulateOrderServerOfflineCounter;
         private int simulateOrderBlackHoleCounter;
         private int simulateSystemOfflineCounter;
-        private bool simulateDisconnect;
         protected bool simulateSendOrderServerOffline;
         protected bool simulateRecvOrderServerOffline;
         private bool simulateOrderBlackHole;
@@ -74,11 +72,10 @@ namespace TickZoom.FIX
         private bool simulateSystemOffline;
         private int simulateSystemOfflineFrequency = 50;
         private int simulateOrderBlackHoleFrequency = 20;
-        private int simulateDisconnectFrequency = 50;
         private int simulateRecvOrderServerOfflineFrequency = 50;
         protected int simulateSendOrderServerOfflineFrequency = 50;
-        private int nextSendDisconnectSequence = 100;
-        private int nextRecvDisconnectSequence = 100;
+        //private int nextSendDisconnectSequence = 100;
+        //private int nextRecvDisconnectSequence = 100;
         private int nextSystemOfflineSequence = 100;
         protected int nextSendOrderServerOfflineSequence = 100;
         private int nextRecvOrderServerOfflineSequence = 100;
@@ -118,6 +115,8 @@ namespace TickZoom.FIX
             set { agent = value; }
         }
 
+        public Dictionary<SimulatorType,SimulatorInfo> simulators = new Dictionary<SimulatorType, SimulatorInfo>();
+
         public FIXSimulatorSupport(string mode, ProjectProperties projectProperties, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
         {
             this.partialFillSimulation = projectProperties.Simulator.PartialFillSimulation;
@@ -125,6 +124,12 @@ namespace TickZoom.FIX
 		    this.quotesPort = quotesPort;
             this.endTime = projectProperties.Starter.EndTime;
 		    var randomSeed = new Random().Next(int.MaxValue);
+
+            foreach ( SimulatorType simulatorType in Enum.GetValues(typeof(SimulatorType)))
+            {
+                var simulator = new SimulatorInfo(simulatorType);
+                simulators.Add(simulatorType,simulator);
+            }
 
 		    if (randomSeed != 1234)
 		    {
@@ -141,8 +146,13 @@ namespace TickZoom.FIX
 		            break;
 		    }
             allTests = projectProperties.Simulator.EnableNegativeTests;
-            simulateDisconnect = allTests;
-		    simulateSystemOffline = allTests;
+            foreach (var kvp in simulators)
+            {
+                var simulator = kvp.Value;
+                simulator.Enabled = allTests;
+                simulator.MaxFailures = maxFailures;
+            }
+            simulateSystemOffline = allTests;
             simulateSendOrderServerOffline = allTests;
             simulateRecvOrderServerOffline = allTests;
             simulateOrderBlackHole = allTests;
@@ -170,9 +180,13 @@ namespace TickZoom.FIX
             if (debug) log.Debug("Starting FIX Simulator.");
             if (allTests)
             {
-                if (!simulateDisconnect)
+                foreach( var kvp in simulators)
                 {
-                    log.Error("SimulateDisconnect is disabled.");
+                    var simulator = kvp.Value;
+                    if( !simulator.Enabled)
+                    {
+                        log.Error(simulator + " is disabled");
+                    }
                 }
                 if (!simulateSystemOffline)
                 {
@@ -629,10 +643,8 @@ namespace TickZoom.FIX
                                         SendSessionStatusOnline();
                                     }
                                     // Setup disconnect simulation.
-                                    nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
-                                    if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
-                                    nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
-                                    if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
+                                    simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packetFIX.Sequence, random, symbolHandlers.Count);
+                                    simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence, random, symbolHandlers.Count);
                                 }
                                 switch (packetFIX.MessageType)
                                 {
@@ -720,10 +732,9 @@ namespace TickZoom.FIX
                     " but simulator has no sequence history.");
             }
 
-            nextSendDisconnectSequence = FixFactory.LastSequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
-            if (debug) log.Debug("Set next disconnect sequence for send = " + nextSendOrderServerOfflineSequence);
-            nextRecvDisconnectSequence = packet.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
-            if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
+            simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence, random, symbolHandlers.Count);
+            simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packet.Sequence, random,symbolHandlers.Count);
+
             nextSendOrderServerOfflineSequence = FixFactory.LastSequence + random.Next(simulateSendOrderServerOfflineFrequency * symbolHandlers.Count) + simulateSendOrderServerOfflineFrequency;
             if (debug) log.Debug("Set next order server offline sequence for send = " + nextSendOrderServerOfflineSequence);
             nextRecvOrderServerOfflineSequence = packet.Sequence + random.Next(simulateRecvOrderServerOfflineFrequency * symbolHandlers.Count) + simulateRecvOrderServerOfflineFrequency;
@@ -779,17 +790,18 @@ namespace TickZoom.FIX
                 RemoveTickSync(packetFIX);
                 return true;
             }
-            if (simulateDisconnectCounter < maxFailures && simulateDisconnect && FixFactory != null && packetFIX.Sequence >= nextRecvDisconnectSequence)
+            var simulator = simulators[SimulatorType.ReceiveDisconnect];
+            if (FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
             {
-                if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= receive disconnect sequence " + nextRecvDisconnectSequence + " so ignoring AND disconnecting.");
+                if (debug) log.Debug("Sequence " + packetFIX.Sequence + " >= receive disconnect sequence " + simulator.NextSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + packetFIX);
-                nextRecvDisconnectSequence = packetFIX.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
-                if (debug) log.Debug("Set next disconnect sequence for receive = " + nextRecvDisconnectSequence);
+                simulator.UpdateNext(packetFIX.Sequence, random, symbolHandlers.Count);
+                if (debug) log.Debug("Set next disconnect sequence = " + simulator.NextSequence);
                 // Ignore this message. Pretend we never received it AND disconnect.
                 // This will test the message recovery.)
                 SwitchBrokerState("disconnect");
                 isConnectionLost = true;
-                ++simulateDisconnectCounter;
+                ++simulator.Counter;
                 return true;
             }
             if (simulateReceiveFailed && FixFactory != null && random.Next(50) == 1)
@@ -1101,15 +1113,16 @@ namespace TickZoom.FIX
                 RemoveTickSync(fixMessage);
                 return;
             }
-            if (simulateDisconnectCounter > maxFailures && simulateDisconnect && fixMessage.Sequence >= nextSendDisconnectSequence)
+            var simulator = simulators[SimulatorType.SendDisconnect];
+            if (simulator.CheckSequence(fixMessage.Sequence) )
             {
-                if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= send disconnect sequence " + nextSendDisconnectSequence + " so ignoring AND disconnecting.");
+                if (debug) log.Debug("Sequence " + fixMessage.Sequence + " >= send disconnect sequence " + simulator.NextSequence + " so ignoring AND disconnecting.");
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
-                nextSendDisconnectSequence = fixMessage.Sequence + random.Next(simulateDisconnectFrequency * symbolHandlers.Count) + simulateDisconnectFrequency;
-                if (trace) log.Trace("Set next disconnect sequence for send = " + nextSendDisconnectSequence);
+                simulator.UpdateNext(fixMessage.Sequence, random, symbolHandlers.Count);
+                if (trace) log.Trace("Set next disconnect sequence for send = " + simulator.NextSequence);
                 SwitchBrokerState("disconnect");
                 isConnectionLost = true;
-                ++simulateDisconnectCounter;
+                ++simulator.Counter;
                 return;
             }
             if (simulateSendFailed && IsRecovered && random.Next(50) == 4)
