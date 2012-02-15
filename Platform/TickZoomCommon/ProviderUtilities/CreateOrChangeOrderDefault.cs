@@ -277,7 +277,6 @@ namespace TickZoom.Common
                 if (value != binary.orderState)
                 {
                     binary.orderState = value;
-                    binary.lastStateChange = Factory.Parallel.UtcNow;
                     if( binary.orderState == OrderState.Pending)
                     {
                         if( debug) log.Debug("Order Changed to Pending: " + this);

@@ -141,9 +141,10 @@ namespace TickZoom.FIX
                 simulator = simulators[SimulatorType.BlackHole];
                 simulator.Frequency = 20;
 
-                simulator = simulators[SimulatorType.CreateReject];
-                simulator.Frequency = 20;
+                simulator = simulators[SimulatorType.RejectSymbol];
+                simulator.Frequency = 10;
                 simulator.MaxRepetitions = 100;
+
             }
 
             simulateReceiveFailed = allTests;

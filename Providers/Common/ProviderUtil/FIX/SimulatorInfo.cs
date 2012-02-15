@@ -123,6 +123,6 @@ namespace TickZoom.FIX
         CancelBlackHole,
         ReceiveFailed,
         SystemOffline,
-        CreateReject
+        RejectSymbol
     }
 }

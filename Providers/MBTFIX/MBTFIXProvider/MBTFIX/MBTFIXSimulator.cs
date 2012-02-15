@@ -139,6 +139,13 @@ namespace TickZoom.MBTFIX
                 OnRejectOrder(order, true, symbol + ": Order Server Offline.");
                 return;
             }
+            var simulator = simulators[SimulatorType.RejectSymbol];
+            if (FixFactory != null && simulator.CheckFrequencyAndSymbol(symbol))
+            {
+                if (debug) log.Debug("Simulating create order reject of 35=" + packet.MessageType);
+                OnRejectOrder(order, true, "Testing reject of change order.");
+                return;
+            }
             CreateOrChangeOrder origOrder = null;
 			if( debug) log.Debug( "FIXChangeOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId + ". Original client id: " + packet.OriginalClientOrderId);
 			try {
@@ -212,9 +219,14 @@ namespace TickZoom.MBTFIX
                 OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, symbol + ": Order Server Offline");
                 return;
             }
-            if (debug)
-                log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " +
-                          packet.OriginalClientOrderId);
+            var simulator = simulators[SimulatorType.RejectSymbol];
+            if (FixFactory != null && simulator.CheckFrequencyAndSymbol(symbol))
+            {
+                if (debug) log.Debug("Simulating cancel order reject of 35=" + packet.MessageType);
+                OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "Testing reject of cancel order.");
+                return;
+            }
+            if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
             CreateOrChangeOrder origOrder = null;
             try
             {
@@ -222,9 +234,7 @@ namespace TickZoom.MBTFIX
             }
             catch (ApplicationException)
             {
-                if (debug)
-                    log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId +
-                              ". Probably already filled or canceled.");
+                if (debug) log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Probably already filled or canceled.");
                 OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, "No such order");
                 return;
             }
@@ -252,17 +262,17 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            var simulator = simulators[SimulatorType.CreateReject];
+            if (!IsOrderServerOnline)
+            {
+                if (debug) log.Debug(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
+                OnRejectOrder(order, true, symbol + ": Order Server Offline.");
+                return;
+            }
+            var simulator = simulators[SimulatorType.RejectSymbol];
             if (FixFactory != null && simulator.CheckFrequencyAndSymbol(symbol))
             {
                 if (debug) log.Debug("Simulating create order reject of 35=" + packet.MessageType);
-                OnRejectOrder(order, true, "Insufficient buying power.");
-                return;
-            }
-            if (!IsOrderServerOnline)
-            {
-                if(debug) log.Debug(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
-                OnRejectOrder(order, true, symbol + ": Order Server Offline.");
+                OnRejectOrder(order, true, "Testing reject of create order");
                 return;
             }
             if (packet.Symbol == "TestPending")
