@@ -63,29 +63,37 @@ namespace TickZoom.Examples
 			if( IsTrace) Log.Trace( "close: " + Ticks[0] + " " + Bars.Close[0] + " " + Bars.Time[0]);
 			
 			double close = Bars.Close[0];
-			if( Bars.Close[0] > Bars.Open[0]) {
+            if (Bars.Close[0] < Bars.Open[0] && Bars.Open[0] < Bars.Close[1])
+            {
+                if (Position.IsFlat)
+                {
+                    Orders.Enter.NextBar.SellMarket(tradeSize);
+                    ExitStrategy.StopLoss = 15 * minimumTick;
+                    return true;
+                }
+            }
+            if (Bars.Close[0] > Bars.Open[0])
+            {
 				if( Position.IsFlat) {
 					Orders.Enter.NextBar.BuyStop(Bars.Close[0] + 10 * minimumTick,tradeSize);
 					Orders.Exit.NextBar.SellStop(Bars.Close[0] - 10 * minimumTick);
+				    return true;
 				}
 				if( Position.IsShort) {
 					Orders.Exit.NextBar.BuyLimit(Bars.Close[0] - 3 * minimumTick);
-				}
+                    return true;
+                }
 			}
 			if( Position.IsLong) {
 				Orders.Exit.NextBar.SellStop(Bars.Close[0] - 10 * minimumTick);
-			}
+                return true;
+            }
 			if( Bars.Close[0] < Bars.Open[0]) {
 				if( Position.IsFlat) {
 					Orders.Enter.NextBar.SellLimit(Bars.Close[0] + 30 * minimumTick,tradeSize);
 					ExitStrategy.StopLoss = 45 * minimumTick;
-				}
-			}
-			if( Bars.Close[0] < Bars.Open[0] && Bars.Open[0] < Bars.Close[1]) {
-				if( Position.IsFlat) {
-					Orders.Enter.NextBar.SellMarket(tradeSize);
-					ExitStrategy.StopLoss = 15 * minimumTick;
-				}
+                    return true;
+                }
 			}
 			return true;
 		}
