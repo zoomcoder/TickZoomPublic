@@ -222,6 +222,7 @@ namespace TickZoom.FIX
 			New,
 			Connected,
 			PendingLogin,
+		    PendingServerResend,
 			PendingRecovery,
 			Recovered,
             Disconnected,
@@ -448,6 +449,7 @@ namespace TickZoom.FIX
                                 return Yield.NoWork.Repeat;
                             case Status.PendingLogin:
                             case Status.PendingLogOut:
+                            case Status.PendingServerResend:
                             case Status.PendingRecovery:
                             case Status.Recovered:
                                 if (RetryDelay != RetryStart)
@@ -502,7 +504,7 @@ namespace TickZoom.FIX
                                         }
                                         if (HandleLogon(messageFIX))
                                         {
-                                            ConnectionStatus = Status.PendingRecovery;
+                                            ConnectionStatus = Status.PendingServerResend;
                                             TryEndRecovery();
                                         }
                                     }
@@ -588,6 +590,7 @@ namespace TickZoom.FIX
                             case Status.Connected:
                             case Status.Disconnected:
                             case Status.New:
+                            case Status.PendingServerResend:
                             case Status.PendingRecovery:
                             case Status.Recovered:
                             case Status.PendingLogin:

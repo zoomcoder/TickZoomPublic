@@ -395,10 +395,10 @@ namespace TickZoom.MBTFIX
 			var packetFIX = (MessageFIX4_4) message;
 			switch( packetFIX.MessageType) {
                 case "h":
-                    if (ConnectionStatus == Status.PendingLogin)
+                    if (ConnectionStatus == Status.PendingServerResend)
                     {
-                        StartRecovery();
-                        RequestSessionUpdate();
+                        ConnectionStatus = Status.PendingRecovery;
+                        TryEndRecovery();
                     }
                     SessionStatus(packetFIX);
 			        break;
@@ -463,12 +463,15 @@ namespace TickZoom.MBTFIX
 
         protected override void TryEndRecovery()
         {
-            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus + ", Session Status Online " + isOrderServerOnline + ", Resend Complete " + IsResendComplete);
+            if (debug) log.Debug("TryEndRecovery Status " + ConnectionStatus +
+                ", Session Status Online " + isOrderServerOnline +
+                ", Resend Complete " + IsResendComplete);
             switch (ConnectionStatus)
             {
                 case Status.Recovered:
                 case Status.PendingLogOut:
                 case Status.PendingLogin:
+                case Status.PendingServerResend:
                 case Status.Disconnected:
                     return;
                 case Status.PendingRecovery:
@@ -977,7 +980,7 @@ namespace TickZoom.MBTFIX
                     }
                     else
                     {
-                        ResetFromPending(packetFIX.OriginalClientOrderId);
+                        //ResetFromPending(packetFIX.OriginalClientOrderId);
                     }
 
                     if( order != null)
