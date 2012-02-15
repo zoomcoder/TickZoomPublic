@@ -177,8 +177,10 @@ namespace TickZoom.FIX
         protected void RegenerateSocket()
         {
 			Socket old = socket;
-			if( socket != null) {
+			if( socket != null && socket.State != SocketState.Closed) {
 				socket.Dispose();
+                // Wait for graceful socket shutdown.
+			    return;
 			}
             socket = Factory.Provider.Socket("MBTFIXSocket", "127.0.0.1", port);
             socket.ReceiveQueue.ConnectInbound(socketTask);
@@ -248,7 +250,7 @@ namespace TickZoom.FIX
 				log.Info("OnDisconnect( " + this.socket + " != " + socket + " ) - Ignored.");
 				return;
 			}
-			log.Info("OnDisconnect( " + socket + " ) ");
+			log.Info("OnDisconnect( " + socket + " ) status " + ConnectionStatus);
             if (isDisposed)
             {
                 isFinalized = true;

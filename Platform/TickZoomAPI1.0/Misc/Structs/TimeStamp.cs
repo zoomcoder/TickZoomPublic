@@ -214,12 +214,9 @@ namespace TickZoom.Api
 
         private static TimeStamp ResetUtcNow(int index)
         {
-            var process = Process.GetCurrentProcess();
             var thread = Thread.CurrentThread;
-            var priorityClass = process.PriorityClass;
             var threadPriority = thread.Priority;
             thread.Priority = ThreadPriority.Highest;
-            process.PriorityClass = ProcessPriorityClass.RealTime;
             var dtUtcNow = DateTime.UtcNow;
             var timeStamp = new TimeStamp(dtUtcNow);
             hardwareTimeStamps[index].OriginalTimeStamp = timeStamp;
@@ -227,7 +224,6 @@ namespace TickZoom.Api
             adjustedFrequency = (stopWatchFrequency << 20) / 1000000L;
             hardwareTimeStamps[index].OriginalSystemClock = Stopwatch.GetTimestamp();
             thread.Priority = threadPriority;
-            process.PriorityClass = priorityClass;
             return timeStamp;
         }
 		
