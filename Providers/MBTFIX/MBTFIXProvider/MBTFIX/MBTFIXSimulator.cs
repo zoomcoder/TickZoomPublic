@@ -252,12 +252,13 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            //++rejectOrderCount;
-            //if( rejectOrderCount > 20)
-            //{
-            //    OnRejectOrder(order,true,"Insufficient buying power.");
-            //    return;
-            //}
+            var simulator = simulators[SimulatorType.CreateReject];
+            if (FixFactory != null && simulator.CheckFrequencyAndSymbol(symbol))
+            {
+                if (debug) log.Debug("Simulating create order reject of 35=" + packet.MessageType);
+                OnRejectOrder(order, true, "Insufficient buying power.");
+                return;
+            }
             if (!IsOrderServerOnline)
             {
                 if(debug) log.Debug(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");

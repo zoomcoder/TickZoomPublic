@@ -18,12 +18,19 @@ namespace TickZoom.FIX
         public SimulatorType Type;
         public int MaxFailures;
         public bool Enabled;
-        public bool Active;
         public int Frequency = 50;
         public int NextSequence = 100;
-        public int Counter;
+        private int counter;
         private Random random;
         private Func<int> getSymbolCount;
+
+        // Repetitions
+        private bool isRepeating;
+        private int repeatCounter;
+        private int repleatCurrentMax;
+        public int MaxRepetitions = 0;
+        private SymbolInfo repeatingSymbol;
+
         public SimulatorInfo( SimulatorType type, Random random, Func<int> getSymbolCount)
         {
             log.Register(this);
@@ -38,26 +45,73 @@ namespace TickZoom.FIX
         }
         public bool CheckSequence(int sequence)
         {
-            var result = Enabled && Counter < MaxFailures && sequence >= NextSequence;
-            if( result && debug)
-            {
-                log.Debug("Sequence " + sequence + " >= " + Type + " sequence " + NextSequence + " so causing negative test.");
-            }
-            return result;
-        }
-        public bool CheckFrequency()
-        {
-            var result = Enabled && Counter < MaxFailures && random.Next(Frequency * getSymbolCount()) == 1;
+            var result = Enabled && counter < MaxFailures && sequence >= NextSequence;
             if( result)
             {
-                log.Debug("Random " + Type + " occured so causing negative test.");
+                ++counter;
+                if (debug) log.Debug("Sequence " + sequence + " >= " + Type + " sequence " + NextSequence + " so causing negative test.");
             }
             return result;
         }
+
+        public bool CheckFrequencyAndSymbol(SymbolInfo symbol)
+        {
+            var result = false;
+            if (!Enabled) return result;
+            if (isRepeating)
+            {
+                if( symbol != null && symbol.BinaryIdentifier != repeatingSymbol.BinaryIdentifier)
+                {
+                    return false;
+                }
+                repeatCounter++;
+                if (repeatCounter < repleatCurrentMax)
+                {
+                    if( debug)
+                    {
+                        var symbolText = symbol != null ? "For " + symbol + ": " : "";
+                        log.Debug(symbolText + "Repeating " + Type + " negative test. Repeat count " + repeatCounter);
+                    }
+                    result = true;
+                }
+                else
+                {
+                    isRepeating = false;
+                }
+                return result;
+            }
+            var symbolCount = getSymbolCount();
+            var randomValue = random.Next(Frequency * symbolCount);
+            result = counter < MaxFailures && randomValue == 1;
+            if (result)
+            {
+                ++counter;
+                if( debug)
+                {
+                    var symbolText = symbol != null ? "For " + symbol + ": " : "";
+                    log.Debug(symbolText + "Random " + Type + " occured so causing negative test.");
+                }
+                if (MaxRepetitions > 0)
+                {
+                    repleatCurrentMax = random.Next(MaxRepetitions);
+                    repeatCounter = 0;
+                    isRepeating = true;
+                    repeatingSymbol = symbol;
+                }
+            }
+            return result;
+        }
+
+        public bool CheckFrequency()
+        {
+            return CheckFrequencyAndSymbol(null);
+        }
+
         public override string ToString()
         {
             return Type.ToString();
         }
+
     }
     public enum SimulatorType
     {
@@ -68,6 +122,7 @@ namespace TickZoom.FIX
         BlackHole,
         CancelBlackHole,
         ReceiveFailed,
-        SystemOffline
+        SystemOffline,
+        CreateReject
     }
 }
