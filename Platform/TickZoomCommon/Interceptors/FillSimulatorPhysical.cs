@@ -93,7 +93,6 @@ namespace TickZoom.Interceptors
 	    private TriggerController triggers;
         private Dictionary<long, long> serialTriggerMap = new Dictionary<long, long>();
 
-
         public FillSimulatorPhysical(string name, SymbolInfo symbol, bool createSimulatedFills, bool createActualFills, TriggerController triggers)
 		{
 			this.symbol = symbol;
@@ -107,7 +106,7 @@ namespace TickZoom.Interceptors
             this.createActualFills = createActualFills;
             fillLogic = new FillSimulatorLogic(name,symbol,FillCallback);
             isChanged = true;
-            PartialFillSimulation = symbol.PartialFillSimulation;
+            PartialFillSimulation = symbol.PartialFillSimulation; // PartialFillSimulation.None; //  
 		}
 
 		private bool hasCurrentTick = false;
@@ -628,7 +627,7 @@ namespace TickZoom.Interceptors
 	    private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
 		{
 		    if( debug) log.Debug("Filling order: " + order );
-			var split = random.Next(maxPartialFillsPerOrder)+1;
+            var split = PartialFillSimulation == PartialFillSimulation.None ? 1 : random.Next(maxPartialFillsPerOrder) + 1;
 	        var numberFills = split;
             if( order.Type != OrderType.BuyMarket && order.Type != OrderType.SellMarket)
             {
