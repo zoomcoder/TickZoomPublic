@@ -61,11 +61,13 @@ namespace TickZoom.Examples
 		{
 			// Example log message.
 			if( IsTrace) Log.Trace( "close: " + Ticks[0] + " " + Bars.Close[0] + " " + Bars.Time[0]);
+            var trades = Performance.ComboTrades;
+		    var isFlat = Position.IsFlat && (trades.Count == 0 || trades.Tail.Completed);
 			
 			double close = Bars.Close[0];
             if (Bars.Close[0] < Bars.Open[0] && Bars.Open[0] < Bars.Close[1])
             {
-                if (Position.IsFlat)
+                if (isFlat)
                 {
                     Orders.Enter.NextBar.SellMarket(tradeSize);
                     ExitStrategy.StopLoss = 15 * minimumTick;
@@ -74,7 +76,8 @@ namespace TickZoom.Examples
             }
             if (Bars.Close[0] > Bars.Open[0])
             {
-				if( Position.IsFlat) {
+                if (isFlat)
+                {
 					Orders.Enter.NextBar.BuyStop(Bars.Close[0] + 10 * minimumTick,tradeSize);
 					Orders.Exit.NextBar.SellStop(Bars.Close[0] - 10 * minimumTick);
 				    return true;
@@ -89,7 +92,8 @@ namespace TickZoom.Examples
                 return true;
             }
 			if( Bars.Close[0] < Bars.Open[0]) {
-				if( Position.IsFlat) {
+                if (isFlat)
+                {
 					Orders.Enter.NextBar.SellLimit(Bars.Close[0] + 30 * minimumTick,tradeSize);
 					ExitStrategy.StopLoss = 45 * minimumTick;
                     return true;
