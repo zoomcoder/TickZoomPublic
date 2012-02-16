@@ -69,6 +69,9 @@ namespace TickZoom.Common
         private long recency;
         private string name;
         private bool enableSyncTicks;
+        private int rejectRepeatCounter;
+        private int confirmedOrderCount;
+        private bool isBrokerOnline;
 
         public class OrderArray<T>
         {
@@ -129,7 +132,7 @@ namespace TickZoom.Common
             {
                 TrySyncPosition(positionChange.StrategyPositions);
                 var match = PerformCompareProtected();
-                if( !match && enableSyncTicks)
+                if( enableSyncTicks && !match && isBrokerOnline)
                 {
                     if( !tickSync.SentWaitingMatch)
                     {
@@ -1015,14 +1018,14 @@ namespace TickZoom.Common
 			CreateOrChangeOrder createOrChange;
             if( delta != 0)
             {
-                IsPositionSynced = false;
+                isPositionSynced = false;
                 log.Info("SyncPosition() Issuing adjustment order because expected position is " + desiredPosition + " but actual is " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
                 if (debug) log.Debug("TrySyncPosition - " + tickSync);
             }
             else if( positionDelta == 0)
             {
-                IsPositionSynced = true;
                 if( debug) log.Debug("SyncPosition() found position currently synced. With expected " + desiredPosition + " and actual " + physicalOrderCache.GetActualPosition(symbol) + " plus pending adjustments " + pendingAdjustments);
+                isPositionSynced = true;
             }
 			if( delta > 0)
 			{
@@ -1162,7 +1165,6 @@ namespace TickZoom.Common
                         {
                             log.Warn(message);
                         }
-                        order.ResetLastChange();
                     }
                 }
             }
@@ -1333,11 +1335,20 @@ namespace TickZoom.Common
 			{
 			    if( debug) log.Debug( "Skipping ProcesOrders. RecursiveCounter " + count + "\n" + tickSync);
 			}
-            if( compareSuccess && enableSyncTicks)
+            if (compareSuccess)
             {
-                if( tickSync.SentWaitingMatch)
+                
+                if (enableSyncTicks)
                 {
-                    tickSync.RemoveWaitingMatch("PerformCompare");
+                    if (tickSync.SentWaitingMatch)
+                    {
+                        tickSync.RemoveWaitingMatch("PerformCompare");
+                    }
+                }
+                if( rejectRepeatCounter > 0 && confirmedOrderCount > 0)
+                {
+                    if( debug) log.Debug("ConfirmedOrderCount " + confirmedOrderCount + " greater than zero so resetting reject counter.");
+                    rejectRepeatCounter = 0;
                 }
             }
 		    return compareSuccess;
@@ -1753,6 +1764,11 @@ namespace TickZoom.Common
 	        get { return logicalOrderCache; }
 	    }
 
+        public bool IsSynchronized
+        {
+            get { return isPositionSynced; }
+        }
+
 	    public bool IsPositionSynced
 	    {
 	        get { return isPositionSynced; }
@@ -1765,9 +1781,21 @@ namespace TickZoom.Common
             set { enableSyncTicks = value; }
         }
 
+        public int RejectRepeatCounter
+        {
+            get { return rejectRepeatCounter; }
+        }
+
+        public bool IsBrokerOnline
+        {
+            get { return isBrokerOnline; }
+            set { isBrokerOnline = value; }
+        }
+
         // This is a callback to confirm order was properly placed.
         public void ConfirmChange(CreateOrChangeOrder order, bool isRealTime)
         {
+            ++confirmedOrderCount;
             order.OrderState = OrderState.Active;
             physicalOrderCache.SetOrder(order);
             if (debug) log.Debug("ConfirmChange(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
@@ -1807,6 +1835,7 @@ namespace TickZoom.Common
 
         public void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime)
         {
+            ++confirmedOrderCount;
             order.OrderState = OrderState.Active;
             physicalOrderCache.SetOrder(order);
             if (debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
@@ -1824,9 +1853,11 @@ namespace TickZoom.Common
             }
         }
 
-        public void RejectOrder(CreateOrChangeOrder order, bool removeOriginal, bool isRealTime)
+        public void RejectOrder(CreateOrChangeOrder order, bool removeOriginal, bool isRealTime, bool retryImmediately)
         {
-            if (debug) log.Debug("RejectOrder(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            ++rejectRepeatCounter;
+            confirmedOrderCount = 0;
+            if (debug) log.Debug("RejectOrder(" + RejectRepeatCounter + ", " + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             CreateOrChangeOrder origOrder = null;
             if( order != null)
             {
@@ -1845,9 +1876,12 @@ namespace TickZoom.Common
                     }
                 }
             }
-            if (isRealTime)
+            if (isRealTime && retryImmediately)
             {
-                PerformCompareProtected();
+                if( !CheckForPending())
+                {
+                    PerformCompareProtected();
+                }
             }
             if (enableSyncTicks)
             {
@@ -1874,7 +1908,8 @@ namespace TickZoom.Common
         }
 
         public void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime)
-		{
+        {
+            ++confirmedOrderCount;
             if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
             var origOrder = order.OriginalOrder;
