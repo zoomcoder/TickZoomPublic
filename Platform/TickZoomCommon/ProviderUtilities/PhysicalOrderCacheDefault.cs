@@ -81,6 +81,7 @@ namespace TickZoom.Common
                 }
                 strategyPosition.TrySetPosition(position.ExpectedPosition);
             }
+//            if( debug) log.Debug("SyncPositions() strategy positions:\n" + StrategyPositionsToString());
         }
 
         public void SetActualPosition(SymbolInfo symbol, long position)
@@ -129,6 +130,7 @@ namespace TickZoom.Common
                 }
                 strategyPosition.SetExpectedPosition(position);
             }
+//            if (debug) log.Debug("SetStrategyPosition() strategy positions:\n" + StrategyPositionsToString());
         }
 
         public long GetStrategyPosition(int strategyId)

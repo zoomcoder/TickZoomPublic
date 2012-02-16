@@ -106,7 +106,7 @@ namespace TickZoom.Interceptors
             this.createActualFills = createActualFills;
             fillLogic = new FillSimulatorLogic(name,symbol,FillCallback);
             isChanged = true;
-            PartialFillSimulation = symbol.PartialFillSimulation; // PartialFillSimulation.None; //  
+            PartialFillSimulation = symbol.PartialFillSimulation;
 		}
 
 		private bool hasCurrentTick = false;
@@ -625,7 +625,7 @@ namespace TickZoom.Interceptors
 		}
 		
 	    private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
-		{
+	    {
 		    if( debug) log.Debug("Filling order: " + order );
             var split = PartialFillSimulation == PartialFillSimulation.None ? 1 : random.Next(maxPartialFillsPerOrder) + 1;
 	        var numberFills = split;
