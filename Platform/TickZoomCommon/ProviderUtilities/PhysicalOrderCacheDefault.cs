@@ -61,6 +61,7 @@ namespace TickZoom.Common
 
         public void SyncPositions(Iterable<StrategyPosition> strategyPositions)
         {
+            if( strategyPositions == null) return;
             if (trace)
             {
                 for (var node = strategyPositions.First; node != null; node = node.Next)
