@@ -826,7 +826,7 @@ namespace TickZoom.MBTFIX
                             }
                             if (clientOrder != null && clientOrder.ReplacedBy != null)
                             {
-                                algorithm.OrderAlgorithm.ConfirmCancel(clientOrder, IsRecovered);
+                                algorithm.OrderAlgorithm.ConfirmCancel(clientOrder.ReplacedBy, IsRecovered);
                                 if (algorithm.OrderAlgorithm.IsSynchronized)
                                 {
                                     TrySendStartBroker(clientOrder.Symbol, "sync on confirm cancel");
@@ -834,7 +834,7 @@ namespace TickZoom.MBTFIX
                             }
                             else if (origOrder != null && origOrder.ReplacedBy != null)
                             {
-                                algorithm.OrderAlgorithm.ConfirmCancel(origOrder, IsRecovered);
+                                algorithm.OrderAlgorithm.ConfirmCancel(origOrder.ReplacedBy, IsRecovered);
                                 if (algorithm.OrderAlgorithm.IsSynchronized)
                                 {
                                     TrySendStartBroker(origOrder.Symbol, "sync on confirm cancel orig order");

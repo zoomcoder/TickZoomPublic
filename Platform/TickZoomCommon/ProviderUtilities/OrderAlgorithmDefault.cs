@@ -1311,10 +1311,10 @@ namespace TickZoom.Common
                             {
                                 log.Debug("PerformCompareInternal() returned: " + compareSuccess);
                             }
-                            if( physicalOrderHandler.IsChanged)
-                            {
-                                physicalOrderHandler.ProcessOrders();
-                            }
+                            //if( physicalOrderHandler.IsChanged)
+                            //{
+                            //    physicalOrderHandler.ProcessOrders();
+                            //}
 
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
                         }
@@ -1907,8 +1907,9 @@ namespace TickZoom.Common
             }
         }
 
-        public void ConfirmCancel(CreateOrChangeOrder order, bool isRealTime)
+        public void ConfirmCancel(CreateOrChangeOrder cancelOrder, bool isRealTime)
         {
+            var order = cancelOrder.OriginalOrder;
             ++confirmedOrderCount;
             if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
