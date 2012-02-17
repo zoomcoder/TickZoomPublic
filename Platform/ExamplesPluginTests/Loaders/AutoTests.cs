@@ -186,7 +186,7 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Historical,
+                Mode = AutoTestMode.Default,
                 Name = "ExampleMixedTruePartial",
                 Loader = new ExampleMixedTruePartial(),
                 Symbols = primarySymbol + ",EUR/USD,USD/CHF",

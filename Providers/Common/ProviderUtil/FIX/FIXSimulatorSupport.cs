@@ -142,6 +142,7 @@ namespace TickZoom.FIX
                 simulator.Frequency = 20;
 
                 simulator = simulators[SimulatorType.RejectSymbol];
+                simulator.Enabled = false;
                 simulator.Frequency = 10;
                 simulator.MaxRepetitions = 100;
 

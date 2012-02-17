@@ -211,10 +211,11 @@ namespace TickZoom.FIX
             FillSimulator.StartTick(currentTick);
             nextTick.Inject(temporaryTick.Extract());
             tickSync.AddTick(nextTick);
-            if (FillSimulator.IsChanged)
-            {
-                FillSimulator.ProcessOrders();
-            }
+            //if (FillSimulator.IsChanged)
+            //{
+            //    if( debug) log.Debug("FillSimulator.IsChanged " + FillSimulator.IsChanged);
+            //    FillSimulator.ProcessOrders();
+            //}
 		    if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 		    ProcessOnTickCallBack();
 		    return true;
