@@ -49,6 +49,7 @@ namespace TickZoom.Api
 		private static StarterFactory starterFactory;
 		private static UtilityFactory utilityFactory;
 		private static FactoryLoader factoryLoader;
+	    private static bool isAutomatedTest;
 		
 		private static object Locker {
 			get {
@@ -248,7 +249,13 @@ namespace TickZoom.Api
 			}
 		}
 
-        public static void Release()
+	    public static bool IsAutomatedTest
+	    {
+	        get { return isAutomatedTest; }
+	        set { isAutomatedTest = value; }
+	    }
+
+	    public static void Release()
         {
             lock (Locker)
             {

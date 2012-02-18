@@ -373,8 +373,8 @@ namespace TickZoom.Common
 				createOrChange.Size : - createOrChange.Size;
 			var delta = logicalPosition - strategyPosition;
 			var difference = delta - physicalPosition;
-			if( delta == 0 || strategyPosition > 0 && logicalPosition > 0 ||
-			  strategyPosition < 0 && logicalPosition < 0)
+			if( delta == 0 || (logicalPosition > 0 && strategyPosition > logicalPosition) ||
+			  (logicalPosition < 0 && strategyPosition < logicalPosition))
 			{
 			    result = false;
 				TryCancelBrokerOrder(createOrChange);
@@ -1227,7 +1227,7 @@ namespace TickZoom.Common
             else
             {
 				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
-			}
+            }
 
             if( adjustment) {
                 if (debug) log.Debug("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
@@ -1422,11 +1422,12 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Sending logical fill for " + symbol + ": " + fill);
                 onProcessFill(symbol, fill);
             }
-            if (isRealTime && (fill.IsComplete || isCompletePhysicalFill))
-            {
+            //if (isRealTime)
+            //if (isRealTime && (fill.IsComplete || isCompletePhysicalFill))
+            //{
 				if( debug) log.Debug("Performing extra compare.");
 				PerformCompareProtected();
-			}
+            //}
         }
 
         private void MarkAsFilled(LogicalOrder filledOrder)

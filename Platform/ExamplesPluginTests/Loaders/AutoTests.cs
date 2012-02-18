@@ -253,6 +253,20 @@ namespace Loaders
                 Categories = { "Failed" },
             });
 
+
+            list.Add(new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
+                Name = "ExampleLimitTruePartial",
+                Loader = new ExampleLimitTruePartialLoader(),
+                Symbols = "USD/CHF",
+                StoreKnownGood = storeKnownGood,
+                ShowCharts = showCharts,
+                EndTime = new TimeStamp(2009, 6, 10),
+                IntervalDefault = Intervals.Minute1,
+                Categories = { "Failed" },
+            });
+            
             list.Add(new AutoTestSettings
             {
 			    Mode = AutoTestMode.Default,

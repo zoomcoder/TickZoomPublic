@@ -200,8 +200,11 @@ namespace TickZoom.Common
                 sb.Append(" sequence: ");
                 sb.Append(binary.sequence);
             }
-            sb.Append(" last change: ");
-            sb.Append(binary.lastStateChange);
+            if( !Factory.IsAutomatedTest)
+            {
+                sb.Append(" last change: ");
+                sb.Append(binary.lastStateChange);
+            }
             return sb.ToString();
         }
 
@@ -209,7 +212,7 @@ namespace TickZoom.Common
 		private static string CreateBrokerOrderId(int logicalId) {
             if( lastId == 0L)
             {
-                if( SyncTicks.Enabled)
+                if( Factory.IsAutomatedTest)
                 {
                     lastId = 111111111111L;
                 }

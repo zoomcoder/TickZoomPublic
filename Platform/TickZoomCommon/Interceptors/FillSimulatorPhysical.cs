@@ -223,6 +223,7 @@ namespace TickZoom.Interceptors
             SortAdjust(order);
             VerifySide(order);
             IsChanged = true;
+            OrderChanged();
         }
 
         private void TriggerCallback(long logicalSerialNumber)
@@ -335,6 +336,7 @@ namespace TickZoom.Interceptors
 
         public int ProcessOrders()
         {
+            IsChanged = false;
             if (hasCurrentTick)
             {
                 ProcessOrdersInternal(currentTick);
@@ -343,7 +345,6 @@ namespace TickZoom.Interceptors
             {
                 if (debug) log.Debug("Skipping ProcessOrders because HasCurrentTick is " + hasCurrentTick);
             }
-            IsChanged = false;
             return 1;
         }
 
@@ -680,6 +681,7 @@ namespace TickZoom.Interceptors
         private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
         {
             if (debug) log.Debug("Filling order: " + order);
+            var remainingSize = order.Size;
             var split = PartialFillSimulation == PartialFillSimulation.None ? 1 : random.Next(maxPartialFillsPerOrder) + 1;
             var numberFills = split;
             if (order.Type != OrderType.BuyMarket && order.Type != OrderType.SellMarket)
@@ -694,21 +696,22 @@ namespace TickZoom.Interceptors
             var cumulativeQuantity = 0;
             if (lastSize == 0) lastSize = totalSize;
             var count = 0;
-            while (order.Size > 0 && count < numberFills)
+            while (remainingSize > 0 && count < numberFills)
             {
                 count++;
-                order.Size -= Math.Abs(lastSize);
+                remainingSize -= Math.Abs(lastSize);
                 if (count >= split)
                 {
-                    lastSize += Math.Sign(lastSize) * order.Size;
-                    order.Size = 0;
+                    lastSize += Math.Sign(lastSize) * remainingSize;
+                    remainingSize = 0;
                 }
                 cumulativeQuantity += lastSize;
-                if (order.Size == 0)
+                if (remainingSize == 0)
                 {
                     CancelBrokerOrder((string)order.BrokerOrder);
                 }
-                CreateSingleFill(lastSize, totalSize, cumulativeQuantity, order.Size, price, time, utcTime, order);
+                order.Size = remainingSize;
+                CreateSingleFill(lastSize, totalSize, cumulativeQuantity, remainingSize, price, time, utcTime, order.Clone());
             }
         }
 
@@ -859,6 +862,14 @@ namespace TickZoom.Interceptors
             set { enableSyncTicks = value; }
         }
 
+        private void OrderChanged()
+        {
+            if (enableSyncTicks && !tickSync.SentOrderChange)
+            {
+                tickSync.AddOrderChange();
+            }
+        }
+
         public bool IsChanged
         {
             get { return isChanged; }
@@ -866,14 +877,7 @@ namespace TickZoom.Interceptors
             {
                 if (isChanged != value)
                 {
-                    if (value)
-                    {
-                        if (enableSyncTicks && !tickSync.SentOrderChange)
-                        {
-                            tickSync.AddOrderChange();
-                        }
-                    }
-                    else
+                    if (!value)
                     {
                         if (enableSyncTicks && tickSync.SentOrderChange)
                         {

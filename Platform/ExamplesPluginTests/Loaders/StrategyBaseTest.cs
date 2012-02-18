@@ -89,6 +89,7 @@ namespace Loaders
 
         public StrategyBaseTest( AutoTestSettings testSettings )
         {
+            Factory.IsAutomatedTest = true;
             this.testSettings = testSettings;
             this.autoTestMode = testSettings.Mode;
             this.loader = testSettings.Loader;
