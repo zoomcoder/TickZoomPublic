@@ -222,7 +222,8 @@ namespace TickZoom.MBTFIX
             SendMessage(mbtMsg);
             if (SyncTicks.Enabled)
             {
-                HeartbeatDelay = 2;
+                HeartbeatDelay = int.MaxValue;
+                //HeartbeatDelay = 2;
                 RetryDelay = 1;
                 RetryStart = 1;
             }

@@ -160,15 +160,6 @@ namespace TickZoom.FIX
 		    	if( verbose) log.Verbose("TryCompleteTick() Next Tick");
 		    	tickSync.Clear();
             }
-            else if (tickSync.OnlyReprocessPhysicalOrders)
-            {
-                if (trace) log.Trace("Reprocess physical orders - " + tickSync);
-                if( FillSimulator.IsChanged)
-                {
-                    FillSimulator.ProcessOrders();
-                }
-                tickSync.RemoveReprocessPhysicalOrders();
-            }
             else if (tickSync.OnlyProcessPhysicalOrders)
             {
                 if (trace) log.Trace("Process physical orders - " + tickSync);
@@ -178,6 +169,15 @@ namespace TickZoom.FIX
                     FillSimulator.ProcessOrders();
                 }
                 tickSync.RemoveProcessPhysicalOrders();
+            }
+            else if (tickSync.OnlyReprocessPhysicalOrders)
+            {
+                if (trace) log.Trace("Reprocess physical orders - " + tickSync);
+                if( FillSimulator.IsChanged)
+                {
+                    FillSimulator.ProcessOrders();
+                }
+                tickSync.RemoveReprocessPhysicalOrders();
             }
         }
 		

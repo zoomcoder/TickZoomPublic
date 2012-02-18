@@ -1099,9 +1099,10 @@ namespace TickZoom.Common
 		    {
 		        var order = originalPhysicals[i];
 				if( order.OrderState == OrderState.Pending ||
-                    order.OrderState == OrderState.PendingNew || 
-                    order.Type == OrderType.BuyMarket ||
-				    order.Type == OrderType.SellMarket) {
+                    order.OrderState == OrderState.PendingNew
+                    //||  order.Type == OrderType.BuyMarket ||
+                    //order.Type == OrderType.SellMarket
+                    ) {
 					if( debug) log.Debug("Pending order: " + order);
 					result = true;	
 				}
@@ -1413,10 +1414,6 @@ namespace TickZoom.Common
                     else
                     {
                         ProcessMissingPhysical(filledOrder);
-                    }
-                    if (enableSyncTicks)
-                    {
-                        tickSync.SetReprocessPhysicalOrders();
                     }
                 }
 			}
@@ -1810,10 +1807,6 @@ namespace TickZoom.Common
             }
             if (enableSyncTicks)
             {
-                if (!tickSync.SentProcessPhysicalOrders)
-                {
-                    tickSync.SetReprocessPhysicalOrders();
-                }
                 tickSync.RemovePhysicalOrder(order);
             }
         }
@@ -1845,10 +1838,6 @@ namespace TickZoom.Common
             }
             if (enableSyncTicks)
             {
-                if (!tickSync.SentProcessPhysicalOrders)
-                {
-                    tickSync.SetReprocessPhysicalOrders();
-                }
                 tickSync.RemovePhysicalOrder(order);
             }
         }

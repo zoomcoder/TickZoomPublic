@@ -43,6 +43,7 @@ namespace TickZoom.Api
         public int physicalFillsCreated;
         public int physicalFillsWaiting;
         public int physicalOrders;
+        public int orderChange;
         public int blackHoleOrders;
         public int physicalFillSimulators;
         public int switchBrokerState;
@@ -92,7 +93,7 @@ namespace TickZoom.Api
 
         private bool CheckOnlyReprocessOrders()
         {
-            return (*state).physicalOrders == 0 && (*state).blackHoleOrders == 0 && (*state).reprocessPhysical > 0;
+            return (*state).physicalOrders == 0 && (*state).physicalOrders == 0 && (*state).blackHoleOrders == 0 && (*state).reprocessPhysical > 0;
         }
 
         private void Changed()
@@ -140,6 +141,7 @@ namespace TickZoom.Api
         {
             Interlocked.Exchange(ref (*state).ticks, 0);
             Interlocked.Exchange(ref (*state).physicalOrders, 0);
+            Interlocked.Exchange(ref (*state).orderChange, 0);
             Interlocked.Exchange(ref (*state).blackHoleOrders, 0);
             Interlocked.Exchange(ref (*state).processPhysical, 0);
             Interlocked.Exchange(ref (*state).reprocessPhysical, 0);
@@ -159,6 +161,7 @@ namespace TickZoom.Api
             if (diff.TotalMilliseconds > 800)
             {
                 Interlocked.Exchange(ref (*state).physicalOrders, 0);
+                Interlocked.Exchange(ref (*state).orderChange, 0);
                 Interlocked.Exchange(ref (*state).blackHoleOrders, 0);
                 Interlocked.Exchange(ref (*state).positionChange, 0);
                 Interlocked.Exchange(ref (*state).waitingMatch, 0);
@@ -177,7 +180,13 @@ namespace TickZoom.Api
 
         private string ToString(TickSyncState temp)
         {
-            return "TickSync Ticks " + temp.ticks + ", Sent Orders " + temp.physicalOrders + ", Black Hole " + temp.blackHoleOrders + ", Changes " + temp.positionChange + ", Waiting " + temp.waitingMatch + ", Switch Broker " + temp.switchBrokerState + ", Process Orders " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", Fills Created " + temp.physicalFillsCreated + ", Fills Waiting " + temp.physicalFillsWaiting + ", Simulators " + temp.physicalFillSimulators;
+            return "TickSync Ticks " + temp.ticks +
+                ", Orders ( Sent " + temp.physicalOrders + ", Changed " + temp.orderChange + ", Black Hole " + temp.blackHoleOrders +
+                    ", Process " + temp.processPhysical + ", Reprocess " + temp.reprocessPhysical + ", )" +
+                " Fills ( Created " + temp.physicalFillsCreated + ", Waiting " + temp.physicalFillsWaiting + ", )" +
+                " Position Changes ( Sent " + temp.positionChange + ", Waiting " + temp.waitingMatch + ", )" + 
+                " Switch Broker " + temp.switchBrokerState + "," + 
+                " Simulators " + temp.physicalFillSimulators;
         }
 
         public void AddTick(Tick tick)
@@ -257,6 +266,25 @@ namespace TickZoom.Api
                 var temp = Interlocked.Increment(ref (*state).physicalFillSimulators);
                 if (debug) log.Debug("PhysicalFillSimulators counter was " + value + ". Incremented to " + temp);
             }
+        }
+
+        public void AddOrderChange()
+        {
+            lastAddTime = TimeStamp.UtcNow;
+            var value = Interlocked.Increment(ref (*state).orderChange);
+            if (trace) log.Trace("AddOrderChange(" + value + ") " + this);
+        }
+
+        public void RemoveOrderChange()
+        {
+            var value = Interlocked.Decrement(ref (*state).orderChange);
+            if (trace) log.Trace("RemoveOrderChange(" + value + ") " + this);
+            if (value < 0)
+            {
+                var temp = Interlocked.Increment(ref (*state).orderChange);
+                if (debug) log.Debug("OrderChange counter was " + value + ". Incremented to " + temp);
+            }
+            Changed();
         }
 
         public void AddPhysicalOrder(object order)
@@ -482,6 +510,11 @@ namespace TickZoom.Api
         public bool SentReprocessPhysicalOrders
         {
             get { return (*state).reprocessPhysical > 0; }
+        }
+
+        public bool SentOrderChange
+        {
+            get { return (*state).orderChange > 0; }
         }
 
         public bool SentPhyscialOrders
