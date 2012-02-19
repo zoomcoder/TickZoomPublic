@@ -72,7 +72,7 @@ namespace TickZoom.FIX
             PartialFillSimulation partialFillSimulation,
 		    Action<long,SymbolInfo,Tick> onTick,
             Action<long> onEndTick,
-            Action<PhysicalFill> onPhysicalFill,
+            Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
 		    Action<CreateOrChangeOrder,bool,string> onRejectOrder, long id)
         {
             this.id = id;
@@ -205,7 +205,7 @@ namespace TickZoom.FIX
             FillSimulator.OnCancelBrokerOrder(order);
         }
 
-        public CreateOrChangeOrder GetOrderById(string clientOrderId)
+        public CreateOrChangeOrder GetOrderById(long clientOrderId)
         {
             return FillSimulator.GetOrderById(clientOrderId);
         }

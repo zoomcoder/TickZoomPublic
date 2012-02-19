@@ -24,7 +24,7 @@ namespace TickZoom.Common
         }
 
         protected Dictionary<int, CreateOrChangeOrder> ordersBySequence = new Dictionary<int, CreateOrChangeOrder>();
-        protected Dictionary<string, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<string, CreateOrChangeOrder>();
+        protected Dictionary<long, CreateOrChangeOrder> ordersByBrokerId = new Dictionary<long, CreateOrChangeOrder>();
         protected Dictionary<long, CreateOrChangeOrder> ordersBySerial = new Dictionary<long, CreateOrChangeOrder>();
         protected Dictionary<long, SymbolPosition> positions = new Dictionary<long, SymbolPosition>();
         protected Dictionary<int, StrategyPosition> strategyPositions = new Dictionary<int, StrategyPosition>();
@@ -167,7 +167,7 @@ namespace TickZoom.Common
             }
         }
 
-        public bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order)
+        public bool TryGetOrderById(long brokerOrder, out CreateOrChangeOrder order)
         {
             AssertAtomic();
             if (brokerOrder == null)
@@ -175,7 +175,7 @@ namespace TickZoom.Common
                 order = null;
                 return false;
             }
-            return ordersByBrokerId.TryGetValue((string)brokerOrder, out order);
+            return ordersByBrokerId.TryGetValue(brokerOrder, out order);
         }
 
         public bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order)
@@ -189,22 +189,38 @@ namespace TickZoom.Common
             return ordersBySequence.TryGetValue(sequence, out order);
         }
 
-        public CreateOrChangeOrder GetOrderById(string brokerOrder)
+        public CreateOrChangeOrder GetOrderById(long brokerOrder)
         {
             AssertAtomic();
             CreateOrChangeOrder order;
-            if (!ordersByBrokerId.TryGetValue((string)brokerOrder, out order))
+            if (!ordersByBrokerId.TryGetValue(brokerOrder, out order))
             {
                 throw new ApplicationException("Unable to find order for id: " + brokerOrder);
             }
             return order;
         }
 
-        public CreateOrChangeOrder RemoveOrder(string clientOrderId)
+        public void PurgeOriginalOrder(CreateOrChangeOrder order)
+        {
+            if( order.OriginalOrder == null) return;
+            var clientOrderId = order.OriginalOrder.BrokerOrder;
+            if (trace) log.Trace("PurgeOriginalOrder( " + clientOrderId + ")");
+            AssertAtomic();
+            RemoveOrderInternal(order.OriginalOrder.BrokerOrder);
+            order.OriginalOrder = null;
+        }
+
+        public CreateOrChangeOrder RemoveOrder(long clientOrderId)
         {
             if (trace) log.Trace("RemoveOrder( " + clientOrderId + ")");
             AssertAtomic();
-            if (string.IsNullOrEmpty(clientOrderId))
+            var topOrder = RemoveOrderInternal(clientOrderId);
+            return topOrder;
+        }
+
+        private CreateOrChangeOrder RemoveOrderInternal(long clientOrderId)
+        {
+            if (clientOrderId == 0)
             {
                 return null;
             }
@@ -224,10 +240,7 @@ namespace TickZoom.Common
                 }
                 return order;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         public bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order)

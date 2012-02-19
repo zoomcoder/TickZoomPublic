@@ -6,12 +6,12 @@ namespace TickZoom.Api
     public interface PhysicalOrderCache : IDisposable
     {
         void SetOrder(CreateOrChangeOrder order);
-        CreateOrChangeOrder RemoveOrder(string clientOrderId);
+        CreateOrChangeOrder RemoveOrder(long clientOrderId);
         IEnumerable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
         IEnumerable<CreateOrChangeOrder> GetOrders(Func<CreateOrChangeOrder, bool> select);
-        bool TryGetOrderById(string brokerOrder, out CreateOrChangeOrder order);
+        bool TryGetOrderById(long brokerOrder, out CreateOrChangeOrder order);
         bool TryGetOrderBySequence(int sequence, out CreateOrChangeOrder order);
-        CreateOrChangeOrder GetOrderById(string brokerOrder);
+        CreateOrChangeOrder GetOrderById(long brokerOrder);
         bool TryGetOrderBySerial(long logicalSerialNumber, out CreateOrChangeOrder order);
         CreateOrChangeOrder GetOrderBySerial(long logicalSerialNumber);
         bool HasCancelOrder(PhysicalOrder order);
@@ -27,6 +27,7 @@ namespace TickZoom.Api
         string SymbolPositionsToString();
         string OrdersToString();
         List<CreateOrChangeOrder> GetOrdersList(Func<CreateOrChangeOrder, bool> func);
+        void PurgeOriginalOrder(CreateOrChangeOrder order);
     }
 
     public interface PhysicalOrderStore : PhysicalOrderCache

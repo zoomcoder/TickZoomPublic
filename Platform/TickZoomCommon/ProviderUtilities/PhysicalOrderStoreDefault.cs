@@ -656,7 +656,7 @@ namespace TickZoom.Common
 
                     var id = reader.ReadInt32();
                     var action = (OrderAction) reader.ReadInt32();
-                    var brokerOrder = reader.ReadString();
+                    var brokerOrder = reader.ReadInt64();
                     var logicalOrderId = reader.ReadInt32();
                     var logicalSerialNumber = reader.ReadInt64();
                     var orderState = (OrderState)reader.ReadInt32();

@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -49,7 +50,7 @@ namespace TickZoom.Common
         public OrderSide side;
         public int logicalOrderId;
         public long logicalSerialNumber;
-        public string brokerOrder;
+        public long brokerOrder;
         public string tag;
         public object reference;
         public CreateOrChangeOrder originalOrder;
@@ -64,6 +65,8 @@ namespace TickZoom.Common
 	    private static readonly Log log = Factory.SysLog.GetLogger(typeof (CreateOrChangeOrderDefault));
 	    private static readonly bool debug = log.IsDebugEnabled;
         private PhysicalOrderBinary binary;
+	    private long instanceId;
+	    private static long nextInstanceId;
 		
         public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, CreateOrChangeOrder origOrder)
         {
@@ -79,7 +82,7 @@ namespace TickZoom.Common
             binary.logicalSerialNumber = 0L;
             binary.tag = null;
             binary.reference = null;
-            binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
+            binary.brokerOrder = CreateBrokerOrderId();
             binary.utcCreateTime = Factory.Parallel.UtcNow;
             if( origOrder == null)
             {
@@ -88,6 +91,7 @@ namespace TickZoom.Common
             binary.originalOrder = origOrder;
             binary.replacedBy = default(CreateOrChangeOrder);
             binary.orderFlags = origOrder.OrderFlags;
+            instanceId = ++nextInstanceId;
         }
 
         public CreateOrChangeOrder Clone()
@@ -99,14 +103,15 @@ namespace TickZoom.Common
 
         private CreateOrChangeOrderDefault()
         {
-            
+            instanceId = ++nextInstanceId;
         }
 
 		public CreateOrChangeOrderDefault(OrderAction orderAction, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
             : this(OrderState.Pending,symbol,logical,side,size,price)
 		{
 		    binary.action = orderAction;
-		}
+            instanceId = ++nextInstanceId;
+        }
 		
 		public CreateOrChangeOrderDefault(OrderState orderState, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
 		{
@@ -124,12 +129,13 @@ namespace TickZoom.Common
 			binary.reference = null;
 			binary.replacedBy = null;
 		    binary.originalOrder = null;
-			binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
+			binary.brokerOrder = CreateBrokerOrderId();
 		    binary.utcCreateTime = logical.UtcChangeTime;
 		    binary.orderFlags = logical.OrderFlags;
-		}
+            instanceId = ++nextInstanceId;
+        }
 
-	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, OrderFlags flags, double price, int size, int logicalOrderId, long logicalSerialNumber, string brokerOrder, string tag, TimeStamp utcCreateTime)
+	    public CreateOrChangeOrderDefault(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, OrderFlags flags, double price, int size, int logicalOrderId, long logicalSerialNumber, long brokerOrder, string tag, TimeStamp utcCreateTime)
 	    {
             binary.action = action;
 			OrderState = orderState;
@@ -148,14 +154,17 @@ namespace TickZoom.Common
 	        binary.originalOrder = null;
 	        binary.orderFlags = flags;
 			if( binary.brokerOrder == null) {
-                binary.brokerOrder = CreateBrokerOrderId(binary.logicalOrderId);
+                binary.brokerOrder = CreateBrokerOrderId();
 			}
 	        binary.utcCreateTime = utcCreateTime;
-	    }
+            instanceId = ++nextInstanceId;
+        }
 
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
+            sb.Append(instanceId);
+            sb.Append(" ");
             sb.Append(binary.action);
             sb.Append(" ");
             sb.Append(binary.orderState);
@@ -210,7 +219,7 @@ namespace TickZoom.Common
         }
 
         private static long lastId = 0L;
-		private static string CreateBrokerOrderId(int logicalId) {
+		private static long CreateBrokerOrderId() {
             if( lastId == 0L)
             {
                 if( Factory.IsAutomatedTest)
@@ -223,7 +232,7 @@ namespace TickZoom.Common
                 }
             }
 			var longId = Interlocked.Increment(ref lastId);
-			return logicalId + "." + longId;
+			return longId;
 		}
 		
 		public OrderType Type {
@@ -251,7 +260,7 @@ namespace TickZoom.Common
             }
 		}
 		
-		public string BrokerOrder {
+		public long BrokerOrder {
             get { return binary.brokerOrder; }
 			set
 			{

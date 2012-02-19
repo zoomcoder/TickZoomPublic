@@ -680,12 +680,7 @@ namespace TickZoom.FIX
             if (debug) log.Debug("Current FIX Simulator orders.");
             foreach( var handler in handlers)
             {
-                var orders = handler.FillSimulator.GetActiveOrders(handler.Symbol);
-                for( var current = orders.First; current != null; current = current.Next)
-                {
-                    var order = current.Value;
-                    if(debug) log.Debug(order.ToString());
-                }
+                handler.FillSimulator.LogActiveOrders();
             }
         }
 
@@ -869,7 +864,7 @@ namespace TickZoom.FIX
 		}
 
         protected long nextSimulateSymbolId;
-		public void AddSymbol(string symbol, Action<long, SymbolInfo, Tick> onTick, Action<long> onEndTick, Action<PhysicalFill> onPhysicalFill, Action<CreateOrChangeOrder,bool,string> onOrderReject)
+		public void AddSymbol(string symbol, Action<long, SymbolInfo, Tick> onTick, Action<long> onEndTick, Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill, Action<CreateOrChangeOrder,bool,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
             using (symbolHandlersLocker.Using())
@@ -982,7 +977,7 @@ namespace TickZoom.FIX
             }
         }
 
-        public CreateOrChangeOrder GetOrderById(SymbolInfo symbol, string clientOrderId) {
+        public CreateOrChangeOrder GetOrderById(SymbolInfo symbol, long clientOrderId) {
             SimulateSymbol symbolSyncTicks;
             using (symbolHandlersLocker.Using())
             {

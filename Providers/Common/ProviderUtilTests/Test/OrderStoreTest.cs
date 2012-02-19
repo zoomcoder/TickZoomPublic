@@ -29,7 +29,7 @@ namespace Test
             using( var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
-                var clientId = "TestString";
+                var clientId = 010101010101L;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit, OrderFlags.None,
                                                           124.34, 1234, 14, 100000334, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
@@ -45,7 +45,7 @@ namespace Test
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
-                var clientId = "TestString";
+                var clientId = 010101010101L;
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit, OrderFlags.None,
@@ -63,7 +63,7 @@ namespace Test
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
-                var clientId = "TestString";
+                var clientId = 010101010101L;
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit, OrderFlags.None,
@@ -96,13 +96,13 @@ namespace Test
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
-                var clientId = "TestString";
+                var clientId = 010101010101L;
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit, OrderFlags.None,
                                                           124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
-                clientId = "TestString2";
+                clientId = 010101010101L;
                 order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell, OrderType.BuyLimit, OrderFlags.None,
                                                       124.34, 1234, 14, logicalSerial, clientId, null, TimeStamp.UtcNow);
                 store.SetOrder(order);
@@ -117,7 +117,7 @@ namespace Test
             using (var store = Factory.Utility.PhyscalOrderStore("OrderStoreTest"))
             {
                 var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
-                var clientId = "TestString";
+                var clientId = 010101010101L;
                 var logicalSerial = 100000335;
                 var order = Factory.Utility.PhysicalOrder(OrderAction.Create, OrderState.Active, symbolInfo, OrderSide.Sell,
                                                           OrderType.BuyLimit, OrderFlags.None,
@@ -166,7 +166,7 @@ namespace Test
             }
             File.Delete(dbpath);
             var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
-            var clientId1 = "TestString1";
+            var clientId1 = 010101010101L;
             var logicalSerial = 100000335;
             var price = 124.34;
             var size = 1234;
@@ -177,7 +177,7 @@ namespace Test
             var order1 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side,
                                                       type, OrderFlags.None,
                                                       price, size, logicalId, logicalSerial, clientId1, null, TimeStamp.UtcNow);
-            var clientId2 = "TestString2";
+            var clientId2 = 020202020202L;
             logicalSerial = 100000336;
             price = 432.13;
             size = 4321;
@@ -247,7 +247,7 @@ namespace Test
             }
             File.Delete(dbpath);
             var symbolInfo = Factory.Symbol.LookupSymbol("EUR/USD");
-            var clientId1 = "TestString1";
+            var clientId1 = 010101010101L;
             var logicalSerial = 100000335;
             var price = 124.34;
             var size = 1234;
@@ -258,7 +258,7 @@ namespace Test
             var order1 = Factory.Utility.PhysicalOrder(OrderAction.Create, state, symbolInfo, side,
                                                       type, OrderFlags.None,
                                                       price, size, logicalId, logicalSerial, clientId1, null, TimeStamp.UtcNow);
-            var clientId2 = "TestString2";
+            var clientId2 = 020202020202L;
             logicalSerial = 100000336;
             price = 432.13;
             size = 4321;

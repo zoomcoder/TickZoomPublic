@@ -685,14 +685,18 @@ namespace TickZoom.Common
 		private bool VerifySide( LogicalOrder logical, CreateOrChangeOrder createOrChange, double price)
 		{
 		    var result = true;
+#if VERIFYSIDE
 			var side = GetOrderSide(logical.Type);
-			if( createOrChange.Side != side) {
+			if( createOrChange.Side != side && ( createOrChange.Type != OrderType.BuyMarket && createOrChange.Type != OrderType.SellMarket)) {
                 if (debug) log.Debug("Cancel because " + createOrChange.Side + " != " + side + ": " + createOrChange);
-				TryCancelBrokerOrder(createOrChange);
-                createOrChange = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, createOrChange.Size, price);
-				TryCreateBrokerOrder(createOrChange);
-			    result = false;
+				if( TryCancelBrokerOrder(createOrChange))
+				{
+                    createOrChange = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, createOrChange.Size, price);
+                    TryCreateBrokerOrder(createOrChange);
+                    result = false;
+                }
 			}
+#endif
 		    return result;
 		}
 
@@ -809,16 +813,8 @@ namespace TickZoom.Common
 					result = ProcessMissingExit( logical, size, price);
 					break;
 				case TradeDirection.Reverse:
-                    if (logicalPosition < 0 && strategyPosition > logicalPosition)
-                    {
-                        result = false;
-                        ProcessMissingReverse(logical, size, price);
-                    }
-                    if (logicalPosition > 0 && strategyPosition < logicalPosition)
-                    {
-                        result = false;
-                        ProcessMissingReverse(logical, size, price);
-                    }
+                    result = false;
+                    ProcessMissingReverse(logical, size, price, logicalPosition);
                     break;
 				case TradeDirection.Change:
 					logicalPosition += strategyPosition;
@@ -837,12 +833,38 @@ namespace TickZoom.Common
             return result;
         }
 
-        private void ProcessMissingReverse(LogicalOrder logical, int size, double price)
+        private void ProcessMissingReverse(LogicalOrder logical, int size, double price, int logicalPosition)
         {
-            if (debug) log.Debug("ProcessMissingPhysical(" + logical + ")");
+            if (size == 0) return;
+            if (debug) log.Debug("ProcessMissingReverse(" + logical + ")");
             var side = GetOrderSide(logical.Type);
-            var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
-            TryCreateBrokerOrder(physical);
+            var strategyPosition = GetStrategyPosition(logical);
+            if( logicalPosition < 0)
+            {
+                if( strategyPosition > 0)
+                {
+                    var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, strategyPosition, price);
+                    TryCreateBrokerOrder(physical);
+                }
+                else
+                {
+                    var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
+                    TryCreateBrokerOrder(physical);
+                }
+            }
+            if (logicalPosition > 0)
+            {
+                if (strategyPosition < 0)
+                {
+                    var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, -strategyPosition, price);
+                    TryCreateBrokerOrder(physical);
+                }
+                else
+                {
+                    var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
+                    TryCreateBrokerOrder(physical);
+                }
+            }
         }
 
         private bool ProcessMissingExit(LogicalOrder logical, int size, double price)
@@ -1029,7 +1051,7 @@ namespace TickZoom.Common
             }
 			if( delta > 0)
 			{
-                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, (int) delta, 0, 0, null, null, default(TimeStamp));
+                createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, (int) delta, 0, 0, 0, null, default(TimeStamp));
                 log.Info("Sending adjustment order to position: " + createOrChange);
                 if( TryCreateBrokerOrder(createOrChange))
                 {
@@ -1057,7 +1079,7 @@ namespace TickZoom.Common
                 if( sendAdjustment)
                 {
                     side = physicalOrderCache.GetActualPosition(symbol) >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
-                    createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, (int) Math.Abs(delta), 0, 0, null, null, default(TimeStamp));
+                    createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, (int) Math.Abs(delta), 0, 0, 0, null, default(TimeStamp));
                     log.Info("Sending adjustment order to correct position: " + createOrChange);
                     if (TryCreateBrokerOrder(createOrChange))
                     {
@@ -1100,8 +1122,8 @@ namespace TickZoom.Common
 		        var order = originalPhysicals[i];
 				if( order.OrderState == OrderState.Pending ||
                     order.OrderState == OrderState.PendingNew
-                    //||  order.Type == OrderType.BuyMarket ||
-                    //order.Type == OrderType.SellMarket
+//                    || order.Type == OrderType.BuyMarket ||
+//                    order.Type == OrderType.SellMarket
                     ) {
 					if( debug) log.Debug("Pending order: " + order);
 					result = true;	
@@ -1199,7 +1221,12 @@ namespace TickZoom.Common
 
 		public void ProcessFill( PhysicalFill physical) {
             if (debug) log.Debug("ProcessFill() physical: " + physical);
-            var adjustment = physical.Order.LogicalOrderId == 0;
+		    CreateOrChangeOrder order;
+            if( !physicalOrderCache.TryGetOrderById(physical.BrokerOrder, out order))
+		    {
+		        throw new ApplicationException("Cannot find physical order for id " + physical.BrokerOrder + " in fill: " + physical);
+		    }
+		    var adjustment = order.LogicalOrderId == 0;
             var beforePosition = physicalOrderCache.GetActualPosition(symbol);
 		    physicalOrderCache.IncreaseActualPosition(symbol, physical.Size);
             if (debug) log.Debug("Updating actual position from " + beforePosition + " to " + physicalOrderCache.GetActualPosition(symbol) + " from fill size " + physical.Size);
@@ -1207,30 +1234,32 @@ namespace TickZoom.Common
             TryFlushBufferedLogicals();
 
 		    if( isCompletePhysicalFill) {
-				if( debug) log.Debug("Physical order completely filled: " + physical.Order);
-                physical.Order.OrderState = OrderState.Filled;
-                originalPhysicals.Remove(physical.Order);
-                physicalOrders.Remove(physical.Order);
-                if (physical.Order.ReplacedBy != null)
+                if (debug) log.Debug("Physical order completely filled: " + order);
+                order.OrderState = OrderState.Filled;
+                originalPhysicals.Remove(order);
+                physicalOrders.Remove(order);
+                if (order.ReplacedBy != null)
                 {
-                    if (debug) log.Debug("Found this order in the replace property. Removing it also: " + physical.Order.ReplacedBy);
-                    originalPhysicals.Remove(physical.Order.ReplacedBy);
-                    physicalOrders.Remove(physical.Order.ReplacedBy);
-                    physicalOrderCache.RemoveOrder(physical.Order.ReplacedBy.BrokerOrder);
+                    if (debug) log.Debug("Found this order in the replace property. Removing it also: " + order.ReplacedBy);
+                    originalPhysicals.Remove(order.ReplacedBy);
+                    physicalOrders.Remove(order.ReplacedBy);
+                    physicalOrderCache.RemoveOrder(order.ReplacedBy.BrokerOrder);
                     if( enableSyncTicks)
                     {
-                        tickSync.RemovePhysicalOrder(physical.Order.ReplacedBy);
+                        tickSync.RemovePhysicalOrder(order.ReplacedBy);
                     }
                 }
-                physicalOrderCache.RemoveOrder(physical.Order.BrokerOrder);
+                physicalOrderCache.RemoveOrder(order.BrokerOrder);
 			}
             else
             {
-				if( debug) log.Debug("Physical order partially filled: " + physical.Order);
+                if (debug) log.Debug("Physical order partially filled: " + order);
+                order.Size = physical.RemainingSize;
+
             }
 
             if( adjustment) {
-                if (debug) log.Debug("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + physical.Order);
+                if (debug) log.Debug("Leaving symbol position at desired " + desiredPosition + ", since this appears to be an adjustment market order: " + order);
                 if (debug) log.Debug("Skipping logical fill for an adjustment market order.");
                 if (debug) log.Debug("Performing extra compare.");
                 PerformCompareProtected();
@@ -1240,7 +1269,7 @@ namespace TickZoom.Common
 
             var isFilledAfterCancel = false;
 
-            var logical = FindActiveLogicalOrder(physical.Order.LogicalSerialNumber);
+            var logical = FindActiveLogicalOrder(order.LogicalSerialNumber);
             if( logical == null)
             {
                 if (debug) log.Debug("Logical order not found. So logical was already canceled: " + physical );
@@ -1248,17 +1277,17 @@ namespace TickZoom.Common
             }
             else
             {
-                if( logical.Price.ToLong() != physical.Order.Price.ToLong())
+                if (logical.Price.ToLong() != order.Price.ToLong())
                 {
-                    if (debug) log.Debug("Already canceled because physical order price " + physical.Order.Price + " dffers from logical order price " + logical);
+                    if (debug) log.Debug("Already canceled because physical order price " + order.Price + " dffers from logical order price " + logical);
                     isFilledAfterCancel = true;
                 }
             }
 
-            if (debug) log.Debug("isFilledAfterCancel " + isFilledAfterCancel + ", OffsetTooLateToCancel " + physical.Order.OffsetTooLateToCancel);
+            if (debug) log.Debug("isFilledAfterCancel " + isFilledAfterCancel + ", OffsetTooLateToCancel " + order.OffsetTooLateToCancel);
             if (isFilledAfterCancel)
             {
-                if (debug) log.Debug("Will sync positions because fill from order already canceled: " + physical.Order.ReplacedBy);
+                if (debug) log.Debug("Will sync positions because fill from order already canceled: " + order.ReplacedBy);
                 SyncPosition();
                 TryRemovePhysicalFill(physical);
                 return;
@@ -1280,7 +1309,7 @@ namespace TickZoom.Common
                 if (debug) log.Debug("strategy position " + position + " differs from logical order position " + strategyPosition + " for " + logical);
             }
             ++recency;
-            fill = new LogicalFillBinary(position, recency, physical.Price, physical.Time, physical.UtcTime, physical.Order.LogicalOrderId, physical.Order.LogicalSerialNumber, logical.Position, physical.IsSimulated, physical.IsActual);
+            fill = new LogicalFillBinary(position, recency, physical.Price, physical.Time, physical.UtcTime, order.LogicalOrderId, order.LogicalSerialNumber, logical.Position, physical.IsSimulated, physical.IsActual);
             if (debug) log.Debug("Fill price: " + fill);
             ProcessFill(fill, logical, isCompletePhysicalFill, physical.IsRealTime);
 		}
@@ -1791,17 +1820,17 @@ namespace TickZoom.Common
         }
 
         // This is a callback to confirm order was properly placed.
-        public void ConfirmChange(CreateOrChangeOrder order, bool isRealTime)
+        public void ConfirmChange(long brokerOrder, bool isRealTime)
         {
+            CreateOrChangeOrder order;
+            if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
+            {
+                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+            }
             ++confirmedOrderCount;
             order.OrderState = OrderState.Active;
-            physicalOrderCache.SetOrder(order);
             if (debug) log.Debug("ConfirmChange(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            if (order.OriginalOrder != null)
-            {
-                physicalOrderCache.RemoveOrder(order.OriginalOrder.BrokerOrder);
-                order.OriginalOrder = null;
-            }
+            physicalOrderCache.PurgeOriginalOrder(order);
             if (isRealTime)
             {
                 PerformCompareProtected();
@@ -1817,21 +1846,29 @@ namespace TickZoom.Common
             return false;
         }
 
-        public void ConfirmActive(CreateOrChangeOrder order, bool isRealTime)
+        public void ConfirmActive(long brokerOrder, bool isRealTime)
         {
+            CreateOrChangeOrder order;
+            if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
+            {
+                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+            }
             if (debug) log.Debug("ConfirmActive(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            physicalOrderCache.SetOrder(order);
             if (isRealTime)
             {
                 PerformCompareProtected();
             }
         }
 
-        public void ConfirmCreate(CreateOrChangeOrder order, bool isRealTime)
+        public void ConfirmCreate(long brokerOrder, bool isRealTime)
         {
+            CreateOrChangeOrder order;
+            if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
+            {
+                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+            }
             ++confirmedOrderCount;
             order.OrderState = OrderState.Active;
-            physicalOrderCache.SetOrder(order);
             if (debug) log.Debug("ConfirmCreate(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             if (isRealTime)
             {
@@ -1843,8 +1880,13 @@ namespace TickZoom.Common
             }
         }
 
-        public void RejectOrder(CreateOrChangeOrder order, bool removeOriginal, bool isRealTime, bool retryImmediately)
+        public void RejectOrder(long brokerOrder, bool removeOriginal, bool isRealTime, bool retryImmediately)
         {
+            CreateOrChangeOrder order;
+            if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
+            {
+                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+            }
             ++rejectRepeatCounter;
             confirmedOrderCount = 0;
             if (debug) log.Debug("RejectOrder(" + RejectRepeatCounter + ", " + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
@@ -1856,14 +1898,6 @@ namespace TickZoom.Common
                 if (origOrder != null)
                 {
                     origOrder.ReplacedBy = null;
-                    if (removeOriginal)
-                    {
-                        if (origOrder.OriginalOrder != null)
-                        {
-                            origOrder.OriginalOrder.ReplacedBy = null;
-                        }
-                        physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
-                    }
                 }
             }
             if (isRealTime && retryImmediately)
@@ -1897,25 +1931,22 @@ namespace TickZoom.Common
             }
         }
 
-        public void ConfirmCancel(CreateOrChangeOrder cancelOrder, bool isRealTime)
+        public void ConfirmCancel(long brokerOrder, bool isRealTime)
         {
+            CreateOrChangeOrder cancelOrder;
+            if (!physicalOrderCache.TryGetOrderById(brokerOrder, out cancelOrder))
+            {
+                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+            }
             var order = cancelOrder.OriginalOrder;
             ++confirmedOrderCount;
             if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
             var origOrder = order.OriginalOrder;
             if( origOrder != null)
             {
-                origOrder.ReplacedBy = null;
-            }
-            if (order.ReplacedBy == null)
-            {
-                if (debug) log.Debug("CancelOrder w/o any replaced order specified happens normally: " + order + " ");
-            }
-            else
-            {
-                if( debug) log.Debug("Removing 'replaced by' order: " + order.ReplacedBy);
-                physicalOrderCache.RemoveOrder(order.ReplacedBy.BrokerOrder);
+                physicalOrderCache.PurgeOriginalOrder(order);
             }
             if (isRealTime)
             {

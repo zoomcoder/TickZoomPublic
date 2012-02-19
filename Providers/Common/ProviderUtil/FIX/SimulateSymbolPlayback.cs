@@ -42,7 +42,7 @@ namespace TickZoom.FIX
         public SimulateSymbolPlayback(FIXSimulatorSupport fixSimulatorSupport,
                                       string symbolString,
                                       Action<Message, SymbolInfo, Tick> onTick,
-                                      Action<PhysicalFill> onPhysicalFill,
+                                      Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
                                       Action<CreateOrChangeOrder, bool, string> onRejectOrder)
         {
             log.Register(this);
@@ -109,7 +109,7 @@ namespace TickZoom.FIX
             FillSimulator.OnCancelBrokerOrder(order);
         }
 
-        public CreateOrChangeOrder GetOrderById(string clientOrderId)
+        public CreateOrChangeOrder GetOrderById(long clientOrderId)
         {
             return FillSimulator.GetOrderById(clientOrderId);
         }

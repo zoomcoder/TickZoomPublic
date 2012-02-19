@@ -39,13 +39,12 @@ namespace TickZoom.Api
 	public interface FillSimulator : PhysicalOrderHandler {
 		void OnOpen(Tick tick);
 		void StartTick(Tick lastTick);
-		CreateOrChangeOrder GetOrderById( string orderId);
+		CreateOrChangeOrder GetOrderById( long orderId);
 		int ActualPosition { get; set; }
-		Action<PhysicalFill> OnPhysicalFill { get; set; }
+		Action<PhysicalFill,CreateOrChangeOrder> OnPhysicalFill { get; set; }
 		Action<CreateOrChangeOrder,bool,string> OnRejectOrder { get; set; }
 		Action<long> OnPositionChange { get; set; }
 		PhysicalOrderConfirm ConfirmOrders { get; set; }
-	    Iterable<CreateOrChangeOrder> GetActiveOrders(SymbolInfo symbol);
 		bool IsBarData { get; set; }
 	    TimeStamp CurrentTick { get; }
 	    bool IsOnline { get; set; }
@@ -53,5 +52,6 @@ namespace TickZoom.Api
 	    bool EnableSyncTicks { get; set; }
 	    void FlushFillQueue();
 	    int ProcessAdjustments();
+	    void LogActiveOrders();
 	}
 }

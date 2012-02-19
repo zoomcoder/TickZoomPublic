@@ -74,7 +74,7 @@ namespace TickZoom.FIX
 		    Action<long,SymbolInfo,Tick> onTick,
             Action<long> onEndTick,
             TimeStamp endTime,
-            Action<PhysicalFill> onPhysicalFill,
+            Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
 		    Action<CreateOrChangeOrder,bool,string> onRejectOrder, long id)
 		{
             log.Register(this);
@@ -253,7 +253,7 @@ namespace TickZoom.FIX
             FillSimulator.OnCancelBrokerOrder(order);
         }
 
-        public CreateOrChangeOrder GetOrderById(string clientOrderId)
+        public CreateOrChangeOrder GetOrderById(long clientOrderId)
         {
             return FillSimulator.GetOrderById(clientOrderId);
         }

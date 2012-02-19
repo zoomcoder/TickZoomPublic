@@ -31,11 +31,11 @@ namespace TickZoom.Api
 {
     public interface PhysicalOrderConfirm
     {
-        void ConfirmActive(CreateOrChangeOrder order, bool isRecovered);
-        void ConfirmCreate(CreateOrChangeOrder order, bool isRecovered);
-        void ConfirmCancel(CreateOrChangeOrder order, bool isRecovered);
-        void ConfirmChange(CreateOrChangeOrder order, bool isRecovered);
-        void RejectOrder(CreateOrChangeOrder order, bool removeOriginal, bool isRealTime, bool retryImmediately);
+        void ConfirmActive(long brokerOrder, bool isRecovered);
+        void ConfirmCreate(long brokerOrder, bool isRecovered);
+        void ConfirmCancel(long brokerOrder, bool isRecovered);
+        void ConfirmChange(long brokerOrder, bool isRecovered);
+        void RejectOrder(long brokerOrder, bool removeOriginal, bool isRealTime, bool retryImmediately);
         int RejectRepeatCounter { get; }
     }
 

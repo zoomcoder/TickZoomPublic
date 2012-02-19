@@ -55,12 +55,13 @@ namespace TickZoom.Interceptors
         {
             public bool IsCounterSet;
             public PhysicalFill Fill;
+            public CreateOrChangeOrder Order;
         }
         private Queue<FillWrapper> fillQueue = new Queue<FillWrapper>();
 
         private PartialFillSimulation partialFillSimulation;
 
-        private Dictionary<string, CreateOrChangeOrder> orderMap = new Dictionary<string, CreateOrChangeOrder>();
+        private Dictionary<long, CreateOrChangeOrder> orderMap = new Dictionary<long, CreateOrChangeOrder>();
         private ActiveList<CreateOrChangeOrder> increaseOrders = new ActiveList<CreateOrChangeOrder>();
         private ActiveList<CreateOrChangeOrder> decreaseOrders = new ActiveList<CreateOrChangeOrder>();
         private ActiveList<CreateOrChangeOrder> marketOrders = new ActiveList<CreateOrChangeOrder>();
@@ -69,7 +70,7 @@ namespace TickZoom.Interceptors
         private bool isOpenTick = false;
         private TimeStamp openTime;
 
-        private Action<PhysicalFill> onPhysicalFill;
+        private Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill;
         private Action<CreateOrChangeOrder, bool, string> onRejectOrder;
         private Action<long> onPositionChange;
         private bool useSyntheticMarkets = true;
@@ -137,7 +138,7 @@ namespace TickZoom.Interceptors
         {
             var order = other.Clone();
             if (debug) log.Debug("OnChangeBrokerOrder( " + order + ")");
-            var origOrder = CancelBrokerOrder((string)order.OriginalOrder.BrokerOrder);
+            var origOrder = CancelBrokerOrder(order.OriginalOrder.BrokerOrder);
             if (origOrder == null)
             {
                 if (debug) log.Debug("PhysicalOrder too late to change. Already filled or canceled, ignoring.");
@@ -152,13 +153,15 @@ namespace TickZoom.Interceptors
                 }
                 return true;
             }
-            CreateBrokerOrder(order);
-            if (confirmOrders != null) confirmOrders.ConfirmChange(order, true);
-            UpdateCounts();
+            if( CreateBrokerOrder(order))
+            {
+                if (confirmOrders != null) confirmOrders.ConfirmChange(order.BrokerOrder, true);
+                UpdateCounts();
+            }
             return true;
         }
 
-        public bool TryGetOrderById(string orderId, out CreateOrChangeOrder createOrChangeOrder)
+        public bool TryGetOrderById(long orderId, out CreateOrChangeOrder createOrChangeOrder)
         {
             LogOpenOrders();
             lock (orderMapLocker)
@@ -168,7 +171,7 @@ namespace TickZoom.Interceptors
         }
 
 
-        public CreateOrChangeOrder GetOrderById(string orderId)
+        public CreateOrChangeOrder GetOrderById(long orderId)
         {
             CreateOrChangeOrder order;
             lock (orderMapLocker)
@@ -182,13 +185,19 @@ namespace TickZoom.Interceptors
         }
 
 
-        private void CreateBrokerOrder(CreateOrChangeOrder order)
+        private bool CreateBrokerOrder(CreateOrChangeOrder order)
         {
+#if VERIFYSIDE
+            if (!VerifySide(order))
+            {
+                return false;
+            }
+#endif
             lock (orderMapLocker)
             {
                 try
                 {
-                    orderMap.Add((string)order.BrokerOrder, order);
+                    orderMap.Add(order.BrokerOrder, order);
                     if (trace) log.Trace("Added order " + order.BrokerOrder);
                 }
                 catch (ArgumentException)
@@ -221,9 +230,9 @@ namespace TickZoom.Interceptors
             }
 
             SortAdjust(order);
-            VerifySide(order);
             IsChanged = true;
             OrderChanged();
+            return true;
         }
 
         private void TriggerCallback(long logicalSerialNumber)
@@ -238,7 +247,7 @@ namespace TickZoom.Interceptors
             }
         }
 
-        private CreateOrChangeOrder CancelBrokerOrder(string oldOrderId)
+        private CreateOrChangeOrder CancelBrokerOrder(long oldOrderId)
         {
             CreateOrChangeOrder createOrChangeOrder;
             if (TryGetOrderById(oldOrderId, out createOrChangeOrder))
@@ -304,16 +313,18 @@ namespace TickZoom.Interceptors
             {
                 throw new ApplicationException("Sorry, Size of order must be greater than zero: " + order);
             }
-            CreateBrokerOrder(order);
-            if (confirmOrders != null) confirmOrders.ConfirmCreate(order, true);
-            UpdateCounts();
+            if( CreateBrokerOrder(order))
+            {
+                if (confirmOrders != null) confirmOrders.ConfirmCreate(order.BrokerOrder, true);
+                UpdateCounts();
+            }
             return true;
         }
 
         public bool OnCancelBrokerOrder(CreateOrChangeOrder order)
         {
             if (debug) log.Debug("OnCancelBrokerOrder( " + order.OriginalOrder.BrokerOrder + ")");
-            var origOrder = CancelBrokerOrder((string)order.OriginalOrder.BrokerOrder);
+            var origOrder = CancelBrokerOrder(order.OriginalOrder.BrokerOrder);
             if (origOrder == null)
             {
                 if (debug) log.Debug("PhysicalOrder too late to change. Already filled or canceled, ignoring.");
@@ -329,7 +340,7 @@ namespace TickZoom.Interceptors
                 return true;
             }
             origOrder.ReplacedBy = order;
-            if (confirmOrders != null) confirmOrders.ConfirmCancel(order, true);
+            if (confirmOrders != null) confirmOrders.ConfirmCancel(order.BrokerOrder, true);
             UpdateCounts();
             return true;
         }
@@ -369,6 +380,15 @@ namespace TickZoom.Interceptors
             IsChanged = true;
         }
 
+        public void LogActiveOrders()
+        {
+            var orders = GetActiveOrders(symbol);
+            for (var current = orders.First; current != null; current = current.Next)
+            {
+                var order = current.Value;
+                if (debug) log.Debug(order.ToString());
+            }
+        }
         private void ProcessAdjustmentsInternal(Tick tick)
         {
             if (verbose) log.Verbose("ProcessAdjustments( " + symbol + ", " + tick + " )");
@@ -474,7 +494,7 @@ namespace TickZoom.Interceptors
                 var wrapper = fillQueue.Dequeue();
                 if (debug) log.Debug("Dequeuing fill ( isOnline " + isOnline + "): " + wrapper.Fill);
                 if (enableSyncTicks && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
-                onPhysicalFill(wrapper.Fill);
+                onPhysicalFill(wrapper.Fill, wrapper.Order);
             }
         }
 
@@ -594,20 +614,22 @@ namespace TickZoom.Interceptors
             }
         }
 
-        private void VerifySide(CreateOrChangeOrder order)
+        private bool VerifySide(CreateOrChangeOrder order)
         {
             switch (order.Type)
             {
                 case OrderType.SellMarket:
                 case OrderType.SellStop:
                 case OrderType.SellLimit:
-                    VerifySellSide(order);
+                    return VerifySellSide(order);
                     break;
                 case OrderType.BuyMarket:
                 case OrderType.BuyStop:
                 case OrderType.BuyLimit:
-                    VerifyBuySide(order);
+                    return VerifyBuySide(order);
                     break;
+                default:
+                    throw new ApplicationException("Unknown order type: " + order.Type);
             }
         }
 
@@ -628,7 +650,7 @@ namespace TickZoom.Interceptors
                     size = -physicalOrder.Size;
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ApplicationException("Unknown order type: " + order.Type);
             }
             CreatePhysicalFillHelper(size, price, tick.Time, tick.UtcTime, physicalOrder);
         }
@@ -639,11 +661,6 @@ namespace TickZoom.Interceptors
             lock (orderMapLocker)
             {
                 orderMap.Remove(order.BrokerOrder);
-            }
-            var node = (ActiveListNode<CreateOrChangeOrder>)order.Reference;
-            if (node.List != null)
-            {
-                node.List.Remove(node);
             }
             if (onRejectOrder != null)
             {
@@ -656,13 +673,15 @@ namespace TickZoom.Interceptors
             }
         }
 
-        private void VerifySellSide(CreateOrChangeOrder order)
+        private bool VerifySellSide(CreateOrChangeOrder order)
         {
+            var result = true;
             if (actualPosition > 0)
             {
                 if (order.Side != OrderSide.Sell)
                 {
                     OrderSideWrongReject(order);
+                    result = false;
                 }
             }
             else
@@ -670,16 +689,21 @@ namespace TickZoom.Interceptors
                 if (order.Side != OrderSide.SellShort)
                 {
                     OrderSideWrongReject(order);
+                    result = false;
                 }
             }
+            return result;
         }
 
-        private void VerifyBuySide(CreateOrChangeOrder order)
+        private bool VerifyBuySide(CreateOrChangeOrder order)
         {
+            var result = true;
             if (order.Side != OrderSide.Buy)
             {
                 OrderSideWrongReject(order);
+                result = false;
             }
+            return result;
         }
 
         private void CreatePhysicalFillHelper(int totalSize, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order)
@@ -696,7 +720,7 @@ namespace TickZoom.Interceptors
                     numberFills = split = random.Next(maxPartialFillsPerOrder) + 1;
                     break;
                 case PartialFillSimulation.PartialFillsIncomplete:
-                    if (order.Type == OrderType.BuyMarket || order.Type == OrderType.SellMarket)
+                    if (order.Type == OrderType.BuyLimit || order.Type == OrderType.SellLimit)
                     {
                         split = 5;
                         numberFills = 3;
@@ -726,10 +750,10 @@ namespace TickZoom.Interceptors
                 cumulativeQuantity += lastSize;
                 if (remainingSize == 0)
                 {
-                    CancelBrokerOrder((string)order.BrokerOrder);
+                    CancelBrokerOrder(order.BrokerOrder);
                 }
                 order.Size = remainingSize;
-                CreateSingleFill(lastSize, totalSize, cumulativeQuantity, remainingSize, price, time, utcTime, order.Clone());
+                CreateSingleFill(lastSize, totalSize, cumulativeQuantity, remainingSize, price, time, utcTime, order);
             }
         }
 
@@ -740,12 +764,13 @@ namespace TickZoom.Interceptors
             //if( onPositionChange != null) {
             //    onPositionChange( actualPosition);
             //}
-            var fill = new PhysicalFillDefault(size, price, time, utcTime, order, createSimulatedFills, totalSize, cumulativeSize, remainingSize, false, createActualFills);
+            var fill = new PhysicalFillDefault(size, price, time, utcTime, order.BrokerOrder, createSimulatedFills, totalSize, cumulativeSize, remainingSize, false, createActualFills);
             if (debug) log.Debug("Enqueuing fill (online: " + isOnline + "): " + fill);
             var wrapper = new FillWrapper
                               {
                                   IsCounterSet = isOnline,
                                   Fill = fill,
+                                  Order = order,
                               };
             if (enableSyncTicks && wrapper.IsCounterSet) tickSync.AddPhysicalFill(fill);
             fillQueue.Enqueue(wrapper);
@@ -769,7 +794,7 @@ namespace TickZoom.Interceptors
             set { useSyntheticMarkets = value; }
         }
 
-        public Action<PhysicalFill> OnPhysicalFill
+        public Action<PhysicalFill,CreateOrChangeOrder> OnPhysicalFill
         {
             get { return onPhysicalFill; }
             set { onPhysicalFill = value; }

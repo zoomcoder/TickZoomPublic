@@ -63,7 +63,7 @@ namespace TickZoom.Api
             set;
         }
 
-        string BrokerOrder
+        long BrokerOrder
         {
             get;
             set;

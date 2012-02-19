@@ -45,9 +45,9 @@ namespace TickZoom.Common
         {
             return new CreateOrChangeOrderDefault(orderState, symbol, origOrder);
         }
-        public CreateOrChangeOrder PhysicalOrder(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, OrderFlags flags, double price, int size, int logicalOrderId, long logicalSerialNumber, object brokerOrder, object tag, TimeStamp utcCreateTime)
+        public CreateOrChangeOrder PhysicalOrder(OrderAction action, OrderState orderState, SymbolInfo symbol, OrderSide side, OrderType type, OrderFlags flags, double price, int size, int logicalOrderId, long logicalSerialNumber, long brokerOrder, object tag, TimeStamp utcCreateTime)
         {
-            return new CreateOrChangeOrderDefault(action, orderState, symbol, side, type, flags, price, size, logicalOrderId, logicalSerialNumber, (string)brokerOrder, (string)tag, utcCreateTime);
+            return new CreateOrChangeOrderDefault(action, orderState, symbol, side, type, flags, price, size, logicalOrderId, logicalSerialNumber, brokerOrder, (string)tag, utcCreateTime);
         }
 
         public ProviderService CommandLineProcess()
@@ -84,10 +84,10 @@ namespace TickZoom.Common
 			return new PositionCommon(model);
 		}
 
-        public PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order,
+        public PhysicalFill PhysicalFill(int size, double price, TimeStamp time, TimeStamp utcTime, long brokerOrder,
                                    bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime, bool isActual)
         {
-			return new PhysicalFillDefault(size,price,time,utcTime,order,isSimulated,totalSize,cumulativeSize,remainingSize,isRealTime,isActual);
+            return new PhysicalFillDefault(size, price, time, utcTime, brokerOrder, isSimulated, totalSize, cumulativeSize, remainingSize, isRealTime, isActual);
 		}
 		
 		public StrategyInterface Strategy() {

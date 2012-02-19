@@ -34,9 +34,9 @@ namespace TickZoom.Interceptors
 	{
 		private int size;
 		private double price;
-		private TimeStamp time;
+        private TimeStamp time;
 		private TimeStamp utcTime;
-		private CreateOrChangeOrder order;
+		private long brokerOrder;
 		private bool isSimulated = false;
 	    private int totalSize;
 	    private int cumulativeSize;
@@ -44,14 +44,14 @@ namespace TickZoom.Interceptors
 	    private bool isRealTime;
 	    private bool isActual;
 
-	    public PhysicalFillDefault(int size, double price, TimeStamp time, TimeStamp utcTime, CreateOrChangeOrder order,
+	    public PhysicalFillDefault(int size, double price, TimeStamp time, TimeStamp utcTime, long brokerOrder, 
 	                               bool isSimulated, int totalSize, int cumulativeSize, int remainingSize, bool isRealTime, bool isActual)
         {
 			this.size = size;
 			this.price = price;
 			this.time = time;
 			this.utcTime = utcTime;
-			this.order = order;
+	        this.brokerOrder = brokerOrder;
 			this.isSimulated = isSimulated;
 	        this.totalSize = totalSize;
 	        this.cumulativeSize = cumulativeSize;
@@ -70,7 +70,7 @@ namespace TickZoom.Interceptors
 			sb.Append( " on ");
 			sb.Append( time);
 			sb.Append( " for order: " );
-			sb.Append( order.ToString());
+			sb.Append( brokerOrder);
 			return sb.ToString();
 		}
 
@@ -90,8 +90,8 @@ namespace TickZoom.Interceptors
 			get { return size; }
 		}
 
-		public CreateOrChangeOrder Order {
-			get { return order; }
+		public long BrokerOrder {
+			get { return brokerOrder; }
 		}
 				
 		public bool IsSimulated {
@@ -122,5 +122,6 @@ namespace TickZoom.Interceptors
 	    {
 	        get { return isActual; }
 	    }
+
 	}
 }

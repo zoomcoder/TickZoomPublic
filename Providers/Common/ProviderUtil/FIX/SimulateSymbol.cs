@@ -13,6 +13,6 @@ namespace TickZoom.FIX
         void TryProcessAdjustments();
         void ChangeOrder(CreateOrChangeOrder order);
         void CancelOrder(CreateOrChangeOrder order);
-        CreateOrChangeOrder GetOrderById(string clientOrderId);
+        CreateOrChangeOrder GetOrderById(long clientOrderId);
     }
 }

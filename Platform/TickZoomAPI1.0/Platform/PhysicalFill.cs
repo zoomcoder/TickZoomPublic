@@ -34,7 +34,7 @@ namespace TickZoom.Api
         TimeStamp UtcTime { get; }
         double Price { get; }
         int Size { get; }
-        CreateOrChangeOrder Order { get; }
+        long BrokerOrder { get; }
         bool IsSimulated { get; }
         int TotalSize { get; }
         int CumulativeSize { get; }

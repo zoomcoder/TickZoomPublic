@@ -148,8 +148,16 @@ namespace TickZoom.MBTFIX
             }
             CreateOrChangeOrder origOrder = null;
 			if( debug) log.Debug( "FIXChangeOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId + ". Original client id: " + packet.OriginalClientOrderId);
-			try {
-				origOrder = GetOrderById( symbol, packet.OriginalClientOrderId);
+			try
+			{
+			    long origClientId;
+                if( !long.TryParse(packet.OriginalClientOrderId, out origClientId))
+                {
+                    log.Error("original client order id " + packet.OriginalClientOrderId +
+                              " cannot be converted to long: " + packet);
+                    origClientId = 0;
+                }
+				origOrder = GetOrderById( symbol, origClientId);
 			} catch( ApplicationException) {
 				if( debug) log.Debug( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.");
                 OnRejectOrder(order, true, symbol + ": Cannot change order. Probably already filled or canceled.");
@@ -230,7 +238,14 @@ namespace TickZoom.MBTFIX
             CreateOrChangeOrder origOrder = null;
             try
             {
-                origOrder = GetOrderById(symbol, packet.OriginalClientOrderId);
+                long origClientId;
+                if (!long.TryParse(packet.OriginalClientOrderId, out origClientId))
+                {
+                    log.Error("original client order id " + packet.OriginalClientOrderId +
+                              " cannot be converted to long: " + packet);
+                    origClientId = 0;
+                }
+                origOrder = GetOrderById(symbol, origClientId);
             }
             catch (ApplicationException)
             {
@@ -351,12 +366,18 @@ namespace TickZoom.MBTFIX
 					}
 					break;
 			}
-			var clientId = clientOrderId.Split(new char[] {'.'});
-			var logicalId = int.Parse(clientId[0]);
-		    var utcCreateTime = new TimeStamp(packet.TransactionTime);
+		    long clientId;
+			var logicalId = 0;
+            if (!long.TryParse(clientOrderId, out clientId))
+            {
+                log.Error("original client order id " + clientOrderId +
+                          " cannot be converted to long: " + packet);
+                clientId = 0;
+            }
+            var utcCreateTime = new TimeStamp(packet.TransactionTime);
 			var physicalOrder = Factory.Utility.PhysicalOrder(
 				OrderAction.Create, OrderState.Active, symbol, side, type, OrderFlags.None, 
-				packet.Price, packet.OrderQuantity, logicalId, 0, clientOrderId, null, utcCreateTime);
+				packet.Price, packet.OrderQuantity, logicalId, 0, clientId, null, utcCreateTime);
 			if( debug) log.Debug("Received physical Order: " + physicalOrder);
 			return physicalOrder;
 		}
@@ -372,12 +393,18 @@ namespace TickZoom.MBTFIX
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var side = OrderSide.Buy;
             var type = OrderType.None;
-            var clientId = clientOrderId.Split(new char[] { '.' });
-            var logicalId = int.Parse(clientId[0]);
+            var logicalId = 0;
+            long clientId;
+            if (!long.TryParse(clientOrderId, out clientId))
+            {
+                log.Error("original client order id " + clientOrderId +
+                          " cannot be converted to long: " + packet);
+                clientId = 0;
+            }
             var utcCreateTime = new TimeStamp(packet.TransactionTime);
             var physicalOrder = Factory.Utility.PhysicalOrder(
                 OrderAction.Cancel, OrderState.Active, symbol, side, type, OrderFlags.None,
-                0D, 0, logicalId, 0, clientOrderId, null, utcCreateTime);
+                0D, 0, logicalId, 0, clientId, null, utcCreateTime);
             if (debug) log.Debug("Received physical Order: " + physicalOrder);
             return physicalOrder;
         }
@@ -404,29 +431,29 @@ namespace TickZoom.MBTFIX
 		    quotePacketQueue.Enqueue(writePacket, message.SendUtcTime);
 		}
 		
-		private void OnPhysicalFill( PhysicalFill fill) {
-            if( fill.Order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
-                (fill.Order.Type == OrderType.BuyStop || fill.Order.Type == OrderType.SellStop))
+		private void OnPhysicalFill( PhysicalFill fill, CreateOrChangeOrder order) {
+            if( order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
+                (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
             {
-                var orderType = fill.Order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
-                var marketOrder = Factory.Utility.PhysicalOrder(fill.Order.Action, fill.Order.OrderState,
-                                                                fill.Order.Symbol, fill.Order.Side, orderType, OrderFlags.None, 0,
-                                                                fill.Order.Size, fill.Order.LogicalOrderId,
-                                                                fill.Order.LogicalSerialNumber,
-                                                                fill.Order.BrokerOrder, null, TimeStamp.UtcNow);
+                var orderType = order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
+                var marketOrder = Factory.Utility.PhysicalOrder(order.Action, order.OrderState,
+                                                                order.Symbol, order.Side, orderType, OrderFlags.None, 0,
+                                                                order.Size, order.LogicalOrderId,
+                                                                order.LogicalSerialNumber,
+                                                                order.BrokerOrder, null, TimeStamp.UtcNow);
                 SendExecutionReport(marketOrder, "0", 0.0, 0, 0, 0, (int)marketOrder.Size, TimeStamp.UtcNow);
             }
 			if( debug) log.Debug    ("Converting physical fill to FIX: " + fill);
-			SendPositionUpdate(fill.Order.Symbol, GetPosition(fill.Order.Symbol));
+			SendPositionUpdate(order.Symbol, GetPosition(order.Symbol));
 			var orderStatus = fill.CumulativeSize == fill.TotalSize ? "2" : "1";
-			SendExecutionReport( fill.Order, orderStatus, "F", fill.Price, fill.TotalSize, fill.CumulativeSize, fill.Size, fill.RemainingSize, fill.UtcTime);
+			SendExecutionReport( order, orderStatus, "F", fill.Price, fill.TotalSize, fill.CumulativeSize, fill.Size, fill.RemainingSize, fill.UtcTime);
 		}
 
 		private void OnRejectOrder( CreateOrChangeOrder order, bool removeOriginal, string error)
 		{
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
-			mbtMsg.SetClientOrderId( order.BrokerOrder);
+			mbtMsg.SetClientOrderId( order.BrokerOrder.ToString());
 			mbtMsg.SetOrderStatus("8");
 			mbtMsg.SetText(error);
             mbtMsg.SetSymbol(order.Symbol.Symbol);
@@ -514,7 +541,7 @@ namespace TickZoom.MBTFIX
 			mbtMsg.SetSide( orderSide);
     		mbtMsg.SetClientOrderId( order.BrokerOrder.ToString());
 			if( order.OriginalOrder != null) {
-				mbtMsg.SetOriginalClientOrderId( order.OriginalOrder.BrokerOrder);
+				mbtMsg.SetOriginalClientOrderId( order.OriginalOrder.BrokerOrder.ToString());
 			}
 			mbtMsg.SetPrice( order.Price);
 			mbtMsg.SetSymbol( order.Symbol.Symbol);
