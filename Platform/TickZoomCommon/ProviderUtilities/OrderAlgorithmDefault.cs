@@ -1137,7 +1137,7 @@ namespace TickZoom.Common
             {
                 foundAny = true;
                 if( debug) log.Debug("Pending order: " + order);
-                var lastChange = order.LastStateChange;
+                var lastChange = order.LastModifyTime;
                 if( lastChange < expiryLimit)
                 {
                     if( order.Action == OrderAction.Cancel)

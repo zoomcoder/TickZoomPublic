@@ -16,7 +16,7 @@ namespace TickZoom.Examples
         public override void OnLoad(ProjectProperties properties) {
             foreach (var symbol in properties.Starter.SymbolProperties)
             {
-                symbol.PartialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
+                symbol.PartialFillSimulation = PartialFillSimulation.PartialFillsIncomplete;
             }
             TopModel = GetStrategy("ExampleOrderStrategy");
         }

@@ -89,7 +89,9 @@ namespace TickZoom.Api
             set;
         }
 
-        TimeStamp LastStateChange { get; }
+        TimeStamp LastModifyTime { get; }
+
+        TimeStamp LastReadTime { get; set;  }
 
         void ResetLastChange();
 

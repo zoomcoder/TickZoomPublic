@@ -488,7 +488,7 @@ namespace TickZoom.Common
                 }
                 writer.Write((int) order.Type);
                 writer.Write(order.UtcCreateTime.Internal);
-                writer.Write(order.LastStateChange.Internal);
+                writer.Write(order.LastModifyTime.Internal);
                 writer.Write(order.Sequence);
             }
 

@@ -40,7 +40,8 @@ namespace TickZoom.Common
         public int sequence;
     	public OrderAction action;
         public OrderState orderState;
-        public TimeStamp lastStateChange;
+        public TimeStamp lastModifyTime;
+        public TimeStamp lastReadTime;
         public SymbolInfo symbol;
         public OrderType type;
         public double price;
@@ -68,7 +69,7 @@ namespace TickZoom.Common
         {
             binary.action = OrderAction.Cancel;
             OrderState = orderState;
-            binary.lastStateChange = Factory.Parallel.UtcNow;
+            binary.lastModifyTime = Factory.Parallel.UtcNow;
             binary.symbol = symbol;
             binary.side = default(OrderSide);
             binary.type = default(OrderType);
@@ -111,7 +112,7 @@ namespace TickZoom.Common
 		{
             binary.action = OrderAction.Create;
 			OrderState = orderState;
-		    binary.lastStateChange = Factory.Parallel.UtcNow;
+		    binary.lastModifyTime = Factory.Parallel.UtcNow;
 			binary.symbol = symbol;
 			binary.side = side;
 			binary.type = logical.Type;
@@ -132,7 +133,7 @@ namespace TickZoom.Common
 	    {
             binary.action = action;
 			OrderState = orderState;
-		    binary.lastStateChange = Factory.Parallel.UtcNow;
+		    binary.lastModifyTime = Factory.Parallel.UtcNow;
 			binary.symbol = symbol;
 			binary.side = side;
 			binary.type = type;
@@ -203,7 +204,7 @@ namespace TickZoom.Common
             if( !Factory.IsAutomatedTest)
             {
                 sb.Append(" last change: ");
-                sb.Append(binary.lastStateChange);
+                sb.Append(binary.lastModifyTime);
             }
             return sb.ToString();
         }
@@ -326,12 +327,12 @@ namespace TickZoom.Common
 
         public void ResetLastChange()
         {
-            binary.lastStateChange = Factory.Parallel.UtcNow;
+            binary.lastModifyTime = Factory.Parallel.UtcNow;
         }
 
         public void ResetLastChange(TimeStamp lastChange)
         {
-            binary.lastStateChange = lastChange;
+            binary.lastModifyTime = lastChange;
         }
 
         public override int GetHashCode()
@@ -339,9 +340,9 @@ namespace TickZoom.Common
             return binary.brokerOrder.GetHashCode();
         }
 
-	    public TimeStamp LastStateChange
+	    public TimeStamp LastModifyTime
 	    {
-            get { return binary.lastStateChange; }
+            get { return binary.lastModifyTime; }
 	    }
 
 	    public TimeStamp UtcCreateTime
@@ -372,6 +373,12 @@ namespace TickZoom.Common
                 AssertAtomic();
                 binary.sequence = value;
             }
+        }
+
+        public TimeStamp LastReadTime
+        {
+            get { return binary.lastReadTime; }
+            set { binary.lastReadTime = value; }
         }
 
         #region PhysicalOrder Members

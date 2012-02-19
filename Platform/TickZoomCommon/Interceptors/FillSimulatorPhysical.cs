@@ -402,7 +402,11 @@ namespace TickZoom.Interceptors
                 log.Info("Skipping check of " + order.Type + " on tick UTC time " + tick.UtcTime + "." + order.UtcCreateTime.Microsecond + " because earlier than order create UTC time " + order.UtcCreateTime + "." + order.UtcCreateTime.Microsecond);
                 return;
             }
-            fillLogic.TryFillOrder(order, tick);
+            if( tick.UtcTime > order.LastReadTime )
+            {
+                order.LastReadTime = tick.UtcTime;
+                fillLogic.TryFillOrder(order, tick);
+            }
         }
 
         private void ProcessOrdersInternal(Tick tick)
@@ -682,15 +686,29 @@ namespace TickZoom.Interceptors
         {
             if (debug) log.Debug("Filling order: " + order);
             var remainingSize = order.Size;
-            var split = PartialFillSimulation == PartialFillSimulation.None ? 1 : random.Next(maxPartialFillsPerOrder) + 1;
+            var split = 1;
             var numberFills = split;
-            if (order.Type != OrderType.BuyMarket && order.Type != OrderType.SellMarket)
+            switch (PartialFillSimulation)
             {
-                numberFills = PartialFillSimulation == PartialFillSimulation.PartialFillsTillComplete ? split : random.Next(split) + 1;
-            }
-            if (numberFills < split)
-            {
-                if (debug) log.Debug("True Partial of only " + numberFills + " fills out of " + split + " for " + order);
+                case PartialFillSimulation.None:
+                    break;
+                case PartialFillSimulation.PartialFillsTillComplete:
+                    numberFills = split = random.Next(maxPartialFillsPerOrder) + 1;
+                    break;
+                case PartialFillSimulation.PartialFillsIncomplete:
+                    if (order.Type == OrderType.BuyMarket || order.Type == OrderType.SellMarket)
+                    {
+                        split = 5;
+                        numberFills = 3;
+                        if (debug) log.Debug("True Partial of only " + numberFills + " fills out of " + split + " for " + order);
+                    }
+                    else
+                    {
+                        numberFills = split = random.Next(maxPartialFillsPerOrder) + 1;
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("Unrecognized partial fill simulation: " + PartialFillSimulation);
             }
             var lastSize = totalSize / split;
             var cumulativeQuantity = 0;
