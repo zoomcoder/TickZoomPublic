@@ -237,6 +237,8 @@ namespace TickZoom.Interceptors
 
         private void TriggerCallback(long logicalSerialNumber)
         {
+            IsChanged = false;
+            ClearOrderChanged();
             if (hasCurrentTick)
             {
                 ProcessOrdersInternal(currentTick);
@@ -348,6 +350,7 @@ namespace TickZoom.Interceptors
         public int ProcessOrders()
         {
             IsChanged = false;
+            ClearOrderChanged();
             if (hasCurrentTick)
             {
                 ProcessOrdersInternal(currentTick);
@@ -913,6 +916,14 @@ namespace TickZoom.Interceptors
             }
         }
 
+        private void ClearOrderChanged()
+        {
+            if (enableSyncTicks && tickSync.SentOrderChange)
+            {
+                tickSync.RemoveOrderChange();
+            }
+        }
+
         public bool IsChanged
         {
             get { return isChanged; }
@@ -920,13 +931,7 @@ namespace TickZoom.Interceptors
             {
                 if (isChanged != value)
                 {
-                    if (!value)
-                    {
-                        if (enableSyncTicks && tickSync.SentOrderChange)
-                        {
-                            tickSync.RemoveOrderChange();
-                        }
-                    }
+                    //if (debug) log.Debug("IsChanged from " + isChanged + " to " + value);
                     isChanged = value;
                 }
             }

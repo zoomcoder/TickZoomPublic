@@ -89,7 +89,7 @@ namespace TickZoom.Common
                 throw new NullReferenceException("original order cannot be null for a cancel order.");
             }
             binary.originalOrder = origOrder;
-            binary.replacedBy = default(CreateOrChangeOrder);
+            binary.replacedBy = null;
             binary.orderFlags = origOrder.OrderFlags;
             instanceId = ++nextInstanceId;
         }

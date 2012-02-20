@@ -598,7 +598,6 @@ namespace TickZoom.Common
 				TryCancelBrokerOrder(createOrChange);
 			} else if( Math.Abs(strategyPosition) != createOrChange.Size || price.ToLong() != createOrChange.Price.ToLong()) {
                 result = false;
-                var origBrokerOrder = createOrChange.BrokerOrder;
 				physicalOrders.Remove(createOrChange);
 				var side = GetOrderSide(logical.Type);
                 var changeOrder = new CreateOrChangeOrderDefault(OrderAction.Change, symbol, logical, side, Math.Abs(strategyPosition), price);
@@ -813,14 +812,13 @@ namespace TickZoom.Common
 					result = ProcessMissingExit( logical, size, price);
 					break;
 				case TradeDirection.Reverse:
-                    result = false;
-                    ProcessMissingReverse(logical, size, price, logicalPosition);
+                    result = ProcessMissingReverse(logical, size, price, logicalPosition);
                     break;
 				case TradeDirection.Change:
 					logicalPosition += strategyPosition;
 					size = Math.Abs(logicalPosition - strategyPosition);
 					if( size != 0) {
-						if(debug) log.Debug("ProcessMissingPhysical("+logical+")");
+						if(debug) log.Debug("ProcessMissingChange("+logical+")");
 					    result = false;
 						side = GetOrderSide(logical.Type);
                         var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
@@ -833,9 +831,9 @@ namespace TickZoom.Common
             return result;
         }
 
-        private void ProcessMissingReverse(LogicalOrder logical, int size, double price, int logicalPosition)
+        private bool ProcessMissingReverse(LogicalOrder logical, int size, double price, int logicalPosition)
         {
-            if (size == 0) return;
+            if (size == 0) return true;
             if (debug) log.Debug("ProcessMissingReverse(" + logical + ")");
             var side = GetOrderSide(logical.Type);
             var strategyPosition = GetStrategyPosition(logical);
@@ -865,6 +863,7 @@ namespace TickZoom.Common
                     TryCreateBrokerOrder(physical);
                 }
             }
+            return false;
         }
 
         private bool ProcessMissingExit(LogicalOrder logical, int size, double price)
@@ -877,7 +876,7 @@ namespace TickZoom.Common
                   logical.Type == OrderType.SellStop ||
                   logical.Type == OrderType.SellMarket)
                 {
-                    if (debug) log.Debug("ProcessMissingPhysical(" + logical + ")");
+                    if (debug) log.Debug("ProcessMissingExit( strategy position " + strategyPosition + ", " + logical + ")");
                     result = false;
                     var side = GetOrderSide(logical.Type);
                     var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
@@ -890,7 +889,7 @@ namespace TickZoom.Common
                   logical.Type == OrderType.BuyMarket)
                 {
                     result = false;
-                    if (debug) log.Debug("ProcessMissingPhysical(" + logical + ")");
+                    if (debug) log.Debug("ProcessMissingExit( strategy position " + strategyPosition + ", " + logical + ")");
                     var side = GetOrderSide(logical.Type);
                     var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
                     TryCreateBrokerOrder(physical);
@@ -1151,8 +1150,9 @@ namespace TickZoom.Common
             {
                 expiryLimit.AddSeconds(-5);
             }
-            if (trace ) log.Trace("Checking for orders pending since: " + expiryLimit);
-            var list = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew || x.Type == OrderType.BuyMarket || x.Type == OrderType.SellMarket));
+            if (trace ) log.Trace("Checking for orders pending since: " + expiryLimit); 
+            var list = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew ||
+                (x.OrderState == OrderState.Active && (x.Type == OrderType.BuyMarket || x.Type == OrderType.SellMarket))));
             var cancelOrders = new List<CreateOrChangeOrder>();
             var foundAny = false;
             foreach( var order in list)
@@ -1596,7 +1596,7 @@ namespace TickZoom.Common
 		private void UpdateOrderCache(LogicalOrder order, LogicalFill fill)
 		{
             var strategyPosition = GetStrategyPosition(order);
-            if (debug) log.Debug("Adjusting strategy position to " + fill.Position + " from " + strategyPosition + ". Recency " + fill.Recency + " for strategy id " + order.StrategyId);
+            if (debug) log.Debug("Adjusting strategy position from " + strategyPosition + " to " + fill.Position + ". Recency " + fill.Recency + " for strategy id " + order.StrategyId);
             if( handleSimulatedExits)
             {
                 order.StrategyPosition = fill.Position;
@@ -1851,12 +1851,17 @@ namespace TickZoom.Common
             CreateOrChangeOrder order;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
             {
-                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+                throw new ApplicationException("ConfirmActive: Cannot find physical order for id " + brokerOrder);
             }
             if (debug) log.Debug("ConfirmActive(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
+            order.OrderState = OrderState.Active;
             if (isRealTime)
             {
                 PerformCompareProtected();
+            }
+            if (enableSyncTicks)
+            {
+                tickSync.RemovePhysicalOrder(order);
             }
         }
 
@@ -1865,7 +1870,7 @@ namespace TickZoom.Common
             CreateOrChangeOrder order;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
             {
-                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+                throw new ApplicationException("ConfirmCreate: Cannot find physical order for id " + brokerOrder);
             }
             ++confirmedOrderCount;
             order.OrderState = OrderState.Active;
@@ -1885,20 +1890,17 @@ namespace TickZoom.Common
             CreateOrChangeOrder order;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
             {
-                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+                if( debug) log.Debug("RejectOrder: Cannot find physical order for id " + brokerOrder + ". Probably already filled or canceled.");
+                return;
             }
             ++rejectRepeatCounter;
             confirmedOrderCount = 0;
             if (debug) log.Debug("RejectOrder(" + RejectRepeatCounter + ", " + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            CreateOrChangeOrder origOrder = null;
-            if( order != null)
+            physicalOrderCache.RemoveOrder(order.BrokerOrder);
+            var origOrder = order.OriginalOrder;
+            if (removeOriginal)
             {
-                physicalOrderCache.RemoveOrder(order.BrokerOrder);
-                origOrder = order.OriginalOrder;
-                if (origOrder != null)
-                {
-                    origOrder.ReplacedBy = null;
-                }
+                physicalOrderCache.PurgeOriginalOrder(order);
             }
             if (isRealTime && retryImmediately)
             {
@@ -1936,17 +1938,19 @@ namespace TickZoom.Common
             CreateOrChangeOrder cancelOrder;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out cancelOrder))
             {
-                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+                throw new ApplicationException("ConfirmCancel: Cannot find physical order for id " + brokerOrder);
             }
-            var order = cancelOrder.OriginalOrder;
-            ++confirmedOrderCount;
-            if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
-            physicalOrderCache.RemoveOrder(order.BrokerOrder);
-            var origOrder = order.OriginalOrder;
-            if( origOrder != null)
+            if (cancelOrder.Action != OrderAction.Cancel)
             {
-                physicalOrderCache.PurgeOriginalOrder(order);
+                cancelOrder = cancelOrder.ReplacedBy;
+            }
+            var origOrder = cancelOrder.OriginalOrder;
+            ++confirmedOrderCount;
+            if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + cancelOrder);
+            physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
+            if (origOrder != null)
+            {
+                physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
             }
             if (isRealTime)
             {
@@ -1954,13 +1958,20 @@ namespace TickZoom.Common
             }
             if (enableSyncTicks)
             {
-                if (order.ReplacedBy != null)
+                if( origOrder == null)
                 {
-                    tickSync.RemovePhysicalOrder(order.ReplacedBy);
+                    log.Error("Original order is null: " + cancelOrder);
                 }
                 else
                 {
-                    tickSync.RemovePhysicalOrder(order);
+                    if (origOrder.ReplacedBy != null)
+                    {
+                        tickSync.RemovePhysicalOrder(origOrder.ReplacedBy);
+                    }
+                    else
+                    {
+                        tickSync.RemovePhysicalOrder(origOrder);
+                    }
                 }
             }
         }

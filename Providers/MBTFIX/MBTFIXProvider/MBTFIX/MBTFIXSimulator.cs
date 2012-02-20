@@ -164,6 +164,7 @@ namespace TickZoom.MBTFIX
 				return;
 			}
 		    order.OriginalOrder = origOrder;
+#if VERIFYSIDE
 			if( order.Side != origOrder.Side) {
 				var message = symbol + ": Cannot change " + origOrder.Side + " to " + order.Side;
 				log.Error( message);
@@ -176,6 +177,7 @@ namespace TickZoom.MBTFIX
                 OnRejectOrder(order, false, message);
 				return;     
 			}
+#endif
 			ChangeOrder(order);
             ProcessChangeOrder(order);
 		}

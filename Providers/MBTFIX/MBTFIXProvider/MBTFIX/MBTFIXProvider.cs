@@ -657,53 +657,6 @@ namespace TickZoom.MBTFIX
             }
 		}
 
-        private void TryConfirmActive(SymbolInfo symbol, MessageFIX4_4 packetFIX)
-        {
-            var order = UpdateOrder(packetFIX, OrderState.PendingNew, null);
-            if (order != null)
-            {
-                SymbolAlgorithm algorithm;
-                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
-                {
-                    algorithm.OrderAlgorithm.ConfirmActive(order.BrokerOrder, IsRecovered);
-                    if (algorithm.OrderAlgorithm.IsSynchronized)
-                    {
-                        TrySendStartBroker(symbol, "sync on confirm active");
-                    }
-                }
-                else
-                {
-                    log.Info("ConfirmActive but OrderAlgorithm not found for " + symbol + ". Ignoring.");
-                }
-            }
-        }
-
-        private void TryConfirmCreate(SymbolInfo symbol, MessageFIX4_4 packetFIX)
-        {
-            var order = UpdateOrder(packetFIX, OrderState.Active, null);
-            if (order != null)
-            {
-                SymbolAlgorithm algorithm;
-                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
-                {
-                    algorithm.OrderAlgorithm.ConfirmCreate(order.BrokerOrder, IsRecovered);
-                    if (algorithm.OrderAlgorithm.IsSynchronized)
-                    {
-                        TrySendStartBroker(symbol, "sync on confirm create");
-                    }
-                }
-                else
-                {
-                    log.Info("ConfirmCreate but OrderAlgorithm not found for " + symbol + ". Ignoring.");
-                }
-            }
-            else if( SyncTicks.Enabled)
-            {
-                var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                tickSync.RemovePhysicalOrder(packetFIX.ClientOrderId);
-            }
-        }
-
 		private void ExecutionReport( MessageFIX4_4 packetFIX)
 		{
 		    var clientOrderId = 0L;
@@ -714,260 +667,189 @@ namespace TickZoom.MBTFIX
             {
                 throw new ApplicationException("Unexpected END in FIX Text field. Never sent a 35=AF message.");
             }
-            else
+            SymbolAlgorithm algorithm = null;
+		    SymbolInfo symbolInfo = packetFIX.Symbol != null ? Factory.Symbol.LookupSymbol(packetFIX.Symbol) : null;
+            if( symbolInfo != null)
             {
-                CreateOrChangeOrder order;
-                string orderStatus = packetFIX.OrderStatus;
-                switch (orderStatus)
-                {
-                    case "0": // New
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("ExecutionReport New: " + packetFIX);
-                        }
-                        SymbolInfo symbol = null;
-                        try
-                        {
-                            symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                        }
-                        catch (ApplicationException)
-                        {
-                            // symbol unknown.
-                        }
-                        if (symbol != null)
-                        {
-                            if (symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
-                                OrderStore.TryGetOrderById(clientOrderId, out order) &&
-                                (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
-                            {
-                                if (debug) log.Debug("New order message ignored for Forex Stop: " + order);
-                            }
-                            else
-                            {
-                                TryConfirmCreate(symbol, packetFIX);
-                            }
-                        }
+                TryGetAlgorithm(symbolInfo.BinaryIdentifier, out algorithm);
+            }
+
+            string orderStatus = packetFIX.OrderStatus;
+            switch (orderStatus)
+            {
+                case "0": // New
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport New: " + packetFIX);
+                    }
+                    if (algorithm == null)
+                    {
+                        log.Info("New order but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
                         break;
-                    case "1": // Partial
-                        if (debug && (LogRecovery || !IsRecovery))
+                    }
+                    CreateOrChangeOrder order = null;
+                    OrderStore.TryGetOrderById(clientOrderId, out order);
+                    if (order != null && symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder) // Stop Order
+                    {
+                        if( order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop)
                         {
-                            log.Debug("ExecutionReport Partial: " + packetFIX);
+                            if (debug) log.Debug("New order message ignored for Forex Stop: " + packetFIX);
+                            return;
                         }
-                        UpdateOrder(packetFIX, OrderState.Active, null);
-                        SendFill(packetFIX);
+                    }
+                    algorithm.OrderAlgorithm.ConfirmCreate(clientOrderId, IsRecovered);
+                    if (algorithm.OrderAlgorithm.IsSynchronized)
+                    {
+                        TrySendStartBroker(symbolInfo, "sync on confirm cancel");
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    break;
+                case "1": // Partial
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Partial: " + packetFIX);
+                    }
+                    //UpdateOrder(packetFIX, OrderState.Active, null);
+                    SendFill(packetFIX);
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    break;
+                case "2":  // Filled 
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Filled: " + packetFIX);
+                    }
+                    if (packetFIX.CumulativeQuantity < packetFIX.LastQuantity)
+                    {
+                        log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity + ". This is a workaround for a MBT FIX server which sends an extra invalid fill message on occasion.");
                         break;
-                    case "2":  // Filled 
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("ExecutionReport Filled: " + packetFIX);
-                        }
-                        if (packetFIX.CumulativeQuantity < packetFIX.LastQuantity)
-                        {
-                            log.Warn("Ignoring message due to CumQty " + packetFIX.CumulativeQuantity + " less than " + packetFIX.LastQuantity + ". This is a workaround for a MBT FIX server which sends an extra invalid fill message on occasion.");
-                            break;
-                        }
-                        order = UpdateOrder(packetFIX, OrderState.Active, null);
-                        if( order != null && order.ReplacedBy != null)
-                        {
-                            OrderStore.RemoveOrder(order.ReplacedBy.BrokerOrder);
-                        }
-                        SendFill(packetFIX);
+                    }
+                    SendFill(packetFIX);
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    break;
+                case "5": // Replaced
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Replaced: " + packetFIX);
+                    }
+                    if (algorithm == null)
+                    {
+                        log.Info("ConfirmChange but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
                         break;
-                    case "5": // Replaced
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("ExecutionReport Replaced: " + packetFIX);
-                        }
-                        order = ReplaceOrder(packetFIX);
-                        if (order != null)
-                        {
-                            SymbolAlgorithm algorithm;
-                            if (TryGetAlgorithm(order.Symbol.BinaryIdentifier, out algorithm))
-                            {
-                                algorithm.OrderAlgorithm.ConfirmChange(order.BrokerOrder, IsRecovered);
-                                if (algorithm.OrderAlgorithm.IsSynchronized)
-                                {
-                                    TrySendStartBroker(order.Symbol, "sync on confirm change");
-                                }
-                            }
-                            else
-                            {
-                                log.Info("ConfirmChange but OrderAlgorithm not found for " + order.Symbol + ". Ignoring.");
-                            }
-                        }
-                        else if (IsRecovered)
-                        {
-                            log.Warn("Changing order status after cancel/replace failed. Probably due to already being canceled or filled. Ignoring.");
-                        }
+                    }
+                    algorithm.OrderAlgorithm.ConfirmChange(clientOrderId, IsRecovered);
+                    if (algorithm.OrderAlgorithm.IsSynchronized)
+                    {
+                        TrySendStartBroker(symbolInfo, "sync on confirm change");
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    break;
+                case "4": // Canceled
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Canceled: " + packetFIX);
+                    }
+                    if (algorithm == null)
+                    {
+                        log.Info("Order Canceled but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
                         break;
-                    case "4": // Canceled
-                        if (debug && (LogRecovery || !IsRecovery))
+                    }
+                    if (clientOrderId != 0)
+                    {
+                        algorithm.OrderAlgorithm.ConfirmCancel(clientOrderId, IsRecovered);
+                        if (algorithm.OrderAlgorithm.IsSynchronized)
                         {
-                            log.Debug("ExecutionReport Canceled: " + packetFIX);
+                            TrySendStartBroker(symbolInfo, "sync on confirm cancel");
                         }
+                    }
+                    else if (originalClientOrderId != 0)
+                    {
+                        algorithm.OrderAlgorithm.ConfirmCancel(originalClientOrderId, IsRecovered);
+                        if (algorithm.OrderAlgorithm.IsSynchronized)
                         {
-                            var symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                            SymbolAlgorithm algorithm;
-                            if (!TryGetAlgorithm(symbolInfo.BinaryIdentifier, out algorithm))
-                            {
-                                log.Info("Order Canceled but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
-                                break;
-                            }
-                            CreateOrChangeOrder clientOrder;
-                            if (!OrderStore.TryGetOrderById(clientOrderId, out clientOrder))
-                            {
-                                if (LogRecovery || !IsRecovery)
-                                {
-                                    log.Info("Cancel order for " + packetFIX.ClientOrderId +
-                                             " was not found. Probably already canceled:\n" + GetOpenOrders());
-                                }
-                            }
-                            CreateOrChangeOrder origOrder;
-                            if (!OrderStore.TryGetOrderById(originalClientOrderId, out origOrder))
-                            {
-                                if (LogRecovery || !IsRecovery)
-                                {
-                                    log.Info("Orig order for " + packetFIX.OriginalClientOrderId + " was not found. Probably already canceled.");
-                                }
-                            }
-                            if (clientOrder != null && clientOrder.ReplacedBy != null)
-                            {
-                                algorithm.OrderAlgorithm.ConfirmCancel(clientOrder.ReplacedBy.BrokerOrder, IsRecovered);
-                                if (algorithm.OrderAlgorithm.IsSynchronized)
-                                {
-                                    TrySendStartBroker(clientOrder.Symbol, "sync on confirm cancel");
-                                }
-                            }
-                            else if (origOrder != null && origOrder.ReplacedBy != null)
-                            {
-                                algorithm.OrderAlgorithm.ConfirmCancel(origOrder.ReplacedBy.BrokerOrder, IsRecovered);
-                                if (algorithm.OrderAlgorithm.IsSynchronized)
-                                {
-                                    TrySendStartBroker(origOrder.Symbol, "sync on confirm cancel orig order");
-                                }
-                            }
-                            else
-                            {
-                                if (debug) log.Debug("Cancel confirm message has neither client id nor original client id found order in cache with replaced by property set. Continuing with only original order.");
-                                if (clientOrder != null)
-                                {
-                                    algorithm.OrderAlgorithm.ConfirmCancel(clientOrder.BrokerOrder, IsRecovered);
-                                    if (algorithm.OrderAlgorithm.IsSynchronized)
-                                    {
-                                        TrySendStartBroker(clientOrder.Symbol, "sync on confirm cancel orig order");
-                                    }
-                                }
-                                else if (origOrder != null)
-                                {
-                                    algorithm.OrderAlgorithm.ConfirmCancel(origOrder.BrokerOrder, IsRecovered);
-                                    if (algorithm.OrderAlgorithm.IsSynchronized)
-                                    {
-                                        TrySendStartBroker(origOrder.Symbol, "sync on confirm cancel orig order");
-                                    }
-                                }
-                                else
-                                {
-                                    if (info) log.Info("Canceled message. Both clientOrder and origOrder were null. Likely normal when it occurs during FIX re-synchronizing. Client Id = " + packetFIX.ClientOrderId + ", Orig Id = " + packetFIX.OriginalClientOrderId);
-                                }
-                            }
-                            break;
+                            TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
                         }
-                    case "6": // Pending Cancel
-                        if (debug && (LogRecovery || !IsRecovery))
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    break;
+                case "6": // Pending Cancel
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Pending Cancel: " + packetFIX);
+                    }
+                    if (!string.IsNullOrEmpty(packetFIX.Text) && packetFIX.Text.Contains("multifunction order"))
+                    {
+                        if (debug && (LogRecovery || IsRecovered))
                         {
-                            log.Debug("ExecutionReport Pending Cancel: " + packetFIX);
+                            log.Debug("Pending cancel of multifunction order, so removing " + packetFIX.ClientOrderId + " and " + packetFIX.OriginalClientOrderId);
                         }
-                        if (!string.IsNullOrEmpty(packetFIX.Text) && packetFIX.Text.Contains("multifunction order"))
-                        {
-                            if (debug && (LogRecovery || IsRecovered))
-                            {
-                                log.Debug("Pending cancel of multifunction order, so removing " + packetFIX.ClientOrderId + " and " + packetFIX.OriginalClientOrderId);
-                            }
-                            order = OrderStore.RemoveOrder(clientOrderId);
-                            OrderStore.RemoveOrder(originalClientOrderId);
-                            break;
-                        }
-                        else
-                        {
-                            UpdateCancelOrder(packetFIX, OrderState.Pending);
-                            TryHandlePiggyBackFill(packetFIX);
-                        }
+                        if( clientOrderId != 0L) OrderStore.RemoveOrder(clientOrderId);
+                        if (originalClientOrderId != 0L) OrderStore.RemoveOrder(originalClientOrderId);
                         break;
-                    case "8": // Rejected
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("ExecutionReport Reject: " + packetFIX);
-                        }
-                        RejectOrder(packetFIX);
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    TryHandlePiggyBackFill(packetFIX);
+                    break;
+                case "8": // Rejected
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Reject: " + packetFIX);
+                    }
+                    RejectOrder(packetFIX);
+                    break;
+                case "9": // Suspended
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Suspended: " + packetFIX);
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    break;
+                case "A": // PendingNew
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Pending New: " + packetFIX);
+                    }
+                    if (algorithm == null)
+                    {
+                        log.Info("PendingNew but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
                         break;
-                    case "9": // Suspended
-                        if (debug && (LogRecovery || !IsRecovery))
+                    }
+                        
+                    if (symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
+                        packetFIX.OrderType == "3" &&  // Stop Order
+                        packetFIX.ExecutionType == "D")  // Restated
+                    {
+                        if (debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");
+                    }
+                    else
+                    {
+                        algorithm.OrderAlgorithm.ConfirmActive(originalClientOrderId, IsRecovered);
+                        if (algorithm.OrderAlgorithm.IsSynchronized)
                         {
-                            log.Debug("ExecutionReport Suspended: " + packetFIX);
+                            TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
                         }
-                        UpdateOrder(packetFIX, OrderState.Suspended, packetFIX);
-                        // Ignore 
-                        break;
-                    case "A": // PendingNew
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("ExecutionReport Pending New: " + packetFIX);
-                        }
-                        symbol = null;
-                        try
-                        {
-                            symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-                        }
-                        catch (ApplicationException)
-                        {
-                            // symbol unknown.
-                        }
-                        if (symbol != null)
-                        {
-                            if (symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
-                                OrderStore.TryGetOrderById(clientOrderId, out order) &&
-                                (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
-                            {
-                                // Ignore any 
-                                if (packetFIX.ExecutionType == "D")
-                                {
-                                    if (debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");
-                                }
-                                else
-                                {
-                                    TryConfirmCreate(symbol, packetFIX);
-                                }
-                            }
-                            else
-                            {
-                                TryConfirmActive(symbol, packetFIX);
-                            }
-                        }
-                        break;
-                    case "E": // Pending Replace
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("ExecutionReport Pending Replace: " + packetFIX);
-                        }
-                        var orderState = OrderState.Pending;
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("PendingReplace( " + clientOrderId + ", state = " + orderState + ")");
-                        }
-                        UpdateOrReplaceOrder(packetFIX, originalClientOrderId, clientOrderId, orderState, null);
-                        TryHandlePiggyBackFill(packetFIX);
-                        break;
-                    case "R": // Resumed.
-                        if (debug && (LogRecovery || !IsRecovery))
-                        {
-                            log.Debug("ExecutionReport Resumed: " + packetFIX);
-                        }
-                        UpdateOrder(packetFIX, OrderState.Active, null);
-                        // Ignore
-                        break;
-                    default:
-                        throw new ApplicationException("Unknown order status: '" + orderStatus + "'");
-                }
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    break;
+                case "E": // Pending Replace
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Pending Replace: " + packetFIX);
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    var orderState = OrderState.Pending;
+                    TryHandlePiggyBackFill(packetFIX);
+                    break;
+                case "R": // Resumed.
+                    if (debug && (LogRecovery || !IsRecovery))
+                    {
+                        log.Debug("ExecutionReport Resumed: " + packetFIX);
+                    }
+                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    //UpdateOrder(packetFIX, OrderState.Active, null);
+                    // Ignore
+                    break;
+                default:
+                    throw new ApplicationException("Unknown order status: '" + orderStatus + "'");
             }
 		}
 
@@ -1129,15 +1011,6 @@ namespace TickZoom.MBTFIX
 			}
 		}
 
-        [Serializable]
-        public class PhysicalOrderNotFoundException : Exception
-	    {
-	        public PhysicalOrderNotFoundException(string value) : base( value)
-	        {
-	            
-	        }
-    	}
-		
 		public void ProcessFill( SymbolInfo symbol, LogicalFillBinary fill)
 		{
             SymbolReceiver symbolReceiver;
@@ -1154,9 +1027,7 @@ namespace TickZoom.MBTFIX
             var item = new EventItem(symbol, EventType.LogicalFill, fill);
             symbolReceiver.Agent.SendEvent(item);
 		}
-        // *baladj* Continue
-        // *user logged in elsewhere*  ShutdownTrading 770-920-9618  713-681-3444.
-        // 
+
 		public void RejectOrder( MessageFIX4_4 packetFIX)
 		{
             var clientOrderId = 0L;
@@ -1199,20 +1070,15 @@ namespace TickZoom.MBTFIX
 			    var stopping = "The reject error message '" + packetFIX.Text + "' was unrecognized.";
 			    log.Warn( message);
 		    } else if( LogRecovery || IsRecovered) {
-			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + packetFIX.ClientOrderId);
+			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + clientOrderId);
 		    }
 
-            CreateOrChangeOrder order;
-		    OrderStore.TryGetOrderById(clientOrderId, out order);
 		    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
             SymbolAlgorithm algorithm;
             if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
             {
                 var retryImmediately = true;
-                algorithm.OrderAlgorithm.RejectOrder(order.BrokerOrder, removeOriginal, IsRecovered, retryImmediately);
-                if( !retryImmediately) {
-                    TrySendEndBroker(symbol);
-                }
+                algorithm.OrderAlgorithm.RejectOrder(clientOrderId, removeOriginal, IsRecovered, retryImmediately);
             }
             else
             {
@@ -1220,258 +1086,6 @@ namespace TickZoom.MBTFIX
             }
 		}
 		
-		private static readonly char[] DOT_SEPARATOR = new char[] { '.' };
-		
-		private OrderType GetOrderType(MessageFIX4_4 packetFIX) {
-			var orderType = OrderType.None;
-			switch( packetFIX.Side) {
-				case "1":
-					switch( packetFIX.OrderType) {
-						case "1":
-							orderType = OrderType.BuyMarket;
-							break;
-						case "2":
-							orderType = OrderType.BuyLimit;
-							break;
-						case "3":
-							orderType = OrderType.BuyStop;
-							break;
-						default:
-							break;
-					}
-					break;
-				case "2":
-				case "5":
-					switch( packetFIX.OrderType) {
-						case "1":
-							orderType = OrderType.SellMarket;
-							break;
-						case "2":
-							orderType = OrderType.SellLimit;
-							break;
-						case "3":
-							orderType = OrderType.SellStop;
-							break;
-						default:
-							break;
-					}
-					break;
-				default:
-					throw new ApplicationException("Unknown order side: '" + packetFIX.Side + "'\n" + packetFIX);
-			}
-			return orderType;
-		}
-
-		private OrderSide GetOrderSide( MessageFIX4_4 packetFIX) {
-			OrderSide side;
-			switch( packetFIX.Side) {
-				case "1":
-					side = OrderSide.Buy;
-					break;
-				case "2":
-					side = OrderSide.Sell;
-					break;
-				case "5":
-					side = OrderSide.SellShort;
-					break;
-				default:
-					throw new ApplicationException( "Unknown order side: " + packetFIX.Side + "\n" + packetFIX);
-			}
-			return side;
-		}
-
-		private int GetLogicalOrderId( MessageFIX4_4 packetFIX) {
-			string[] parts = packetFIX.ClientOrderId.Split(DOT_SEPARATOR);
-			int logicalOrderId = 0;
-			try {
-				logicalOrderId = int.Parse(parts[0]);
-			} catch( FormatException) {
-			}
-			return logicalOrderId;
-		}
-
-        private CreateOrChangeOrder UpdateOrder(MessageFIX4_4 packetFIX, OrderState orderState, object note)
-        {
-		    var clientOrderId = 0L;
-		    long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
-            var originalClientOrderId = 0L;
-		    long.TryParse(packetFIX.ClientOrderId, out originalClientOrderId);
-			if( debug && (LogRecovery || !IsRecovery) ) {
-				log.Debug("UpdateOrder( " + clientOrderId + ", state = " + orderState + ")");
-			}
-			return UpdateOrReplaceOrder( packetFIX, originalClientOrderId, clientOrderId, orderState, note);
-		}
-		
-		public CreateOrChangeOrder ReplaceOrder( MessageFIX4_4 packetFIX) {
-            var clientOrderId = 0L;
-            long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
-            var originalClientOrderId = 0L;
-            long.TryParse(packetFIX.ClientOrderId, out originalClientOrderId);
-
-            if (debug && (LogRecovery || !IsRecovery))
-            {
-				log.Debug("ReplaceOrder( " + packetFIX.OriginalClientOrderId + " => " + packetFIX.ClientOrderId + ")");
-			}
-			CreateOrChangeOrder order;
-            if (!OrderStore.TryGetOrderById(clientOrderId, out order))
-            {
-                if (IsRecovery)
-                {
-                    order = UpdateOrReplaceOrder(packetFIX, clientOrderId, clientOrderId, OrderState.Active, "ReplaceOrder");
-                    return order;
-                }
-                else
-                {
-                    if (LogRecovery || !IsRecovery)
-                    {
-                        log.Warn("Order ID# " + packetFIX.ClientOrderId + " was not found for replace.");
-                    }
-                    return null;
-                }
-            }
-            order.OrderState = OrderState.Active;
-            int quantity = packetFIX.LeavesQuantity;
-            if (quantity > 0)
-            {
-                if (info && (LogRecovery || !IsRecovery))
-                {
-                    if (debug)
-                        log.Debug("Updated order: " + order + ".  Executed: " + packetFIX.CumulativeQuantity +
-                                  " Remaining: " + packetFIX.LeavesQuantity);
-                }
-            }
-            else
-            {
-                if (info && (LogRecovery || !IsRecovery))
-                {
-                    if (debug)
-                        log.Debug("Order Completely Filled. Id: " + packetFIX.ClientOrderId + ".  Executed: " +
-                                  packetFIX.CumulativeQuantity);
-                }
-            }
-		    if( !packetFIX.ClientOrderId.Equals(order.BrokerOrder))
-            {
-                throw new InvalidOperationException("client order id mismatch with broker order property.");
-            }
-            OrderStore.SetSequences(RemoteSequence,FixFactory.LastSequence);
-			return order;
-		}
-		
-		private CreateOrChangeOrder UpdateOrReplaceOrder( MessageFIX4_4 packetFIX, long oldClientOrderId, long newClientOrderId, OrderState orderState, object note) {
-			SymbolInfo symbolInfo;
-			try {
-				symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-			} catch( ApplicationException ex) {
-				log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
-				return null;
-			}
-            CreateOrChangeOrder order;
-            long logicalSerialNumber = 0;
-            CreateOrChangeOrder replacedBy;
-            if (OrderStore.TryGetOrderById(newClientOrderId, out order))
-            {
-				logicalSerialNumber = order.LogicalSerialNumber;
-                replacedBy = order.ReplacedBy;
-            } else {
-				if( debug && (LogRecovery || IsRecovered)) {
-					log.Debug("Client Order ID# " + newClientOrderId + " was not found.");
-				}
-                return null;
-            }
-		    CreateOrChangeOrder oldOrder = null;
-            if ( oldClientOrderId == 0 && !OrderStore.TryGetOrderById(oldClientOrderId, out oldOrder))
-            {
-                if (LogRecovery || !IsRecovery)
-                {
-                    if( debug) log.Debug("Original Order ID# " + oldClientOrderId + " not found for update or replace. Normal.");
-                }
-            }
-            int quantity = packetFIX.LeavesQuantity;
-			var type = GetOrderType( packetFIX);
-            if( type == OrderType.None)
-            {
-                type = order.Type;
-            }
-			var side = GetOrderSide( packetFIX);
-			var logicalId = GetLogicalOrderId( packetFIX);
-		    var flags = order.OrderFlags;
-            order = Factory.Utility.PhysicalOrder(OrderAction.Create, orderState, symbolInfo, side, type, flags, packetFIX.Price, packetFIX.LeavesQuantity, logicalId, logicalSerialNumber, newClientOrderId, null, TimeStamp.UtcNow);
-            order.ReplacedBy = replacedBy;
-            order.OriginalOrder = oldOrder;
-            if( oldOrder != null)
-	        {
-    	        if( debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
-               	oldOrder.ReplacedBy = order;
-            }
-		    if( quantity > 0) {
-				if( info && (LogRecovery || !IsRecovery) ) {
-					if( debug) log.Debug("Updated order: " + order + ".  Executed: " + packetFIX.CumulativeQuantity + " Remaining: " + packetFIX.LeavesQuantity);
-				}
-			} else {
-				if( info && (LogRecovery || !IsRecovery) ) {
-					if( debug) log.Debug("Order completely filled or canceled. Id: " + packetFIX.ClientOrderId + ".  Executed: " + packetFIX.CumulativeQuantity);
-				}
-			}
-            OrderStore.SetOrder(order);
-            OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
-			if( trace) {
-				log.Trace("Updated order list:");
-			    var logOrders = OrderStore.OrdersToString();
-				log.Trace( "Broker Orders:\n" + logOrders);
-			}
-			return order;
-		}
-
-        public CreateOrChangeOrder UpdateCancelOrder(MessageFIX4_4 packetFIX, OrderState orderState)
-        {
-            var clientOrderId = 0L;
-            long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
-            var originalClientOrderId = 0L;
-            long.TryParse(packetFIX.ClientOrderId, out originalClientOrderId);
-            SymbolInfo symbolInfo;
-            try
-            {
-                symbolInfo = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
-            }
-            catch (ApplicationException ex)
-            {
-                log.Error("Error looking up " + packetFIX.Symbol + ": " + ex.Message);
-                return null;
-            }
-            CreateOrChangeOrder oldOrder;
-            if (!OrderStore.TryGetOrderById(originalClientOrderId, out oldOrder))
-            {
-                if (debug && (LogRecovery || !IsRecovery))
-                {
-                    log.Debug("Original Order ID# " + originalClientOrderId + " not found for updating cancel order. Normal.");
-                }
-                return null;
-            }
-            CreateOrChangeOrder order;
-            if (! OrderStore.TryGetOrderById(clientOrderId, out order))
-            {
-                if (debug && (LogRecovery || IsRecovered))
-                {
-                    log.Debug("Client Order ID# " + clientOrderId + " was not found. Recreating.");
-                }
-                order = Factory.Utility.PhysicalOrder(orderState, symbolInfo, oldOrder);
-                order.BrokerOrder = clientOrderId;
-            }
-            OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
-            if (oldOrder != null)
-            {
-                if (debug && (LogRecovery || !IsRecovery)) log.Debug("Setting replace property of " + oldOrder.BrokerOrder + " to be replaced by " + order.BrokerOrder);
-                oldOrder.ReplacedBy = order;
-            }
-            if (trace)
-            {
-                log.Trace("Updated order list:");
-                var logOrders = OrderStore.OrdersToString();
-                log.Trace("Broker Orders:\n" + logOrders);
-            }
-            return order;
-        }
-
 		private SymbolAlgorithm CreateAlgorithm(long symbol) {
             SymbolAlgorithm symbolAlgorithm;
 			lock( orderAlgorithmsLocker) {
@@ -1509,18 +1123,6 @@ namespace TickZoom.MBTFIX
             }
             return symbolAlgorithm;
         }
-
-        private bool RemoveOrderHandler(long symbol)
-        {
-			lock( orderAlgorithmsLocker) {
-				if( orderAlgorithms.ContainsKey(symbol)) {
-					orderAlgorithms.Remove(symbol);
-					return true;
-				} else {
-					return false;
-				}
-			}
-		}
 
         public override void PositionChange(PositionChangeDetail positionChange)
 		{
@@ -1561,7 +1163,7 @@ namespace TickZoom.MBTFIX
 		{
             var fixMsg = (FIXMessage4_4)(resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
             order.Sequence = fixMsg.Sequence;
-            OrderStore.SetOrder(order);
+            //OrderStore.SetOrder(order);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
 
             if (order.Size > order.Symbol.MaxOrderSize)
@@ -1777,7 +1379,7 @@ namespace TickZoom.MBTFIX
         {
             var fixMsg = (FIXMessage4_4)(resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
             order.Sequence = fixMsg.Sequence;
-            OrderStore.SetOrder(order);
+            //OrderStore.SetOrder(order);
             var newClientOrderId = order.BrokerOrder;
             fixMsg.SetOriginalClientOrderId(order.OriginalOrder.BrokerOrder.ToString());
             fixMsg.SetClientOrderId(newClientOrderId.ToString());
