@@ -158,7 +158,7 @@ namespace TickZoom.Api
         {
             var currentTime = TimeStamp.UtcNow;
             var diff = currentTime - lastAddTime;
-            if (diff.TotalMilliseconds > 800)
+            if (diff.TotalMilliseconds > 800 && IsSinglePhysicalFillSimulator )
             {
                 Interlocked.Exchange(ref (*state).physicalOrders, 0);
                 Interlocked.Exchange(ref (*state).orderChange, 0);

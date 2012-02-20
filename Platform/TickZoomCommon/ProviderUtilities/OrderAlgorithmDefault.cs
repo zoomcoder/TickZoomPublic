@@ -72,6 +72,7 @@ namespace TickZoom.Common
         private int rejectRepeatCounter;
         private int confirmedOrderCount;
         private bool isBrokerOnline;
+        private bool receivedDesiredPosition;
 
         public class OrderArray<T>
         {
@@ -1032,6 +1033,7 @@ namespace TickZoom.Common
 
 	    private void SyncPosition()
         {
+            if( !receivedDesiredPosition) return;
             // Find any pending adjustments.
             var pendingAdjustments = FindPendingAdjustments();
             var positionDelta = desiredPosition - physicalOrderCache.GetActualPosition(symbol);
@@ -1110,7 +1112,9 @@ namespace TickZoom.Common
             if (debug) log.Debug("SetLogicalOrders( logicals " + bufferedLogicals.Count + ")");
         }
 		
-		public void SetDesiredPosition(	int position) {
+		public void SetDesiredPosition(	int position)
+		{
+		    receivedDesiredPosition = true;
 			this.desiredPosition = position;
 		}
 
@@ -1285,9 +1289,12 @@ namespace TickZoom.Common
             if (debug) log.Debug("isFilledAfterCancel " + isFilledAfterCancel + ", OffsetTooLateToCancel " + order.OffsetTooLateToCancel);
             if (isFilledAfterCancel)
             {
-                if (debug) log.Debug("Will sync positions because fill from order already canceled: " + order.ReplacedBy);
-                SyncPosition();
                 TryRemovePhysicalFill(physical);
+                if( receivedDesiredPosition)
+                {
+                    if (debug) log.Debug("Will sync positions because fill from order already canceled: " + order.ReplacedBy);
+                    SyncPosition();
+                }
                 return;
             } 
 

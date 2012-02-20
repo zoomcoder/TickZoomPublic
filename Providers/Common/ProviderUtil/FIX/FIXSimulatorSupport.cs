@@ -131,10 +131,22 @@ namespace TickZoom.FIX
             foreach (SimulatorType simulatorType in Enum.GetValues(typeof(SimulatorType)))
             {
                 var simulator = new SimulatorInfo(simulatorType, random, () => symbolHandlers.Count);
-                simulator.Enabled = allTests;
+                simulator.Enabled = false;
                 simulator.MaxFailures = maxFailures;
                 simulators.Add(simulatorType, simulator);
             }
+
+            simulators[SimulatorType.ReceiveDisconnect].Enabled = false;
+            simulators[SimulatorType.SendDisconnect].Enabled = false;
+            simulators[SimulatorType.SendServerOffline].Enabled = false;
+            simulators[SimulatorType.ReceiveServerOffline].Enabled = false;
+            simulators[SimulatorType.BlackHole].Enabled = false;
+            simulators[SimulatorType.CancelBlackHole].Enabled = false;
+            simulators[SimulatorType.ReceiveFailed].Enabled = false;
+            simulators[SimulatorType.SystemOffline].Enabled = false;
+            simulators[SimulatorType.RejectSymbol].Enabled = false;
+            simulateReceiveFailed = false;
+            simulateSendFailed = false;
 
             {
                 var simulator = simulators[SimulatorType.CancelBlackHole];
@@ -149,8 +161,6 @@ namespace TickZoom.FIX
 
             }
 
-            simulateReceiveFailed = allTests;
-            simulateSendFailed = allTests;
 			this._fixMessageFactory = _fixMessageFactory;
 			this._quoteMessageFactory = _quoteMessageFactory;
         }
@@ -663,7 +673,7 @@ namespace TickZoom.FIX
             SendSessionStatus("2");
             if( !wasOrderServerOnline)
             {
-                SwitchBrokerState("online");
+                SwitchBrokerState("online",true);
             }
             var handlers = new List<SimulateSymbol>();
             using( symbolHandlersLocker.Using())
@@ -746,13 +756,15 @@ namespace TickZoom.FIX
             return true;
         }
 
-        private void SwitchBrokerState(string description)
+        private void SwitchBrokerState(string description, bool isOnline)
         {
             foreach (var kvp in symbolHandlers)
             {
                 var symbolBinary = kvp.Key;
+                var handler = kvp.Value;
                 var tickSync = SyncTicks.GetTickSync(symbolBinary);
                 tickSync.AddSwitchBrokerState(description);
+                handler.IsOnline = isOnline;
             }
         }
 
@@ -771,7 +783,7 @@ namespace TickZoom.FIX
                 simulator.UpdateNext(packetFIX.Sequence);
                 // Ignore this message. Pretend we never received it AND disconnect.
                 // This will test the message recovery.)
-                SwitchBrokerState("disconnect");
+                SwitchBrokerState("disconnect",false);
                 isConnectionLost = true;
                 return true;
             }
@@ -787,7 +799,7 @@ namespace TickZoom.FIX
             {
                 if (debug) log.Debug("Skipping message: " + packetFIX);
                 simulator.UpdateNext(packetFIX.Sequence);
-                SwitchBrokerState("disconnect");
+                SwitchBrokerState("disconnect",false);
                 SetOrderServerOffline();
                 if( requestSessionStatus)
                 {
@@ -1088,7 +1100,7 @@ namespace TickZoom.FIX
             {
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
                 simulator.UpdateNext(fixMessage.Sequence);
-                SwitchBrokerState("disconnect");
+                SwitchBrokerState("disconnect",false);
                 isConnectionLost = true;
                 return;
             }
@@ -1136,7 +1148,7 @@ namespace TickZoom.FIX
             {
                 if (debug) log.Debug("Skipping message: " + fixMessage);
                 simulator.UpdateNext(fixMessage.Sequence);
-                SwitchBrokerState("offline");
+                SwitchBrokerState("offline",false);
                 SetOrderServerOffline();
                 if( requestSessionStatus)
                 {
