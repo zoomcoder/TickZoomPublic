@@ -222,8 +222,8 @@ namespace TickZoom.MBTFIX
             SendMessage(mbtMsg);
             if (SyncTicks.Enabled)
             {
-                HeartbeatDelay = int.MaxValue;
-                //HeartbeatDelay = 2;
+                //HeartbeatDelay = int.MaxValue;
+                HeartbeatDelay = 2;
                 RetryDelay = 1;
                 RetryStart = 1;
             }
@@ -870,9 +870,7 @@ namespace TickZoom.MBTFIX
 				log.Debug("CancelRejected: " + packetFIX);
 			}
 			string orderStatus = packetFIX.OrderStatus;
-            CreateOrChangeOrder order;
 		    bool removeOriginal = false;
-		    OrderStore.TryGetOrderById(clientOrderId, out order);
 			switch( orderStatus) {
 				case "8": // Rejected
 					var rejectReason = false;
@@ -903,13 +901,8 @@ namespace TickZoom.MBTFIX
                         rejectReason = true;
                     }
                                       
-                    OrderStore.RemoveOrder(clientOrderId);
-                    if (removeOriginal)
-                    {
-                        OrderStore.RemoveOrder(originalClientOrderId);
-                    }
-
-                    if( order != null)
+                    CreateOrChangeOrder order;
+                    if( OrderStore.TryGetOrderById( clientOrderId, out order))
                     {
                         var symbol = order.Symbol;
                         SymbolAlgorithm algorithm;
@@ -919,19 +912,11 @@ namespace TickZoom.MBTFIX
                             break;
                         }
                         var retryImmediately = true;
-                        algorithm.OrderAlgorithm.RejectOrder(order.BrokerOrder, removeOriginal, IsRecovered, retryImmediately);
-                        if (!retryImmediately)
-                        {
-                            TrySendEndBroker(symbol);
-                        }
+                        algorithm.OrderAlgorithm.RejectOrder(clientOrderId, removeOriginal, IsRecovered, retryImmediately);
                     }
                     else
                     {
-                        log.Info("Cancel rejected but original order not found for " + packetFIX.ClientOrderId + ". Ignoring.");
-                        if (SyncTicks.Enabled)
-                        {
-                            log.Warn("CancelReject w/o symbol field causes problems.");
-                        }
+                        if( debug) log.Debug("Order not found for " + clientOrderId + ". Probably allready filled or canceled.");
                     }
 
                     if (!rejectReason && IsRecovered)
@@ -1149,7 +1134,6 @@ namespace TickZoom.MBTFIX
 		public bool OnCreateBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
             if (!IsRecovered) return false;
-            createOrChangeOrder.OrderState = OrderState.Pending;
 			if( debug) log.Debug( "OnCreateBrokerOrder " + createOrChangeOrder + ". Connection " + ConnectionStatus + ", IsOrderServerOnline " + isOrderServerOnline);
             if( createOrChangeOrder.Action != OrderAction.Create)
             {
@@ -1398,7 +1382,6 @@ namespace TickZoom.MBTFIX
 		public bool OnChangeBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
             if (!IsRecovered) return false;
-            createOrChangeOrder.OrderState = OrderState.Pending;
             if (debug) log.Debug("OnChangeBrokerOrder( " + createOrChangeOrder + ". Connection " + ConnectionStatus + ", IsOrderServerOnline " + isOrderServerOnline);
             if (createOrChangeOrder.Action != OrderAction.Change)
             {
@@ -1408,27 +1391,5 @@ namespace TickZoom.MBTFIX
             return true;
 		}
 
-	    public bool HasBrokerOrder(CreateOrChangeOrder order)
-	    {
-	        CreateOrChangeOrder queueOrder;
-            if( OrderStore.TryGetOrderBySerial(order.LogicalSerialNumber, out queueOrder))
-            {
-                switch (queueOrder.OrderState)
-                {
-                    case OrderState.PendingNew:
-                    case OrderState.Pending:
-                    case OrderState.Active:
-                        return true;
-                    case OrderState.Filled:
-                    case OrderState.Suspended:
-                        return false;
-                    default:
-                        throw new InvalidOperationException("Unknow order state: " + order.OrderState);
-                }
-            } else
-            {
-                return false;
-            }
-	    }
 	}
 }

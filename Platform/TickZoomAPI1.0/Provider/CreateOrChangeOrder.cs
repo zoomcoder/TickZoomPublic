@@ -35,7 +35,7 @@ namespace TickZoom.Api
 		Active,
 		Suspended,
 		Filled,
-		Lost,
+        Expired,
 	}
 
     public enum OrderAction
@@ -62,6 +62,8 @@ namespace TickZoom.Api
             get;
             set;
         }
+
+        bool IsPending { get; }
 
         long BrokerOrder
         {

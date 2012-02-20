@@ -106,6 +106,15 @@ namespace TickZoom.Common
             instanceId = ++nextInstanceId;
         }
 
+	    public bool IsPending
+	    {
+            get
+            {
+                return binary.orderState == OrderState.Pending || binary.orderState == OrderState.PendingNew ||
+                       binary.orderState == OrderState.Expired; 
+            }
+	    }
+
 		public CreateOrChangeOrderDefault(OrderAction orderAction, SymbolInfo symbol, LogicalOrder logical, OrderSide side, int size, double price)
             : this(OrderState.Pending,symbol,logical,side,size,price)
 		{
@@ -153,7 +162,7 @@ namespace TickZoom.Common
 			binary.replacedBy = null;
 	        binary.originalOrder = null;
 	        binary.orderFlags = flags;
-			if( binary.brokerOrder == null) {
+			if( binary.brokerOrder == 0L) {
                 binary.brokerOrder = CreateBrokerOrderId();
 			}
 	        binary.utcCreateTime = utcCreateTime;
@@ -210,11 +219,11 @@ namespace TickZoom.Common
                 sb.Append(" sequence: ");
                 sb.Append(binary.sequence);
             }
-            if( !Factory.IsAutomatedTest)
-            {
+            //if( !Factory.IsAutomatedTest)
+            //{
                 sb.Append(" last change: ");
                 sb.Append(binary.lastModifyTime);
-            }
+            //}
             return sb.ToString();
         }
 
@@ -290,10 +299,6 @@ namespace TickZoom.Common
                 if (value != binary.orderState)
                 {
                     binary.orderState = value;
-                    if( binary.orderState == OrderState.Pending)
-                    {
-                        if( debug) log.Debug("Order Changed to Pending: " + this);
-                    }
                 }
             }
 		}

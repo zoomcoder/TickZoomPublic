@@ -58,7 +58,6 @@ namespace TickZoom.Api
 	    bool IsBrokerOnline { get; set; }
 	    bool IsSynchronized { get; }
 	    int ProcessOrders();
-	    void RemovePending(CreateOrChangeOrder order, bool isRealTime);
 	    bool CheckForPending();
 	    void ProcessHeartBeat();
 	}

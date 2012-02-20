@@ -180,7 +180,7 @@ namespace TickZoom.Common
         private bool TryCancelBrokerOrder(CreateOrChangeOrder physical)
         {
 			bool result = false;
-            if (physical.OrderState != OrderState.Pending &&
+            if (!physical.IsPending &&
                 // Market orders can't be canceled.
                 physical.Type != OrderType.BuyMarket &&
                 physical.Type != OrderType.SellMarket)
@@ -967,11 +967,11 @@ namespace TickZoom.Common
                 switch (order.OrderState)
                 {
                     case OrderState.Filled:
-                    case OrderState.Lost:
                         continue;
                     case OrderState.Active:
                     case OrderState.Pending:
                     case OrderState.PendingNew:
+                    case OrderState.Expired:
                     case OrderState.Suspended:
                         break;
                     default:
@@ -1119,11 +1119,7 @@ namespace TickZoom.Common
 		    for(var i=0; i< originalPhysicals.Count; i++)
 		    {
 		        var order = originalPhysicals[i];
-				if( order.OrderState == OrderState.Pending ||
-                    order.OrderState == OrderState.PendingNew
-//                    || order.Type == OrderType.BuyMarket ||
-//                    order.Type == OrderType.SellMarket
-                    ) {
+				if( order.IsPending) {
 					if( debug) log.Debug("Pending order: " + order);
 					result = true;	
 				}
@@ -1151,8 +1147,7 @@ namespace TickZoom.Common
                 expiryLimit.AddSeconds(-5);
             }
             if (trace ) log.Trace("Checking for orders pending since: " + expiryLimit); 
-            var list = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.OrderState == OrderState.Pending || x.OrderState == OrderState.PendingNew ||
-                (x.OrderState == OrderState.Active && (x.Type == OrderType.BuyMarket || x.Type == OrderType.SellMarket))));
+            var list = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.IsPending ));
             var cancelOrders = new List<CreateOrChangeOrder>();
             var foundAny = false;
             foreach( var order in list)
@@ -1173,13 +1168,12 @@ namespace TickZoom.Common
                         }
                         cancelOrders.Add(order);
                     }
-                    else if( Cancel(order))
+                    else
                     {
-
+                        order.OrderState = OrderState.Expired;
                         var diff = Factory.Parallel.UtcNow - lastChange;
-                        var message = "Sent cancel for pending order " + order.BrokerOrder + " that is stale over " +
-                                      diff.TotalSeconds + " seconds.";
-                        if( enableSyncTicks)
+                        var message = "Attempting to cancel pending order " + order.BrokerOrder + " because it is stale over " + diff.TotalSeconds + " seconds.";
+                        if (enableSyncTicks)
                         {
                             tickSync.RemoveBlackHole(order.BrokerOrder);
                             log.Info(message);
@@ -1187,6 +1181,10 @@ namespace TickZoom.Common
                         else
                         {
                             log.Warn(message);
+                        }
+                        if (!Cancel(order))
+                        {
+                            log.Warn("Cancel failed to send for order: " + order);
                         }
                     }
                 }
@@ -1898,38 +1896,24 @@ namespace TickZoom.Common
             if (debug) log.Debug("RejectOrder(" + RejectRepeatCounter + ", " + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
             var origOrder = order.OriginalOrder;
-            if (removeOriginal)
+            if (origOrder != null && origOrder.OrderState == OrderState.Expired)
             {
                 physicalOrderCache.PurgeOriginalOrder(order);
-            }
-            if (isRealTime && retryImmediately)
-            {
-                if( !CheckForPending())
+                if (isRealTime)
                 {
-                    PerformCompareProtected();
+                    if (!CheckForPending())
+                    {
+                        PerformCompareProtected();
+                    }
                 }
             }
             if (enableSyncTicks)
             {
                 tickSync.RemovePhysicalOrder(order);
-                if (removeOriginal && origOrder != null && (origOrder.OrderState == OrderState.Pending || origOrder.OrderState == OrderState.PendingNew))
+                if (removeOriginal && origOrder != null && (origOrder.IsPending))
                 {
                     tickSync.RemovePhysicalOrder(origOrder);
                 }
-            }
-        }
-
-        public void RemovePending(CreateOrChangeOrder order, bool isRealTime)
-        {
-            if (debug) log.Debug("RemovePending(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
-            order.OrderState = OrderState.Lost;
-            if (isRealTime)
-            {
-                PerformCompareProtected();
-            }
-            if (enableSyncTicks)
-            {
-                tickSync.RemovePhysicalOrder(order);
             }
         }
 
