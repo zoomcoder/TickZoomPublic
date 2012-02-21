@@ -238,6 +238,7 @@ namespace TickZoom.Common
                         if (result2 && trace) log.Trace("Removed order by logical serial " + order.LogicalSerialNumber + ": " + orderBySerial);
                     }
                 }
+                ordersBySequence.Remove(order.Sequence);
                 return order;
             }
             return null;

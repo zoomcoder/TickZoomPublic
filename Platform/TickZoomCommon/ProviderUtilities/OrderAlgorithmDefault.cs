@@ -1166,7 +1166,6 @@ namespace TickZoom.Common
                     if( order.Action == OrderAction.Cancel)
                     {
                         if (debug) log.Debug("Removing pending and stale Cancel order: " + order);
-                        physicalOrderCache.RemoveOrder(order.BrokerOrder);
                         var origOrder = order.OriginalOrder;
                         if (origOrder != null)
                         {
@@ -1202,8 +1201,12 @@ namespace TickZoom.Common
                 {
                     if (enableSyncTicks)
                     {
+                        physicalOrderCache.RemoveOrder(order.BrokerOrder);
                         tickSync.RemovePhysicalOrder(order);
-                        tickSync.RemoveBlackHole(order.BrokerOrder);
+                        if( tickSync.SentBlackHole)
+                        {
+                            tickSync.RemoveBlackHole(order.BrokerOrder);
+                        }
                     }
                 }
             }
