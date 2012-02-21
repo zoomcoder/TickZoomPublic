@@ -1147,7 +1147,7 @@ namespace TickZoom.MBTFIX
 		{
             var fixMsg = (FIXMessage4_4)(resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
             order.Sequence = fixMsg.Sequence;
-            //OrderStore.SetOrder(order);
+            OrderStore.SetOrder(order);
             OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
 
             if (order.Size > order.Symbol.MaxOrderSize)
@@ -1363,7 +1363,7 @@ namespace TickZoom.MBTFIX
         {
             var fixMsg = (FIXMessage4_4)(resend ? FixFactory.Create(order.Sequence) : FixFactory.Create());
             order.Sequence = fixMsg.Sequence;
-            //OrderStore.SetOrder(order);
+            OrderStore.SetOrder(order);
             var newClientOrderId = order.BrokerOrder;
             fixMsg.SetOriginalClientOrderId(order.OriginalOrder.BrokerOrder.ToString());
             fixMsg.SetClientOrderId(newClientOrderId.ToString());

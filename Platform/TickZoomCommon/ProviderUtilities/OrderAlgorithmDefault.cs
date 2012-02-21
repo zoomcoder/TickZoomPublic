@@ -1135,7 +1135,9 @@ namespace TickZoom.Common
         {
             if( enableSyncTicks)
             {
+#if HEARTBEATRESET
                 tickSync.TryHeartbeatReset();
+#endif
             }
         }
 
@@ -1188,7 +1190,7 @@ namespace TickZoom.Common
                         }
                         if (!Cancel(order))
                         {
-                            log.Warn("Cancel failed to send for order: " + order);
+                            if( debug) log.Debug("Cancel failed to send for order: " + order);
                         }
                     }
                 }

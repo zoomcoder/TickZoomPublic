@@ -82,7 +82,7 @@ namespace TickZoom.Api
         private bool CheckCompletedInternal()
         {
             return (*state).ticks == 0 && (*state).positionChange == 0 && (*state).switchBrokerState == 0 &&
-                   (*state).waitingMatch == 0 && 
+                   (*state).waitingMatch == 0 && (*state).orderChange == 0 &&
                    (*state).physicalOrders == 0 && (*state).blackHoleOrders == 0 && (*state).physicalFillsCreated == 0 &&
                    (*state).processPhysical == 0 && (*state).reprocessPhysical == 0;
         }
