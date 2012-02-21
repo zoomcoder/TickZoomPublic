@@ -314,16 +314,19 @@ namespace Loaders
                 Directory.Delete(appDataFolder + Path.DirectorySeparatorChar + "MockProviderData", true);
             }
             var providersFolder = Path.Combine(appDataFolder,"Providers");
+            var providerServiceFolder = Path.Combine(providersFolder, "ProviderService");
+            var warehouseTestConfig = Path.Combine(providerServiceFolder, "WarehouseTest.config");
             var mbtfixFolder = Path.Combine(providersFolder,"MBTFIXProvider");
             var databaseFolder = Path.Combine(appDataFolder, "Database");
             Directory.CreateDirectory(databaseFolder);
-            var filePaths = Directory.GetFiles(databaseFolder, "MBTFIXProvider.dat.*", SearchOption.TopDirectoryOnly);
+            var filePaths = Directory.GetFiles(databaseFolder, "MBTFIXProvider.dat*", SearchOption.TopDirectoryOnly);
             foreach( var path in filePaths)
             {
                 DeleteFile(path);
             }
             var filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
             DeleteFile(filePath);
+            DeleteFile(warehouseTestConfig);
         }
 		
         private static void CleanupServerCache(string symbols) {

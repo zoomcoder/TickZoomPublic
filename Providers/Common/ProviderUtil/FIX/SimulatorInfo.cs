@@ -121,7 +121,6 @@ namespace TickZoom.FIX
         ReceiveServerOffline,
         BlackHole,
         CancelBlackHole,
-        ReceiveFailed,
         SystemOffline,
         RejectSymbol
     }

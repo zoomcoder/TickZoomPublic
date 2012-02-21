@@ -186,7 +186,7 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Default,
+                Mode = AutoTestMode.Historical | AutoTestMode.SimulateFIX,
                 Name = "ExampleMixedTruePartial",
                 Loader = new ExampleMixedTruePartial(),
                 Symbols = primarySymbol + ",EUR/USD,USD/CHF",
@@ -256,7 +256,7 @@ namespace Loaders
 
             list.Add(new AutoTestSettings
             {
-                Mode = AutoTestMode.Default,
+                Mode = AutoTestMode.Historical | AutoTestMode.SimulateFIX,
                 Name = "ExampleLimitTruePartial",
                 Loader = new ExampleLimitTruePartialLoader(),
                 Symbols = "USD/CHF",

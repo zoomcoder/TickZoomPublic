@@ -136,13 +136,12 @@ namespace TickZoom.FIX
                 simulators.Add(simulatorType, simulator);
             }
 
-            simulators[SimulatorType.ReceiveDisconnect].Enabled = false;
-            simulators[SimulatorType.SendDisconnect].Enabled = false;
+            simulators[SimulatorType.ReceiveDisconnect].Enabled = allTests;
+            simulators[SimulatorType.SendDisconnect].Enabled = allTests;
             simulators[SimulatorType.SendServerOffline].Enabled = false;
             simulators[SimulatorType.ReceiveServerOffline].Enabled = false;
             simulators[SimulatorType.BlackHole].Enabled = false;
             simulators[SimulatorType.CancelBlackHole].Enabled = false;
-            simulators[SimulatorType.ReceiveFailed].Enabled = false;
             simulators[SimulatorType.SystemOffline].Enabled = false;
             simulators[SimulatorType.RejectSymbol].Enabled = false;
             simulateReceiveFailed = allTests;
