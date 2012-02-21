@@ -145,8 +145,8 @@ namespace TickZoom.FIX
             simulators[SimulatorType.ReceiveFailed].Enabled = false;
             simulators[SimulatorType.SystemOffline].Enabled = false;
             simulators[SimulatorType.RejectSymbol].Enabled = false;
-            simulateReceiveFailed = false;
-            simulateSendFailed = false;
+            simulateReceiveFailed = allTests;
+            simulateSendFailed = allTests;
 
             {
                 var simulator = simulators[SimulatorType.CancelBlackHole];

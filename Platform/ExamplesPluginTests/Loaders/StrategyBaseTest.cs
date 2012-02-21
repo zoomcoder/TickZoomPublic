@@ -297,7 +297,7 @@ namespace Loaders
             catch( Exception ex)
             {
                 log.Error("Exception while running test: " + ex.Message, ex);
-                //Environment.Exit(1);
+                Environment.Exit(1);
             }
         }
 
@@ -406,7 +406,7 @@ namespace Loaders
             if (testFailed)
             {
                 log.Error("Exiting because one of the tests failed.");
-                //Environment.Exit(1);
+                Environment.Exit(1);
             }
         }
 		
@@ -1030,10 +1030,10 @@ namespace Loaders
                     }
                 }
                 testInfo = testFinalStatsMap[strategyName];
-			    AssertEqual(ref assertFlag, goodInfo.StartingEquity,testInfo.StartingEquity,strategyName + " Starting Equity");
-			    AssertEqual(ref assertFlag, goodInfo.ClosedEquity,testInfo.ClosedEquity,strategyName + " Closed Equity");
-			    AssertEqual(ref assertFlag, goodInfo.OpenEquity,testInfo.OpenEquity,strategyName + " Open Equity");
-			    AssertEqual(ref assertFlag, goodInfo.CurrentEquity,testInfo.CurrentEquity,strategyName + " Current Equity");
+                AssertEqual(ref assertFlag, goodInfo.StartingEquity, testInfo.StartingEquity, strategyName + " Final Starting Equity");
+			    AssertEqual(ref assertFlag, goodInfo.ClosedEquity,testInfo.ClosedEquity,strategyName + " Final Closed Equity");
+                AssertEqual(ref assertFlag, goodInfo.OpenEquity, testInfo.OpenEquity, strategyName + " Final Open Equity");
+                AssertEqual(ref assertFlag, goodInfo.CurrentEquity, testInfo.CurrentEquity, strategyName + " Final Current Equity");
 			    Assert.IsFalse(assertFlag,"Checking for final statistics errors.");
 		    }
             catch (AssertionException ex)

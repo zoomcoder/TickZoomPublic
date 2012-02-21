@@ -47,6 +47,7 @@ namespace Orders
         private PhysicalOrderCache physicalCache;
 		
 		public OrderAlgorithmTest() {
+            Assert.Ignore();
 		}
 		
 		[SetUp]
