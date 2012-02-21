@@ -116,11 +116,13 @@
     <Compile Include="Loaders\LimitChangeLoader.cs" />
     <Compile Include="Loaders\LimitReversalLoader.cs" />
     <Compile Include="Loaders\SimpleLoader.cs" />
+    <Compile Include="Loaders\SimplexLoader.cs" />
     <Compile Include="Loaders\Test5000Strategies.cs" />
     <Compile Include="Loaders\MarketOrderLoader.cs" />
     <Compile Include="Loaders\TestCancelReplaceLoader.cs" />
     <Compile Include="Loaders\TestStopLoader.cs" />
     <Compile Include="Portfolios\Portfolio5000Strategies.cs" />
+    <Compile Include="Strategies\BaseSimpleStrategy.cs" />
     <Compile Include="Strategies\ExampleBreakoutReversal.cs" />
     <Compile Include="Strategies\ExampleBreakoutStops.cs" />
     <Compile Include="Strategies\ExampleOptionStrategy.cs" />
@@ -130,6 +132,7 @@
     <Compile Include="Portfolios\SimplePortfolio.cs" />
     <Compile Include="Strategies\OtherStrategy.cs" />
     <Compile Include="Strategies\SimpleStrategy.cs" />
+    <Compile Include="Strategies\SimplexStrategy.cs" />
     <Compile Include="Strategies\TestCancelReplaceStrategy.cs" />
     <Compile Include="Strategies\TestStopStrategy.cs" />
     <Compile Include="Strategies\Unsupported\BreakoutTrend.cs" />
