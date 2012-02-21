@@ -57,6 +57,7 @@ namespace TickZoom.Api
 	    bool EnableSyncTicks { get; set; }
 	    bool IsBrokerOnline { get; set; }
 	    bool IsSynchronized { get; }
+	    bool ReceivedDesiredPosition { get; }
 	    int ProcessOrders();
 	    bool CheckForPending();
 	    void ProcessHeartBeat();

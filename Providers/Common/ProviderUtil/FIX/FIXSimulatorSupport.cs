@@ -283,9 +283,12 @@ namespace TickZoom.FIX
                 isHeartbeatPending.AddSeconds(heartbeatResponseTimeoutSeconds);
                 OnHeartbeat();
             }
-            currentTime.AddSeconds(1);
-            if (verbose) log.Verbose("Setting next heartbeat at " + currentTime);
-            heartbeatTimer.Start(currentTime);
+            if( !SyncTicks.Frozen)
+            {
+                currentTime.AddSeconds(1);
+                if (verbose) log.Verbose("Setting next heartbeat at " + currentTime);
+                heartbeatTimer.Start(currentTime);
+            }
             return Yield.DidWork.Repeat;
         }
         
@@ -762,8 +765,34 @@ namespace TickZoom.FIX
                 var symbolBinary = kvp.Key;
                 var handler = kvp.Value;
                 var tickSync = SyncTicks.GetTickSync(symbolBinary);
-                tickSync.AddSwitchBrokerState(description);
-                handler.IsOnline = isOnline;
+                tickSync.SetSwitchBrokerState(description);
+                if( handler.IsOnline != isOnline)
+                {
+                    handler.IsOnline = isOnline;
+                    if( !isOnline)
+                    {
+                        while (tickSync.SentPhyscialOrders)
+                        {
+                            tickSync.RemovePhysicalOrder("Rollback");
+                        }
+                        while (tickSync.SentOrderChange)
+                        {
+                            tickSync.RemoveOrderChange();
+                        }
+                        while (tickSync.SentPhysicalFillsCreated)
+                        {
+                            tickSync.RemovePhysicalFill("Rollback");
+                        }
+                        while (tickSync.SentPositionChange)
+                        {
+                            tickSync.RemovePositionChange("Rollback");
+                        }
+                        while (tickSync.SentWaitingMatch)
+                        {
+                            tickSync.RemoveWaitingMatch("Rollback");
+                        }
+                    }
+                }
             }
         }
 
@@ -1082,7 +1111,10 @@ namespace TickZoom.FIX
 		    var timeStamp = TimeStamp.UtcNow;
 		    timeStamp.AddSeconds(HeartbeatDelay);
             if (verbose) log.Verbose("Setting next heartbeat for " + timeStamp);
-            heartbeatTimer.Start(timeStamp);
+            if( !SyncTicks.Frozen)
+            {
+                heartbeatTimer.Start(timeStamp);
+            }
 		}		
 
         public void SendMessage(FIXTMessage1_1 fixMessage)

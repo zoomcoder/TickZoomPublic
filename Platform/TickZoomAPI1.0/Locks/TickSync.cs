@@ -93,7 +93,7 @@ namespace TickZoom.Api
 
         private bool CheckOnlyReprocessOrders()
         {
-            return (*state).physicalOrders == 0 && (*state).physicalOrders == 0 && (*state).blackHoleOrders == 0 && (*state).reprocessPhysical > 0;
+            return (*state).physicalOrders == 0 && (*state).blackHoleOrders == 0 && (*state).physicalFillsCreated == 0 && (*state).reprocessPhysical > 0;
         }
 
         private void Changed()
@@ -156,9 +156,10 @@ namespace TickZoom.Api
 
         public void TryHeartbeatReset()
         {
+#if HEARTBEATRESET
             var currentTime = TimeStamp.UtcNow;
             var diff = currentTime - lastAddTime;
-            if (diff.TotalMilliseconds > 800 && IsSinglePhysicalFillSimulator )
+            if (diff.TotalMilliseconds > 800 )
             {
                 Interlocked.Exchange(ref (*state).physicalOrders, 0);
                 Interlocked.Exchange(ref (*state).orderChange, 0);
@@ -171,6 +172,7 @@ namespace TickZoom.Api
                 if (trace) log.Trace("TryHeartbeatReset() " + this);
                 Changed();
             }
+#endif
         }
 
         public override string ToString()
@@ -349,17 +351,20 @@ namespace TickZoom.Api
             Changed();
         }
 
-        public void AddSwitchBrokerState(string description)
+        public void SetSwitchBrokerState(string description)
         {
-            lastAddTime = TimeStamp.UtcNow; 
-            var value = Interlocked.Increment(ref (*state).switchBrokerState);
-            if (trace) log.Trace("AddSwitchBrokerState(" + description + ", " + value + ") " + this);
+            lastAddTime = TimeStamp.UtcNow;
+            if ((*state).switchBrokerState == 0)
+            {
+                var value = Interlocked.Increment(ref (*state).switchBrokerState);
+                if (trace) log.Trace("SetSwitchBrokerState(" + description + ", " + value + ") " + this);
+            }
         }
 
-        public void RemoveSwitchBrokerState(string description)
+        public void ClearSwitchBrokerState(string description)
         {
             var value = Interlocked.Decrement(ref (*state).switchBrokerState);
-            if (trace) log.Trace("RemoveSwitchBrokerState(" + description + "," + value + ") " + this);
+            if (trace) log.Trace("ClearSwitchBrokerState(" + description + "," + value + ") " + this);
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref (*state).switchBrokerState);
@@ -437,18 +442,10 @@ namespace TickZoom.Api
             Changed();
         }
 
-        public void AddReprocessPhysicalOrders()
-        {
-            lastAddTime = Factory.Parallel.UtcNow;
-            var value = Interlocked.Increment(ref (*state).reprocessPhysical);
-            if (trace) log.Trace("AddReprocessPhysicalOrders(" + value + ") " + this);
-            Changed();
-        }
-
-        public void RemoveReprocessPhysicalOrders()
+        public void ClearReprocessPhysicalOrders()
         {
             var value = Interlocked.Decrement(ref (*state).reprocessPhysical);
-            if (trace) log.Trace("RemoveReprocessPhysicalOrders(" + value + ") " + this);
+            if (trace) log.Trace("ClearReprocessPhysicalOrders(" + value + ") " + this);
             if (value < 0)
             {
                 var temp = Interlocked.Increment(ref (*state).reprocessPhysical);

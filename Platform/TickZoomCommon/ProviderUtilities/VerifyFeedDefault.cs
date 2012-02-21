@@ -427,7 +427,7 @@ namespace TickZoom.Common
                     {
                         while (tickSync.SentSwtichBrokerState)
                         {
-                            tickSync.RemoveSwitchBrokerState("endbroker");
+                            tickSync.ClearSwitchBrokerState("endbroker");
                         }
                     }
                     break;
@@ -437,7 +437,7 @@ namespace TickZoom.Common
                     {
                         while (tickSync.SentSwtichBrokerState)
                         {
-                            tickSync.RemoveSwitchBrokerState("endbroker");
+                            tickSync.ClearSwitchBrokerState("endbroker");
                         }
                     }
                     break;

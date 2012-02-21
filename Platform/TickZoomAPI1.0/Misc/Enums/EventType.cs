@@ -70,6 +70,7 @@ namespace TickZoom.Api
 		CloseInterval,
 		Tick,
 		CheckOrders,
+	    RequestPosition,
         PositionChange,
 		LogicalFill,
         Error,

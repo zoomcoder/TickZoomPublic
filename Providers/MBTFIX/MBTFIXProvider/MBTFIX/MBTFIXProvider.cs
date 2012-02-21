@@ -107,6 +107,27 @@ namespace TickZoom.MBTFIX
 		public override void OnRetry() {
 		}
 
+        private void TryRequestPosition(SymbolInfo symbol)
+        {
+            SymbolReceiver symbolReceiver;
+            if (!symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
+            {
+                throw new InvalidOperationException("Can't find symbol request for " + symbol);
+            }
+            if (!IsRecovered)
+            {
+                if (debug) log.Debug("Attempted RequestPosition but IsRecovered is " + IsRecovered);
+                return;
+            }
+            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if (symbolAlgorithm.OrderAlgorithm.IsBrokerOnline)
+            {
+                if (debug) log.Debug("Attempted RequestPosition but isBrokerStarted is " + symbolAlgorithm.OrderAlgorithm.IsBrokerOnline);
+                return;
+            }
+            TrySend(EventType.RequestPosition, symbol, symbolReceiver.Agent);
+        }
+
         private void TrySendStartBroker(SymbolInfo symbol, string message)
         {
             SymbolReceiver symbolReceiver;
@@ -119,18 +140,29 @@ namespace TickZoom.MBTFIX
                 if (debug) log.Debug("Attempted StartBroker but IsRecovered is " + IsRecovered);
                 return;
             }
-            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if (symbolAlgorithm.OrderAlgorithm.IsBrokerOnline)
+            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if (algorithm.OrderAlgorithm.ReceivedDesiredPosition)
             {
-                if (debug) log.Debug("Attempted StartBroker but isBrokerStarted is " + symbolAlgorithm.OrderAlgorithm.IsBrokerOnline);
-                return;
+                if (algorithm.OrderAlgorithm.IsSynchronized)
+                {
+                    if (algorithm.OrderAlgorithm.IsBrokerOnline)
+                    {
+                        if (debug) log.Debug("Attempted StartBroker but isBrokerStarted is already " + algorithm.OrderAlgorithm.IsBrokerOnline);
+                        return;
+                    }
+                    if (debug) log.Debug("Sending StartBroker for " + symbol + ". Reason: " + message);
+                    TrySend(EventType.StartBroker, symbol, symbolReceiver.Agent);
+                    algorithm.OrderAlgorithm.IsBrokerOnline = true;
+                }
+                else
+                {
+                    if (debug) log.Debug("Attempted StartBroker but OrderAlgorithm not yet synchronized");
+                }
             }
             else
             {
-                if (debug) log.Debug("Sending StartBroker for " + symbol + ". Reason: " + message);
+                TryRequestPosition(symbol);
             }
-            TrySend(EventType.StartBroker, symbol, symbolReceiver.Agent);
-            symbolAlgorithm.OrderAlgorithm.IsBrokerOnline = true;
         }
 
         private void TrySend(EventType type, SymbolInfo symbol, Agent agent)
@@ -305,10 +337,7 @@ namespace TickZoom.MBTFIX
             if (ConnectionStatus == Status.Recovered)
             {
                 algorithm.OrderAlgorithm.ProcessOrders();
-                if (algorithm.OrderAlgorithm.IsSynchronized)
-                {
-                    TrySendStartBroker(symbol,"Start symbol");
-                }
+                TrySendStartBroker(symbol,"Start symbol");
             }
         }
 
@@ -530,12 +559,9 @@ namespace TickZoom.MBTFIX
             foreach( var kvp in orderAlgorithms)
             {
                 var algorithm = kvp.Value;
+                var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
                 algorithm.OrderAlgorithm.ProcessOrders();
-                if (algorithm.OrderAlgorithm.IsSynchronized)
-                {
-                    var symbol = Factory.Symbol.LookupSymbol(kvp.Key);
-                    TrySendStartBroker(symbol,"start position sync");
-                }
+                TrySendStartBroker(symbol, "start position sync");
             }
         }
 
@@ -698,10 +724,7 @@ namespace TickZoom.MBTFIX
                         }
                     }
                     algorithm.OrderAlgorithm.ConfirmCreate(clientOrderId, IsRecovered);
-                    if (algorithm.OrderAlgorithm.IsSynchronized)
-                    {
-                        TrySendStartBroker(symbolInfo, "sync on confirm cancel");
-                    }
+                    TrySendStartBroker(symbolInfo, "sync on confirm cancel");
                     OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
                     break;
                 case "1": // Partial
@@ -737,10 +760,7 @@ namespace TickZoom.MBTFIX
                         break;
                     }
                     algorithm.OrderAlgorithm.ConfirmChange(clientOrderId, IsRecovered);
-                    if (algorithm.OrderAlgorithm.IsSynchronized)
-                    {
-                        TrySendStartBroker(symbolInfo, "sync on confirm change");
-                    }
+                    TrySendStartBroker(symbolInfo, "sync on confirm change");
                     OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
                     break;
                 case "4": // Canceled
@@ -756,18 +776,12 @@ namespace TickZoom.MBTFIX
                     if (clientOrderId != 0)
                     {
                         algorithm.OrderAlgorithm.ConfirmCancel(clientOrderId, IsRecovered);
-                        if (algorithm.OrderAlgorithm.IsSynchronized)
-                        {
-                            TrySendStartBroker(symbolInfo, "sync on confirm cancel");
-                        }
+                        TrySendStartBroker(symbolInfo, "sync on confirm cancel");
                     }
                     else if (originalClientOrderId != 0)
                     {
                         algorithm.OrderAlgorithm.ConfirmCancel(originalClientOrderId, IsRecovered);
-                        if (algorithm.OrderAlgorithm.IsSynchronized)
-                        {
-                            TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
-                        }
+                        TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
                     }
                     OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
                     break;
@@ -823,10 +837,7 @@ namespace TickZoom.MBTFIX
                     else
                     {
                         algorithm.OrderAlgorithm.ConfirmActive(originalClientOrderId, IsRecovered);
-                        if (algorithm.OrderAlgorithm.IsSynchronized)
-                        {
-                            TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
-                        }
+                        TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
                     }
                     OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
                     break;
@@ -978,6 +989,8 @@ namespace TickZoom.MBTFIX
                     var fill = Factory.Utility.PhysicalFill(fillPosition, packetFIX.LastPrice, configTime, executionTime, order.BrokerOrder, false, packetFIX.OrderQuantity, packetFIX.CumulativeQuantity, packetFIX.LeavesQuantity, IsRecovered, true);
 				    if( debug) log.Debug( "Sending physical fill: " + fill);
                     algorithm.OrderAlgorithm.ProcessFill(fill);
+                    algorithm.OrderAlgorithm.ProcessOrders();
+                    TrySendStartBroker(symbolInfo, "position sync on fill");
                 }
                 else
                 {
@@ -988,10 +1001,6 @@ namespace TickZoom.MBTFIX
                         var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
                         tickSync.RemovePhysicalFill(packetFIX.ClientOrderId);
                     }
-                }
-                if (algorithm.OrderAlgorithm.IsSynchronized)
-                {
-                    TrySendStartBroker(symbolInfo,"position sync on fill");
                 }
 			}
 		}
@@ -1116,10 +1125,7 @@ namespace TickZoom.MBTFIX
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             if( algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
             {
-                if (algorithm.OrderAlgorithm.IsSynchronized)
-                {
-                    TrySendStartBroker(symbol,"position change sync");
-                }
+                TrySendStartBroker(symbol,"position change sync");
             }
 		}
 		

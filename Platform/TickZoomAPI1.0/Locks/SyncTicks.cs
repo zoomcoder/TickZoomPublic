@@ -35,6 +35,7 @@ namespace TickZoom.Api
 	{
 	    public bool enabled;
 	    public int pageCount;
+	    public bool frozen;
 	}
     
     /// <summary>
@@ -113,8 +114,18 @@ namespace TickZoom.Api
                 (*Directory.SyncTicksState).enabled = value;
             }
 		}
-		
-		public static int MockTradeCount {
+
+        public static bool Frozen
+        {
+            get { return (*Directory.SyncTicksState).frozen; }
+            set
+            {
+                (*Directory.SyncTicksState).frozen = value;
+            }
+        }
+
+        public static int MockTradeCount
+        {
 			get { return mockTradeCount; }
 			set { mockTradeCount = value; }
 		}

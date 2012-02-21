@@ -466,7 +466,12 @@ namespace TickZoom.FIX
                                     {
                                         MessageFIXT1_1 tempMessage;
                                         resendQueue.Peek(out tempMessage);
-                                        if( tempMessage.Sequence == remoteSequence)
+                                        if (tempMessage.Sequence > remoteSequence)
+                                        {
+                                            TryRequestResend(remoteSequence,tempMessage.Sequence - 1);
+                                            break;
+                                        }
+                                        if (tempMessage.Sequence == remoteSequence)
                                         {
                                             resendQueue.Dequeue(out messageFIX);
                                             break;
@@ -731,16 +736,21 @@ namespace TickZoom.FIX
         private void HandleResend(int sequence, MessageFIXT1_1 messageFIX) {
             if (debug) log.Debug("Sequence is " + sequence + " but expected sequence is " + remoteSequence + ". Buffering message.");
             resendQueue.Enqueue(messageFIX, TimeStamp.UtcNow.Internal);
+            TryRequestResend(remoteSequence,sequence - 1);
+        }
+
+        private void TryRequestResend(int from, int to)
+        {
             if (isResendComplete)
             {
                 isResendComplete = false;
                 if (debug) log.Debug("TryRequestResend() Set resend complete flag: " + isResendComplete);
-                expectedResendSequence = sequence;
+                expectedResendSequence = from;
                 if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
                 var mbtMsg = fixFactory.Create();
                 mbtMsg.AddHeader("2");
-                mbtMsg.SetBeginSeqNum(remoteSequence);
-                mbtMsg.SetEndSeqNum(sequence-1);
+                mbtMsg.SetBeginSeqNum(from);
+                mbtMsg.SetEndSeqNum(to);
                 if (verbose) log.Verbose(" Sending resend request: " + mbtMsg);
                 SendMessage(mbtMsg);
             }
@@ -1151,6 +1161,7 @@ namespace TickZoom.FIX
                     case Status.PendingLogOut:
                         break;
                     case Status.Recovered:
+                    case Status.PendingServerResend:
                     case Status.PendingRecovery:
                         ConnectionStatus = Status.PendingLogOut;
                         using (orderStore.BeginTransaction())

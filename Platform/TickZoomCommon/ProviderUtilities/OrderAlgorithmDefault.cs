@@ -1033,7 +1033,7 @@ namespace TickZoom.Common
 
 	    private void SyncPosition()
         {
-            if( !receivedDesiredPosition) return;
+            if( !ReceivedDesiredPosition) return;
             // Find any pending adjustments.
             var pendingAdjustments = FindPendingAdjustments();
             var positionDelta = desiredPosition - physicalOrderCache.GetActualPosition(symbol);
@@ -1135,9 +1135,7 @@ namespace TickZoom.Common
         {
             if( enableSyncTicks)
             {
-#if HEARTBEATRESET
                 tickSync.TryHeartbeatReset();
-#endif
             }
         }
 
@@ -1295,7 +1293,7 @@ namespace TickZoom.Common
             if (isFilledAfterCancel)
             {
                 TryRemovePhysicalFill(physical);
-                if( receivedDesiredPosition)
+                if( ReceivedDesiredPosition)
                 {
                     if (debug) log.Debug("Will sync positions because fill from order already canceled: " + order.ReplacedBy);
                     SyncPosition();
@@ -1823,6 +1821,11 @@ namespace TickZoom.Common
         {
             get { return isBrokerOnline; }
             set { isBrokerOnline = value; }
+        }
+
+        public bool ReceivedDesiredPosition
+        {
+            get { return receivedDesiredPosition; }
         }
 
         // This is a callback to confirm order was properly placed.

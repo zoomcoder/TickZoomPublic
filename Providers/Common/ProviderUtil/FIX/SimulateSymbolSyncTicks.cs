@@ -62,6 +62,7 @@ namespace TickZoom.FIX
         private Agent agent;
         private PartialFillSimulation PartialFillSimulation;
         private long id;
+        private bool endOfTickData;
         public Agent Agent
         {
             get { return agent; }
@@ -134,16 +135,17 @@ namespace TickZoom.FIX
             {
                 if (trace) log.Trace("Locked tickSync for " + Symbol);
             }
-            if( !DequeueTick())
+            if( !endOfTickData)
             {
-                return Yield.Terminate;
+                DequeueTick();
+                return Yield.NoWork.Repeat;
             }
             return Yield.DidWork.Repeat;
         }
 
         private void TickSyncChangedEvent()
         {
-            if (tickSync.Completed || tickSync.OnlyProcessPhysicalOrders || tickSync.OnlyReprocessPhysicalOrders)
+            if (tickSync.Completed || tickSync.SentProcessPhysicalOrders || tickSync.SentReprocessPhysicalOrders)
             {
                 if (verbose) log.Verbose("TickSyncChangedEvent(" + symbol + ") resuming task.");
                 queueTask.Resume();
@@ -156,7 +158,19 @@ namespace TickZoom.FIX
 
         private void TryCompleteTick()
         {
-	    	if( tickSync.Completed) {
+            if (endOfTickData)
+            {
+                if (tickSync.SentSwtichBrokerState)
+                {
+                    tickSync.ClearSwitchBrokerState("Finished.");
+                }
+                if( tickSync.SentOrderChange)
+                {
+                    tickSync.RemoveOrderChange();
+                }
+            }
+            if (!endOfTickData && tickSync.Completed)
+            {
 		    	if( verbose) log.Verbose("TryCompleteTick() Next Tick");
 		    	tickSync.Clear();
             }
@@ -177,26 +191,24 @@ namespace TickZoom.FIX
                 {
                     FillSimulator.ProcessOrders();
                 }
-                tickSync.RemoveReprocessPhysicalOrders();
+                tickSync.ClearReprocessPhysicalOrders();
             }
         }
-		
-		private bool DequeueTick() {
+
+		private void DequeueTick() {
             LatencyManager.IncrementSymbolHandler();
-            var result = false;
 
             if (!reader.TryReadTick(temporaryTick))
             {
-                if( onEndTick != null)
-                {
-                    onEndTick(id);
-                }
-                else
+                if( onEndTick == null)
                 {
                     throw new ApplicationException("OnEndTick was null");
                 }
-                queueTask.Stop();
-                return result;
+                onEndTick(id);
+                endOfTickData = true;
+                queueTask.Resume();
+                if (debug) log.Debug("End Of Tick Data.");
+                return;
             }
 			tickCounter++;
             if (isFirstTick)
@@ -211,14 +223,8 @@ namespace TickZoom.FIX
             FillSimulator.StartTick(currentTick);
             nextTick.Inject(temporaryTick.Extract());
             tickSync.AddTick(nextTick);
-            //if (FillSimulator.IsChanged)
-            //{
-            //    if( debug) log.Debug("FillSimulator.IsChanged " + FillSimulator.IsChanged);
-            //    FillSimulator.ProcessOrders();
-            //}
 		    if( trace) log.Trace("Dequeue tick " + nextTick.UtcTime + "." + nextTick.UtcTime.Microsecond);
 		    ProcessOnTickCallBack();
-		    return true;
 		}
 		
 		private Message quoteMessage;
