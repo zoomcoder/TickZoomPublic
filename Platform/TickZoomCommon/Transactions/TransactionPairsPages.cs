@@ -143,9 +143,11 @@ namespace TickZoom.Transactions
                         dirtyPageList[i] = page;
                         return;
                     }
-                    throw new ApplicationException("No open slots in dirty page list.");
                 }
-			} else {
+                throw new ApplicationException("No open slots in dirty page list.");
+            }
+            else
+            {
 				WritePageInternal(page);
 			}
 		}

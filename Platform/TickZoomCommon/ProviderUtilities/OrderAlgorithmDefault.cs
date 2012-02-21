@@ -845,7 +845,7 @@ namespace TickZoom.Common
                     var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, strategyPosition, price);
                     TryCreateBrokerOrder(physical);
                 }
-                else
+                else if( strategyPosition > logicalPosition)
                 {
                     var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
                     TryCreateBrokerOrder(physical);
@@ -858,7 +858,7 @@ namespace TickZoom.Common
                     var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, -strategyPosition, price);
                     TryCreateBrokerOrder(physical);
                 }
-                else
+                else if( strategyPosition < logicalPosition)
                 {
                     var physical = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, logical, side, size, price);
                     TryCreateBrokerOrder(physical);
@@ -1461,12 +1461,8 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Sending logical fill for " + symbol + ": " + fill);
                 onProcessFill(symbol, fill);
             }
-            //if (isRealTime)
-            //if (isRealTime && (fill.IsComplete || isCompletePhysicalFill))
-            //{
-				if( debug) log.Debug("Performing extra compare.");
-				PerformCompareProtected();
-            //}
+			if( debug) log.Debug("Performing extra compare.");
+			PerformCompareProtected();
         }
 
         private void MarkAsFilled(LogicalOrder filledOrder)
