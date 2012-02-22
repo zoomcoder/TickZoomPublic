@@ -720,6 +720,7 @@ namespace TickZoom.MBTFIX
                         if( order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop)
                         {
                             if (debug) log.Debug("New order message for Forex Stop: " + packetFIX);
+                            break;
                         }
                     }
                     algorithm.OrderAlgorithm.ConfirmCreate(clientOrderId, IsRecovered);
@@ -829,16 +830,22 @@ namespace TickZoom.MBTFIX
 
                     OrderStore.TryGetOrderById(clientOrderId, out order);
                     if (order != null && symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
-                        (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop) &&
-                        packetFIX.ExecutionType == "D")  // Restated
+                        (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
                     {
-                        if (debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");
+                        if( packetFIX.ExecutionType == "D")  // Restated
+                        {
+                            if (debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");
+                        }
+                        else
+                        {
+                            algorithm.OrderAlgorithm.ConfirmCreate(originalClientOrderId, IsRecovered);
+                        }
                     }
                     else
                     {
                         algorithm.OrderAlgorithm.ConfirmActive(originalClientOrderId, IsRecovered);
-                        TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
                     }
+                    TrySendStartBroker(symbolInfo, "sync on confirm cancel orig order");
                     OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
                     break;
                 case "E": // Pending Replace

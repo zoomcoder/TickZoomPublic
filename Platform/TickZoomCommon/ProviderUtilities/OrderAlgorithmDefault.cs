@@ -145,7 +145,7 @@ namespace TickZoom.Common
             {
                 if (debug) log.Debug("PositionChange event received while FIX was offline or recovering. Skipping SyncPosition and ProcessOrders.");
             }
-            if (enableSyncTicks)
+            if (enableSyncTicks && !handleSimulatedExits)
             {
                 tickSync.RemovePositionChange(name);
             }
@@ -1162,14 +1162,7 @@ namespace TickZoom.Common
         public bool CheckForPending()
         {
             var expiryLimit = Factory.Parallel.UtcNow;
-            if( enableSyncTicks)
-            {
-                expiryLimit.AddSeconds(-2);
-            }
-            else
-            {
-                expiryLimit.AddSeconds(-5);
-            }
+            expiryLimit.AddSeconds(-5);
             if (trace ) log.Trace("Checking for orders pending since: " + expiryLimit); 
             var list = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.IsPending ));
             var cancelOrders = new List<CreateOrChangeOrder>();
