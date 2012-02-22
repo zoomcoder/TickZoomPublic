@@ -172,9 +172,7 @@ namespace TickZoom.FIX
             quotePacketQueue.ConnectInbound(task);
             fixPacketQueue.ConnectInbound(task);
             heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
-            var startTime = TimeStamp.UtcNow;
-            startTime.AddSeconds(1);
-            heartbeatTimer.Start(startTime);
+            IncreaseHeartbeat();
             task.Start();
             ListenToFIX();
             ListenToQuotes();
@@ -257,6 +255,7 @@ namespace TickZoom.FIX
 		}
 
         private QueueFilter filter;
+        private int frozenHeartbeatCounter;
 
         private Yield HeartbeatTimerEvent()
         {
@@ -281,14 +280,24 @@ namespace TickZoom.FIX
                 }
                 isHeartbeatPending = TimeStamp.UtcNow;
                 isHeartbeatPending.AddSeconds(heartbeatResponseTimeoutSeconds);
-                OnHeartbeat();
+                if (SyncTicks.Frozen)
+                {
+                    frozenHeartbeatCounter++;
+                    if( frozenHeartbeatCounter > 3)
+                    {
+                        if (debug) log.Debug("More than 3 heart beats sent after frozen.  Ending heartbeats.");
+                    }
+                    else
+                    {
+                        OnHeartbeat();
+                    }
+                }
+                else
+                {
+                    OnHeartbeat();
+                }
             }
-            if( !SyncTicks.Frozen)
-            {
-                currentTime.AddSeconds(1);
-                if (verbose) log.Verbose("Setting next heartbeat at " + currentTime);
-                heartbeatTimer.Start(currentTime);
-            }
+            IncreaseHeartbeat();
             return Yield.DidWork.Repeat;
         }
         
@@ -1111,10 +1120,7 @@ namespace TickZoom.FIX
 		    var timeStamp = TimeStamp.UtcNow;
 		    timeStamp.AddSeconds(HeartbeatDelay);
             if (verbose) log.Verbose("Setting next heartbeat for " + timeStamp);
-            if( !SyncTicks.Frozen)
-            {
-                heartbeatTimer.Start(timeStamp);
-            }
+            heartbeatTimer.Start(timeStamp);
 		}		
 
         public void SendMessage(FIXTMessage1_1 fixMessage)

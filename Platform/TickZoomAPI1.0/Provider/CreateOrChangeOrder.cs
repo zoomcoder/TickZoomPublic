@@ -119,5 +119,8 @@ namespace TickZoom.Api
 	    void ResetLastChange(TimeStamp lastChange);
 
         int Size { get; set;  }
-    }
+	    int CancelCount { get; set; }
+	    int PendingCount { get; set; }
+	    OrderType Type { get; set; }
+	}
 }

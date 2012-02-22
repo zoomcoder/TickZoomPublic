@@ -111,7 +111,14 @@ namespace TickZoom.Api
 			get { return (*Directory.SyncTicksState).enabled; }
             set
             {
-                (*Directory.SyncTicksState).enabled = value;
+                if( (*Directory.SyncTicksState).enabled != value)
+                {
+                    if( value )
+                    {
+                        Frozen = false;
+                    }
+                    (*Directory.SyncTicksState).enabled = value;
+                }
             }
 		}
 

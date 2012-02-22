@@ -719,8 +719,7 @@ namespace TickZoom.MBTFIX
                     {
                         if( order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop)
                         {
-                            if (debug) log.Debug("New order message ignored for Forex Stop: " + packetFIX);
-                            return;
+                            if (debug) log.Debug("New order message for Forex Stop: " + packetFIX);
                         }
                     }
                     algorithm.OrderAlgorithm.ConfirmCreate(clientOrderId, IsRecovered);
@@ -827,9 +826,10 @@ namespace TickZoom.MBTFIX
                         log.Info("PendingNew but OrderAlgorithm not found for " + symbolInfo + ". Ignoring.");
                         break;
                     }
-                        
-                    if (symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
-                        packetFIX.OrderType == "3" &&  // Stop Order
+
+                    OrderStore.TryGetOrderById(clientOrderId, out order);
+                    if (order != null && symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
+                        (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop) &&
                         packetFIX.ExecutionType == "D")  // Restated
                     {
                         if (debug) log.Debug("Ignoring restated message 150=D for Forex stop execution report 39=A.");

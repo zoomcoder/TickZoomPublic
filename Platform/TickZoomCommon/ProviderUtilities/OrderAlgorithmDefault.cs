@@ -133,9 +133,9 @@ namespace TickZoom.Common
             {
                 TrySyncPosition(positionChange.StrategyPositions);
                 var match = PerformCompareProtected();
-                if( enableSyncTicks && !match && isBrokerOnline)
+                if (enableSyncTicks && !match && isBrokerOnline)
                 {
-                    if( !tickSync.SentWaitingMatch)
+                    if (!tickSync.SentWaitingMatch)
                     {
                         tickSync.AddWaitingMatch("PositionChange");
                     }
@@ -157,7 +157,7 @@ namespace TickZoom.Common
             var physicalOrderMatches = new List<CreateOrChangeOrder>();
             foreach (var physical in list)
 		    {
-				if( logical.Id == physical.LogicalOrderId) {
+				if( logical.SerialNumber == physical.LogicalSerialNumber ) {
                     switch( physical.OrderState)
                     {
                         case OrderState.Suspended:
@@ -194,6 +194,16 @@ namespace TickZoom.Common
         public bool Cancel(CreateOrChangeOrder physical)
         {
 			var result = false;
+            physical.CancelCount++;
+            if( physical.CancelCount > 15)
+            {
+                log.Error("Already tried canceling this order 3 times: " + physical);
+                while( true)
+                {
+                    Thread.Sleep(1000);
+                }
+                //throw new InvalidOperationException("Already tried canceling this order 3 times: " + physical);
+            }
             var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
             physical.ReplacedBy = cancelOrder;
             if (physicalOrderCache.HasCancelOrder(cancelOrder))
@@ -1123,7 +1133,17 @@ namespace TickZoom.Common
 		    for(var i=0; i< originalPhysicals.Count; i++)
 		    {
 		        var order = originalPhysicals[i];
-				if( order.IsPending) {
+				if( order.IsPending)
+				{
+                    //order.PendingCount++;
+                    //if( order.PendingCount > 100)
+                    //{
+                    //    log.Error("This order was pending a long time: " + order.PendingCount);
+                    //    while(true)
+                    //    {
+                    //        Thread.Sleep(1000);
+                    //    }
+                    //}
 					if( debug) log.Debug("Pending order: " + order);
 					result = true;	
 				}
@@ -1144,7 +1164,7 @@ namespace TickZoom.Common
             var expiryLimit = Factory.Parallel.UtcNow;
             if( enableSyncTicks)
             {
-                expiryLimit.AddSeconds(-1);
+                expiryLimit.AddSeconds(-2);
             }
             else
             {

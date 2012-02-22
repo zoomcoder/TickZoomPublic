@@ -437,9 +437,9 @@ namespace TickZoom.MBTFIX
             if( order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
                 (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
             {
-                var orderType = order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
+                order.Type = order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
                 var marketOrder = Factory.Utility.PhysicalOrder(order.Action, order.OrderState,
-                                                                order.Symbol, order.Side, orderType, OrderFlags.None, 0,
+                                                                order.Symbol, order.Side, order.Type, OrderFlags.None, 0,
                                                                 order.Size, order.LogicalOrderId,
                                                                 order.LogicalSerialNumber,
                                                                 order.BrokerOrder, null, TimeStamp.UtcNow);
@@ -568,7 +568,15 @@ namespace TickZoom.MBTFIX
                     case "A":
                         var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
-                        tickSync.AddPhysicalOrder("resend");
+                        if (symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
+                            mbtMsg.ExecutionType == "D")  // restated  
+                        {
+                            // Ignored order count.
+                        }
+                        else
+                        {
+                            tickSync.AddPhysicalOrder("resend");
+                        }
                         break;
                     case "2":
                     case "1":

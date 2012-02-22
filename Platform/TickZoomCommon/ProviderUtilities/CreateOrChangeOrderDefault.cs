@@ -57,6 +57,8 @@ namespace TickZoom.Common
         public CreateOrChangeOrder replacedBy;
         public TimeStamp utcCreateTime;
         public OrderFlags orderFlags;
+        public int cancelCount;
+        public int pendingCount;
 
     }
 
@@ -246,6 +248,7 @@ namespace TickZoom.Common
 		
 		public OrderType Type {
             get { return binary.type; }
+            set { binary.type = value; }
 		}
 		
 		public double Price {
@@ -406,6 +409,18 @@ namespace TickZoom.Common
         public OrderFlags OrderFlags
         {
             get { return binary.orderFlags; }
+        }
+
+        public int CancelCount
+        {
+            get { return binary.cancelCount; }
+            set { binary.cancelCount = value; }
+        }
+
+        public int PendingCount
+        {
+            get { return binary.pendingCount; }
+            set { binary.pendingCount = value; }
         }
         #endregion
     }
