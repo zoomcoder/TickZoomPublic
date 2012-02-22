@@ -568,21 +568,21 @@ namespace TickZoom.MBTFIX
                     case "A":
                         var symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
-                        if (symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
-                            mbtMsg.ExecutionType == "D")  // restated  
-                        {
-                            // Ignored order count.
-                        }
-                        else
-                        {
-                            tickSync.AddPhysicalOrder("resend");
-                        }
+                        //if (symbolInfo.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
+                        //    mbtMsg.ExecutionType == "D")  // restated  
+                        //{
+                        //    // Ignored order count.
+                        //}
+                        //else
+                        //{
+                        //    tickSync.AddPhysicalOrder("resend");
+                        //}
                         break;
                     case "2":
                     case "1":
                         symbolInfo = Factory.Symbol.LookupSymbol(mbtMsg.Symbol);
                         tickSync = SyncTicks.GetTickSync(symbolInfo.BinaryIdentifier);
-                        tickSync.AddPhysicalFill("resend");
+                        //tickSync.AddPhysicalFill("resend");
                         break;
                 }
                 
