@@ -58,7 +58,7 @@ namespace TickZoom.Symbols
 		private bool useSyntheticMarkets = true;
 		private bool useSyntheticLimits = true;
 		private bool useSyntheticStops = true;
-		private ProfitLoss profitLoss = new ProfitLossDefault();
+	    private ProfitLoss profitLoss;
 		private string commission = "default";
 		private string fees = "default";
 		private string slippage = "default";
@@ -73,6 +73,11 @@ namespace TickZoom.Symbols
 	    private OptionChain optionChain = OptionChain.None;
 	    private TimeInForce timeInForce;
 	    private string symbolFile;
+
+        public SymbolProperties()
+        {
+             profitLoss = new ProfitLossDefault(this);
+        }
 
 		public SymbolProperties Copy()
 	    {

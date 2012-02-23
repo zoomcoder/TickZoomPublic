@@ -28,5 +28,9 @@ namespace TickZoom.Examples
             return true;
         }
 
+        public override void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
+        {
+            
+        }
     }
 }

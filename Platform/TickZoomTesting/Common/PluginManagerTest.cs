@@ -31,7 +31,7 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
-	[TestFixture]
+    [TestFixture]
 	public class PluginManagerTest
 	{
 		Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

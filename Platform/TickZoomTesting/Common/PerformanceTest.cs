@@ -98,7 +98,8 @@ namespace TickZoom.Common
 			// Creation.
 			RandomCommon random = new RandomCommon();
 			PerformanceInner performance = new PerformanceInner(random);
-			ProfitLossDefault profitLossLogic = new ProfitLossDefault();
+            var symbol = Factory.Symbol.LookupSymbol("USD_JPY_YEARS");
+            ProfitLossDefault profitLossLogic = new ProfitLossDefault(symbol);
 			profitLossLogic.Slippage = 0.0140;
 			profitLossLogic.Commission = 0.010;
 			random.Performance = performance;

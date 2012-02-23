@@ -95,6 +95,8 @@
   <ItemGroup>
     <Compile Include="BrokerageFramework\TradeTest.cs" />
     <Compile Include="Common\DateTimeTest.cs" />
+    <Compile Include="Common\InventoryGroup.cs" />
+    <Compile Include="Common\InventoryGroupTest.cs" />
     <Compile Include="Common\PerformanceTest.cs" />
     <Compile Include="Common\PluginManagerTest.cs" />
     <Compile Include="Indicators\EMATest.cs" />

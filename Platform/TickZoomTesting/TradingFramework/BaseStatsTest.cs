@@ -52,7 +52,8 @@ namespace TickZoom.TradingFramework
 		{
 			starter = new HistoricalStarter();
 			random = new RandomCommon();
-			ProfitLossDefault profitLossLogic = new ProfitLossDefault();
+		    var symbol = Factory.Symbol.LookupSymbol("USD_JPY");
+			ProfitLossDefault profitLossLogic = new ProfitLossDefault(symbol);
 			profitLossLogic.Slippage = 0.0140;
 			profitLossLogic.Commission = 0.010;
 //			if( trace) log.Trace("RandomTest engine.Formula.Chain="+starter.Model.Chain.ToString());

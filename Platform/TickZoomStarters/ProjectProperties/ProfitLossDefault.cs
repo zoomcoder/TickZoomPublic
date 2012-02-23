@@ -37,7 +37,12 @@ namespace TickZoom.Properties
 		double slippage = 0D;
 		double commission = 0D;
 		
-		public ProfitLossDefault() {
+		public ProfitLossDefault(SymbolInfo symbol) {
+            if( symbol == null)
+            {
+                throw new ArgumentNullException("symbol");
+            }
+		    this.symbol = symbol;
 		}
 
         public void CalculateProfit(TransactionPairBinary trade, out double grossProfit, out double costs)
@@ -56,7 +61,14 @@ namespace TickZoom.Properties
 		
 		public SymbolInfo Symbol {
 			get { return symbol; }
-			set { symbol = value; }
+			set
+			{
+                if( value == null)
+                {
+                    throw new ArgumentNullException("symbol");
+                }
+			    symbol = value;
+			}
 		}
 		
 		public double Slippage {
