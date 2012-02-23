@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using TickZoom.Api;
 
 namespace TickZoom.Common
@@ -16,7 +17,7 @@ namespace TickZoom.Common
         private TransactionPairBinary binary;
         private double breakEven = double.NaN;
         private double retrace = 0.60D;
-        private int profitTicks;
+        private int profitTicks = 10;
         private SymbolInfo symbol;
         private ProfitLoss profitLoss;
         private int roundLotSize = 1;
@@ -108,6 +109,16 @@ namespace TickZoom.Common
             breakEven = result.ToDouble();
         }
 
+        public double PriceToAdd(int quantity)
+        {
+            var retraceComplement = 1 - Retrace;
+            var totalValue = (binary.CurrentPosition*breakEven);
+            var upper = retrace*binary.EntryPrice*(quantity + binary.CurrentPosition) - totalValue;
+            var lower = retrace*quantity - retraceComplement*binary.CurrentPosition;
+            var price = Math.Round(upper/lower);
+            return price;
+        }
+
         public int HowManyToAdd(double price)
         {
             var retraceComplement = 1 - Retrace;
@@ -120,11 +131,24 @@ namespace TickZoom.Common
             return (int) quantity;
         }
 
+        public double PriceToClose( int quantity)
+        {
+            if( binary.CurrentPosition > 0)
+            {
+                return breakEven + ProfitTicks*symbol.MinimumTick;
+            }
+            if( binary.CurrentPosition < 0)
+            {
+                return breakEven - ProfitTicks*symbol.MinimumTick;
+            }
+            throw new InvalidOperationException("Inventory must be long or short to calculate PriceToClose");
+        }
+
         public int HowManyToClose(double price)
         {
             if( binary.CurrentPosition > 0)
             {
-                var closePrice = breakEven + profitTicks*symbol.MinimumTick;
+                var closePrice = breakEven + ProfitTicks*symbol.MinimumTick;
                 if (price > closePrice)
                 {
                     return binary.CurrentPosition;
@@ -132,7 +156,7 @@ namespace TickZoom.Common
             }
             if (binary.CurrentPosition < 0)
             {
-                var closePrice = breakEven - profitTicks * symbol.MinimumTick;
+                var closePrice = breakEven - ProfitTicks * symbol.MinimumTick;
                 if (price < closePrice)
                 {
                     return binary.CurrentPosition;
@@ -195,48 +219,70 @@ namespace TickZoom.Common
             get { return cumulativeProfit; }
         }
 
-        public int CalcBidQuantity( double price)
+        public int ProfitTicks
         {
+            get { return profitTicks; }
+            set { profitTicks = value; }
+        }
+
+        public void BidQuantity( double price, out double bid, out int bidSize)
+        {
+            bid = price;
+            bidSize = 0;
             switch (Direction)
             {
                 case Direction.Flat:
-                    return startingLotSize;
+                    bidSize = startingLotSize;
+                    return;
                 case Direction.Long:
                     if( Size < Goal)
                     {
-                        return startingLotSize;
+                        bidSize = startingLotSize;
+                        return;
                     }
                     if( price < binary.MinPrice)
                     {
-                        return Clamp(HowManyToAdd(price));
+                        var quantity = HowManyToAdd(price);
+                        if (quantity < 0) quantity = 0;
+                        bidSize = Clamp(quantity);
+                        return;
                     }
-                    return 0;
+                    return;
                 case Direction.Short:
-                    return Clamp(HowManyToClose(price));
+                    bidSize = Clamp(HowManyToClose(price));
+                    return;
                 case Direction.Complete:
                 default:
                     throw new InvalidOperationException("Unexpected status: " + Direction);
             }
         }
 
-        public int CalcOfferQuantity( double price)
+        public void OfferQuantity( double price, out double offer, out int offerSize)
         {
+            offer = price;
+            offerSize = 0;
             switch (Direction)
             {
                 case Direction.Flat:
-                    return startingLotSize;
+                    offerSize = startingLotSize;
+                    return;
                 case Direction.Long:
-                    return Clamp(HowManyToClose(price));
+                    offerSize = Clamp(HowManyToClose(price));
+                    return;
                 case Direction.Short:
-                    if (Size < Goal)
+                    if (Math.Abs(Size) < Goal)
                     {
-                        return startingLotSize;
+                        offerSize = startingLotSize;
+                        return;
                     }
                     if( price > binary.MaxPrice)
                     {
-                        return Clamp(HowManyToAdd(price));
+                        var quantity = HowManyToAdd(price);
+                        if (quantity > 0) quantity = 0;
+                        offerSize = Clamp(quantity);
+                        return;
                     }
-                    return 0;
+                    return;
                 case Direction.Complete:
                 default:
                     throw new InvalidOperationException("Unexpected status: " + Direction);
