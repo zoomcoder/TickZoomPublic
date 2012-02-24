@@ -97,6 +97,7 @@
     <Compile Include="Common\DateTimeTest.cs" />
     <Compile Include="Common\InventoryGroup.cs" />
     <Compile Include="Common\InventoryGroupDefault.cs" />
+    <Compile Include="Common\InventoryGroupMaster.cs" />
     <Compile Include="Common\InventoryGroupTest.cs" />
     <Compile Include="Common\MonteCarloPass.cs" />
     <Compile Include="Common\PerformanceTest.cs" />

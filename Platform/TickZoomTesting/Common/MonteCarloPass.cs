@@ -33,7 +33,7 @@ namespace TickZoom.Common
         public void RandomPass(Random random, bool writeOutput, bool debug)
         {
             if( debug) writeOutput = true;
-            var inventory = (InventoryGroup) new InventoryGroupDefault(symbol);
+            var inventory = (InventoryGroup) new InventoryGroupMaster(symbol);
             inventory.Retrace = .60;
             inventory.StartingLotSize = 1000;
             inventory.RoundLotSize = 1000;
@@ -42,8 +42,6 @@ namespace TickZoom.Common
             inventory.Goal = 5000;
             var first = true;
             var sb = writeOutput ? new StringBuilder() : null;
-            var line = "Price,Bid,Offer,Spread,BidQuantity,OfferCuantity,Change,Position,BreakEven,PandL,CumPandL";
-            if (writeOutput) sb.AppendLine(line);
             var price = 1.7000D;
             var lastPrice = price;
             var spread = symbol.MinimumTick * 10;
@@ -63,10 +61,11 @@ namespace TickZoom.Common
                         bid = Math.Round(price - spread, 5);
                     }
 
-                    var amountToOffer = 0;
-                    inventory.CalculateOffer(offer, out offer, out amountToOffer);
-                    var amountToBid = 0;
-                    inventory.CalculateBid(bid, out bid, out amountToBid);
+                    inventory.CalculateBidOffer(bid, offer);
+                    bid = inventory.Bid;
+                    offer = inventory.Offer;
+                    var amountToOffer = inventory.OfferSize;
+                    var amountToBid = inventory.BidSize;
 
                     lastPrice = price;
                     price = Math.Round(NextPrice(random, price), 5);
@@ -104,9 +103,9 @@ namespace TickZoom.Common
                         MaxInventorySize = Math.Abs(inventory.Size);
                     }
                     var actualSpread = Round(offer - bid);
-                    line = Round(price) + "," + bid + "," + offer + "," + actualSpread + "," + amountToBid + "," + amountToOffer + "," +
-                           change + "," + inventory.Size + "," + Round(inventory.BreakEven) + "," + Round(pandl) + "," +
-                           cumulativeProfit;
+                    var line = Round(price) + "," + Round(bid) + "," + Round(offer) + "," + Round(actualSpread) + "," + amountToBid + "," +
+                               amountToOffer + "," + change + "," + inventory.Size + "," + pandl + "," +
+                               cumulativeProfit + inventory.ToString();
                     if (writeOutput) sb.AppendLine(line);
                     if (writeOutput && !debug) Console.WriteLine(line);
                 }
@@ -118,6 +117,8 @@ namespace TickZoom.Common
                 {
                     if( !debug || MaxInventorySize > 10000000)
                     {
+                        var line = "Price,Bid,Offer,Spread,BidQuantity,OfferCuantity,Change,Position,PandL,CumPandL"+inventory.ToHeader();
+                        sb.Insert(0,line + Environment.NewLine);
                         var appDataFolder = Factory.Settings["AppDataFolder"];
                         var file = appDataFolder + Path.DirectorySeparatorChar + "Random.csv";
                         File.WriteAllText(file, sb.ToString());

@@ -38,6 +38,7 @@ namespace TickZoom.Common
                 }
                 priceChanges[i] = pc;
             }
+            symbol = Factory.Symbol.LookupSymbol("MSFT");
         }
 
         [Test]
@@ -117,16 +118,14 @@ namespace TickZoom.Common
             inventory.Change(10, 1000);
             Assert.AreEqual(inventory.BreakEven, 10);
             inventory.Change(9, 666);
-            Assert.AreEqual(9.6, Math.Round(inventory.BreakEven, 2));
+            Assert.AreEqual(9.6, Math.Round(inventory.BreakEven, 2),"break even 1");
             inventory.Change(8, 555);
-            Assert.AreEqual(9.2, Math.Round(inventory.BreakEven, 2));
+            Assert.AreEqual(9.2, Math.Round(inventory.BreakEven, 2),"break even 2");
             var price = 6D;
             int howManyToClose;
             inventory.CalculateOffer(price, out price, out howManyToClose);
-            Assert.AreEqual(0, howManyToClose);
-            price = 11;
-            inventory.CalculateOffer(price, out price, out howManyToClose);
-            Assert.AreEqual(2221, howManyToClose);
+            Assert.AreEqual(Math.Round(9.4,2),Math.Round(price,2), "close price");
+            Assert.AreEqual(2221, howManyToClose, "close size");
         }
 
         [Test]
@@ -142,17 +141,15 @@ namespace TickZoom.Common
             double price = 15D;
             int howManyToClose;
             inventory.CalculateBid(price, out price, out howManyToClose);
-            Assert.AreEqual(0, howManyToClose);
-            price = 9;
-            inventory.CalculateBid(price, out price, out howManyToClose);
-            Assert.AreEqual(2221, howManyToClose);
+            Assert.AreEqual(10.6, Round(price));
+            Assert.AreEqual(-2221, howManyToClose);
         }
 
         [Test]
         public void TestLongBidOffer()
         {
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
-            var inventory = (InventoryGroup) new InventoryGroupDefault(symbol);
+            var inventory = new InventoryGroupDefault(symbol);
             inventory.Retrace = .60;
             inventory.RoundLotSize = 1000;
             inventory.MaximumLotSize = 1000;
@@ -175,7 +172,7 @@ namespace TickZoom.Common
         public void TestShortBidOffer()
         {
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
-            var inventory = (InventoryGroup) new InventoryGroupDefault(symbol);
+            var inventory = new InventoryGroupDefault(symbol);
             inventory.Retrace = .60;
             inventory.RoundLotSize = 1000;
             inventory.MaximumLotSize = 1000;

@@ -3,8 +3,16 @@ using TickZoom.Api;
 
 namespace TickZoom.Common
 {
+    public enum InventoryType
+    {
+        Long,
+        Short,
+        Either
+    }
+
     public class InventoryGroupDefault : InventoryGroup
     {
+        private int id;
         private TransactionPairBinary binary;
         private double breakEven = double.NaN;
         private double retrace = 0.60D;
@@ -16,34 +24,20 @@ namespace TickZoom.Common
         private int minimumLotSize;
         private int maximumLotSize=int.MaxValue;
         private int _goal = 1;
+        private double currentProfit;
         private double cumulativeProfit;
+        private InventoryType type;
+        private InventoryStatus status = InventoryStatus.Flat;
 
-        public Direction Direction
+        public InventoryGroupDefault( SymbolInfo symbol) : this( symbol, 1)
         {
-            get
-            {
-                if( binary.CurrentPosition == 0)
-                {
-                    return Direction.Flat;
-                }
-                else if( binary.Completed)
-                {
-                    return Direction.Complete;
-                }
-                else if( binary.CurrentPosition > 0)
-                {
-                    return Direction.Long;
-                }
-                else
-                {
-                    return Direction.Short;
-                }
-            }
+            
         }
 
-        public InventoryGroupDefault( SymbolInfo symbol)
+        public InventoryGroupDefault( SymbolInfo symbol, int id)
         {
             this.symbol = symbol;
+            this.id = id;
             profitLoss = symbol.ProfitLoss;
         }
 
@@ -79,6 +73,8 @@ namespace TickZoom.Common
                 CalcBreakEven();
             }
             binary.UpdatePrice(price);
+            currentProfit = profitLoss.CalculateProfit(binary.CurrentPosition, binary.AverageEntryPrice, price);
+            SetStatus();
         }
 
         private void CalcBreakEven()
@@ -166,6 +162,66 @@ namespace TickZoom.Common
             return size;
         }
 
+        public string ToHeader()
+        {
+            return "Type#" + id + ",Status#" + id + ",Bid#" + id + ",Offer#" + id + ",Spread#" + id + ",BidQuantity#" + id + ",OfferCuantity#" + id +
+                       ",Position#" + id + ",BreakEven#" + id + ",PandL#" + id + ",CumPandL#" + id + "";
+        }
+
+        public override string ToString()
+        {
+            return Type + "," + Status + "," + Round(bid) + "," + Round(offer) + "," + Round(offer - bid) + "," + bidSize + "," + offerSize + "," +
+                   binary.CurrentPosition + "," + Round(breakEven) + "," + Round(currentProfit) + "," + Round(cumulativeProfit);
+        }
+
+        public double Round(double price)
+        {
+            return Math.Round(price, symbol.MinimumTickPrecision);
+        }
+
+        private void SetStatus()
+        {
+            if (binary.CurrentPosition == 0)
+            {
+                status = InventoryStatus.Flat;
+            }
+            else if (binary.Completed)
+            {
+                status = InventoryStatus.Complete;
+            }
+            else if (binary.CurrentPosition > 0)
+            {
+                status = InventoryStatus.Long;
+            }
+            else
+            {
+                status = InventoryStatus.Short;
+            }
+        }
+
+        public void Pause()
+        {
+            if( status != InventoryStatus.Flat)
+            {
+                throw new InvalidOperationException("Inventory must be flat in order to be paused.");
+            }
+            status = InventoryStatus.Paused;
+        }
+
+        public void Resume()
+        {
+            if (status != InventoryStatus.Paused)
+            {
+                throw new InvalidOperationException("Inventory must be paused in order to be resumed.");
+            }
+            status = InventoryStatus.Flat;
+        }
+
+        public InventoryStatus Status
+        {
+            get { return status; }
+        }
+
         public int Size
         {
             get { return binary.CurrentPosition; }
@@ -218,23 +274,66 @@ namespace TickZoom.Common
             set { profitTicks = value; }
         }
 
-        public void CalculateBidOffer(ref double bid, out int bidSize, ref double offer, out int offerSize)
+        public int BidSize
         {
-            CalculateBid(bid, out bid, out bidSize);
-            CalculateOffer(offer, out offer, out offerSize);
+            get { return bidSize; }
+        }
 
+        public int OfferSize
+        {
+            get { return offerSize; }
+        }
+
+        public double Offer
+        {
+            get { return offer; }
+        }
+
+        public double Bid
+        {
+            get { return bid; }
+        }
+
+        public InventoryType Type
+        {
+            get { return type; }
+            set { type = value; }
+        }
+
+        private double bid;
+        private double offer;
+        private int offerSize;
+        private int bidSize;
+
+        public void CalculateBidOffer(double _bid, double _offer)
+        {
+            CalculateBid(_bid, out bid, out bidSize);
+            CalculateOffer(_offer, out offer, out offerSize);
         }
 
         public void CalculateBid(double price, out double bid, out int bidSize)
         {
             bid = price;
             bidSize = 0;
-            switch (Direction)
+            switch (Status)
             {
-                case Direction.Flat:
-                    bidSize = startingLotSize;
+                case InventoryStatus.Paused:
                     return;
-                case Direction.Long:
+                case InventoryStatus.Flat:
+                    switch (type)
+                    {
+                        case InventoryType.Short:
+                            bidSize = 0;
+                            break;
+                        case InventoryType.Long:
+                        case InventoryType.Either:
+                            bidSize = startingLotSize;
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException("Unexpected inventory type: " + type);
+                    }
+                    return;
+                case InventoryStatus.Long:
                     if( Size < Goal)
                     {
                         bidSize = startingLotSize;
@@ -252,17 +351,13 @@ namespace TickZoom.Common
                         bid = PriceToAdd(bidSize);
                     }
                     return;
-                case Direction.Short:
-                    bidSize = Clamp(HowManyToClose(price));
-                    if( bidSize == 0)
-                    {
-                        bidSize = minimumLotSize;
-                        bid = PriceToClose(bidSize);
-                    }
+                case InventoryStatus.Short:
+                    bidSize = Size;
+                    bid = PriceToClose(bidSize);
                     return;
-                case Direction.Complete:
+                case InventoryStatus.Complete:
                 default:
-                    throw new InvalidOperationException("Unexpected status: " + Direction);
+                    throw new InvalidOperationException("Unexpected status: " + Status);
             }
         }
 
@@ -270,20 +365,29 @@ namespace TickZoom.Common
         {
             offer = price;
             offerSize = 0;
-            switch (Direction)
+            switch (Status)
             {
-                case Direction.Flat:
-                    offerSize = startingLotSize;
+                case InventoryStatus.Paused:
                     return;
-                case Direction.Long:
-                    offerSize = Clamp(HowManyToClose(price));
-                    if( offerSize == 0)
+                case InventoryStatus.Flat:
+                    switch( type)
                     {
-                        offerSize = minimumLotSize;
-                        offer = PriceToClose(offerSize);
+                        case InventoryType.Long:
+                            offerSize = 0;
+                            break;
+                        case InventoryType.Short:
+                        case InventoryType.Either:
+                            offerSize = startingLotSize;
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException("Unexpected inventory type: " + type);
                     }
                     return;
-                case Direction.Short:
+                case InventoryStatus.Long:
+                    offerSize = Size;
+                    offer = PriceToClose(offerSize);
+                    return;
+                case InventoryStatus.Short:
                     if (Math.Abs(Size) < Goal)
                     {
                         offerSize = startingLotSize;
@@ -301,9 +405,9 @@ namespace TickZoom.Common
                         offer = PriceToAdd(offerSize);
                     }
                     return;
-                case Direction.Complete:
+                case InventoryStatus.Complete:
                 default:
-                    throw new InvalidOperationException("Unexpected status: " + Direction);
+                    throw new InvalidOperationException("Unexpected status: " + Status);
             }
         }
 
