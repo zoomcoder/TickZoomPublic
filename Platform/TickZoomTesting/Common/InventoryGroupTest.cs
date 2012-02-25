@@ -142,7 +142,7 @@ namespace TickZoom.Common
             int howManyToClose;
             inventory.CalculateBid(price, out price, out howManyToClose);
             Assert.AreEqual(10.6, Round(price));
-            Assert.AreEqual(-2221, howManyToClose);
+            Assert.AreEqual(2221, howManyToClose);
         }
 
         [Test]

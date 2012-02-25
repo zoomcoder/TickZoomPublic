@@ -21,6 +21,7 @@ namespace TickZoom.Common
         private InventoryGroupDefault offerOwner;
         private InventoryType type;
         private double maximumSpread;
+        private int maxInventories = 1;
 
         public InventoryGroupMaster(SymbolInfo symbol)
         {
@@ -76,7 +77,7 @@ namespace TickZoom.Common
             {
                 var previous = active.Last.Value;
                 var inventory = TryResumePausedInventory();
-                if (inventory == null && inventories.Count < 2)
+                if (inventory == null && inventories.Count < maxInventories)
                 {
                     inventory = AddNewInventory();
                 }
@@ -150,12 +151,12 @@ namespace TickZoom.Common
             if( positionChange > 0)
             {
                 changeInventory = bidOwner;
-                AdjustBidOffset();
+                if( maxInventories > 1) AdjustBidOffset();
             }
             else if( positionChange < 0)
             {
                 changeInventory = offerOwner;
-                AdjustOfferOffset();
+                if (maxInventories > 1) AdjustOfferOffset();
             }
             else
             {

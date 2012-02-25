@@ -115,13 +115,14 @@ namespace TickZoom.Common
 
         public int HowManyToAdd(double price)
         {
-            var extremePrice = binary.CurrentPosition > 0 ? binary.MaxPrice : binary.MinPrice;
+            var favorableExcursion = binary.CurrentPosition > 0 ? binary.MaxPrice : binary.MinPrice;
+            var adverseExcursion = binary.CurrentPosition > 0 ? Math.Min(price,binary.MinPrice) : Math.Max(price,binary.MaxPrice);
             var retraceComplement = 1 - Retrace;
-            var r_extreme = Retrace*extremePrice;
-            var r_price = retraceComplement*price;
+            var r_favorable = Retrace*favorableExcursion;
+            var r_adverse = retraceComplement*adverseExcursion;
 
-            var upper = binary.CurrentPosition*(r_extreme + r_price - breakEven);
-            var lower = Retrace*(price - extremePrice);
+            var upper = binary.CurrentPosition*(r_favorable + r_adverse - breakEven);
+            var lower = Retrace*(adverseExcursion - favorableExcursion);
             var quantity = upper / lower;
             return (int) quantity;
         }
@@ -348,7 +349,10 @@ namespace TickZoom.Common
                     if( price < binary.MinPrice)
                     {
                         var quantity = HowManyToAdd(price);
-                        if (quantity < 0) quantity = 0;
+                        if (quantity < 0)
+                        {
+                            quantity = 0;
+                        }
                         bidSize = Clamp(quantity);
                     }
                     if (bidSize == 0)
@@ -402,7 +406,10 @@ namespace TickZoom.Common
                     if( price > binary.MaxPrice)
                     {
                         var quantity = HowManyToAdd(price);
-                        if (quantity > 0) quantity = 0;
+                        if (quantity > 0)
+                        {
+                            quantity = 0;
+                        }
                         offerSize = Clamp(quantity);
                     }
                     if (offerSize == 0)
