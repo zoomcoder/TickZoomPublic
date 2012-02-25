@@ -218,7 +218,7 @@ namespace TickZoom.Common
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
             Random random = new Random(12349871);
             var list = new List<MonteCarloPass>();
-            for( var i=1; i<100; i++)
+            for( var i=1; i<500; i++)
             {
                 var monteCarloPass = new MonteCarloPass(symbol, priceChanges);
                 monteCarloPass.RandomPass(random, false, false);
@@ -229,6 +229,8 @@ namespace TickZoom.Common
             var maxDrawDown = 0D;
             var maxInventory = 0D;
             var maxProfit = 0D;
+            var profitableCount = 0;
+            var profitSum = 0D;
             foreach( var pass in list)
             {
                 if( pass.MaxRunUp > maxRunUp)
@@ -247,11 +249,18 @@ namespace TickZoom.Common
                 {
                     maxProfit = pass.ProfitLoss;
                 }
+                if( pass.ProfitLoss > 0)
+                {
+                    profitableCount++;
+                }
+                profitSum += pass.ProfitLoss;
             }
             Console.WriteLine("Max Run Up " + Round(maxRunUp));
             Console.WriteLine("Max DrawDown " + Round(maxDrawDown));
             Console.WriteLine("Max Inventory " + Round(maxInventory));
             Console.WriteLine("Max Profit " + Round(maxProfit));
+            Console.WriteLine("Profitable % " + Round(profitableCount*100/list.Count));
+            Console.WriteLine("Total Profit " + Round(profitSum));
         }
 
         public double Round(double price)

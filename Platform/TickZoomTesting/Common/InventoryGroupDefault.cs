@@ -26,7 +26,7 @@ namespace TickZoom.Common
         private int _goal = 1;
         private double currentProfit;
         private double cumulativeProfit;
-        private InventoryType type;
+        private InventoryType type = InventoryType.Either;
         private InventoryStatus status = InventoryStatus.Flat;
 
         public InventoryGroupDefault( SymbolInfo symbol) : this( symbol, 1)
@@ -53,10 +53,15 @@ namespace TickZoom.Common
             {
                 throw new InvalidOperationException("Inventory already closed.");
             }
+            if( status == InventoryStatus.Paused)
+            {
+                throw new InvalidOperationException("Inventory paused so unable to accept position changes.");
+            }
             if( binary.CurrentPosition == 0)
             {
                 binary.Enter(newPosition, price, Factory.Parallel.UtcNow, Factory.Parallel.UtcNow, 0, 0, 0);
                 CalcBreakEven();
+                currentProfit = profitLoss.CalculateProfit(binary.CurrentPosition, binary.AverageEntryPrice, price);
             }
             else if( newPosition == 0)
             {
@@ -64,6 +69,7 @@ namespace TickZoom.Common
                 breakEven = double.NaN;
                 var pandl = CurrentProfitLoss(price);
                 cumulativeProfit = CumulativeProfit + pandl;
+                currentProfit = 0D;
                 binary = default(TransactionPairBinary);
                 breakEven = double.NaN;
             }
@@ -71,9 +77,9 @@ namespace TickZoom.Common
             {
                 binary.ChangeSize(newPosition, price);
                 CalcBreakEven();
+                currentProfit = profitLoss.CalculateProfit(binary.CurrentPosition, binary.AverageEntryPrice, price);
             }
             binary.UpdatePrice(price);
-            currentProfit = profitLoss.CalculateProfit(binary.CurrentPosition, binary.AverageEntryPrice, price);
             SetStatus();
         }
 
@@ -334,11 +340,11 @@ namespace TickZoom.Common
                     }
                     return;
                 case InventoryStatus.Long:
-                    if( Size < Goal)
-                    {
-                        bidSize = startingLotSize;
-                        return;
-                    }
+                    //if( Size < Goal)
+                    //{
+                    //    bidSize = startingLotSize;
+                    //    return;
+                    //}
                     if( price < binary.MinPrice)
                     {
                         var quantity = HowManyToAdd(price);
@@ -352,7 +358,7 @@ namespace TickZoom.Common
                     }
                     return;
                 case InventoryStatus.Short:
-                    bidSize = Size;
+                    bidSize = Math.Abs(Size);
                     bid = PriceToClose(bidSize);
                     return;
                 case InventoryStatus.Complete:
@@ -388,11 +394,11 @@ namespace TickZoom.Common
                     offer = PriceToClose(offerSize);
                     return;
                 case InventoryStatus.Short:
-                    if (Math.Abs(Size) < Goal)
-                    {
-                        offerSize = startingLotSize;
-                        return;
-                    }
+                    //if (Math.Abs(Size) < Goal)
+                    //{
+                    //    offerSize = startingLotSize;
+                    //    return;
+                    //}
                     if( price > binary.MaxPrice)
                     {
                         var quantity = HowManyToAdd(price);

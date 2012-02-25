@@ -45,13 +45,15 @@ namespace TickZoom.Common
             }
             if (spread > maximumSpread)
             {
+                var previous = active.Last.Value;
                 var inventory = TryResumePausedInventory();
-                if (inventory == null && inventories.Count < 1)
+                if (inventory == null && inventories.Count < 2)
                 {
                     inventory = AddNewInventory();
                 }
                 if( inventory != null)
                 {
+                    ControlDirection(inventory,previous);
                     inventory.CalculateBidOffer(_bid, _offer);
                     CompareBidOffer(inventory);
                 }
@@ -73,13 +75,13 @@ namespace TickZoom.Common
             return null;
         }
 
-        private InventoryGroupDefault AddNewInventory()
+        private void ControlDirection(InventoryGroupDefault inventory, InventoryGroupDefault last)
         {
-            var last = active.Last.Value;
-            var id = active.Count + 1;
-            var inventory = new InventoryGroupDefault(symbol,id);
             switch (last.Status)
             {
+                case InventoryStatus.Flat:
+                    inventory.Type = InventoryType.Either;
+                    break;
                 case InventoryStatus.Long:
                     inventory.Type = InventoryType.Short;
                     break;
@@ -89,6 +91,12 @@ namespace TickZoom.Common
                 default:
                     throw new ArgumentOutOfRangeException("Unexpected inventory status: " + last.Status);
             }
+        }
+
+        private InventoryGroupDefault AddNewInventory()
+        {
+            var id = active.Count + 1;
+            var inventory = new InventoryGroupDefault(symbol,id);
             active.AddLast(inventory);
             inventories.AddLast(inventory);
             ApplySettings();
@@ -136,6 +144,7 @@ namespace TickZoom.Common
             if( active.Count == 0)
             {
                 var inventory = TryResumePausedInventory();
+                inventory.Type = InventoryType.Either;
                 if( inventory == null)
                 {
                     throw new InvalidOperationException("Unable to find a pause inventory.");

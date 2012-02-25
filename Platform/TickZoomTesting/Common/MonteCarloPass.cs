@@ -37,8 +37,8 @@ namespace TickZoom.Common
             inventory.Retrace = .60;
             inventory.StartingLotSize = 1000;
             inventory.RoundLotSize = 1000;
-            inventory.MaximumLotSize = int.MaxValue;
             inventory.MinimumLotSize = 1000;
+            inventory.MaximumLotSize = inventory.MinimumLotSize * 10;
             inventory.Goal = 5000;
             var first = true;
             var sb = writeOutput ? new StringBuilder() : null;
@@ -115,7 +115,7 @@ namespace TickZoom.Common
             {
                 if (writeOutput)
                 {
-                    if( !debug || MaxInventorySize > 10000000)
+                    if( !debug || MaxInventorySize > 100000)
                     {
                         var line = "Price,Bid,Offer,Spread,BidQuantity,OfferCuantity,Change,Position,PandL,CumPandL"+inventory.ToHeader();
                         sb.Insert(0,line + Environment.NewLine);
@@ -123,7 +123,7 @@ namespace TickZoom.Common
                         var file = appDataFolder + Path.DirectorySeparatorChar + "Random.csv";
                         File.WriteAllText(file, sb.ToString());
                     }
-                    if( debug && MaxInventorySize > 1000000)
+                    if( debug && MaxInventorySize > 100000)
                     {
                         throw new ApplicationException("MaxInventory was " + MaxInventorySize);
                     }
