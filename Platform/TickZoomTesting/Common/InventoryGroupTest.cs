@@ -122,8 +122,9 @@ namespace TickZoom.Common
             inventory.Change(8, 555);
             Assert.AreEqual(9.2, Math.Round(inventory.BreakEven, 2),"break even 2");
             var price = 6D;
-            int howManyToClose;
-            inventory.CalculateOffer(price, out price, out howManyToClose);
+            inventory.CalculateBidOffer(price, price);
+            price = inventory.Offer;
+            int howManyToClose = inventory.OfferSize;
             Assert.AreEqual(Math.Round(9.4,2),Math.Round(price,2), "close price");
             Assert.AreEqual(2221, howManyToClose, "close size");
         }
@@ -139,8 +140,9 @@ namespace TickZoom.Common
             inventory.Change(12, -555);
             Assert.AreEqual(10.8, Math.Round(inventory.BreakEven, 2));
             double price = 15D;
-            int howManyToClose;
-            inventory.CalculateBid(price, out price, out howManyToClose);
+            inventory.CalculateBidOffer(price, price);
+            price = inventory.Bid;
+            var howManyToClose = inventory.BidSize;
             Assert.AreEqual(10.6, Round(price));
             Assert.AreEqual(2221, howManyToClose);
         }
@@ -161,7 +163,8 @@ namespace TickZoom.Common
             for (var price = 1.7000D; price > 1.4000; price -= 10*symbol.MinimumTick )
             {
                 var amountToBid = 0;
-                inventory.CalculateBid(price, out price, out amountToBid);
+                inventory.CalculateBidOffer(price, price);
+                amountToBid = inventory.BidSize;
                 inventory.Change(price, amountToBid);
                 var pandl = inventory.CurrentProfitLoss(price);
                 sb.AppendLine(Round(price)+","+amountToBid+","+inventory.Size+","+Round(inventory.BreakEven)+","+Round(pandl));
@@ -185,7 +188,8 @@ namespace TickZoom.Common
             for (var i = 0; i < 3000; i++ )
             {
                 var amountToOffer = 0;
-                inventory.CalculateOffer(price, out price, out amountToOffer);
+                inventory.CalculateBidOffer(price, price);
+                amountToOffer = inventory.OfferSize;
                 inventory.Change(price, -amountToOffer);
                 var pandl = inventory.CurrentProfitLoss(price);
                 sb.AppendLine(Round(price) + "," + amountToOffer + "," + inventory.Size + "," + Round(inventory.BreakEven) + "," + Round(pandl));

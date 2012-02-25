@@ -314,14 +314,10 @@ namespace TickZoom.Common
 
         public void CalculateBidOffer(double marketBid, double marketOffer)
         {
-            CalculateBid(marketBid, out bid, out bidSize);
-            CalculateOffer(marketOffer, out offer, out offerSize);
-        }
-
-        public void CalculateBid(double price, out double bid, out int bidSize)
-        {
-            bid = price;
+            bid = marketBid;
+            offer = marketOffer;
             bidSize = 0;
+            offerSize = 0;
             switch (Status)
             {
                 case InventoryStatus.Paused:
@@ -331,62 +327,14 @@ namespace TickZoom.Common
                     {
                         case InventoryType.Short:
                             bidSize = 0;
+                            offerSize = startingLotSize;
                             break;
                         case InventoryType.Long:
-                        case InventoryType.Either:
                             bidSize = startingLotSize;
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException("Unexpected inventory type: " + type);
-                    }
-                    return;
-                case InventoryStatus.Long:
-                    //if( Size < Goal)
-                    //{
-                    //    bidSize = startingLotSize;
-                    //    return;
-                    //}
-                    if( price < binary.MinPrice)
-                    {
-                        var quantity = HowManyToAdd(price);
-                        if (quantity < 0)
-                        {
-                            quantity = 0;
-                        }
-                        bidSize = Clamp(quantity);
-                    }
-                    if (bidSize == 0)
-                    {
-                        bidSize = minimumLotSize;
-                        bid = PriceToAdd(bidSize);
-                    }
-                    return;
-                case InventoryStatus.Short:
-                    bidSize = Math.Abs(Size);
-                    bid = PriceToClose(bidSize);
-                    return;
-                case InventoryStatus.Complete:
-                default:
-                    throw new InvalidOperationException("Unexpected status: " + Status);
-            }
-        }
-
-        public void CalculateOffer( double price, out double offer, out int offerSize)
-        {
-            offer = price;
-            offerSize = 0;
-            switch (Status)
-            {
-                case InventoryStatus.Paused:
-                    return;
-                case InventoryStatus.Flat:
-                    switch( type)
-                    {
-                        case InventoryType.Long:
                             offerSize = 0;
                             break;
-                        case InventoryType.Short:
                         case InventoryType.Either:
+                            bidSize = startingLotSize;
                             offerSize = startingLotSize;
                             break;
                         default:
@@ -394,33 +342,60 @@ namespace TickZoom.Common
                     }
                     return;
                 case InventoryStatus.Long:
-                    offerSize = Size;
-                    offer = PriceToClose(offerSize);
+                    CalculateLongBidOffer(marketBid, marketOffer);
                     return;
                 case InventoryStatus.Short:
-                    //if (Math.Abs(Size) < Goal)
-                    //{
-                    //    offerSize = startingLotSize;
-                    //    return;
-                    //}
-                    if( price > binary.MaxPrice)
-                    {
-                        var quantity = HowManyToAdd(price);
-                        if (quantity > 0)
-                        {
-                            quantity = 0;
-                        }
-                        offerSize = Clamp(quantity);
-                    }
-                    if (offerSize == 0)
-                    {
-                        offerSize = minimumLotSize;
-                        offer = PriceToAdd(offerSize);
-                    }
+                    CalculateShortBidOffer(marketBid, marketOffer);
                     return;
                 case InventoryStatus.Complete:
                 default:
                     throw new InvalidOperationException("Unexpected status: " + Status);
+            }
+        }
+
+        public void CalculateLongBidOffer(double marketBid, double marketOffer)
+        {
+            // Bid
+            if (marketBid < binary.MinPrice)
+            {
+                var quantity = HowManyToAdd(marketBid);
+                if (quantity < 0)
+                {
+                    quantity = 0;
+                }
+                bidSize = Clamp(quantity);
+            }
+            if (bidSize == 0)
+            {
+                bidSize = minimumLotSize;
+                bid = PriceToAdd(bidSize);
+            }
+            
+            // Offer
+            offerSize = Size;
+            offer = PriceToClose(offerSize);
+        }
+
+        public void CalculateShortBidOffer(double marketBid, double marketOffer)
+        {
+            // Bid
+            bidSize = Math.Abs(Size);
+            bid = PriceToClose(bidSize);
+
+            // Offer
+            if (marketOffer > binary.MaxPrice)
+            {
+                var quantity = HowManyToAdd(marketOffer);
+                if (quantity > 0)
+                {
+                    quantity = 0;
+                }
+                offerSize = Clamp(quantity);
+            }
+            if (offerSize == 0)
+            {
+                offerSize = minimumLotSize;
+                offer = PriceToAdd(offerSize);
             }
         }
 
