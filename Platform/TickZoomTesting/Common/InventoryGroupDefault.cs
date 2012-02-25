@@ -113,7 +113,7 @@ namespace TickZoom.Common
             return price;
         }
 
-        public int HowManyToAdd(double price)
+        public int QuantityToChange(double price)
         {
             var favorableExcursion = binary.CurrentPosition > 0 ? binary.MaxPrice : binary.MinPrice;
             var adverseExcursion = binary.CurrentPosition > 0 ? Math.Min(price,binary.MinPrice) : Math.Max(price,binary.MaxPrice);
@@ -358,7 +358,7 @@ namespace TickZoom.Common
             // Bid
             if (marketBid < binary.MinPrice)
             {
-                var quantity = HowManyToAdd(marketBid);
+                var quantity = QuantityToChange(marketBid);
                 if (quantity < 0)
                 {
                     quantity = 0;
@@ -370,22 +370,66 @@ namespace TickZoom.Common
                 bidSize = minimumLotSize;
                 bid = PriceToAdd(bidSize);
             }
-            
-            // Offer
-            offerSize = Size;
-            offer = PriceToClose(offerSize);
+
+            {
+                // Offer
+                var quantity = 0;
+                if( marketOffer < breakEven)
+                {
+                    quantity = QuantityToChange(marketOffer);
+                }
+                if (quantity < 0)
+                {
+                    if (quantity <= -minimumLotSize)
+                    {
+                        int x = 0;
+                    }
+                    quantity = Clamp(quantity);
+                }
+                else
+                {
+                    quantity = 0;
+                }
+                if (quantity == 0)
+                {
+                    offerSize = Size;
+                    offer = PriceToClose(offerSize);
+                }
+            }
         }
 
         public void CalculateShortBidOffer(double marketBid, double marketOffer)
         {
             // Bid
-            bidSize = Math.Abs(Size);
-            bid = PriceToClose(bidSize);
+            {
+                var quantity = 0;
+                if( marketBid > breakEven)
+                {
+                    quantity = QuantityToChange(marketBid);
+                }
+                if( quantity > 0)
+                {
+                    if( quantity > minimumLotSize)
+                    {
+                        int x = 0;
+                    }
+                    quantity = Clamp(quantity);
+                }
+                else
+                {
+                    quantity = 0;
+                }
+                if (quantity == 0)
+                {
+                    bidSize = Math.Abs(Size);
+                    bid = PriceToClose(bidSize);
+                }
+            }
 
             // Offer
             if (marketOffer > binary.MaxPrice)
             {
-                var quantity = HowManyToAdd(marketOffer);
+                var quantity = QuantityToChange(marketOffer);
                 if (quantity > 0)
                 {
                     quantity = 0;

@@ -61,7 +61,7 @@ namespace TickZoom.Common
             Assert.AreEqual(inventory.BreakEven, 10);
             inventory.Change(9, 666);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 9.6);
-            var howManyToAdd = inventory.HowManyToAdd(7);
+            var howManyToAdd = inventory.QuantityToChange(7);
             Assert.AreEqual(740, howManyToAdd);
             inventory.Change(7, howManyToAdd);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 8.8);
@@ -90,7 +90,7 @@ namespace TickZoom.Common
             Assert.AreEqual(inventory.BreakEven, 10);
             inventory.Change(11, -666);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 10.4);
-            var howManyToAdd = inventory.HowManyToAdd(13);
+            var howManyToAdd = inventory.QuantityToChange(13);
             Assert.AreEqual(-740, howManyToAdd);
             inventory.Change(13, howManyToAdd);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 11.2);
