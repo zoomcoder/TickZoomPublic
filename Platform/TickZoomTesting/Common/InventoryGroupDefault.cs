@@ -311,10 +311,10 @@ namespace TickZoom.Common
         private int offerSize;
         private int bidSize;
 
-        public void CalculateBidOffer(double _bid, double _offer)
+        public void CalculateBidOffer(double marketBid, double marketOffer)
         {
-            CalculateBid(_bid, out bid, out bidSize);
-            CalculateOffer(_offer, out offer, out offerSize);
+            CalculateBid(marketBid, out bid, out bidSize);
+            CalculateOffer(marketOffer, out offer, out offerSize);
         }
 
         public void CalculateBid(double price, out double bid, out int bidSize)

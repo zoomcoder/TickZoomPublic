@@ -11,6 +11,7 @@ namespace TickZoom.Common
         public double MaxDrawDown;
         public double MaxInventorySize;
         public double ProfitLoss;
+        public int iterations = 5000;
         private SymbolInfo symbol;
         private InventoryGroupTest.PriceChange[] priceChanges;
 
@@ -50,7 +51,7 @@ namespace TickZoom.Common
             try
             {
 
-                for (var i = 0; i < 5000; i++)
+                for (var i = 0; i < iterations; i++)
                 {
                     if (price < lastPrice)
                     {

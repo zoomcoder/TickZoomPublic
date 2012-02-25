@@ -32,14 +32,43 @@ namespace TickZoom.Common
             maximumSpread = 100*symbol.MinimumTick;
         }
 
-        public void CalculateBidOffer(double _bid, double _offer)
+        private int bidOffset = 0;
+        private int bidIncrease = 1;
+        private int offerOffset = 0;
+        private int offerIncrease = 1;
+
+        private void AdjustBidOffset()
         {
+            bidOffset += bidIncrease;
+            ++bidIncrease;
+            if( offerOffset > 0)
+            {
+                offerIncrease = 1;
+                offerOffset = 0;
+            }
+        }
+
+        private void AdjustOfferOffset()
+        {
+            offerOffset += offerIncrease;
+            ++offerIncrease;
+            if( bidOffset > 0)
+            {
+                bidIncrease = 1;
+                bidOffset = 0;
+            }
+        }
+
+        public void CalculateBidOffer(double marketBid, double marketOffer)
+        {
+            marketBid -= 10*symbol.MinimumTick*bidOffset;
+            marketOffer += 10 * symbol.MinimumTick * offerOffset;
             bidOwner = offerOwner = active.First.Value;
             var spread = 0D;
             for( var current = active.First; current != null; current = current.Next)
             {
                 var inventory = current.Value;
-                inventory.CalculateBidOffer(_bid, _offer);
+                inventory.CalculateBidOffer(marketBid, marketOffer);
                 CompareBidOffer(inventory);
                 spread = offerOwner.Offer - bidOwner.Bid;
             }
@@ -54,7 +83,7 @@ namespace TickZoom.Common
                 if( inventory != null)
                 {
                     ControlDirection(inventory,previous);
-                    inventory.CalculateBidOffer(_bid, _offer);
+                    inventory.CalculateBidOffer(marketBid, marketOffer);
                     CompareBidOffer(inventory);
                 }
             }
@@ -121,10 +150,12 @@ namespace TickZoom.Common
             if( positionChange > 0)
             {
                 changeInventory = bidOwner;
+                AdjustBidOffset();
             }
             else if( positionChange < 0)
             {
                 changeInventory = offerOwner;
+                AdjustOfferOffset();
             }
             else
             {
