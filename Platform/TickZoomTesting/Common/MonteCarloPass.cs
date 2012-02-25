@@ -14,6 +14,7 @@ namespace TickZoom.Common
         public int iterations = 5000;
         private SymbolInfo symbol;
         private InventoryGroupTest.PriceChange[] priceChanges;
+        private int seed;
 
         public override string ToString()
         {
@@ -26,17 +27,19 @@ namespace TickZoom.Common
             this.priceChanges = priceChanges;
         }
 
-        public void RandomPass(Random random, bool writeOutput)
+        public void RandomPass(int seed, bool writeOutput)
         {
-            RandomPass(random,writeOutput,false);
+            RandomPass(seed,writeOutput,false);
         }
 
-        public void RandomPass(Random random, bool writeOutput, bool debug)
+        public void RandomPass(int seed, bool writeOutput, bool debug)
         {
-            if( debug) writeOutput = true;
+            this.seed = seed;
+            var random = new Random(seed);
+            if (debug) writeOutput = true;
             var inventory = (InventoryGroup) new InventoryGroupMaster(symbol);
             inventory.Retrace = .60;
-            inventory.StartingLotSize = 1000;
+            inventory.StartingLotSize = 5000;
             inventory.RoundLotSize = 1000;
             inventory.MinimumLotSize = 1000;
             inventory.MaximumLotSize = inventory.MinimumLotSize * 10;
@@ -116,7 +119,7 @@ namespace TickZoom.Common
             {
                 if (writeOutput)
                 {
-                    if( !debug || MaxInventorySize > 100000)
+                    if( !debug || MaxInventorySize > 50000)
                     {
                         var line = "Price,Bid,Offer,Spread,BidQuantity,OfferCuantity,Change,Position,PandL,CumPandL"+inventory.ToHeader();
                         sb.Insert(0,line + Environment.NewLine);
@@ -124,9 +127,9 @@ namespace TickZoom.Common
                         var file = appDataFolder + Path.DirectorySeparatorChar + "Random.csv";
                         File.WriteAllText(file, sb.ToString());
                     }
-                    if( debug && MaxInventorySize > 100000)
+                    if( debug && MaxInventorySize > 50000)
                     {
-                        throw new ApplicationException("MaxInventory was " + MaxInventorySize);
+                        throw new ApplicationException("MaxInventory was " + MaxInventorySize + " at random seed: " + seed);
                     }
                 }
             }

@@ -151,12 +151,12 @@ namespace TickZoom.Common
             if( positionChange > 0)
             {
                 changeInventory = bidOwner;
-                if( maxInventories > 1) AdjustBidOffset();
+                //if( maxInventories > 1) AdjustBidOffset();
             }
             else if( positionChange < 0)
             {
                 changeInventory = offerOwner;
-                if (maxInventories > 1) AdjustOfferOffset();
+                //if (maxInventories > 1) AdjustOfferOffset();
             }
             else
             {

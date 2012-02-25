@@ -76,7 +76,7 @@ namespace TickZoom.Common
             inventory.Change(9, 666);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 9.6);
             var howManyToAdd = 740;
-            var priceToAdd = inventory.PriceToAdd(howManyToAdd);
+            var priceToAdd = inventory.PriceToChange(howManyToAdd);
             Assert.AreEqual(7, Math.Round(priceToAdd));
             inventory.Change(7, howManyToAdd);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 8.8);
@@ -105,7 +105,7 @@ namespace TickZoom.Common
             inventory.Change(11, -666);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 10.4);
             var howManyToAdd = -740;
-            var priceToAdd = inventory.PriceToAdd(howManyToAdd);
+            var priceToAdd = inventory.PriceToChange(howManyToAdd);
             Assert.AreEqual(13, Math.Round(priceToAdd));
             inventory.Change(13, howManyToAdd);
             Assert.AreEqual(Math.Round(inventory.BreakEven, 2), 11.2);
@@ -123,8 +123,8 @@ namespace TickZoom.Common
             Assert.AreEqual(9.2, Math.Round(inventory.BreakEven, 2),"break even 2");
             var price = 6D;
             inventory.CalculateBidOffer(price, price);
-            price = inventory.Offer;
-            int howManyToClose = inventory.OfferSize;
+            price = inventory.PriceToClose();
+            int howManyToClose = inventory.Size;
             Assert.AreEqual(Math.Round(9.4,2),Math.Round(price,2), "close price");
             Assert.AreEqual(2221, howManyToClose, "close size");
         }
@@ -140,11 +140,10 @@ namespace TickZoom.Common
             inventory.Change(12, -555);
             Assert.AreEqual(10.8, Math.Round(inventory.BreakEven, 2));
             double price = 15D;
-            inventory.CalculateBidOffer(price, price);
-            price = inventory.Bid;
-            var howManyToClose = inventory.BidSize;
+            price = inventory.PriceToClose();
+            var howManyToClose = inventory.Size;
             Assert.AreEqual(10.6, Round(price));
-            Assert.AreEqual(2221, howManyToClose);
+            Assert.AreEqual(-2221, howManyToClose);
         }
 
         [Test]
@@ -202,9 +201,9 @@ namespace TickZoom.Common
         public void TestRandomTrading()
         {
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
-            Random random = new Random(12349871);
+            Random random = new Random(818519479);
             var monteCarloPass = new MonteCarloPass(symbol,priceChanges);
-            monteCarloPass.RandomPass(random,true);
+            monteCarloPass.RandomPass(818519479, true);
         }
 
         [Test]
@@ -213,7 +212,7 @@ namespace TickZoom.Common
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
             Random random = new Random(12349871);
             var monteCarloPass = new MonteCarloPass(symbol, priceChanges);
-            monteCarloPass.RandomPass(random, false);
+            monteCarloPass.RandomPass(818519479, false);
         }
 
         [Test]
@@ -222,11 +221,11 @@ namespace TickZoom.Common
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
             Random random = new Random(12349871);
             var list = new List<MonteCarloPass>();
-            for( var i=1; i<100; i++)
+            for( var i=1; i<500; i++)
             {
                 var monteCarloPass = new MonteCarloPass(symbol, priceChanges);
                 //monteCarloPass.iterations = 25000;
-                monteCarloPass.RandomPass(random, false, false);
+                monteCarloPass.RandomPass(random.Next(), false, false);
                 //Console.WriteLine(monteCarloPass);
                 list.Add(monteCarloPass);
             }
