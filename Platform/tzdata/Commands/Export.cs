@@ -14,20 +14,10 @@ namespace TickZoom.TZData
         string dataFolder = "DataCache";
 
         // Log log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        TickIO tickIO = Factory.TickUtil.TickIO();
         TickFile reader = Factory.TickUtil.TickFile();
 
         private TimeStamp startTime = TimeStamp.MinValue;
         private TimeStamp endTime = TimeStamp.MaxValue;
-
-        public Export()
-        {
-            Assembly assembly = Assembly.GetEntryAssembly();
-            if (assembly != null)
-            {
-                assemblyName = assembly.GetName().Name;
-            }
-        }
 
         public override void Run(string[] args)
         {
@@ -40,8 +30,8 @@ namespace TickZoom.TZData
             }
             else if (args.Length == 2)
             {
-                symbolString = args[0];
-                string filePath = args[1];
+                string filePath = args[0];
+                symbolString = args[1];
                 reader.Initialize(filePath, symbolString, TickFileMode.Read);
             }
             else if( args.Length == 3)
@@ -53,8 +43,8 @@ namespace TickZoom.TZData
             }
             else if (args.Length == 4)
             {
-                symbolString = args[0];
-                string filePath = args[1];
+                string filePath = args[0];
+                symbolString = args[1];
                 reader.Initialize(filePath, symbolString, TickFileMode.Read);
                 startTime = new TimeStamp(args[2]);
                 endTime = new TimeStamp(args[3]);
@@ -96,7 +86,7 @@ namespace TickZoom.TZData
 
         public override string[] UsageLines()
         {
-            return new string[] { assemblyName + " export [<symbol>] <file> [<starttimestamp> <endtimestamp>]" };
+            return new string[] { AssemblyName + " export <file> [<symbol>] [<starttimestamp> <endtimestamp>]" };
         }
 
         public string AssemblyName
