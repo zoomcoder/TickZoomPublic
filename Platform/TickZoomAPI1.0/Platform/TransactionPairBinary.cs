@@ -71,8 +71,8 @@ namespace TickZoom.Api
             exitBar = other.exitBar;
             entryBar = other.entryBar;
             completed = other.completed;
-            longVolume = other.longVolume;
-            shortVolume = other.shortVolume;
+            longVolume = other.LongVolume;
+            shortVolume = other.ShortVolume;
             entryOrderId = other.entryOrderId;
             entrySerialNumber = other.entrySerialNumber;
             exitOrderId = other.exitOrderId;
@@ -82,7 +82,7 @@ namespace TickZoom.Api
         public override string ToString()
         {
             return Direction + "," + entryOrderId + "," + entrySerialNumber + "," + entryBar + "," + entryPrice + "," + new TimeStamp(entryTime) + "," + new TimeStamp(postedEntryTime) + "," +
-                   exitOrderId + "," + exitSerialNumber + "," + exitBar + "," + exitPrice + "," + new TimeStamp(exitTime) + "," + new TimeStamp(postedExitTime) + "," + maxPrice + "," + minPrice + "," + longVolume + "," + shortVolume + "," + currentPosition;
+                   exitOrderId + "," + exitSerialNumber + "," + exitBar + "," + exitPrice + "," + new TimeStamp(exitTime) + "," + new TimeStamp(postedExitTime) + "," + maxPrice + "," + minPrice + "," + LongVolume + "," + ShortVolume + "," + currentPosition;
         }
 		
 		
@@ -131,7 +131,7 @@ namespace TickZoom.Api
             } else {
                 this.shortVolume = Math.Abs(direction);
             }
-            if( trace) log.Trace("Enter long volume = " + this.longVolume + ", short volume = " + this.shortVolume);
+            if( trace) log.Trace("Enter long volume = " + this.LongVolume + ", short volume = " + this.ShortVolume);
             this.entryPrice = price;
             this.averageEntryPrice = price;
             this.maxPrice = this.minPrice = averageEntryPrice;
@@ -143,12 +143,13 @@ namespace TickZoom.Api
         }
 		
         public void Exit( double price, TimeStamp time, TimeStamp postedTime, int bar, int exitOrderId, long exitSerialNumber) {
+            ChangeSize(0, price);
             if( currentPosition < 0) {
-                this.longVolume += Math.Abs( currentPosition);
+                this.longVolume = this.LongVolume + Math.Abs( currentPosition);
             } else {
-                this.shortVolume += Math.Abs( currentPosition);
+                this.shortVolume = this.ShortVolume + Math.Abs( currentPosition);
             }
-            if( trace) log.Trace("Exit long volume = " + this.longVolume + ", short volume = " + shortVolume + ", Direction = " + this.Direction);
+            if( trace) log.Trace("Exit long volume = " + this.LongVolume + ", short volume = " + ShortVolume + ", Direction = " + this.Direction);
             this.exitPrice = price;
             this.exitTime = time.Internal;
             this.postedExitTime = postedTime.Internal;
@@ -166,13 +167,13 @@ namespace TickZoom.Api
 		
         public void ChangeSize( int newSize, double price) {
             var sizeChange = newSize - currentPosition;      // -6666
-            if (sizeChange > 0)
+            if (currentPosition >= 0 && sizeChange > 0)
             {
-                longVolume += Math.Abs(sizeChange);
+                longVolume = LongVolume + Math.Abs(sizeChange);
             }
-            else
+            else if( currentPosition <= 0 && sizeChange < 0)
             {
-                shortVolume += Math.Abs(sizeChange);
+                shortVolume = ShortVolume + Math.Abs(sizeChange);
             }
 
             if( currentPosition == 0)
@@ -192,12 +193,31 @@ namespace TickZoom.Api
             }
             currentPosition = newSize;
 
-            if( trace) log.Trace("Price = " + price + ", averageEntryPrice = " + averageEntryPrice + ", CurrentPosition = " + currentPosition + ", NewSize = " + newSize + ", Direction = " + Direction + ", sizeChange = " + sizeChange + ", Long volume = " + this.longVolume + ", short volume = " + shortVolume);
+            if( trace) log.Trace("Price = " + price + ", averageEntryPrice = " + averageEntryPrice + ", CurrentPosition = " + currentPosition + ", NewSize = " + newSize + ", Direction = " + Direction + ", sizeChange = " + sizeChange + ", Long volume = " + this.LongVolume + ", short volume = " + ShortVolume);
         }
-		
-        public int Direction {
+
+        public void Change(double price, int positionChange)
+        {
+            var newPosition = currentPosition + positionChange;
+            if (currentPosition == 0)
+            {
+                Enter(newPosition, price, Factory.Parallel.UtcNow, Factory.Parallel.UtcNow, 0, 0, 0);
+            }
+            else if (newPosition == 0)
+            {
+                Exit(price, Factory.Parallel.UtcNow, Factory.Parallel.UtcNow, 0, 0, 0);
+            }
+            else
+            {
+                ChangeSize(newPosition, price);
+            }
+            UpdatePrice(price);
+        }
+
+        public int Direction
+        {
             get {
-                return Math.Max(longVolume,shortVolume) * Math.Sign(currentPosition);
+                return LongVolume - ShortVolume;
             }
         }
 		
@@ -229,8 +249,8 @@ namespace TickZoom.Api
             }
             TransactionPairBinary trade = (TransactionPairBinary) obj;
             var entryPriceMatch = this.currentPosition == trade.currentPosition ? this.averageEntryPrice == trade.averageEntryPrice : true;
-            return this.longVolume == trade.longVolume &&
-                   this.shortVolume == trade.shortVolume &&
+            return this.LongVolume == trade.LongVolume &&
+                   this.ShortVolume == trade.ShortVolume &&
                    entryPriceMatch &&
                    this.EntryTime == trade.EntryTime &&
                    this.exitPrice == trade.exitPrice &&
@@ -262,7 +282,7 @@ namespace TickZoom.Api
         }
 		
         public int Volume {
-            get { return longVolume + shortVolume; }
+            get { return LongVolume + ShortVolume; }
         }
 		
         public int EntryOrderId {
@@ -284,6 +304,16 @@ namespace TickZoom.Api
         public double ClosedPoints
         {
             get { return closedPoints; }
+        }
+
+        public int LongVolume
+        {
+            get { return longVolume; }
+        }
+
+        public int ShortVolume
+        {
+            get { return shortVolume; }
         }
     }
 }

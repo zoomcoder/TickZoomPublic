@@ -1,4 +1,4 @@
-﻿namespace TickZoom.Common
+namespace TickZoom.Common
 {
     public enum InventoryType
     {
