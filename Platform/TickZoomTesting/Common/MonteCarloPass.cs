@@ -16,6 +16,20 @@ namespace TickZoom.Common
         private SymbolInfo symbol;
         private InventoryGroupTest.PriceChange[] priceChanges;
         private int seed;
+        private bool isRandom = true;
+        private int priceChangeTicks = 10;
+
+        public bool IsRandom
+        {
+            get { return isRandom; }
+            set { isRandom = value; }
+        }
+
+        public int PriceChangeTicks
+        {
+            get { return priceChangeTicks; }
+            set { priceChangeTicks = value; }
+        }
 
         public override string ToString()
         {
@@ -73,7 +87,14 @@ namespace TickZoom.Common
                     var amountToBid = inventory.BidSize;
 
                     lastPrice = price;
-                    price = Math.Round(NextPrice(random, price), 5);
+                    if( isRandom)
+                    {
+                        price = Round(NextPrice(random, price));
+                    }
+                    else
+                    {
+                        price = Round(price + PriceChangeTicks*symbol.MinimumTick);
+                    }
 
                     var change = 0;
                     if (price <= bid)
@@ -120,7 +141,7 @@ namespace TickZoom.Common
             {
                 if (writeOutput)
                 {
-                    if( !debug || MaxInventorySize > 20000)
+                    if( !debug || MaxInventorySize > 150000)
                     {
                         var line = "Price,Bid,Offer,Spread,BidQuantity,OfferCuantity,Change,Position,PandL,CumPandL"+inventory.ToHeader();
                         sb.Insert(0,line + Environment.NewLine);
@@ -128,7 +149,7 @@ namespace TickZoom.Common
                         var file = appDataFolder + Path.DirectorySeparatorChar + "Random.csv";
                         File.WriteAllText(file, sb.ToString());
                     }
-                    if( debug && MaxInventorySize > 20000)
+                    if( debug && MaxInventorySize > 150000)
                     {
                         throw new ApplicationException("MaxInventory was " + MaxInventorySize + " at random seed: " + seed);
                     }

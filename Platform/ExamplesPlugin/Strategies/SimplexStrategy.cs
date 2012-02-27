@@ -6,9 +6,12 @@ namespace TickZoom.Examples
     public class SimplexStrategy : BaseSimpleStrategy
     {
         private InventoryGroup inventory;
-        public SimplexStrategy()
+
+        public override void OnInitialize()
         {
-            var inventory = (InventoryGroup)new InventoryGroupDefault(Data.SymbolInfo);
+            lotSize = 1;
+            base.OnInitialize();
+            inventory = (InventoryGroup)new InventoryGroupDefault(Data.SymbolInfo);
             inventory.Retrace = .60;
             inventory.StartingLotSize = 1000;
             inventory.RoundLotSize = 1000;
@@ -29,9 +32,9 @@ namespace TickZoom.Examples
 
             UpdateIndicators(tick);
 
-            HandlePegging(tick);
+            SetupBidAsk();
 
-            HandleWeekendRollover(tick);
+            //HandleWeekendRollover(tick);
 
             if (state.AnySet(StrategyState.ProcessOrders))
             {
@@ -40,9 +43,49 @@ namespace TickZoom.Examples
             return true;
         }
 
+        protected override void SetupBidAsk()
+        {
+            if( Position.IsFlat)
+            {
+                SetBidOffer();
+            }
+        }
+
+        private void SetBidOffer()
+        {
+            inventory.CalculateBidOffer(marketBid, marketAsk);
+            bid = inventory.Bid;
+            bidLine[0] = bid;
+            BuySize = inventory.BidSize;
+            ask = inventory.Offer;
+            askLine[0] = ask;
+            SellSize = inventory.OfferSize;
+        }
+
+        private int previousPosition;
+
         public override void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
-            
+            var change = comboTrade.CurrentPosition - previousPosition;
+            inventory.Change(fill.Price, change);
+            SetBidOffer();
+            previousPosition = comboTrade.CurrentPosition;
+        }
+
+        public override void OnExitTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
+        {
+            var change = comboTrade.CurrentPosition - previousPosition;
+            inventory.Change(fill.Price, change);
+            SetBidOffer();
+            previousPosition = comboTrade.CurrentPosition;
+        }
+
+        public override void  OnChangeTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
+        {
+            var change = comboTrade.CurrentPosition - previousPosition;
+            inventory.Change(fill.Price, change);
+            SetBidOffer();
+            previousPosition = comboTrade.CurrentPosition;
         }
     }
 }

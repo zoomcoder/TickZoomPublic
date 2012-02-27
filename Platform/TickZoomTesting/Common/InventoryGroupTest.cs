@@ -204,6 +204,27 @@ namespace TickZoom.Common
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
             Random random = new Random(818519479);
             var monteCarloPass = new MonteCarloPass(symbol,priceChanges);
+            monteCarloPass.RandomPass(603378611, true);
+        }
+
+        [Test]
+        public void TestOnlyIncrease()
+        {
+            symbol = Factory.Symbol.LookupSymbol("EUR/USD");
+            Random random = new Random(818519479);
+            var monteCarloPass = new MonteCarloPass(symbol, priceChanges);
+            monteCarloPass.IsRandom = false;
+            monteCarloPass.RandomPass(2122675590, true);
+        }
+
+        [Test]
+        public void TestOnlyDecrease()
+        {
+            symbol = Factory.Symbol.LookupSymbol("EUR/USD");
+            Random random = new Random(818519479);
+            var monteCarloPass = new MonteCarloPass(symbol, priceChanges);
+            monteCarloPass.IsRandom = false;
+            monteCarloPass.PriceChangeTicks = -10;
             monteCarloPass.RandomPass(2122675590, true);
         }
 
@@ -225,8 +246,8 @@ namespace TickZoom.Common
             for( var i=1; i<100; i++)
             {
                 var monteCarloPass = new MonteCarloPass(symbol, priceChanges);
-                monteCarloPass.iterations = 25000;
-                monteCarloPass.RandomPass(random.Next(), false, false);
+                //monteCarloPass.iterations = 25000;
+                monteCarloPass.RandomPass(random.Next(), false, true);
                 //Console.WriteLine(monteCarloPass);
                 list.Add(monteCarloPass);
             }

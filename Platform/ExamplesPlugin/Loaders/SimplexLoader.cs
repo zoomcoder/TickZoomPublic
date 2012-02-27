@@ -24,6 +24,7 @@ namespace TickZoom.Examples
             var strategies = new List<Strategy>();
             foreach (var symbol in properties.Starter.SymbolProperties)
             {
+                symbol.LimitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
                 var strategy = new SimplexStrategy();
                 strategy.SymbolDefault = symbol.Symbol;
                 strategy.IsActive = true;

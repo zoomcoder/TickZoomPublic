@@ -161,9 +161,14 @@ namespace TickZoom.Examples
             {
                 indifferencePrice = price;
             }
-            lastMidPoint = price;
-            SetupAsk(price);
-            SetupBid(price);
+            lastMidPoint = midPoint;
+            SetupBidAsk();
+        }
+
+        protected virtual void SetupBidAsk()
+        {
+            SetupAsk(midPoint);
+            SetupBid(midPoint);
         }
 
         protected virtual void SetupAsk(double price)
@@ -315,17 +320,18 @@ namespace TickZoom.Examples
             {
                 if (lots == SellSize)
                 {
-                    Orders.Reverse.ActiveNow.SellLimit(ask, lotSize);
+                    //Orders.Reverse.ActiveNow.SellLimit(ask, SellSize * lotSize);
+                    Orders.Exit.ActiveNow.SellLimit(ask);
                 }
                 else
                 {
                     Orders.Change.ActiveNow.SellLimit(ask, SellSize * lotSize);
-                    Orders.Reverse.ActiveNow.SellLimit(indifferencePrice + closeProfitInTicks * minimumTick, SellSize * lotSize);
+                    //Orders.Reverse.ActiveNow.SellLimit(indifferencePrice + closeProfitInTicks * minimumTick, SellSize * lotSize);
                 }
             }
             else
             {
-                Orders.Reverse.ActiveNow.SellLimit(indifferencePrice + closeProfitInTicks * minimumTick, lotSize);
+                Orders.Reverse.ActiveNow.SellLimit(indifferencePrice + closeProfitInTicks * minimumTick, SellSize * lotSize);
             }
         }
 
@@ -340,17 +346,18 @@ namespace TickZoom.Examples
             {
                 if (lots == BuySize)
                 {
-                    Orders.Reverse.ActiveNow.BuyLimit(bid, lotSize);
+                    //Orders.Reverse.ActiveNow.BuyLimit(bid, BuySize * lotSize);
+                    Orders.Exit.ActiveNow.BuyLimit(bid);
                 }
                 else
                 {
                     Orders.Change.ActiveNow.BuyLimit(bid, BuySize * lotSize);
-                    Orders.Reverse.ActiveNow.BuyLimit(indifferencePrice - closeProfitInTicks * minimumTick, BuySize * lotSize);
+                    //Orders.Reverse.ActiveNow.BuyLimit(indifferencePrice - closeProfitInTicks * minimumTick, BuySize * lotSize);
                 }
             }
             else
             {
-                Orders.Reverse.ActiveNow.BuyLimit(indifferencePrice - closeProfitInTicks * minimumTick, lotSize);
+                Orders.Reverse.ActiveNow.BuyLimit(indifferencePrice - closeProfitInTicks * minimumTick, BuySize * lotSize);
             }
         }
         public bool IsVisible
