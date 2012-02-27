@@ -88,8 +88,7 @@ namespace TickZoom.Examples
                 maxSpread = spread;
             }
 
-            //offer = Math.Max(offer, marketOffer);
-            //bid = Math.Min(bid, marketBid);
+            bid -= additionalTicks*symbol.MinimumTick;
         }
 
         private void AssertGreater(double expected, double actual, string message)
@@ -161,8 +160,7 @@ namespace TickZoom.Examples
                 maxSpread = spread;
             }
 
-            //offer = Math.Max(offer, marketOffer);
-            //bid = Math.Min(bid, marketBid);
+            offer += additionalTicks*symbol.MinimumTick;
         }
 
         public double PriceToChange(int quantity)
@@ -228,6 +226,9 @@ namespace TickZoom.Examples
             }
         }
 
+        private int lastSize;
+        private int additionalTicks = 0;
+        private int increaseTicks = 0;
         public void Change( double price, int positionChange)
         {
             var newPosition = binary.CurrentPosition + positionChange;
@@ -252,6 +253,23 @@ namespace TickZoom.Examples
             }
             binary.UpdatePrice(price);
             SetStatus();
+            CalcAdditionalTicks();
+        }
+
+        private void CalcAdditionalTicks()
+        {
+            var currentSize = Math.Abs(Size);
+            if (currentSize > lastSize)
+            {
+                increaseTicks += 2;
+                additionalTicks += increaseTicks;
+            }
+            else if (currentSize < lastSize)
+            {
+                increaseTicks = 0;
+                additionalTicks = 0;
+            }
+            lastSize = currentSize;
         }
 
         private void TryChangeCounter(double price, int positionChange)
