@@ -37,13 +37,13 @@ namespace TickZoom.Common
             this.seed = seed;
             var random = new Random(seed);
             if (debug) writeOutput = true;
-            var inventory = (InventoryGroup) new InventoryGroupMaster(symbol);
+            var inventory = (InventoryGroup) new InventoryGroupDefault(symbol);
             inventory.Retrace = .60;
-            inventory.StartingLotSize = 5000;
+            inventory.StartingLotSize = 1000;
             inventory.RoundLotSize = 1000;
             inventory.MinimumLotSize = 1000;
             inventory.MaximumLotSize = inventory.MinimumLotSize * 10;
-            inventory.Goal = 5000;
+            inventory.Goal = 1000;
             var first = true;
             var sb = writeOutput ? new StringBuilder() : null;
             var price = 1.7000D;
@@ -119,7 +119,7 @@ namespace TickZoom.Common
             {
                 if (writeOutput)
                 {
-                    if( !debug || MaxInventorySize > 90000)
+                    if( !debug || MaxInventorySize > 20000)
                     {
                         var line = "Price,Bid,Offer,Spread,BidQuantity,OfferCuantity,Change,Position,PandL,CumPandL"+inventory.ToHeader();
                         sb.Insert(0,line + Environment.NewLine);
@@ -127,7 +127,7 @@ namespace TickZoom.Common
                         var file = appDataFolder + Path.DirectorySeparatorChar + "Random.csv";
                         File.WriteAllText(file, sb.ToString());
                     }
-                    if( debug && MaxInventorySize > 90000)
+                    if( debug && MaxInventorySize > 20000)
                     {
                         throw new ApplicationException("MaxInventory was " + MaxInventorySize + " at random seed: " + seed);
                     }
