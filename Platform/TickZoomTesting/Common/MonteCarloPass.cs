@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 using TickZoom.Api;
@@ -119,7 +119,7 @@ namespace TickZoom.Common
             {
                 if (writeOutput)
                 {
-                    if( !debug || MaxInventorySize > 50000)
+                    if( !debug || MaxInventorySize > 90000)
                     {
                         var line = "Price,Bid,Offer,Spread,BidQuantity,OfferCuantity,Change,Position,PandL,CumPandL"+inventory.ToHeader();
                         sb.Insert(0,line + Environment.NewLine);
@@ -127,7 +127,7 @@ namespace TickZoom.Common
                         var file = appDataFolder + Path.DirectorySeparatorChar + "Random.csv";
                         File.WriteAllText(file, sb.ToString());
                     }
-                    if( debug && MaxInventorySize > 50000)
+                    if( debug && MaxInventorySize > 90000)
                     {
                         throw new ApplicationException("MaxInventory was " + MaxInventorySize + " at random seed: " + seed);
                     }

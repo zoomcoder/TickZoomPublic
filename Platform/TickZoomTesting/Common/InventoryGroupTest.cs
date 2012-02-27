@@ -203,7 +203,7 @@ namespace TickZoom.Common
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
             Random random = new Random(818519479);
             var monteCarloPass = new MonteCarloPass(symbol,priceChanges);
-            monteCarloPass.RandomPass(818519479, true);
+            monteCarloPass.RandomPass(1946050763, true);
         }
 
         [Test]
@@ -221,7 +221,7 @@ namespace TickZoom.Common
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
             Random random = new Random(12349871);
             var list = new List<MonteCarloPass>();
-            for( var i=1; i<500; i++)
+            for( var i=1; i<100; i++)
             {
                 var monteCarloPass = new MonteCarloPass(symbol, priceChanges);
                 //monteCarloPass.iterations = 25000;
