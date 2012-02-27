@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.Text;
 using System.IO;
 using System.Collections.Generic;
+using TickZoom.Examples;
 
 namespace TickZoom.Common
 {

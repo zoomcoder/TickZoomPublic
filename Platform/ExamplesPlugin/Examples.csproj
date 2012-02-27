@@ -126,6 +126,9 @@
     <Compile Include="Strategies\ExampleBreakoutReversal.cs" />
     <Compile Include="Strategies\ExampleBreakoutStops.cs" />
     <Compile Include="Strategies\ExampleOptionStrategy.cs" />
+    <Compile Include="Strategies\InventoryGroup.cs" />
+    <Compile Include="Strategies\InventoryGroupDefault.cs" />
+    <Compile Include="Strategies\InventoryType.cs" />
     <Compile Include="Strategies\LimitBracketStrategy.cs" />
     <Compile Include="Strategies\LimitChangeStrategy.cs" />
     <Compile Include="Strategies\LimitReversalStrategy.cs" />

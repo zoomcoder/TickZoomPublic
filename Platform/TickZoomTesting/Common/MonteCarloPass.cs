@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text;
 using TickZoom.Api;
+using TickZoom.Examples;
 
 namespace TickZoom.Common
 {
