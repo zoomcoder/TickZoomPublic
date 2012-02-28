@@ -88,7 +88,11 @@ namespace TickZoom.Examples
                 maxSpread = spread;
             }
 
-            bid -= additionalTicks*symbol.MinimumTick;
+            if( additionalTicks > 0)
+            {
+                bid -= additionalTicks * symbol.MinimumTick;
+                //offer = Math.Min(offer,bid + 100 * symbol.MinimumTick);
+            }
         }
 
         private void AssertGreater(double expected, double actual, string message)
@@ -160,7 +164,11 @@ namespace TickZoom.Examples
                 maxSpread = spread;
             }
 
-            offer += additionalTicks*symbol.MinimumTick;
+            if( additionalTicks > 0)
+            {
+                offer += additionalTicks * symbol.MinimumTick;
+                //bid = Math.Max(bid,offer - 100*symbol.MinimumTick);
+            }
         }
 
         public double PriceToChange(int quantity)

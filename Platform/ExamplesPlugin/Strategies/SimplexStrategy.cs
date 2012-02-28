@@ -13,11 +13,11 @@ namespace TickZoom.Examples
             base.OnInitialize();
             inventory = (InventoryGroup)new InventoryGroupDefault(Data.SymbolInfo);
             inventory.Retrace = .60;
-            inventory.StartingLotSize = 5000;
+            inventory.StartingLotSize = 1000;
             inventory.RoundLotSize = 1000;
             inventory.MinimumLotSize = 1000;
             inventory.MaximumLotSize = inventory.MinimumLotSize * 10;
-            inventory.Goal = 1000;
+            inventory.Goal = 10000;
         }
 
         public override bool OnProcessTick(Tick tick)
