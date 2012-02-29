@@ -109,7 +109,7 @@ namespace TickZoom.Examples
             if (trace) log.Trace("Long: Beginning " + BeginningPrice + ", break even " + BreakEven + ", min price " + binary.MinPrice + ", bid " + bid + ", offer " + offer + ", position " + binary.CurrentPosition);
             if (binary.CurrentPosition != 0)
             {
-                AssertGreaterOrEqual(BeginningPrice, BreakEven, "extreme >= break even");
+                AssertGreaterOrEqual(BeginningPrice, BreakEven, "beginning >= break even");
                 AssertGreaterOrEqual(Round(BreakEven), Round(bid), "break even >= bid");
                 AssertGreater(offer, bid, "offer > bid");
             }
@@ -186,7 +186,7 @@ namespace TickZoom.Examples
             {
                 AssertGreaterOrEqual(Round(offer), Round(BreakEven), "break even > bid");
                 AssertGreater(offer, bid, "offer > bid");
-                AssertGreaterOrEqual(BreakEven, BeginningPrice, "break even > extreme");
+                AssertGreaterOrEqual(BreakEven, BeginningPrice, "break even > beginning");
                 //AssertGreaterOrEqual(binary.MaxPrice, breakEven, "MaxPrice >= break even");
             }
             var spread = offer - bid;
@@ -322,17 +322,18 @@ namespace TickZoom.Examples
                 {
                     positionChange = Math.Min(positionChange, -counter.CurrentPosition);
                     counter.Change(price, positionChange);
-                    if( counter.Completed)
+                    var closedPoints = counter.ClosedPoints; 
+                    if( closedPoints > 0)
                     {
-                        var closedPoints = counter.ClosedPoints; 
-                        if( closedPoints > 0)
-                        {
-                            var positionSize = Math.Abs(binary.CurrentPosition);
-                            var points = BeginningPrice * positionSize;
-                            points -= closedPoints;
-                            var newExtreme = points / positionSize;
-                            beginningPrice = newExtreme;
-                        }
+                        var positionSize = Math.Abs(binary.CurrentPosition);
+                        var points = BeginningPrice * positionSize;
+                        points -= closedPoints;
+                        var newExtreme = points / positionSize;
+                        beginningPrice = newExtreme;
+                        counter.ClosedPoints = 0;
+                    }
+                    if (counter.Completed)
+                    {
                         counter = default(TransactionPairBinary);
                     }
                 }

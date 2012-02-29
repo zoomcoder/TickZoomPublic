@@ -304,6 +304,7 @@ namespace TickZoom.Api
         public double ClosedPoints
         {
             get { return closedPoints; }
+            set { closedPoints = value; }
         }
 
         public int LongVolume
