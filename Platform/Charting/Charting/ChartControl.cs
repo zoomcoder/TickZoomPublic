@@ -116,7 +116,7 @@ namespace TickZoom.Charting
 		public void ChartResize(object sender, EventArgs e)
 		{
 			if( debug) log.Debug("ChartResize()");
-            if (isDynamicUpdate && isAutoScroll)
+            if (isDynamicUpdate && isAutoScroll && !pauseScrolling)
             {
                 AutoZoom(dataGraph.GraphPane);
             }
@@ -1301,19 +1301,21 @@ namespace TickZoom.Charting
                         dataGraph.PointToolTip.SetToolTip(dataGraph, sb.ToString());
                         currentToolTipIndex = dragIndex;
                         dataGraph.PointToolTip.Active = true;
-                        isAutoScroll = false;
+                        pauseScrolling = true;
                     }
                 }
                 else
                 {
                     if( IsLastBarVisible && isDynamicUpdate)
                     {
-                        isAutoScroll = true;
+                        pauseScrolling = false;
                     }
                     dataGraph.PointToolTip.Active = false;
                 }
             }
         }
+
+	    private bool pauseScrolling;
 
 	    private PointF mousePt;
         private bool DataGraphMouseMoveEvent(ZedGraph.ZedGraphControl sender, System.Windows.Forms.MouseEventArgs e)
@@ -1471,7 +1473,7 @@ namespace TickZoom.Charting
                         bool resetAxis = false;
                         bool redraw = false;
                         timer.Interval = 200;
-                        if (!isScrolling && isAutoScroll)
+                        if (!isScrolling && isAutoScroll && !pauseScrolling)
                         {
                             if (KeepWithinScale())
                             {
@@ -1631,6 +1633,7 @@ namespace TickZoom.Charting
 			isAutoScroll = !isAutoScroll;
             if (isAutoScroll && isDynamicUpdate && !IsLastBarVisible)
             {
+                pauseScrolling = false;
                 AutoZoom(dataGraph.GraphPane);
             }
         }
@@ -1725,7 +1728,7 @@ namespace TickZoom.Charting
 		void DataGraphZoomEvent(object sender, ZoomState oldState, ZoomState newState)
 		{
 		    isAutoScroll = IsLastBarVisible && isDynamicUpdate;
-            if( isAutoScroll)
+            if( isAutoScroll && !pauseScrolling)
             {
                 var xScale = dataGraph.GraphPane.XAxis.Scale;
                 xScale.Max += 10*_clusterWidth;
@@ -1738,7 +1741,7 @@ namespace TickZoom.Charting
 			if( e.Type == ScrollEventType.EndScroll) {
 				isScrolling = false;
 			    isAutoScroll = IsLastBarVisible && IsDynamicUpdate;
-                if( isAutoScroll)
+                if( isAutoScroll && !pauseScrolling)
                 {
                     var xScale = dataGraph.GraphPane.XAxis.Scale;
                     xScale.Max += 10 * _clusterWidth;

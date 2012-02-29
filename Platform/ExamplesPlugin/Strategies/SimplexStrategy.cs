@@ -30,8 +30,6 @@ namespace TickZoom.Examples
 
             CalcMarketPrices(tick);
 
-            UpdateIndicators(tick);
-
             SetupBidAsk();
 
             //HandleWeekendRollover(tick);
@@ -40,15 +38,20 @@ namespace TickZoom.Examples
             {
                 ProcessOrders(tick);
             }
+
+            UpdateIndicators(tick);
+
             return true;
+        }
+
+        protected override void SetFlatBidAsk()
+        {
+            SetBidOffer();
         }
 
         protected override void SetupBidAsk()
         {
-            if( Position.IsFlat)
-            {
-                SetBidOffer();
-            }
+
         }
 
         private void SetBidOffer()
