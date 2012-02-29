@@ -21,7 +21,7 @@ namespace TickZoom.Examples
         protected double lastMidPoint;
         protected double indifferencePrice;
         protected bool throttleIncreasing = false;
-        private bool isVisible = false;
+        protected bool isVisible = false;
         protected int sequentialIncreaseCount;
         protected double minimumTick;
         protected int lotSize = 1000;
@@ -137,7 +137,7 @@ namespace TickZoom.Examples
             }
         }
 
-        protected void SetFlatBidAsk()
+        protected virtual void SetFlatBidAsk()
         {
             var tick = Ticks[0];
             var midPoint = (tick.Bid + tick.Ask) / 2;

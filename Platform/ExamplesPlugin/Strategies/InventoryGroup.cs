@@ -13,7 +13,6 @@ namespace TickZoom.Examples
 
     public interface InventoryGroup
     {
-        double BreakEven { get; }
         int Size { get; }
         int MinimumLotSize { get; set; }
         int MaximumLotSize { get; set; }
@@ -28,9 +27,13 @@ namespace TickZoom.Examples
         int OfferSize { get; }
         int BidSize { get; }
         InventoryType Type { get; set; }
+        double ExtremePrice { get; }
+        double BeginningPrice { get; }
+        double BreakEven { get; }
         void CalculateBidOffer(double bid, double offer);
         void Change( double price, int positionChange);
         double CurrentProfitLoss(double price);
         string ToHeader();
+        void UpdateBidAsk(double marketBid, double marketAsk);
     }
 }

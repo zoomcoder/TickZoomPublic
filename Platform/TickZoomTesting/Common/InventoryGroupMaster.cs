@@ -338,5 +338,19 @@ namespace TickZoom.Common
             }
         }
 
+        public double ExtremePrice
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public double BeginningPrice
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public void UpdateBidAsk(double marketBid, double marketAsk)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

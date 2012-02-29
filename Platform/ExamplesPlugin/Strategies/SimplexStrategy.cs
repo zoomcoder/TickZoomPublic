@@ -1,11 +1,16 @@
 using System;
 using TickZoom.Api;
+using System.Drawing;
+using TickZoom.Common;
 
 namespace TickZoom.Examples
 {
     public class SimplexStrategy : BaseSimpleStrategy
     {
         private InventoryGroup inventory;
+        private IndicatorCommon beginningPrice;
+        private IndicatorCommon averagePrice;
+        private IndicatorCommon extremePrice;
 
         public override void OnInitialize()
         {
@@ -18,6 +23,21 @@ namespace TickZoom.Examples
             inventory.MinimumLotSize = 1000;
             inventory.MaximumLotSize = inventory.MinimumLotSize * 10;
             inventory.Goal = 10000;
+
+            beginningPrice = Formula.Indicator();
+            beginningPrice.Name = "Begin";
+            beginningPrice.Drawing.IsVisible = isVisible;
+            beginningPrice.Drawing.Color = Color.Orange;
+
+            averagePrice = Formula.Indicator();
+            averagePrice.Name = "Avg";
+            averagePrice.Drawing.IsVisible = isVisible;
+            averagePrice.Drawing.Color = Color.Orange;
+
+            extremePrice = Formula.Indicator();
+            extremePrice.Name = "Extreme";
+            extremePrice.Drawing.IsVisible = isVisible;
+            extremePrice.Drawing.Color = Color.Orange;
         }
 
         public override bool OnProcessTick(Tick tick)
@@ -30,6 +50,8 @@ namespace TickZoom.Examples
 
             CalcMarketPrices(tick);
 
+            inventory.UpdateBidAsk(marketBid, marketAsk);
+
             SetupBidAsk();
 
             //HandleWeekendRollover(tick);
@@ -40,6 +62,7 @@ namespace TickZoom.Examples
             }
 
             UpdateIndicators(tick);
+            UpdateIndicators();
 
             return true;
         }
@@ -58,17 +81,29 @@ namespace TickZoom.Examples
         {
             inventory.CalculateBidOffer(marketBid, marketAsk);
             bid = inventory.Bid;
-            bidLine[0] = bid;
             BuySize = inventory.BidSize;
             ask = inventory.Offer;
-            askLine[0] = ask;
             SellSize = inventory.OfferSize;
+        }
+
+        private void UpdateIndicators()
+        {
+            bidLine[0] = bid.Round();
+            askLine[0] = ask.Round();
+            beginningPrice[0] = inventory.BeginningPrice == 0D ? double.NaN : inventory.BeginningPrice.Round();
+            averagePrice[0] = inventory.BreakEven == 0D ? double.NaN : inventory.BreakEven.Round();
+            extremePrice[0] = inventory.ExtremePrice == 0D ? double.NaN : inventory.ExtremePrice.Round();
         }
 
         private int previousPosition;
 
+        private TimeStamp debugTime = new TimeStamp("2011-08-03 17:58");
         public override void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
+            if( Data.Ticks[0].Time > debugTime)
+            {
+                int x = 0;
+            }
             var change = comboTrade.CurrentPosition - previousPosition;
             inventory.Change(fill.Price, change);
             SetBidOffer();
@@ -77,6 +112,10 @@ namespace TickZoom.Examples
 
         public override void OnExitTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
+            if (Data.Ticks[0].Time > debugTime)
+            {
+                int x = 0;
+            }
             var change = comboTrade.CurrentPosition - previousPosition;
             inventory.Change(fill.Price, change);
             SetBidOffer();
@@ -85,6 +124,10 @@ namespace TickZoom.Examples
 
         public override void  OnChangeTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
+            if (Data.Ticks[0].Time > debugTime)
+            {
+                int x = 0;
+            }
             var change = comboTrade.CurrentPosition - previousPosition;
             inventory.Change(fill.Price, change);
             SetBidOffer();
