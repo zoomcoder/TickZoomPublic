@@ -219,7 +219,7 @@ namespace Loaders
                 // Clear tick syncs.
                 foreach (var tickSync in SyncTicks.TickSyncs)
                 {
-                    tickSync.Value.ForceClear();
+                    tickSync.Value.ForceClear("RunStrategy");
                 }
                 try
                 {

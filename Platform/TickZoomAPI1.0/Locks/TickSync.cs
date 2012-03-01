@@ -119,7 +119,7 @@ namespace TickZoom.Api
                 //System.Diagnostics.Debugger.Break();
                 //throw new ApplicationException("Tick, position changes, physical orders, and physical fills, must all complete before clearing the tick sync. Current numbers are: " + this);
             }
-            ForceClear();
+            ForceClear("Clear()");
         }
 
         public bool TryLock()
@@ -137,7 +137,7 @@ namespace TickZoom.Api
             Interlocked.Exchange(ref (*state).isLocked, 0);
         }
 
-        public void ForceClear()
+        public void ForceClear(string message)
         {
             Interlocked.Exchange(ref (*state).ticks, 0);
             Interlocked.Exchange(ref (*state).physicalOrders, 0);
@@ -151,7 +151,7 @@ namespace TickZoom.Api
             Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
             Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
             Unlock();
-            if (trace) log.Trace("ForceClear() " + this);
+            if (trace) log.Trace("ForceClear(" +message+ ") " + this);
         }
 
         public void TryHeartbeatReset()

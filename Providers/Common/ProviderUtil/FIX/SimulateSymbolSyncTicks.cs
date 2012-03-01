@@ -294,7 +294,7 @@ namespace TickZoom.FIX
                     {
                         if (debug) log.Debug("fillSimulator is null.");
                     }
-                    tickSync.ForceClear();
+                    tickSync.ForceClear("DisposeSimulator");
                 }
     		}
             else
