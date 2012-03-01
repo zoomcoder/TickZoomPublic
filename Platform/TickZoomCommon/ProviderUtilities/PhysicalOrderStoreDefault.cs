@@ -782,23 +782,22 @@ namespace TickZoom.Common
         {
             if (writeFileResult != null && !writeFileResult.IsCompleted)
             {
-                if (debug) log.Debug("ForceSnapshot() - snapshot write already in progress.");
-                return;
+                if (debug) log.Debug("ForceSnapshot() - snapshot in progress. Waiting before beginning another snapshot...");
+                WaitForSnapshot();
             }
             if (anySnapShotWritten)
             {
                 if (IsBusy)
                 {
-                    if (debug) log.Debug("ForceSnapshot() - snapshot already started...");
+                    if (debug) log.Debug("ForceSnapshot() - snapshot already started. Waiting before beginning another snapshot...");
                     WaitForSnapshot();
                 }
-                else
-                {
-                    if (debug) log.Debug("ForceSnapshot() - starting snapshot now...");
-                    RequestSnapshot();
-                    StartSnapShot();
-                    WaitForSnapshot();
-                }
+
+                if (debug) log.Debug("ForceSnapshot() - starting snapshot now...");
+                RequestSnapshot();
+                StartSnapShot();
+                WaitForSnapshot();
+
                 if (debug) log.Debug("ForceSnapshot() - snapshot complete.");
             }
         }
