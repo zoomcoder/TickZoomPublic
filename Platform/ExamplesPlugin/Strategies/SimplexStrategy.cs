@@ -7,37 +7,15 @@ namespace TickZoom.Examples
 {
     public class SimplexStrategy : BaseSimpleStrategy
     {
-        private InventoryGroup inventory;
-        private IndicatorCommon beginningPrice;
-        private IndicatorCommon averagePrice;
-        private IndicatorCommon extremePrice;
+        public SpreadIncrease bidSpread;
+        public SpreadIncrease offerSpread;
 
         public override void OnInitialize()
         {
             lotSize = 1;
             base.OnInitialize();
-            inventory = (InventoryGroup)new InventoryGroupDefault(Data.SymbolInfo);
-            inventory.Retrace = .60;
-            inventory.StartingLotSize = 1000;
-            inventory.RoundLotSize = 1000;
-            inventory.MinimumLotSize = 1000;
-            inventory.MaximumLotSize = inventory.MinimumLotSize * 10;
-            inventory.Goal = 10000;
-
-            beginningPrice = Formula.Indicator();
-            beginningPrice.Name = "Begin";
-            beginningPrice.Drawing.IsVisible = isVisible;
-            beginningPrice.Drawing.Color = Color.Orange;
-
-            averagePrice = Formula.Indicator();
-            averagePrice.Name = "Avg";
-            averagePrice.Drawing.IsVisible = isVisible;
-            averagePrice.Drawing.Color = Color.Orange;
-
-            extremePrice = Formula.Indicator();
-            extremePrice.Name = "Extreme";
-            extremePrice.Drawing.IsVisible = isVisible;
-            extremePrice.Drawing.Color = Color.Orange;
+            bidSpread = new SpreadIncrease(3*Data.SymbolInfo.MinimumTick, 3 * Data.SymbolInfo.MinimumTick);
+            offerSpread = new SpreadIncrease(3 * Data.SymbolInfo.MinimumTick, 3 * Data.SymbolInfo.MinimumTick);
         }
 
         public override bool OnProcessTick(Tick tick)
@@ -49,8 +27,6 @@ namespace TickZoom.Examples
             Orders.SetAutoCancel();
 
             CalcMarketPrices(tick);
-
-            inventory.UpdateBidAsk(marketBid, marketAsk);
 
             SetupBidAsk();
 
@@ -79,59 +55,54 @@ namespace TickZoom.Examples
 
         private void SetBidOffer()
         {
-            inventory.CalculateBidOffer(marketBid, marketAsk);
-            bid = inventory.Bid;
-            BuySize = inventory.BidSize;
-            ask = inventory.Offer;
-            SellSize = inventory.OfferSize;
+            //inventory.CalculateBidOffer(marketBid, marketAsk);
+            bid = midPoint - bidSpread.CurrentSpread;
+            BuySize = 1000;
+            ask = midPoint + offerSpread.CurrentSpread;
+            SellSize = 1000;
         }
 
         private void UpdateIndicators()
         {
             bidLine[0] = bid.Round();
             askLine[0] = ask.Round();
-            beginningPrice[0] = inventory.BeginningPrice == 0D ? double.NaN : inventory.BeginningPrice.Round();
-            averagePrice[0] = inventory.BreakEven == 0D ? double.NaN : inventory.BreakEven.Round();
-            extremePrice[0] = inventory.ExtremePrice == 0D ? double.NaN : inventory.ExtremePrice.Round();
         }
 
         private int previousPosition;
-
-        private TimeStamp debugTime = new TimeStamp("2011-08-03 17:58");
-        public override void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
+        private void ProcessChange(TransactionPairBinary comboTrade)
         {
-            if( Data.Ticks[0].Time > debugTime)
-            {
-                int x = 0;
-            }
+            var lots = (Math.Abs(comboTrade.CurrentPosition)/1000);
+            var tick = Ticks[0];
             var change = comboTrade.CurrentPosition - previousPosition;
-            inventory.Change(fill.Price, change);
+            if( comboTrade.CurrentPosition > 0)
+            {
+                bidSpread.CurrentSpread = bidSpread.StartingSpread + bidSpread.IncreaseSpread*lots;
+                var divisor = Math.Max(1, lots / 4);
+                offerSpread.CurrentSpread = (breakEvenPrice - tick.Bid) / divisor;
+            }
+            if( comboTrade.CurrentPosition < 0)
+            {
+                offerSpread.CurrentSpread = offerSpread.StartingSpread + offerSpread.IncreaseSpread * lots;
+                var divisor = Math.Max(1, lots / 4);
+                bidSpread.CurrentSpread = (tick.Ask - breakEvenPrice) / divisor;
+            }
             SetBidOffer();
             previousPosition = comboTrade.CurrentPosition;
+        }
+
+        public override void OnEnterTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
+        {
+            ProcessChange(comboTrade);
         }
 
         public override void OnExitTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
-            if (Data.Ticks[0].Time > debugTime)
-            {
-                int x = 0;
-            }
-            var change = comboTrade.CurrentPosition - previousPosition;
-            inventory.Change(fill.Price, change);
-            SetBidOffer();
-            previousPosition = comboTrade.CurrentPosition;
+            ProcessChange(comboTrade);
         }
 
         public override void  OnChangeTrade(TransactionPairBinary comboTrade, LogicalFill fill, LogicalOrder filledOrder)
         {
-            if (Data.Ticks[0].Time > debugTime)
-            {
-                int x = 0;
-            }
-            var change = comboTrade.CurrentPosition - previousPosition;
-            inventory.Change(fill.Price, change);
-            SetBidOffer();
-            previousPosition = comboTrade.CurrentPosition;
+            ProcessChange(comboTrade);
         }
     }
 }

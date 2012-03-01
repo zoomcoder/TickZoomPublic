@@ -19,7 +19,7 @@ namespace TickZoom.Examples
         protected double lastMarketAsk;
         protected double increaseSpread;
         protected double lastMidPoint;
-        protected double indifferencePrice;
+        protected double breakEvenPrice;
         protected bool throttleIncreasing = false;
         protected bool isVisible = false;
         protected int sequentialIncreaseCount;
@@ -74,28 +74,28 @@ namespace TickZoom.Examples
             if (comboTrades.Count > 0)
             {
                 var comboTrade = comboTrades.Tail;
-                indifferencePrice = CalcIndifferencePrice(comboTrade);
+                breakEvenPrice = CalcIndifferencePrice(comboTrade);
                 if (filterIndifference)
                 {
-                    var avgDivergence = Math.Abs(tick.Bid - indifferencePrice) / minimumTick;
+                    var avgDivergence = Math.Abs(tick.Bid - breakEvenPrice) / minimumTick;
                     if (avgDivergence > 150 || Position.IsFlat)
                     {
                         averagePrice[0] = double.NaN;
                     }
                     else
                     {
-                        averagePrice[0] = indifferencePrice;
+                        averagePrice[0] = breakEvenPrice;
                     }
                 }
                 else
                 {
-                    averagePrice[0] = indifferencePrice;
+                    averagePrice[0] = breakEvenPrice;
                 }
             }
             else
             {
-                indifferencePrice = (tick.Ask + tick.Bid) / 2;
-                averagePrice[0] = indifferencePrice;
+                breakEvenPrice = (tick.Ask + tick.Bid) / 2;
+                averagePrice[0] = breakEvenPrice;
             }
 
             if (bidLine.Count > 0)
@@ -155,11 +155,11 @@ namespace TickZoom.Examples
         {
             if (Performance.ComboTrades.Count > 0)
             {
-                indifferencePrice = CalcIndifferencePrice(Performance.ComboTrades.Tail);
+                breakEvenPrice = CalcIndifferencePrice(Performance.ComboTrades.Tail);
             }
             else
             {
-                indifferencePrice = price;
+                breakEvenPrice = price;
             }
             lastMidPoint = midPoint;
             SetupBidAsk();
@@ -326,12 +326,12 @@ namespace TickZoom.Examples
                 else
                 {
                     Orders.Change.ActiveNow.SellLimit(ask, SellSize * lotSize);
-                    //Orders.Reverse.ActiveNow.SellLimit(indifferencePrice + closeProfitInTicks * minimumTick, SellSize * lotSize);
+                    //Orders.Reverse.ActiveNow.SellLimit(breakEvenPrice + closeProfitInTicks * minimumTick, SellSize * lotSize);
                 }
             }
             else
             {
-                Orders.Reverse.ActiveNow.SellLimit(indifferencePrice + closeProfitInTicks * minimumTick, SellSize * lotSize);
+                Orders.Reverse.ActiveNow.SellLimit(breakEvenPrice + closeProfitInTicks * minimumTick, SellSize * lotSize);
             }
         }
 
@@ -352,12 +352,12 @@ namespace TickZoom.Examples
                 else
                 {
                     Orders.Change.ActiveNow.BuyLimit(bid, BuySize * lotSize);
-                    //Orders.Reverse.ActiveNow.BuyLimit(indifferencePrice - closeProfitInTicks * minimumTick, BuySize * lotSize);
+                    //Orders.Reverse.ActiveNow.BuyLimit(breakEvenPrice - closeProfitInTicks * minimumTick, BuySize * lotSize);
                 }
             }
             else
             {
-                Orders.Reverse.ActiveNow.BuyLimit(indifferencePrice - closeProfitInTicks * minimumTick, BuySize * lotSize);
+                Orders.Reverse.ActiveNow.BuyLimit(breakEvenPrice - closeProfitInTicks * minimumTick, BuySize * lotSize);
             }
         }
         public bool IsVisible

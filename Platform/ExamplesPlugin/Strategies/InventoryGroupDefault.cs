@@ -89,11 +89,11 @@ namespace TickZoom.Examples
             //else
             {
                 bidSize = minimumLotSize;
-                bid = PriceToChange(bidSize);
+                bid = PriceToChange(bidSize,marketBid);
             }
 
             offerSize = minimumLotSize;
-            offer = PriceToChange(-offerSize);
+            offer = PriceToChange(-offerSize,marketOffer);
             offer = Math.Max(offer, marketOffer);
 
             var priceToClose = PriceToClose();
@@ -164,11 +164,11 @@ namespace TickZoom.Examples
             //else
             {
                 offerSize = minimumLotSize;
-                offer = PriceToChange(-offerSize);
+                offer = PriceToChange(-offerSize,marketOffer);
             }
 
             bidSize = minimumLotSize;
-            bid = PriceToChange(bidSize);
+            bid = PriceToChange(bidSize,marketBid);
             bid = Math.Min(bid, marketBid);
 
             var priceToClose = PriceToClose();
@@ -201,14 +201,14 @@ namespace TickZoom.Examples
             }
         }
 
-        public double PriceToChange(int quantity)
+        public double PriceToChange(int quantity, double price)
         {
             var retraceComplement = 1 - Retrace;
             var totalValue = (binary.CurrentPosition * breakEven);
             var upper = retrace * BeginningPrice * (quantity + binary.CurrentPosition) - totalValue;
             var lower = retrace * quantity - retraceComplement * binary.CurrentPosition;
-            var price = upper / lower;
-            return price;
+            var result = upper / lower;
+            return result;
         }
 
         public int QuantityToChange(double price)
@@ -219,7 +219,7 @@ namespace TickZoom.Examples
             var r_favorable = Retrace * favorableExcursion;
             var r_adverse = retraceComplement * adverseExcursion;
 
-            var upper = binary.CurrentPosition * (r_favorable + r_adverse - BreakEven);
+            var upper = binary.CurrentPosition * (r_favorable + r_adverse - breakEven);
             var lower = Retrace * (adverseExcursion - favorableExcursion);
             var quantity = upper / lower;
             return (int)quantity;

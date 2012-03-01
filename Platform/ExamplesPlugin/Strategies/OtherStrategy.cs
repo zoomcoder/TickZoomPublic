@@ -384,16 +384,16 @@ namespace TickZoom.Examples
             var indifferenceCompare = retraceLine[0];
             if (Position.IsShort)
             {
-                var buyIndifference = CalcIndifferenceUpdate(indifferencePrice, Position.Size, bid, -BuySize * lotSize);
+                var buyIndifference = CalcIndifferenceUpdate(breakEvenPrice, Position.Size, bid, -BuySize * lotSize);
                 var retraceDelta = indifferenceCompare - buyIndifference;
                 BuySize = 0;
 
                 if (!enableSizing || lots <= 10) return;
 
                 if ( ask > maxExcursionLine[0] &&
-                    indifferencePrice < indifferenceCompare)
+                    breakEvenPrice < indifferenceCompare)
                 {
-                    SellSize = CalcAdjustmentSize(indifferencePrice, Position.Size, indifferenceCompare + retraceErrorMarginInTicks * minimumTick, ask);
+                    SellSize = CalcAdjustmentSize(breakEvenPrice, Position.Size, indifferenceCompare + retraceErrorMarginInTicks * minimumTick, ask);
                     SellSize = Math.Min(SellSize, 10000);
                     if( limitSize)
                     {
@@ -405,16 +405,16 @@ namespace TickZoom.Examples
 
             if (Position.IsLong)
             {
-                var sellIndifference = CalcIndifferenceUpdate(indifferencePrice, Position.Size, ask, -SellSize * lotSize);
+                var sellIndifference = CalcIndifferenceUpdate(breakEvenPrice, Position.Size, ask, -SellSize * lotSize);
                 var retraceDelta = sellIndifference - indifferenceCompare;
                 SellSize = 0;
 
                 if (!enableSizing || lots <= 10) return;
 
                 if (bid < maxExcursionLine[0] &&
-                    indifferencePrice > indifferenceCompare)
+                    breakEvenPrice > indifferenceCompare)
                 {
-                    BuySize = CalcAdjustmentSize(indifferencePrice, Position.Size, indifferenceCompare - retraceErrorMarginInTicks * minimumTick, bid);
+                    BuySize = CalcAdjustmentSize(breakEvenPrice, Position.Size, indifferenceCompare - retraceErrorMarginInTicks * minimumTick, bid);
                     BuySize = Math.Min(BuySize, 10000);
                     if (limitSize)
                     {
