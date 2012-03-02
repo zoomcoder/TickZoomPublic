@@ -85,68 +85,66 @@ namespace TickZoom.Api
 		void Show();
 		void Hide();
 		void AudioNotify( Audio clip);
-		bool ShowPriceGraph {
-			get ;
-			set ;
-		}
-		
-		bool IsDynamicUpdate {
-			get ;
-			set ;
-		}
-		
-		StrategyInterface StrategyForTrades {
-			get ;
-			set ;
-		}
-		
-		SymbolInfo Symbol {
-			get;
-			set;
-		}
-		
-		[Obsolete("Please use only ChartBars instead.",true)]
-		Bars UpdateBars {
-			get;
-			set;
-		}
+        bool ShowPriceGraph
+        {
+            get; set;
+        }
 
-		[Obsolete("Please use only ChartBars instead.",true)]
-		Bars DisplayBars {
-			get;
-			set;
-		}
-		
-		Bars ChartBars {
-			get;
-			set;
-		}
+        bool IsDynamicUpdate
+        {
+            get; set;
+        }
+
+        StrategyInterface StrategyForTrades
+        {
+            get; set;
+        }
+
+        SymbolInfo Symbol
+        {
+            get; set;
+        }
+
+        [Obsolete("Please use only ChartBars instead.", true)]
+        Bars UpdateBars
+        {
+            get; set;
+        }
+
+        [Obsolete("Please use only ChartBars instead.", true)]
+        Bars DisplayBars
+        {
+            get; set;
+        }
+
+        Bars ChartBars
+        {
+            get; set;
+        }
 		
 		/// <summary>
 		/// Obsolete. Please use only IntervalChartBar instead.
 		/// </summary>
-		[Obsolete("Please use only IntervalChartBar instead.",true)]
-		Interval IntervalChartDisplay {
-			get;
-			set;
-		}
+        [Obsolete("Please use only IntervalChartBar instead.", true)]
+        Interval IntervalChartDisplay
+        {
+            get; set;
+        }
 		
 		/// <summary>
 		/// Obsolete. Please use only IntervalChartBar instead.
 		/// </summary>
-		[Obsolete("Please use only IntervalChartBar instead.",true)]
-		Interval IntervalChartUpdate {
-			get;
-			set;
-		}
-		
-		Interval IntervalChartBar {
-			get;
-			set;
-		}
-		
-		List<IndicatorInterface> Indicators {
-			get;
-		}
+        [Obsolete("Please use only IntervalChartBar instead.", true)]
+        Interval IntervalChartUpdate
+        {
+            get; set;
+        }
+
+        Interval IntervalChartBar
+        {
+            get; set;
+        }
+
+	    List<IndicatorInterface> Indicators { get; }
 	}
 }

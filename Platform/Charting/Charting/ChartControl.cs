@@ -122,13 +122,10 @@ namespace TickZoom.Charting
             }
         }
 		
-		private delegate void WriteLineDelegate(string text);		
-		
 		public void WriteLine(string text) {
 		    if(InvokeRequired)
 		    {
-		        // This is a worker thread so delegate the task.
-		        logTextBox.Invoke(new WriteLineDelegate(WriteLine), text);
+		        execute.OnUIThread(() => WriteLine(text));
 		    }
 		    else
 		    {
@@ -140,47 +137,56 @@ namespace TickZoom.Charting
 		}
 		
 		public void AudioNotify(Audio clip) {
-			if( audioCheckBox.Checked)
-			{
-			    var fileName = "";
-				try {
-					switch( clip) {
-						case Audio.RisingVolume:
-					        fileName = Factory.Settings["RisingVolume"];
-                            if( string.IsNullOrEmpty(fileName))
-                            {
-                                fileName = @"..\..\Media\RisingVolume.wav";
-                            }
-						    SoundPlayer simpleSound = new SoundPlayer(fileName);
-						    simpleSound.Play();
-						    break;
-						case Audio.IntervalChime:
-                            fileName = Factory.Settings["IntervalChime"];
-                            if (string.IsNullOrEmpty(fileName))
-                            {
-                                fileName = @"..\..\Media\IntervalChime.wav";
-                            }
-						    simpleSound = new SoundPlayer(fileName);
-						    simpleSound.Play();
-						    break;
-                        case Audio.TradeChime:
-                            fileName = Factory.Settings["TradeChime"];
-                            if (string.IsNullOrEmpty(fileName))
-                            {
-                                fileName = @"..\..\Media\TradeChime.wav";
-                            }
-                            simpleSound = new SoundPlayer(fileName);
-                            simpleSound.Play();
-                            break;
+            if (InvokeRequired)
+            {
+                execute.OnUIThread(() => AudioNotify(clip));
+            }
+            else
+            {
+                if (audioCheckBox.Checked)
+                {
+                    var fileName = "";
+                    try
+                    {
+                        switch (clip)
+                        {
+                            case Audio.RisingVolume:
+                                fileName = Factory.Settings["RisingVolume"];
+                                if (string.IsNullOrEmpty(fileName))
+                                {
+                                    fileName = @"..\..\Media\RisingVolume.wav";
+                                }
+                                SoundPlayer simpleSound = new SoundPlayer(fileName);
+                                simpleSound.Play();
+                                break;
+                            case Audio.IntervalChime:
+                                fileName = Factory.Settings["IntervalChime"];
+                                if (string.IsNullOrEmpty(fileName))
+                                {
+                                    fileName = @"..\..\Media\IntervalChime.wav";
+                                }
+                                simpleSound = new SoundPlayer(fileName);
+                                simpleSound.Play();
+                                break;
+                            case Audio.TradeChime:
+                                fileName = Factory.Settings["TradeChime"];
+                                if (string.IsNullOrEmpty(fileName))
+                                {
+                                    fileName = @"..\..\Media\TradeChime.wav";
+                                }
+                                simpleSound = new SoundPlayer(fileName);
+                                simpleSound.Play();
+                                break;
+                        }
                     }
-				}
-                catch( Exception e)
-				{
-				    var message = "Error playing " + clip + " with file " + fileName + " because " + e.Message;
-					log.Notice(message);
-                    log.Info(message,e);
-				}
-			}
+                    catch (Exception e)
+                    {
+                        var message = "Error playing " + clip + " with file " + fileName + " because " + e.Message;
+                        log.Notice(message);
+                        log.Info(message, e);
+                    }
+                }
+            }
 		}
 	
 		private void InitializeChart( )
@@ -334,60 +340,71 @@ namespace TickZoom.Charting
 		
 		/// <inheritdoc />
 		public int DrawText(string text, Color color, int bar, double y, Positioning orient) {
-			double x = barToXAxis(bar);
-			TextObj textObj = new TextObj(text, x,y);
-			textObj.IsClippedToChartRect=true;
-			switch( orient) {
-				case Positioning.UpperLeft:
-					textObj.Location.AlignH = AlignH.Left;
-					textObj.Location.AlignV = AlignV.Top;
-					break;
-				case Positioning.LowerLeft:
-					textObj.Location.AlignH = AlignH.Left;
-					textObj.Location.AlignV = AlignV.Bottom;
-					break;
-				case Positioning.LowerRight:
-					textObj.Location.AlignH = AlignH.Right;
-					textObj.Location.AlignV = AlignV.Bottom;
-					break;
-				case Positioning.UpperRight:
-					textObj.Location.AlignH = AlignH.Right;
-					textObj.Location.AlignV = AlignV.Top;
-					break;
-			}
-			textObj.FontSpec.FontColor = color;
-			textObj.FontSpec.Border.IsVisible = false;
-			textObj.FontSpec.Fill.IsVisible = false;
-			objectId++;
-		   
-			textObjs.Add(objectId,textObj);
-		    priceGraphPane.GraphObjList.Add(textObj);
-		   
-			return objectId;
+            double x = barToXAxis(bar);
+            TextObj textObj = new TextObj(text, x, y);
+            textObj.IsClippedToChartRect = true;
+            switch (orient)
+            {
+                case Positioning.UpperLeft:
+                    textObj.Location.AlignH = AlignH.Left;
+                    textObj.Location.AlignV = AlignV.Top;
+                    break;
+                case Positioning.LowerLeft:
+                    textObj.Location.AlignH = AlignH.Left;
+                    textObj.Location.AlignV = AlignV.Bottom;
+                    break;
+                case Positioning.LowerRight:
+                    textObj.Location.AlignH = AlignH.Right;
+                    textObj.Location.AlignV = AlignV.Bottom;
+                    break;
+                case Positioning.UpperRight:
+                    textObj.Location.AlignH = AlignH.Right;
+                    textObj.Location.AlignV = AlignV.Top;
+                    break;
+            }
+            textObj.FontSpec.FontColor = color;
+            textObj.FontSpec.Border.IsVisible = false;
+            textObj.FontSpec.Fill.IsVisible = false;
+            var id = objectId++;
+
+		    execute.OnUIThread(() =>
+		                           {
+		                               textObjs.Add(id, textObj);
+		                               priceGraphPane.GraphObjList.Add(textObj);
+		                           });
+
+            return objectId;
 		}
 		
 		public int DrawBox(Color color, int bar, double y) {
-			double width = 0.25;
-			double height = 10;
-			double x = barToXAxis(bar);
-			double xwidth = barToXAxis(x+width) - barToXAxis(x);
-			BoxObj box = new BoxObj(x-xwidth/2,y+height/2,xwidth,height,color,color);
-			box.IsClippedToChartRect=true;
-			objectId++;
-			
-			graphObjs.Add(objectId,box);
-		    priceGraphPane.GraphObjList.Add(box);
-			return objectId;
-		}
+            double width = 0.25;
+            double height = 10;
+            double x = barToXAxis(bar);
+            double xwidth = barToXAxis(x + width) - barToXAxis(x);
+            BoxObj box = new BoxObj(x - xwidth/2, y + height/2, xwidth, height, color, color);
+            box.IsClippedToChartRect = true;
+            var id = objectId++;
+
+            execute.OnUIThread(() =>
+                                   {
+                                       graphObjs.Add(id, box);
+                                       priceGraphPane.GraphObjList.Add(box);
+                                   }
+                );
+            return objectId;
+        }
 		
 		public int DrawBox(Color color, int bar, double y, double width, double height) {
 			double x = barToXAxis(bar);
 			BoxObj box = new BoxObj(x,y,width,height,color,color);
 			box.IsClippedToChartRect=true;
 			box.ZOrder = ZOrder.E_BehindCurves;
-			objectId++;
-			graphObjs.Add(objectId,box);
-		    priceGraphPane.GraphObjList.Add(box);
+            var id = objectId++;
+            execute.OnUIThread(() =>
+		                           {
+		                               graphObjs.Add(id, box);
+		                               priceGraphPane.GraphObjList.Add(box);
+		                           });
 			return objectId;
 		}
 		
@@ -400,9 +417,12 @@ namespace TickZoom.Charting
 		
 		public int DrawArrow( ArrowDirection direction, Color color, float size, int bar, double price) {
 			ArrowObj arrow = CreateArrow(direction,color,size,bar,price);
-			objectId++;
-			graphObjs.Add(objectId,arrow);
-		    priceGraphPane.GraphObjList.Add(arrow);
+            var id = objectId++;
+            execute.OnUIThread(() =>
+		                           {
+		                               graphObjs.Add(id, arrow);
+		                               priceGraphPane.GraphObjList.Add(arrow);
+		                           });
 			return objectId;
 		}
 
@@ -491,10 +511,13 @@ namespace TickZoom.Charting
                 });
             }
 
-		    objectId++;
-		    graphObjs.Add(objectId,arrow);
-	        priceGraphPane.GraphObjList.Add(arrow);
-            execute.OnUIThread(() => AudioNotify(Audio.TradeChime));
+            var id = objectId++;
+            execute.OnUIThread(() =>
+		                           {
+		                               graphObjs.Add(id, arrow);
+		                               priceGraphPane.GraphObjList.Add(arrow);
+		                               AudioNotify(Audio.TradeChime);
+		                           });
 			return objectId;
 		}
 		
@@ -518,9 +541,12 @@ namespace TickZoom.Charting
 	
 		public int DrawLine( Color color, Point p1, Point p2, LineStyle style) {
 			LineObj line = CreateLine(color,p1.X,p1.Y,p2.X,p2.Y,style);
-			objectId++;
-			graphObjs.Add(objectId,line);
-		    priceGraphPane.GraphObjList.Add(line);
+            var id = objectId++;
+            execute.OnUIThread(() =>
+		                           {
+		                               graphObjs.Add(id, line);
+		                               priceGraphPane.GraphObjList.Add(line);
+		                           });
 			return objectId;
 		}
 		
@@ -544,15 +570,21 @@ namespace TickZoom.Charting
 			double x1 = barToXAxis(bar1);
 			double x2 = barToXAxis(bar2);
 			LineObj line = CreateLine(color,x1,y1,x2,y2,style);
-			objectId++;
-			graphObjs.Add(objectId,line);
-		    priceGraphPane.GraphObjList.Add(line);
+			var id = objectId++;
+		    execute.OnUIThread(() =>
+		                           {
+		                               graphObjs.Add(id, line);
+		                               priceGraphPane.GraphObjList.Add(line);
+		                           });
 			return objectId;
 		}
 		
 		public void ChangeLine( int lineId, Color color, int bar1, double y1, int bar2, double y2, LineStyle style) {
 			LineObj line = CreateLine(color,barToXAxis(bar1),y1,barToXAxis(bar2),y2,style);
-			priceGraphPane.GraphObjList[lineId] = line;
+		    execute.OnUIThread(() =>
+		                           {
+		                               priceGraphPane.GraphObjList[lineId] = line;
+		                           });
 		}
 		
 		private LineObj CreateLine( Color color, double x1, double y1, double x2, double y2, LineStyle style) {
@@ -589,22 +621,25 @@ namespace TickZoom.Charting
 		private volatile bool isBusy = false;		
 		public void AddBar( Bars chartBars) {
             if (trace) log.Trace("AddBar()");
-			if( !isBusy) {
-				isBusy = true;
-				AddBarPrivate();
-	            addBarOccurred = true;
-			}
+           if (!isBusy)
+           {
+               isBusy = true;
+               AddBarPrivate();
+               addBarOccurred = true;
+           }
 		}
 
 
 	    private volatile bool tickUpdate = false;
-		public void UpdateTick() {
-            if (trace) log.Trace("UpdateTick()");
-			if( !isBusy) {
-				isBusy = true;
-				AddBarPrivate();
-			    tickUpdate = true;
-			}
+		public void UpdateTick()
+		{
+		    if (trace) log.Trace("UpdateTick()");
+		    if (!isBusy)
+		    {
+		        isBusy = true;
+		        AddBarPrivate();
+		        tickUpdate = true;
+		    }
 		}
 		
         private volatile bool addBarOccurred = false;
