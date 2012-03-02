@@ -7,15 +7,21 @@ namespace TickZoom.Examples
 {
     public class SimplexStrategy : BaseSimpleStrategy
     {
-        public SpreadIncrease bidSpread;
-        public SpreadIncrease offerSpread;
-
+        private double startingSpread;
+        private double addInventorySpread;
+        private double removeInventorySpread;
+        private double bidSpread;
+        private double offerSpread;
+        private double extremePrice;
+        private int maxLots;
         public override void OnInitialize()
         {
             lotSize = 1;
             base.OnInitialize();
-            bidSpread = new SpreadIncrease(3*Data.SymbolInfo.MinimumTick, 3 * Data.SymbolInfo.MinimumTick);
-            offerSpread = new SpreadIncrease(3 * Data.SymbolInfo.MinimumTick, 3 * Data.SymbolInfo.MinimumTick);
+            bidSpread = offerSpread = startingSpread = 3 * Data.SymbolInfo.MinimumTick;
+            addInventorySpread = 3 * Data.SymbolInfo.MinimumTick;
+            removeInventorySpread = addInventorySpread*10;
+            BuySize = SellSize = 1000;
         }
 
         public override bool OnProcessTick(Tick tick)
@@ -55,11 +61,18 @@ namespace TickZoom.Examples
 
         private void SetBidOffer()
         {
-            //inventory.CalculateBidOffer(marketBid, marketAsk);
-            bid = midPoint - bidSpread.CurrentSpread;
-            BuySize = 1000;
-            ask = midPoint + offerSpread.CurrentSpread;
-            SellSize = 1000;
+            bid = midPoint - bidSpread;
+            ask = midPoint + offerSpread;
+            if( Position.IsLong && ask > breakEvenPrice)
+            {
+                ask = breakEvenPrice + 20*Data.SymbolInfo.MinimumTick;
+                SellSize = Position.Size;
+            }
+            if( Position.IsShort && bid < breakEvenPrice)
+            {
+                bid = breakEvenPrice - 20*Data.SymbolInfo.MinimumTick;
+                BuySize = Position.Size;
+            }
         }
 
         private void UpdateIndicators()
@@ -72,19 +85,51 @@ namespace TickZoom.Examples
         private void ProcessChange(TransactionPairBinary comboTrade)
         {
             var lots = (Math.Abs(comboTrade.CurrentPosition)/1000);
+            if( lots > maxLots)
+            {
+                maxLots = lots;
+            }
+            var extension = Math.Abs(breakEvenPrice - midPoint);
             var tick = Ticks[0];
             var change = comboTrade.CurrentPosition - previousPosition;
-            if( comboTrade.CurrentPosition > 0)
+            if( comboTrade.CurrentPosition > 0) 
             {
-                bidSpread.CurrentSpread = bidSpread.StartingSpread + bidSpread.IncreaseSpread*lots;
-                var divisor = Math.Max(1, lots / 4);
-                offerSpread.CurrentSpread = (breakEvenPrice - tick.Bid) / divisor;
+                BuySize = SellSize = 1000;
+                if (comboTrade.ExitPrice < breakEvenPrice)
+                {
+                    bidSpread = startingSpread + addInventorySpread * lots;
+                    var divisor = Math.Max(1, lots / 4);
+                    var removedLots = maxLots - lots;
+                    offerSpread = removeInventorySpread + removeInventorySpread * removedLots;
+                    //offerSpread = extension / divisor;
+                }
+                else
+                {
+                    bidSpread = offerSpread = startingSpread;
+                }
             }
-            if( comboTrade.CurrentPosition < 0)
+            else if( comboTrade.CurrentPosition < 0)
             {
-                offerSpread.CurrentSpread = offerSpread.StartingSpread + offerSpread.IncreaseSpread * lots;
-                var divisor = Math.Max(1, lots / 4);
-                bidSpread.CurrentSpread = (tick.Ask - breakEvenPrice) / divisor;
+                BuySize = SellSize = 1000;
+                if (comboTrade.ExitPrice > breakEvenPrice)
+                {
+                    offerSpread = startingSpread + addInventorySpread * lots;
+                    var divisor = Math.Max(1, lots / 4);
+                    var removedLots = maxLots - lots;
+                    bidSpread = removeInventorySpread + removeInventorySpread * removedLots;
+                    //bidSpread = extension / divisor;
+                }
+                else
+                {
+                    bidSpread = offerSpread = startingSpread;
+                }
+            }
+            else
+            {
+                maxLots = 0;
+                bidSpread = startingSpread;
+                offerSpread = startingSpread;
+                BuySize = SellSize = 1000;
             }
             SetBidOffer();
             previousPosition = comboTrade.CurrentPosition;

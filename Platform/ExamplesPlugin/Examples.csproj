@@ -136,7 +136,6 @@
     <Compile Include="Strategies\OtherStrategy.cs" />
     <Compile Include="Strategies\SimpleStrategy.cs" />
     <Compile Include="Strategies\SimplexStrategy.cs" />
-    <Compile Include="Strategies\SpreadIncrease.cs" />
     <Compile Include="Strategies\TestCancelReplaceStrategy.cs" />
     <Compile Include="Strategies\TestStopStrategy.cs" />
     <Compile Include="Strategies\Unsupported\BreakoutTrend.cs" />
