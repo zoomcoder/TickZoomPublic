@@ -195,7 +195,7 @@ namespace TickZoom.TickUtil
 				try
 				{
 				    var loopCount = 0;
-                    while (!CancelPending && loopCount < 1000)
+                    while (!CancelPending && loopCount < 1000 && tickBoxPool.AllocatedCount < tickBoxPool.Capacity)
 					{
                         ++loopCount;
                         if( !tickFile.TryReadTick(tickIO) )

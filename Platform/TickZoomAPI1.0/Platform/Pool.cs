@@ -36,5 +36,6 @@ namespace TickZoom.Api
 		void Free(T item);
 		void Clear();
 	    int AllocatedCount { get; }
+	    int Capacity { get; }
 	}
 }
