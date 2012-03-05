@@ -9,7 +9,6 @@ namespace TickZoom.Examples
     {
         private double startingSpread;
         private double addInventorySpread;
-        private double removeInventorySpread;
         private double bidSpread;
         private double offerSpread;
         private double extremePrice;
@@ -20,7 +19,6 @@ namespace TickZoom.Examples
             base.OnInitialize();
             bidSpread = offerSpread = startingSpread = 3 * Data.SymbolInfo.MinimumTick;
             addInventorySpread = 3 * Data.SymbolInfo.MinimumTick;
-            removeInventorySpread = addInventorySpread*10;
             BuySize = SellSize = 1000;
         }
 
@@ -92,16 +90,12 @@ namespace TickZoom.Examples
             var extension = Math.Abs(breakEvenPrice - midPoint);
             var tick = Ticks[0];
             var change = comboTrade.CurrentPosition - previousPosition;
-            if( comboTrade.CurrentPosition > 0) 
+            if( comboTrade.CurrentPosition > 0)
             {
                 BuySize = SellSize = 1000;
                 if (comboTrade.ExitPrice < breakEvenPrice)
                 {
-                    bidSpread = startingSpread + addInventorySpread * lots;
-                    var divisor = Math.Max(1, lots / 4);
-                    var removedLots = maxLots - lots;
-                    offerSpread = removeInventorySpread + removeInventorySpread * removedLots;
-                    //offerSpread = extension / divisor;
+                    offerSpread = bidSpread = startingSpread + addInventorySpread * maxLots;
                 }
                 else
                 {
@@ -113,11 +107,7 @@ namespace TickZoom.Examples
                 BuySize = SellSize = 1000;
                 if (comboTrade.ExitPrice > breakEvenPrice)
                 {
-                    offerSpread = startingSpread + addInventorySpread * lots;
-                    var divisor = Math.Max(1, lots / 4);
-                    var removedLots = maxLots - lots;
-                    bidSpread = removeInventorySpread + removeInventorySpread * removedLots;
-                    //bidSpread = extension / divisor;
+                    bidSpread = offerSpread = startingSpread + addInventorySpread * maxLots;
                 }
                 else
                 {
