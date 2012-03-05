@@ -1847,7 +1847,8 @@ namespace TickZoom.Common
             CreateOrChangeOrder order;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
             {
-                throw new ApplicationException("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+                log.Warn("ConfirmChange: Cannot find physical order for id " + brokerOrder);
+                return;
             }
             ++confirmedOrderCount;
             order.OrderState = OrderState.Active;
@@ -1873,7 +1874,8 @@ namespace TickZoom.Common
             CreateOrChangeOrder order;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
             {
-                throw new ApplicationException("ConfirmActive: Cannot find physical order for id " + brokerOrder);
+                log.Warn("ConfirmActive: Cannot find physical order for id " + brokerOrder);
+                return;
             }
             if (debug) log.Debug("ConfirmActive(" + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             order.OrderState = OrderState.Active;
@@ -1892,7 +1894,8 @@ namespace TickZoom.Common
             CreateOrChangeOrder order;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
             {
-                throw new ApplicationException("ConfirmCreate: Cannot find physical order for id " + brokerOrder);
+                log.Warn("ConfirmCreate: Cannot find physical order for id " + brokerOrder);
+                return;
             }
             ++confirmedOrderCount;
             order.OrderState = OrderState.Active;
@@ -1946,7 +1949,8 @@ namespace TickZoom.Common
             CreateOrChangeOrder cancelOrder;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out cancelOrder))
             {
-                throw new ApplicationException("ConfirmCancel: Cannot find physical order for id " + brokerOrder);
+                log.Warn("ConfirmCancel: Cannot find physical order for id " + brokerOrder);
+                return;
             }
             if (cancelOrder.Action != OrderAction.Cancel)
             {
