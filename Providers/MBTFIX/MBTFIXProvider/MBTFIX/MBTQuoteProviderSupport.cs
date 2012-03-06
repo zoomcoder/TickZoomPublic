@@ -80,7 +80,7 @@ namespace TickZoom.MBTQuotes
 	    private string configSection;
         private bool useLocalTickTime = true;
         private volatile bool debugDisconnect = false;
-	    private int timeSeconds = int.MaxValue;
+	    private int timeSeconds = 10;
 	    private TrueTimer taskTimer;
         private Agent agent;
         public Agent Agent
@@ -98,6 +98,10 @@ namespace TickZoom.MBTQuotes
             RefreshLogLevel();
             string logRecoveryString = Factory.Settings["LogRecovery"];
             logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
+            if( timeSeconds > 30)
+            {
+                log.Error("MBTQuotesProvider retry time greater then 30 seconds: " + int.MaxValue);
+            }
         }
 
         public void Initialize(Task task)
@@ -105,6 +109,7 @@ namespace TickZoom.MBTQuotes
             socketTask = task;
             socketTask.Scheduler = Scheduler.EarliestTime;
             taskTimer = Factory.Parallel.CreateTimer("Task", socketTask, TimerTask);
+            if (debug) log.Debug("Created timer. (Default startTime: " + taskTimer.StartTime + ")");
             filter = socketTask.GetFilter();
             socketTask.Start();
             if (debug) log.Debug("> Initialize.");
@@ -271,6 +276,7 @@ namespace TickZoom.MBTQuotes
             TimeStamp currentTime = TimeStamp.UtcNow;
             currentTime.AddSeconds(timeSeconds);
             taskTimer.Start(currentTime);
+            if (debug) log.Debug("Created timer. (Default startTime: " + taskTimer.StartTime + ")");
             return Invoke();
         }
 
@@ -500,6 +506,7 @@ namespace TickZoom.MBTQuotes
             TimeStamp currentTime = TimeStamp.UtcNow;
             currentTime.AddSeconds(timeSeconds);
             taskTimer.Start(currentTime);
+            if (debug) log.Debug("Created timer. (Default startTime: " + taskTimer.StartTime + ")");
 
             RegenerateSocket();
             retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
