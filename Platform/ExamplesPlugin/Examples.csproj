@@ -112,6 +112,7 @@
     <Compile Include="Loaders\ExampleScannerLoader.cs" />
     <Compile Include="Loaders\ExampleReversalLoader.cs" />
     <Compile Include="Loaders\ExampleDualSymbolLoader.cs" />
+    <Compile Include="Loaders\HedgeLoader.cs" />
     <Compile Include="Loaders\LimitBracketLoader.cs" />
     <Compile Include="Loaders\LimitChangeLoader.cs" />
     <Compile Include="Loaders\LimitReversalLoader.cs" />
