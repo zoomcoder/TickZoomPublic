@@ -265,7 +265,7 @@ namespace TickZoom.Common
         {
             foreach (var queueOrder in GetActiveOrders(order.Symbol))
             {
-                if (order.Action == OrderAction.Create && order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
+                if (queueOrder.Action == OrderAction.Create && order.LogicalSerialNumber == queueOrder.LogicalSerialNumber)
                 {
                     if (debug) log.Debug("Create ignored because order was already on create order queue: " + queueOrder);
                     return true;
