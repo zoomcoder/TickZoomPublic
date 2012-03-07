@@ -238,6 +238,8 @@ namespace TickZoom.Api
 
 	    int TestFinishedTimeout { get; set; }
 
+	    Interval PortfolioSyncInterval { get; set; }
+
 	    void Release();
     	
 	}

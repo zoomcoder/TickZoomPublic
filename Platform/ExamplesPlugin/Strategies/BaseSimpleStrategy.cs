@@ -12,14 +12,16 @@ namespace TickZoom.Examples
         private IndicatorCommon position;
         private IndicatorCommon averagePrice;
         protected bool filterIndifference = false;
-        protected double ask, marketAsk;
-        protected double bid, marketBid;
+        protected double ask;
+        private double marketAsk;
+        protected double bid;
+        private double marketBid;
         protected double midPoint;
         protected double lastMarketBid;
         protected double lastMarketAsk;
         protected double increaseSpread;
         protected double lastMidPoint;
-        protected double breakEvenPrice;
+        private double breakEvenPrice;
         protected bool throttleIncreasing = false;
         protected bool isVisible = false;
         protected int sequentialIncreaseCount;
@@ -376,6 +378,21 @@ namespace TickZoom.Examples
         {
             get { return sellSize; }
             set { sellSize = value; }
+        }
+
+        public double BreakEvenPrice
+        {
+            get { return breakEvenPrice; }
+        }
+
+        public double MarketAsk
+        {
+            get { return marketAsk; }
+        }
+
+        public double MarketBid
+        {
+            get { return marketBid; }
         }
     }
 }

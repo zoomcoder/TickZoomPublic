@@ -17,34 +17,22 @@ namespace TickZoom.Examples
 
         public override void OnInitialize(ProjectProperties properties)
         {
+            properties.Starter.PortfolioSyncInterval = Intervals.Second1;
         }
 
         public override void OnLoad(ProjectProperties properties)
         {
-            var strategies = new List<Strategy>();
+            var portfolio = new SimplexPortfolio();
             foreach (var symbol in properties.Starter.SymbolProperties)
             {
                 symbol.LimitOrderQuoteSimulation = LimitOrderQuoteSimulation.OppositeQuoteTouch;
-                var iistrategy = new SimplexStrategy();
+                var strategy = new SimplexStrategy();
                 strategy.SymbolDefault = symbol.Symbol;
                 strategy.IsActive = true;
                 strategy.IsVisible = true;
-                strategies.Add(strategy);
+                portfolio.AddDependency(strategy);
             }
-
-            if (strategies.Count == 1)
-            {
-                TopModel = strategies[0];
-            }
-            else
-            {
-                var portfolio = new Portfolio();
-                foreach (var strategy in strategies)
-                {
-                    portfolio.AddDependency(strategy);
-                }
-                TopModel = portfolio;
-            }
+            TopModel = portfolio;
         }
     }
 }

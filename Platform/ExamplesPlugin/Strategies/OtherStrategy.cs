@@ -149,26 +149,26 @@ namespace TickZoom.Examples
             switch (stretchDirection)
             {
                 case Direction.UpTrend:
-                    if (marketBid > maxStretch)
+                    if (MarketBid > maxStretch)
                     {
-                        var increase = (marketBid - maxStretch) / 2;
+                        var increase = (MarketBid - maxStretch) / 2;
                         rubberBand[0] += increase;
-                        maxStretch = marketBid;
+                        maxStretch = MarketBid;
                     }
-                    else if (marketAsk <= rubberBand[0])
+                    else if (MarketAsk <= rubberBand[0])
                     {
                         stretchDirection = Direction.Sideways;
                         goto Sideways;
                     }
                     break;
                 case Direction.DownTrend:
-                    if (marketAsk < maxStretch)
+                    if (MarketAsk < maxStretch)
                     {
-                        var decrease = (maxStretch - marketAsk) / 2;
+                        var decrease = (maxStretch - MarketAsk) / 2;
                         rubberBand[0] -= decrease;
-                        maxStretch = marketAsk;
+                        maxStretch = MarketAsk;
                     }
-                    else if (marketBid >= rubberBand[0])
+                    else if (MarketBid >= rubberBand[0])
                     {
                         stretchDirection = Direction.Sideways;
                         goto Sideways;
@@ -281,11 +281,11 @@ namespace TickZoom.Examples
             {
                 if( Position.IsLong)
                 {
-                    if( marketAsk < riskRetrace)
+                    if( MarketAsk < riskRetrace)
                     {
-                        riskRetrace = marketAsk;
+                        riskRetrace = MarketAsk;
                     }
-                    if( marketBid > riskRetrace)
+                    if( MarketBid > riskRetrace)
                     {
                         state = StrategyState.Active;
                         SetupBidAsk(maxExcursionLine[0]);
@@ -293,11 +293,11 @@ namespace TickZoom.Examples
                 }
                 if( Position.IsShort)
                 {
-                    if( marketBid > riskRetrace)
+                    if( MarketBid > riskRetrace)
                     {
-                        riskRetrace = marketBid;
+                        riskRetrace = MarketBid;
                     }
-                    if( marketAsk < riskRetrace)
+                    if( MarketAsk < riskRetrace)
                     {
                         state = StrategyState.Active;
                         SetupBidAsk(maxExcursionLine[0]);
@@ -384,16 +384,16 @@ namespace TickZoom.Examples
             var indifferenceCompare = retraceLine[0];
             if (Position.IsShort)
             {
-                var buyIndifference = CalcIndifferenceUpdate(breakEvenPrice, Position.Size, bid, -BuySize * lotSize);
+                var buyIndifference = CalcIndifferenceUpdate(BreakEvenPrice, Position.Size, bid, -BuySize * lotSize);
                 var retraceDelta = indifferenceCompare - buyIndifference;
                 BuySize = 0;
 
                 if (!enableSizing || lots <= 10) return;
 
                 if ( ask > maxExcursionLine[0] &&
-                    breakEvenPrice < indifferenceCompare)
+                    BreakEvenPrice < indifferenceCompare)
                 {
-                    SellSize = CalcAdjustmentSize(breakEvenPrice, Position.Size, indifferenceCompare + retraceErrorMarginInTicks * minimumTick, ask);
+                    SellSize = CalcAdjustmentSize(BreakEvenPrice, Position.Size, indifferenceCompare + retraceErrorMarginInTicks * minimumTick, ask);
                     SellSize = Math.Min(SellSize, 10000);
                     if( limitSize)
                     {
@@ -405,16 +405,16 @@ namespace TickZoom.Examples
 
             if (Position.IsLong)
             {
-                var sellIndifference = CalcIndifferenceUpdate(breakEvenPrice, Position.Size, ask, -SellSize * lotSize);
+                var sellIndifference = CalcIndifferenceUpdate(BreakEvenPrice, Position.Size, ask, -SellSize * lotSize);
                 var retraceDelta = sellIndifference - indifferenceCompare;
                 SellSize = 0;
 
                 if (!enableSizing || lots <= 10) return;
 
                 if (bid < maxExcursionLine[0] &&
-                    breakEvenPrice > indifferenceCompare)
+                    BreakEvenPrice > indifferenceCompare)
                 {
-                    BuySize = CalcAdjustmentSize(breakEvenPrice, Position.Size, indifferenceCompare - retraceErrorMarginInTicks * minimumTick, bid);
+                    BuySize = CalcAdjustmentSize(BreakEvenPrice, Position.Size, indifferenceCompare - retraceErrorMarginInTicks * minimumTick, bid);
                     BuySize = Math.Min(BuySize, 10000);
                     if (limitSize)
                     {
@@ -431,7 +431,7 @@ namespace TickZoom.Examples
             var tempVolatileSpread = Math.Min(1000 * increaseSpread, Math.Pow(1.1D, lots - 1) * increaseSpread);
             var tempIncreaseSpread = state == StrategyState.HighRisk ? tempVolatileSpread : volatileSpread;
             var myAsk = Position.IsLong ? price + reduceSpread : maxExcursionLine[0] + tempIncreaseSpread + sequentialAdjustment;
-            ask = Math.Max(myAsk, marketAsk);
+            ask = Math.Max(myAsk, MarketAsk);
             askLine[0] = ask;
         }
 
@@ -442,7 +442,7 @@ namespace TickZoom.Examples
             var tempVolatileSpread = Math.Min(1000 * increaseSpread, Math.Pow(1.1D, lots - 1) * increaseSpread);
             var tempIncreaseSpread = state == StrategyState.HighRisk ? tempVolatileSpread : volatileSpread;
             var myBid = Position.IsLong ? (maxExcursionLine[0] - tempIncreaseSpread) - sequentialAdjustment : price - reduceSpread;
-            bid = Math.Min(myBid, marketBid);
+            bid = Math.Min(myBid, MarketBid);
             bidLine[0] = bid;
         }
 
@@ -510,8 +510,8 @@ namespace TickZoom.Examples
             fills.AddFirst(new LocalFill(fill));
             maxExcursionLine[0] = fill.Price;
             sequentialIncreaseCount = 0;
-            lastMarketAsk = marketAsk;
-            lastMarketBid = marketBid;
+            lastMarketAsk = MarketAsk;
+            lastMarketBid = MarketBid;
             ResetRubberBand();
             maxEquity = Performance.Equity.CurrentEquity;
             maxDrawDown = 0D;

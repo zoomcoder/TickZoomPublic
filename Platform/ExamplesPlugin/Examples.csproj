@@ -123,6 +123,7 @@
     <Compile Include="Loaders\TestCancelReplaceLoader.cs" />
     <Compile Include="Loaders\TestStopLoader.cs" />
     <Compile Include="Portfolios\Portfolio5000Strategies.cs" />
+    <Compile Include="Portfolios\SimplexPortfolio.cs" />
     <Compile Include="Strategies\BaseSimpleStrategy.cs" />
     <Compile Include="Strategies\ExampleBreakoutReversal.cs" />
     <Compile Include="Strategies\ExampleBreakoutStops.cs" />

@@ -60,7 +60,6 @@ namespace TickZoom.Common
 			performance = new Performance(this);
 			FullName = this.GetType().Name;
 			Performance.GraphTrades = false;
-            //RequestEvent(EventType.Tick);
 		}
 		
 		public sealed override void OnConfigure() {
@@ -173,6 +172,7 @@ namespace TickZoom.Common
 			
 			if( eventType == EventType.LogicalFill) {
 				TryMergeEquity();
+                OnTrade();
 			}
 
             if (eventType == EventType.SynchronizePortfolio)
@@ -186,6 +186,11 @@ namespace TickZoom.Common
 			TryMergeSingleSymbolPositions();
 			TryMergeMultiSymbolEquity();
 		}
+
+        public virtual void OnTrade()
+        {
+            
+        }
 		
 		private void TryMergeSingleSymbolPositions()
 		{

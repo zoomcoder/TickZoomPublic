@@ -42,7 +42,8 @@ namespace TickZoom.Properties
 		private readonly bool trace = log.IsTraceEnabled;
 		TickZoom.Api.TimeStamp startTime;
 		TickZoom.Api.TimeStamp endTime;
-		ChartProperties chartProperties;
+        private Interval portfolioSyncInterval = new IntervalImpl(BarUnit.Day, 1);
+        ChartProperties chartProperties;
 		EngineProperties engineProperties;
 	    private int testFinishedTimeout;
 		
@@ -121,5 +122,11 @@ namespace TickZoom.Properties
 	        get { return testFinishedTimeout; }
 	        set { testFinishedTimeout = value; }
 	    }
+
+        public Interval PortfolioSyncInterval
+        {
+            get { return portfolioSyncInterval; }
+            set { portfolioSyncInterval = value; }
+        }
 	}
 }

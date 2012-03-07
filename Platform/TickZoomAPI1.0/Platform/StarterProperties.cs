@@ -65,7 +65,8 @@ namespace TickZoom.Api
 		}
 
 	    int TestFinishedTimeout { get; set; }
+        Interval PortfolioSyncInterval { get; set; }
 
-	    void CopyProperties(object obj);
+        void CopyProperties(object obj);
 	}
 }

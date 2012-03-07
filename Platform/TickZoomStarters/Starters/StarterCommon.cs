@@ -150,6 +150,7 @@ namespace TickZoom.Starters
                 engine.StartTime = ProjectProperties.Starter.StartTime;
                 engine.EndTime = ProjectProperties.Starter.EndTime;
                 engine.TestFinishedTimeout = ProjectProperties.Starter.TestFinishedTimeout;
+		        engine.PortfolioSyncInterval = ProjectProperties.Starter.PortfolioSyncInterval;
 
                 if (CancelPending) return;
 
