@@ -65,6 +65,9 @@ namespace TickZoom.Examples
 		    var isFlat = Position.IsFlat && (trades.Count == 0 || trades.Tail.Completed);
 			
 			double close = Bars.Close[0];
+            if (IsDebug) Log.Debug("isFlat " + isFlat + ", Position.IsFlat " + Position.IsFlat + ", trades.Count " + trades.Count + ", Completed " + (trades.Count == 0 || trades.Tail.Completed));
+            //if (IsDebug) Log.Debug("Close " + Bars.Close[0] + ", Open " + Bars.Open[0] + ", Close[1] " + Bars.Close[1]);
+            if (IsDebug) Log.Debug("Close " + Bars.Close[0] + ", Open " + Bars.Open[0]);
             if (Bars.Close[0] < Bars.Open[0] && Bars.Open[0] < Bars.Close[1])
             {
                 if (isFlat)
