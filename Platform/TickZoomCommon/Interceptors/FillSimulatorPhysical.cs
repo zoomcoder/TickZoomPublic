@@ -50,7 +50,6 @@ namespace TickZoom.Interceptors
                 trace = log.IsTraceEnabled;
             }
         }
-        private static readonly bool notice = staticLog.IsNoticeEnabled;
         private struct FillWrapper
         {
             public bool IsCounterSet;
@@ -58,6 +57,13 @@ namespace TickZoom.Interceptors
             public CreateOrChangeOrder Order;
         }
         private Queue<FillWrapper> fillQueue = new Queue<FillWrapper>();
+        private struct RejectWrapper
+        {
+            public CreateOrChangeOrder Order;
+            public bool RemoveOriginal;
+            public string Message;
+        }
+        private Queue<RejectWrapper> rejectQueue = new Queue<RejectWrapper>();
 
         private PartialFillSimulation partialFillSimulation;
 
@@ -145,7 +151,7 @@ namespace TickZoom.Interceptors
                 var message = "No such order";
                 if (onRejectOrder != null)
                 {
-                    onRejectOrder(order, true, message);
+                    SendReject(order, true, message);
                 }
                 else
                 {
@@ -333,7 +339,7 @@ namespace TickZoom.Interceptors
                 var message = "No such order";
                 if (onRejectOrder != null)
                 {
-                    onRejectOrder(order, true, message);
+                    SendReject(order, true, message);
                 }
                 else
                 {
@@ -498,6 +504,12 @@ namespace TickZoom.Interceptors
                 if (debug) log.Debug("Dequeuing fill ( isOnline " + isOnline + "): " + wrapper.Fill);
                 if (enableSyncTicks && !wrapper.IsCounterSet) tickSync.AddPhysicalFill(wrapper.Fill);
                 onPhysicalFill(wrapper.Fill, wrapper.Order);
+            }
+            while (rejectQueue.Count > 0)
+            {
+                var wrapper = rejectQueue.Dequeue();
+                if (debug) log.Debug("Dequeuing reject " + wrapper.Order);
+                onRejectOrder(wrapper.Order, wrapper.RemoveOriginal, wrapper.Message);
             }
         }
 
@@ -668,12 +680,23 @@ namespace TickZoom.Interceptors
             if (onRejectOrder != null)
             {
                 if (debug) log.Debug("Rejecting order because position is " + actualPosition + " but order side was " + order.Side + ": " + order);
-                onRejectOrder(order, true, message);
+                SendReject(order, true, message);
             }
             else
             {
                 throw new ApplicationException(message + " while handling order: " + order);
             }
+        }
+
+        private void SendReject(CreateOrChangeOrder order, bool removeOriginal, string  message)
+        {
+            var wrapper = new RejectWrapper
+                              {
+                                  Order = order,
+                                  RemoveOriginal = removeOriginal,
+                                  Message = message
+                              };
+            rejectQueue.Enqueue(wrapper);
         }
 
         private bool VerifySellSide(CreateOrChangeOrder order)
