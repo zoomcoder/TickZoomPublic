@@ -902,7 +902,7 @@ namespace TickZoom.MBTFIX
                 }
             }
             if( currentTick == null) return;
-
+            currentTick.State = TickState.Start;
             var tick = currentTick.TickIO;
             var symbol = currentTick.Symbol;
             if( trace) log.Trace("TrySendTick( " + symbol + " " + tick + ")");
