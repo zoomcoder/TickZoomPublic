@@ -144,6 +144,13 @@ namespace TickZoom.Common
             else
             {
                 if (debug) log.Debug("PositionChange event received while FIX was offline or recovering. Skipping SyncPosition and ProcessOrders.");
+                if (enableSyncTicks && isBrokerOnline)
+                {
+                    if (!tickSync.SentWaitingMatch)
+                    {
+                        tickSync.AddWaitingMatch("PositionChange");
+                    }
+                }
             }
             if (enableSyncTicks && !handleSimulatedExits)
             {
@@ -1366,11 +1373,6 @@ namespace TickZoom.Common
                             {
                                 log.Debug("PerformCompareInternal() returned: " + compareSuccess);
                             }
-                            //if( physicalOrderHandler.IsChanged)
-                            //{
-                            //    physicalOrderHandler.ProcessOrders();
-                            //}
-
                             if (trace) log.Trace("PerformCompare finished - " + tickSync);
                         }
                         else
