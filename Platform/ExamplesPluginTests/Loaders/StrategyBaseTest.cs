@@ -123,12 +123,12 @@ namespace Loaders
         public void StartGUIThread() {
             var isRunning = false;
             guiThread = new Thread( () => {
-                                              Thread.CurrentThread.Name = "GUIThread";
                                               execute = Execute.Create();
                                               Application.Idle += execute.MessageLoop;
                                               isRunning = true;
                                               Application.Run();
             });
+            guiThread.Name = "GUIThread";
             guiThread.Start();
             while( !isRunning) {
                 Thread.Sleep(1);
