@@ -752,6 +752,10 @@ namespace TickZoom.MBTQuotes
 		public int HeartbeatDelay {
 			get { return heartbeatDelay; }
 			set { heartbeatDelay = value;
+                if( heartbeatDelay > 10)
+                {
+                    log.Error("Heartbeat delay is " + heartbeatDelay);
+                }
 				IncreaseRetryTimeout();
 			}
 		}

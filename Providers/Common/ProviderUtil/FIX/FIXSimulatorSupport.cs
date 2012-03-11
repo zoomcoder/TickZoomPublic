@@ -109,6 +109,10 @@ namespace TickZoom.FIX
 		    this.quotesPort = quotesPort;
             this.endTime = projectProperties.Starter.EndTime;
 		    var randomSeed = new Random().Next(int.MaxValue);
+            if (heartbeatDelay > 1)
+            {
+                log.Error("Heartbeat delay is " + heartbeatDelay);
+            }
 
 		    if (randomSeed != 1234)
 		    {
@@ -140,9 +144,9 @@ namespace TickZoom.FIX
             simulators[SimulatorType.SendDisconnect].Enabled = allTests;
             simulators[SimulatorType.SendServerOffline].Enabled = allTests;
             simulators[SimulatorType.ReceiveServerOffline].Enabled = allTests;
-            simulators[SimulatorType.BlackHole].Enabled = false;
-            simulators[SimulatorType.CancelBlackHole].Enabled = false;
-            simulators[SimulatorType.SystemOffline].Enabled = false;
+            simulators[SimulatorType.BlackHole].Enabled = allTests;
+            simulators[SimulatorType.CancelBlackHole].Enabled = allTests;
+            simulators[SimulatorType.SystemOffline].Enabled = allTests;
             simulators[SimulatorType.RejectSymbol].Enabled = false;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;

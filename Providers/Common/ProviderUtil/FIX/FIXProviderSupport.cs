@@ -1218,8 +1218,13 @@ namespace TickZoom.FIX
 		
 		public long HeartbeatDelay {
 	    	get { return heartbeatDelay; }
-			set { heartbeatDelay = value;
-				IncreaseHeartbeatTimeout();
+			set {
+                heartbeatDelay = value;
+                if (heartbeatDelay > 40)
+                {
+                    log.Error("Heartbeat delay is " + heartbeatDelay);
+                }
+                IncreaseHeartbeatTimeout();
 			}
 		}
 		
