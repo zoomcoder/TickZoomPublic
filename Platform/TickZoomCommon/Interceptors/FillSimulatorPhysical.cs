@@ -268,6 +268,7 @@ namespace TickZoom.Interceptors
                 nodePool.Free(node);
                 lock (orderMapLocker)
                 {
+                    if( debug) log.Debug("Canceling by id " + oldOrderId + ". Order: " + createOrChangeOrder);
                     orderMap.Remove(oldOrderId);
                 }
                 if (triggers != null)

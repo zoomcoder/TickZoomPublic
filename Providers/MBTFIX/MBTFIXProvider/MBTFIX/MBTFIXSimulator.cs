@@ -153,13 +153,12 @@ namespace TickZoom.MBTFIX
 			    long origClientId;
                 if( !long.TryParse(packet.OriginalClientOrderId, out origClientId))
                 {
-                    log.Error("original client order id " + packet.OriginalClientOrderId +
-                              " cannot be converted to long: " + packet);
+                    log.Error("original client order id " + packet.OriginalClientOrderId + " cannot be converted to long: " + packet);
                     origClientId = 0;
                 }
 				origOrder = GetOrderById( symbol, origClientId);
-			} catch( ApplicationException) {
-				if( debug) log.Debug( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.");
+			} catch( ApplicationException ex) {
+				if( debug) log.Debug( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.  Message: " + ex.Message);
                 OnRejectOrder(order, true, symbol + ": Cannot change order. Probably already filled or canceled.");
 				return;
 			}
