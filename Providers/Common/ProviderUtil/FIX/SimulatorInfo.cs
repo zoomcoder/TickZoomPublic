@@ -122,6 +122,7 @@ namespace TickZoom.FIX
         BlackHole,
         CancelBlackHole,
         SystemOffline,
-        RejectSymbol
+        RejectSymbol,
+        RejectAll,
     }
 }

@@ -113,11 +113,11 @@ namespace TickZoom.Api
             {
                 if( (*Directory.SyncTicksState).enabled != value)
                 {
-                    if( value )
-                    {
-                        Frozen = false;
-                    }
                     (*Directory.SyncTicksState).enabled = value;
+                }
+                if (value)
+                {
+                    Frozen = false;
                 }
             }
 		}
@@ -127,7 +127,11 @@ namespace TickZoom.Api
             get { return (*Directory.SyncTicksState).frozen; }
             set
             {
-                (*Directory.SyncTicksState).frozen = value;
+                if ((*Directory.SyncTicksState).frozen != value)
+                {
+                    log.Debug("Frozed flag changed from " + (*Directory.SyncTicksState).frozen + " to " + value);
+                    (*Directory.SyncTicksState).frozen = value;
+                }
             }
         }
 

@@ -129,9 +129,10 @@ namespace TickZoom.MBTQuotes
             }
         }
 
+	    private Socket previousSocket;
         private void RegenerateSocket()
         {
-			Socket old = socket;
+			previousSocket = socket;
 			if( socket != null) {
 				socket.Dispose();
 			}
@@ -145,8 +146,8 @@ namespace TickZoom.MBTQuotes
 			ConnectionStatus = Status.New;
 			if( trace) {
 				string message = "Generated socket: " + socket;
-				if( old != null) {
-					message += " to replace: " + old;
+				if( previousSocket != null) {
+					message += " to replace: " + previousSocket;
 				}
 				log.Trace(message);
 			}
@@ -400,36 +401,19 @@ namespace TickZoom.MBTQuotes
 							}
 					        Message rawMessage;
 							var receivedMessage = false;
+                            if(previousSocket != null && previousSocket.TryGetMessage(out rawMessage))
+                            {
+                                receivedMessage = true;
+                                ProcessSocketMessage(rawMessage);
+                                socket.MessageFactory.Release(rawMessage);
+                            }
                             if (Socket.TryGetMessage(out rawMessage))
                             {
-								receivedMessage = true;
-                                var message = (MessageMbtQuotes) rawMessage;
-                                message.BeforeRead();
-                                if (trace)
-                                {
-                                    log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
-                                }
-                                if (message.MessageType == '9')
-                                {
-                                    // Received the ping response.
-                                    if( trace) log.Trace("Ping successfully received."); 
-                                    isPingSent = false;
-                                }
-                                else
-                                {
-                                    try
-                                    {
-                                        ReceiveMessage(message);
-                                    }
-                                    catch( Exception ex)
-                                    {
-                                        var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
-                                        log.Error("Unable to process this message:\n" + loggingString, ex);
-                                    }
-                                }
+                                receivedMessage = true;
+                                ProcessSocketMessage(rawMessage);
                                 Socket.MessageFactory.Release(rawMessage);
                             }
-							if( receivedMessage) {
+					        if( receivedMessage) {
 	                           	IncreaseRetryTimeout();
                             }
 
@@ -471,6 +455,34 @@ namespace TickZoom.MBTQuotes
                     throw new ApplicationException(errorMessage);
 			}
 		}
+
+	    private void ProcessSocketMessage(Message rawMessage)
+	    {
+	        var message = (MessageMbtQuotes) rawMessage;
+	        message.BeforeRead();
+	        if (trace)
+	        {
+	            log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
+	        }
+	        if (message.MessageType == '9')
+	        {
+	            // Received the ping response.
+	            if( trace) log.Trace("Ping successfully received."); 
+	            isPingSent = false;
+	        }
+	        else
+	        {
+	            try
+	            {
+	                ReceiveMessage(message);
+	            }
+	            catch( Exception ex)
+	            {
+	                var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
+	                log.Error("Unable to process this message:\n" + loggingString, ex);
+	            }
+	        }
+	    }
 
 	    private bool isPingSent = false;
 	    private void SendPing()
