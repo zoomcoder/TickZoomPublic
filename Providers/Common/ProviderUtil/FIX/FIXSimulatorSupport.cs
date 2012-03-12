@@ -146,7 +146,7 @@ namespace TickZoom.FIX
             simulators[SimulatorType.ReceiveServerOffline].Enabled = allTests;
             simulators[SimulatorType.BlackHole].Enabled = allTests;
             simulators[SimulatorType.CancelBlackHole].Enabled = allTests;
-            simulators[SimulatorType.SystemOffline].Enabled = false;
+            simulators[SimulatorType.SystemOffline].Enabled = allTests;
             simulators[SimulatorType.RejectSymbol].Enabled = false;
             simulators[SimulatorType.RejectAll].Enabled = false;
             simulateReceiveFailed = allTests;
@@ -304,11 +304,13 @@ namespace TickZoom.FIX
             IncreaseHeartbeat();
             return Yield.DidWork.Repeat;
         }
-        
+
+        private Socket previousFixSocket;
         private void OnDisconnectFIX(Socket socket)
 		{
 			if (this.fixSocket.Equals(socket)) {
 				log.Info("FIX socket disconnect: " + socket);
+			    previousFixSocket = socket;
                 StopFIXSimulation();
                 CloseFIXSocket();
 			}
@@ -578,6 +580,10 @@ namespace TickZoom.FIX
 		private bool FIXReadLoop()
 		{
 			if (isFIXSimulationStarted) {
+                if( previousFixSocket != null && previousFixSocket.TryGetMessage(out _fixReadMessage))
+                {
+                    return false;
+                }
 				if (!fixSocket.TryGetMessage(out _fixReadMessage))
 				{
 				    return false;
