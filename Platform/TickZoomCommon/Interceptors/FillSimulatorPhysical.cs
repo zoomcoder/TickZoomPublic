@@ -900,22 +900,6 @@ namespace TickZoom.Interceptors
                 {
                     isOnline = value;
                     if (debug) log.Debug("IsOnline changed to " + isOnline);
-                    if (!createSimulatedFills)
-                    {
-                        if (debug) log.Debug("Switching PhysicalFillSimulator tick sync counter.");
-                        if (isOnline)
-                        {
-                            tickSync.AddPhysicalFillSimulator(name);
-                        }
-                        else
-                        {
-                            tickSync.RemovePhysicalFillSimulator(name);
-                        }
-                    }
-                    else if (debug)
-                    {
-                        log.Debug("createSimulatedFills " + createSimulatedFills);
-                    }
                 }
             }
         }

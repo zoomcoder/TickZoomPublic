@@ -145,7 +145,7 @@ namespace TickZoom.FIX
             simulators[SimulatorType.SendServerOffline].Enabled = allTests;
             simulators[SimulatorType.ReceiveServerOffline].Enabled = allTests;
             simulators[SimulatorType.BlackHole].Enabled = allTests;
-            simulators[SimulatorType.CancelBlackHole].Enabled = false;
+            simulators[SimulatorType.CancelBlackHole].Enabled = allTests;
             simulators[SimulatorType.SystemOffline].Enabled = false;
             simulators[SimulatorType.RejectSymbol].Enabled = false;
             simulators[SimulatorType.RejectAll].Enabled = false;

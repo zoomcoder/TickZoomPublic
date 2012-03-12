@@ -1202,7 +1202,6 @@ namespace TickZoom.Common
                         var message = "Attempting to cancel pending order " + order.BrokerOrder + " because it is stale over " + diff.TotalSeconds + " seconds.";
                         if (enableSyncTicks)
                         {
-                            tickSync.RemoveBlackHole(order.BrokerOrder);
                             log.Info(message);
                         }
                         else
@@ -1225,10 +1224,6 @@ namespace TickZoom.Common
                     {
                         physicalOrderCache.RemoveOrder(order.BrokerOrder);
                         tickSync.RemovePhysicalOrder(order);
-                        if( tickSync.SentBlackHole)
-                        {
-                            tickSync.RemoveBlackHole(order.BrokerOrder);
-                        }
                     }
                 }
             }

@@ -266,6 +266,7 @@ namespace TickZoom.FIX
                 case Status.PendingRecovery:
                 case Status.Recovered:
                 case Status.PendingLogin:
+                case Status.PendingServerResend:
                 case Status.PendingRetry:
                     ConnectionStatus = Status.Disconnected;
                     var startTime = TimeStamp.UtcNow;
