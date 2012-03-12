@@ -297,7 +297,10 @@ namespace Loaders
             catch( Exception ex)
             {
                 log.Error("Exception while running test: " + ex.Message, ex);
-                Environment.Exit(1);
+                if( !System.Diagnostics.Debugger.IsAttached)
+                {
+                    Environment.Exit(1);
+                }
             }
         }
 
@@ -409,7 +412,10 @@ namespace Loaders
             if (testFailed)
             {
                 log.Error("Exiting because one of the tests failed.");
-                Environment.Exit(1);
+                if (!System.Diagnostics.Debugger.IsAttached)
+                {
+                    Environment.Exit(1);
+                }
             }
         }
 		

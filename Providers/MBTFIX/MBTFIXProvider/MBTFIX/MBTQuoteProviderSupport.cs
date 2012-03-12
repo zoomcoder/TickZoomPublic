@@ -383,11 +383,19 @@ namespace TickZoom.MBTQuotes
                                 }
                                 else
                                 {
-                                    isPingSent = false;
-                                    log.Warn("MBTQuotesProvider ping timed out.");
-                                    SetupRetry();
-                                    IncreaseRetryTimeout();
-                                    return Yield.DidWork.Repeat;
+                                    if( SyncTicks.Frozen)
+                                    {
+                                        log.Error("SyncTicks is frozen so skipping retry on quotes heartbeat timeout.");
+                                        heartbeatTimeout = long.MaxValue;
+                                    }
+                                    else
+                                    {
+                                        isPingSent = false;
+                                        log.Warn("MBTQuotesProvider ping timed out.");
+                                        SetupRetry();
+                                        IncreaseRetryTimeout();
+                                        return Yield.DidWork.Repeat;
+                                    }
                                 }
 							}
 					        Message rawMessage;

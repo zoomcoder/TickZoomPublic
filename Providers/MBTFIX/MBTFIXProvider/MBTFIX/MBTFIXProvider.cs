@@ -255,6 +255,10 @@ namespace TickZoom.MBTFIX
             if (SyncTicks.Enabled)
             {
                 HeartbeatDelay = 10;
+                if (HeartbeatDelay > 40)
+                {
+                    log.Error("Heartbeat delay is " + HeartbeatDelay);
+                }
                 RetryDelay = 1;
                 RetryStart = 1;
             }

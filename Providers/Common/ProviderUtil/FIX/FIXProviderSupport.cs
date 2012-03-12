@@ -364,13 +364,29 @@ namespace TickZoom.FIX
             return Yield.DidWork.Repeat;
         }
 
+        private int frozenHeartbeatCounter;
         private Yield HeartBeatTimerEvent()
         {
             var typeStr = ConnectionStatus == Status.PendingLogin ? "Login Timeout" : "Heartbeat timeout";
             log.Info(typeStr + ". Last Message UTC Time: " + lastMessageTime + ", current UTC Time: " + TimeStamp.UtcNow);
             log.Error("FIXProvider " + typeStr);
             SyncTicks.LogStatus();
-            SetupRetry();
+            if (SyncTicks.Frozen)
+            {
+                frozenHeartbeatCounter++;
+                if (frozenHeartbeatCounter > 3)
+                {
+                    if (debug) log.Debug("More than 3 heart beats sent after frozen.  Ending heartbeats.");
+                }
+                else
+                {
+                    SetupRetry();
+                }
+            }
+            else
+            {
+                SetupRetry();
+            }
             IncreaseHeartbeatTimeout();
             return Yield.DidWork.Repeat;
         }
@@ -1220,10 +1236,6 @@ namespace TickZoom.FIX
 	    	get { return heartbeatDelay; }
 			set {
                 heartbeatDelay = value;
-                if (heartbeatDelay > 40)
-                {
-                    log.Error("Heartbeat delay is " + heartbeatDelay);
-                }
                 IncreaseHeartbeatTimeout();
 			}
 		}

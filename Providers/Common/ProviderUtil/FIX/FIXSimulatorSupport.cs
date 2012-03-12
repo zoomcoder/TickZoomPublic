@@ -145,8 +145,8 @@ namespace TickZoom.FIX
             simulators[SimulatorType.SendServerOffline].Enabled = allTests;
             simulators[SimulatorType.ReceiveServerOffline].Enabled = allTests;
             simulators[SimulatorType.BlackHole].Enabled = allTests;
-            simulators[SimulatorType.CancelBlackHole].Enabled = allTests;
-            simulators[SimulatorType.SystemOffline].Enabled = allTests;
+            simulators[SimulatorType.CancelBlackHole].Enabled = false;
+            simulators[SimulatorType.SystemOffline].Enabled = false;
             simulators[SimulatorType.RejectSymbol].Enabled = false;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
@@ -863,7 +863,7 @@ namespace TickZoom.FIX
                         var message = (MessageFIX4_4) packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        tickSync.AddBlackHole(message.ClientOrderId);
+                        //tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -875,7 +875,7 @@ namespace TickZoom.FIX
                         var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        tickSync.AddBlackHole(message.ClientOrderId);
+                        //tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
@@ -887,7 +887,7 @@ namespace TickZoom.FIX
                         var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        tickSync.AddBlackHole(message.ClientOrderId);
+                        //tickSync.AddBlackHole(message.ClientOrderId);
                         return true;
                     }
                     break;
