@@ -155,14 +155,13 @@ namespace TickZoom.FIX
             {
                 var simulator = simulators[SimulatorType.CancelBlackHole];
                 simulator.Frequency = 3;
+
                 simulator = simulators[SimulatorType.BlackHole];
                 simulator.Frequency = 20;
 
                 simulator = simulators[SimulatorType.RejectSymbol];
-                simulator.Enabled = false;
                 simulator.Frequency = 10;
                 simulator.MaxRepetitions = 100;
-
             }
 
 			this._fixMessageFactory = _fixMessageFactory;

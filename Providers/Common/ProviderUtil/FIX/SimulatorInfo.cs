@@ -5,7 +5,7 @@ namespace TickZoom.FIX
 {
     public class SimulatorInfo : LogAware
     {
-        private static Log log = Factory.SysLog.GetLogger(typeof(FIXSimulatorSupport));
+        private static Log log = Factory.SysLog.GetLogger(typeof(SimulatorInfo));
         private volatile bool debug;
         private volatile bool trace;
         private volatile bool verbose;
@@ -89,7 +89,7 @@ namespace TickZoom.FIX
                 if( debug)
                 {
                     var symbolText = symbol != null ? "For " + symbol + ": " : "";
-                    log.Debug(symbolText + "Random " + Type + " occured so causing negative test.");
+                    log.Debug(symbolText + "Random " + Type + " occurred so causing negative test.");
                 }
                 if (MaxRepetitions > 0)
                 {
