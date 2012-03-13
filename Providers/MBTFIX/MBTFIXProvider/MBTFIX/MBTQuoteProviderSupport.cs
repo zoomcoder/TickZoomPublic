@@ -129,42 +129,11 @@ namespace TickZoom.MBTQuotes
             }
         }
 
-	    private Socket previousSocket;
         private void RegenerateSocket()
         {
-			previousSocket = socket;
 			if( socket != null) {
 				socket.Dispose();
 			}
-            socket = Factory.Provider.Socket("MBTQuoteSocket",addrStr, port);
-			socket.OnDisconnect = OnDisconnect;
-            socket.OnConnect = OnConnect;
-            socket.MessageFactory = new MessageFactoryMbtQuotes();
-			socket.ReceiveQueue.ConnectInbound( socketTask);
-            socket.SendQueue.ConnectOutbound( socketTask);
-            if (debug) log.Debug("Created new " + socket);
-			ConnectionStatus = Status.New;
-			if( trace) {
-				string message = "Generated socket: " + socket;
-				if( previousSocket != null) {
-					message += " to replace: " + previousSocket;
-				}
-				log.Trace(message);
-			}
-            // Initiate socket connection.
-            while (true)
-            {
-                try
-                {
-                    socket.Connect();
-                    log.Info("Requested Connect for " + socket);
-                    return;
-                }
-                catch (SocketErrorException ex)
-                {
-                    log.Error("Non fatal error while trying to connect: " + ex.Message);
-                }
-            }
         }
 		
 		
@@ -209,7 +178,7 @@ namespace TickZoom.MBTQuotes
             IncreaseRetryTimeout();
         }
 
-        private void OnDisconnect(Socket socket)
+        protected void OnDisconnect(Socket socket)
         {
             if( !this.socket.Equals(socket))
             {
@@ -230,6 +199,37 @@ namespace TickZoom.MBTQuotes
             else
             {
                 log.Error("MBTQuoteProvider disconnected.");
+                CreateNewSocket();
+            }
+        }
+
+        private void CreateNewSocket()
+        {
+            socket = Factory.Provider.Socket("MBTQuoteSocket", addrStr, port);
+            socket.OnConnect = OnConnect;
+            socket.MessageFactory = new MessageFactoryMbtQuotes();
+            socket.ReceiveQueue.ConnectInbound(socketTask);
+            socket.SendQueue.ConnectOutbound(socketTask);
+            if (debug) log.Debug("Created new " + socket);
+            ConnectionStatus = Status.New;
+            if (trace)
+            {
+                string message = "Generated socket: " + socket;
+                log.Trace(message);
+            }
+            // Initiate socket connection.
+            while (true)
+            {
+                try
+                {
+                    socket.Connect();
+                    log.Info("Requested Connect for " + socket);
+                    return;
+                }
+                catch (SocketErrorException ex)
+                {
+                    log.Error("Non fatal error while trying to connect: " + ex.Message);
+                }
             }
         }
 	
@@ -356,105 +356,120 @@ namespace TickZoom.MBTQuotes
 						return Yield.NoWork.Repeat;
 					}
 				case SocketState.Connected:
-					switch( ConnectionStatus) {
-						case Status.Connected:
-                            return Yield.DidWork.Repeat;
-                        case Status.PendingLogin:
-                            if( VerifyLogin())
-                            {
-                                StartRecovery();
-                                return Yield.DidWork.Repeat;
-                            }
-                            else
-                            {
-                                return Yield.NoWork.Repeat;
-                            }
-						case Status.PendingRecovery:
-						case Status.Recovered:
-							if( retryDelay != retryStart) {
-								retryDelay = retryStart;
-								log.Info("(RetryDelay reset to " + retryDelay + " seconds.)");
-							}
-							if( Factory.Parallel.TickCount >= heartbeatTimeout) {
-                                if( !isPingSent)
-                                {
-                                    isPingSent = true;
-                                    SendPing();
-                                    IncreaseRetryTimeout();
-                                }
-                                else
-                                {
-                                    if( SyncTicks.Frozen)
-                                    {
-                                        log.Error("SyncTicks is frozen so skipping retry on quotes heartbeat timeout.");
-                                        heartbeatTimeout = long.MaxValue;
-                                    }
-                                    else
-                                    {
-                                        isPingSent = false;
-                                        log.Warn("MBTQuotesProvider ping timed out.");
-                                        SetupRetry();
-                                        IncreaseRetryTimeout();
-                                        return Yield.DidWork.Repeat;
-                                    }
-                                }
-							}
-					        Message rawMessage;
-							var receivedMessage = false;
-                            if(previousSocket != null && previousSocket.TryGetMessage(out rawMessage))
-                            {
-                                receivedMessage = true;
-                                ProcessSocketMessage(rawMessage);
-                                socket.MessageFactory.Release(rawMessage);
-                            }
-                            if (Socket.TryGetMessage(out rawMessage))
-                            {
-                                receivedMessage = true;
-                                ProcessSocketMessage(rawMessage);
-                                Socket.MessageFactory.Release(rawMessage);
-                            }
-					        if( receivedMessage) {
-	                           	IncreaseRetryTimeout();
-                            }
-
-					        return receivedMessage ? Yield.DidWork.Repeat : Yield.NoWork.Repeat;
-						default:
-							throw new ApplicationException("Unexpected connection status: " + ConnectionStatus);
-					}
+					return TryProcessMessage();
                 case SocketState.ShuttingDown:
                 case SocketState.Closing:
                 case SocketState.Closed:
                 case SocketState.Disconnected:
-					switch( ConnectionStatus) {
-						case Status.Disconnected:
-							retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
-							ConnectionStatus = Status.PendingRetry;
-							if( debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus + ". Retrying in " + retryDelay + " seconds.");
-							retryDelay += retryIncrease;
-							retryDelay = retryDelay > retryMaximum ? retryMaximum : retryDelay;
-							return Yield.NoWork.Repeat;
-						case Status.PendingRetry:
-							if( Factory.Parallel.TickCount >= retryTimeout) {
-                                log.Info("MBTQuoteProvider retry time elapsed. Retrying.");
-                                OnRetry();
-								RegenerateSocket();
-								if( trace) log.Trace("ConnectionStatus changed to: " + ConnectionStatus);
-								return Yield.DidWork.Repeat;
-							} else {
-								return Yield.NoWork.Repeat;
-							}
-						default:
-                            log.Warn("Unexpected state for quotes connection: " + ConnectionStatus);
-					        ConnectionStatus = Status.Disconnected;
-                            log.Warn("Forces connection state to be: " + ConnectionStatus);
-                            return Yield.NoWork.Repeat;
-					}
+					return TrySetupRetry();
                 default:
 					string errorMessage = "Unknown socket state: " + socket.State;
                     log.Error(errorMessage);
                     throw new ApplicationException(errorMessage);
 			}
 		}
+
+	    private Yield TrySetupRetry()
+	    {
+	        switch( ConnectionStatus) {
+                case Status.PendingRecovery:
+                case Status.Recovered:
+                    return TryProcessMessage();
+                case Status.Disconnected:
+	                retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
+	                ConnectionStatus = Status.PendingRetry;
+	                if( debug) log.Debug("ConnectionStatus changed to: " + ConnectionStatus + ". Retrying in " + retryDelay + " seconds.");
+	                retryDelay += retryIncrease;
+	                retryDelay = retryDelay > retryMaximum ? retryMaximum : retryDelay;
+	                return Yield.NoWork.Repeat;
+	            case Status.PendingRetry:
+	                if( Factory.Parallel.TickCount >= retryTimeout) {
+	                    log.Info("MBTQuoteProvider retry time elapsed. Retrying.");
+	                    OnRetry();
+	                    CreateNewSocket();
+	                    if( trace) log.Trace("ConnectionStatus changed to: " + ConnectionStatus);
+	                    return Yield.DidWork.Repeat;
+	                } else {
+	                    return Yield.NoWork.Repeat;
+	                }
+	            default:
+	                log.Warn("Unexpected state for quotes connection: " + ConnectionStatus);
+	                ConnectionStatus = Status.Disconnected;
+	                log.Warn("Forces connection state to be: " + ConnectionStatus);
+	                return Yield.NoWork.Repeat;
+	        }
+	    }
+
+	    private Yield TryProcessMessage()
+	    {
+	        switch( ConnectionStatus) {
+	            case Status.Connected:
+	                return Yield.DidWork.Repeat;
+	            case Status.PendingLogin:
+	                if( VerifyLogin())
+	                {
+	                    StartRecovery();
+	                    return Yield.DidWork.Repeat;
+	                }
+	                else
+	                {
+	                    return Yield.NoWork.Repeat;
+	                }
+	            case Status.PendingRecovery:
+	            case Status.Recovered:
+	                if( retryDelay != retryStart) {
+	                    retryDelay = retryStart;
+	                    log.Info("(RetryDelay reset to " + retryDelay + " seconds.)");
+	                }
+	                if( Factory.Parallel.TickCount >= heartbeatTimeout) {
+	                    if( !isPingSent)
+	                    {
+	                        isPingSent = true;
+	                        SendPing();
+	                        IncreaseRetryTimeout();
+	                    }
+	                    else
+	                    {
+	                        if( SyncTicks.Frozen)
+	                        {
+	                            log.Error("SyncTicks is frozen so skipping retry on quotes heartbeat timeout.");
+	                            heartbeatTimeout = long.MaxValue;
+	                        }
+	                        else
+	                        {
+	                            isPingSent = false;
+	                            log.Warn("MBTQuotesProvider ping timed out.");
+	                            SetupRetry();
+	                            IncreaseRetryTimeout();
+	                            return Yield.DidWork.Repeat;
+	                        }
+	                    }
+	                }
+	                Message rawMessage;
+	                var receivedMessage = false;
+	                if (Socket.TryGetMessage(out rawMessage))
+	                {
+	                    var disconnect = rawMessage as DisconnectMessage;
+	                    if( disconnect != null)
+	                    {
+	                        OnDisconnect(disconnect.Socket);
+	                    }
+	                    else
+	                    {
+	                        receivedMessage = true;
+	                        ProcessSocketMessage(rawMessage);
+	                        Socket.MessageFactory.Release(rawMessage);
+	                    }
+	                }
+	                if( receivedMessage) {
+	                    IncreaseRetryTimeout();
+	                }
+
+	                return receivedMessage ? Yield.DidWork.Repeat : Yield.NoWork.Repeat;
+	            default:
+	                throw new ApplicationException("Unexpected connection status: " + ConnectionStatus);
+	        }
+	    }
 
 	    private void ProcessSocketMessage(Message rawMessage)
 	    {
@@ -528,7 +543,7 @@ namespace TickZoom.MBTQuotes
             taskTimer.Start(currentTime);
             if (debug) log.Debug("Created timer. (Default startTime: " + taskTimer.StartTime + ")");
 
-            RegenerateSocket();
+            CreateNewSocket();
             retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
             log.Info("Connection will timeout and retry in " + retryDelay + " seconds.");
             isStarted = true;

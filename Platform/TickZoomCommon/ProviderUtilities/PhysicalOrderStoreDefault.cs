@@ -464,10 +464,6 @@ namespace TickZoom.Common
                 {
                     throw new ApplicationException("Cancel order w/o any original order setting: " + order);
                 }
-                if (order.Action == OrderAction.Change && order.OriginalOrder == null)
-                {
-                    throw new ApplicationException("Change order w/o any original order setting: " + order);
-                }
                 if (order.OriginalOrder != null)
                 {
                     try
@@ -723,10 +719,6 @@ namespace TickZoom.Common
                     if( order.Action == OrderAction.Cancel && order.OriginalOrder == null)
                     {
                         throw new ApplicationException("Cancel order w/o any original order setting: " + order);
-                    }
-                    if (order.Action == OrderAction.Change && order.OriginalOrder == null)
-                    {
-                        throw new ApplicationException("Change order w/o any original order setting: " + order);
                     }
                 }
 

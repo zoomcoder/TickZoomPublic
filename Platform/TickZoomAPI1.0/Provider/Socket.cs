@@ -53,7 +53,6 @@ namespace TickZoom.Api
 		SocketState State { get; }
 		ushort Port { get; }
 		Action<Socket> OnConnect { get; set; }
-		Action<Socket> OnDisconnect { get; set; }
 		FastQueue<Message> ReceiveQueue { get; }
         FastQueue<Message> SendQueue { get; }
 	    uint Handle { get; }

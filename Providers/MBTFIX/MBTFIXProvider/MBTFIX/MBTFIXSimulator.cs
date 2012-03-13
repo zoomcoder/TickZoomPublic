@@ -109,10 +109,23 @@ namespace TickZoom.MBTFIX
 				case 'S':
 					SymbolRequest( packetQuotes);
 					break;
-			}			
+                case '9':
+                    RespondPing();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException("Unexpected quotes message: " + firstChar);
+            }			
 		}
-		
-		private void FIXOrderList(MessageFIX4_4 packet)
+
+	    private void RespondPing()
+	    {
+            var writePacket = quoteSocket.MessageFactory.Create();
+            string textMessage = "9|\n";
+            writePacket.DataOut.Write(textMessage.ToCharArray());
+            quotePacketQueue.Enqueue(writePacket, Factory.Parallel.UtcNow.Internal);
+        }
+
+	    private void FIXOrderList(MessageFIX4_4 packet)
 		{
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetText("END");

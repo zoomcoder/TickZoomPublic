@@ -185,7 +185,6 @@ namespace TickZoom.FIX
             socket = Factory.Provider.Socket("MBTFIXSocket", "127.0.0.1", port);
             socket.ReceiveQueue.ConnectInbound(socketTask);
             socket.SendQueue.ConnectOutbound(socketTask);
-			socket.OnDisconnect = OnDisconnect;
             socket.OnConnect = OnConnect;
 			socket.MessageFactory = new MessageFactoryFix44();
 			if( debug) log.Debug("Created new " + socket);
@@ -268,6 +267,7 @@ namespace TickZoom.FIX
                 case Status.PendingLogin:
                 case Status.PendingServerResend:
                 case Status.PendingRetry:
+                    orderStore.ForceSnapshot();
                     ConnectionStatus = Status.Disconnected;
                     var startTime = TimeStamp.UtcNow;
                     startTime.AddSeconds(RetryDelay);
@@ -459,177 +459,10 @@ namespace TickZoom.FIX
                     case SocketState.PendingConnect:
                         return Yield.NoWork.Repeat;
                     case SocketState.Connected:
-                        switch (ConnectionStatus)
-                        {
-                            case Status.New:
-                            case Status.Connected:
-                                return Yield.NoWork.Repeat;
-                            case Status.PendingLogin:
-                            case Status.PendingLogOut:
-                            case Status.PendingServerResend:
-                            case Status.PendingRecovery:
-                            case Status.Recovered:
-                                if (RetryDelay != RetryStart)
-                                {
-                                    RetryDelay = RetryStart;
-                                    log.Info("(retryDelay reset to " + RetryDelay + " seconds.)");
-                                }
-
-                                MessageFIXT1_1 messageFIX = null;
-
-                                if (ConnectionStatus != Status.PendingLogin)
-                                {
-                                    while (resendQueue.Count > 0)
-                                    {
-                                        MessageFIXT1_1 tempMessage;
-                                        resendQueue.Peek(out tempMessage);
-                                        if (tempMessage.Sequence > remoteSequence)
-                                        {
-                                            TryRequestResend(remoteSequence,tempMessage.Sequence - 1);
-                                            break;
-                                        }
-                                        if (tempMessage.Sequence == remoteSequence)
-                                        {
-                                            resendQueue.Dequeue(out messageFIX);
-                                            break;
-                                        }
-                                        if( tempMessage.Sequence < remoteSequence)
-                                        {
-                                            resendQueue.Dequeue(out messageFIX);
-                                        }
-                                        if( tempMessage.Sequence > remoteSequence)
-                                        {
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                if (messageFIX == null)
-                                {
-                                    Message message = null;
-                                    if (Socket.TryGetMessage(out message))
-                                    {
-                                        messageFIX = (MessageFIXT1_1)message;
-                                    }
-                                }
-
-                                if (messageFIX != null)
-                                {
-                                    if (debug) log.Debug("Received FIX Message: " + messageFIX);
-                                    if (messageFIX.MessageType == "A")
-                                    {
-                                        if (messageFIX.Sequence == 1 || messageFIX.Sequence < remoteSequence)
-                                        {
-                                            remoteSequence = messageFIX.Sequence;
-                                            if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + remoteSequence);
-                                            orderStore.LastSequenceReset = new TimeStamp(messageFIX.SendUtcTime);
-                                        }
-                                        if (HandleLogon(messageFIX))
-                                        {
-                                            ConnectionStatus = Status.PendingServerResend;
-                                            TryEndRecovery();
-                                        }
-                                    }
-                                }
-
-                                if (messageFIX != null)
-                                {
-                                    lastMessageTime = TimeStamp.UtcNow;
-                                    switch (messageFIX.MessageType)
-                                    {
-                                        case "2":
-                                            HandleResend(messageFIX);
-                                            break;
-                                    }
-                                    var releaseFlag = true;
-                                    var message4_4 = messageFIX as MessageFIX4_4;
-                                    // Workaround for bug in MBT FIX Server that sends message from prior to 
-                                    // last sequence number reset.
-                                    if (messageFIX.IsPossibleDuplicate &&
-                                        message4_4 != null && message4_4.OriginalSendTime != null &&
-                                        new TimeStamp(message4_4.OriginalSendTime) < OrderStore.LastSequenceReset)
-                                    {
-                                        log.Info("Ignoring message with sequence " + messageFIX.Sequence + " as work around to MBT FIX server defect because original send time (122) " + new TimeStamp(message4_4.OriginalSendTime) + " is prior to last sequence reset " + OrderStore.LastSequenceReset);
-                                    }
-                                    else
-                                    {
-
-                                        if (!CheckForMissingMessages(messageFIX, out releaseFlag))
-                                        {
-                                            switch (messageFIX.MessageType)
-                                            {
-                                                case "A": //logon
-                                                    // Already handled and sequence incremented.
-                                                    break;
-                                                case "2": // resend
-                                                    // Already handled and sequence incremented.
-                                                    break;
-                                                case "4": // gap fill
-                                                    HandleGapFill(messageFIX);
-                                                    break;
-                                                case "3": // reject
-                                                    HandleReject(messageFIX);
-                                                    break;
-                                                case "5": // log off confirm
-                                                    if (debug) log.Debug("Logout message received.");
-                                                    if (ConnectionStatus == Status.PendingLogOut)
-                                                    {
-                                                        Dispose();
-                                                    }
-                                                    else
-                                                    {
-                                                        socket.Dispose();
-                                                    }
-                                                    break;
-                                                default:
-                                                    ReceiveMessage(messageFIX);
-                                                    break;
-                                            }
-                                            orderStore.UpdateRemoteSequence(remoteSequence);
-                                        }
-                                    }
-                                    if (releaseFlag)
-                                    {
-                                        Socket.MessageFactory.Release(messageFIX);
-                                    }
-                                    orderStore.IncrementUpdateCount();
-                                    IncreaseHeartbeatTimeout();
-                                    return Yield.DidWork.Repeat;
-                                }
-                                else
-                                {
-                                    return Yield.NoWork.Repeat;
-                                }
-                            case Status.Disconnected:
-                                return Yield.NoWork.Repeat;
-                            default:
-                                throw new InvalidOperationException("Unknown connection status: " + ConnectionStatus);
-                        }
+                        return TryProcessMessage();
                     case SocketState.Disconnected:
                     case SocketState.Closed:
-                        switch (ConnectionStatus)
-                        {
-                            case Status.Connected:
-                            case Status.Disconnected:
-                            case Status.New:
-                            case Status.PendingServerResend:
-                            case Status.PendingRecovery:
-                            case Status.Recovered:
-                            case Status.PendingLogin:
-                                ConnectionStatus = Status.PendingRetry;
-                                RetryDelay += retryIncrease;
-                                RetryDelay = Math.Min(RetryDelay, retryMaximum);
-                                return Yield.NoWork.Repeat;
-                            case Status.PendingRetry:
-                                return Yield.NoWork.Repeat;
-                            case Status.PendingLogOut:
-                                Dispose();
-                                return Yield.NoWork.Repeat;
-                            default:
-                                log.Warn("Unexpected connection status when socket disconnected: " + ConnectionStatus + ". Shutting down the provider.");
-                                Dispose();
-                                return Yield.NoWork.Repeat;
-                        }
+                        return TrySetupRetry();
                     case SocketState.ShuttingDown:
                     case SocketState.Closing:
                         return Yield.NoWork.Repeat;
@@ -645,6 +478,193 @@ namespace TickZoom.FIX
                 orderStore.TrySnapshot();
             }
 		}
+
+        private Yield TrySetupRetry()
+        {
+            switch (ConnectionStatus)
+            {
+                case Status.PendingLogin:
+                case Status.PendingServerResend:
+                case Status.PendingRecovery:
+                case Status.Recovered:
+                    return TryProcessMessage();
+                case Status.Connected:
+                case Status.Disconnected:
+                case Status.New:
+                    ConnectionStatus = Status.PendingRetry;
+                    RetryDelay += retryIncrease;
+                    RetryDelay = Math.Min(RetryDelay, retryMaximum);
+                    return Yield.NoWork.Repeat;
+                case Status.PendingRetry:
+                    return Yield.NoWork.Repeat;
+                case Status.PendingLogOut:
+                    Dispose();
+                    return Yield.NoWork.Repeat;
+                default:
+                    log.Warn("Unexpected connection status when socket disconnected: " + ConnectionStatus + ". Shutting down the provider.");
+                    Dispose();
+                    return Yield.NoWork.Repeat;
+            }
+        }
+
+        private Yield TryProcessMessage()
+        {
+            switch (ConnectionStatus)
+            {
+                case Status.New:
+                case Status.Connected:
+                    return Yield.NoWork.Repeat;
+                case Status.PendingLogin:
+                case Status.PendingLogOut:
+                case Status.PendingServerResend:
+                case Status.PendingRecovery:
+                case Status.Recovered:
+                    if (RetryDelay != RetryStart)
+                    {
+                        RetryDelay = RetryStart;
+                        log.Info("(retryDelay reset to " + RetryDelay + " seconds.)");
+                    }
+
+                    MessageFIXT1_1 messageFIX = null;
+
+                    if (ConnectionStatus != Status.PendingLogin)
+                    {
+                        while (resendQueue.Count > 0)
+                        {
+                            MessageFIXT1_1 tempMessage;
+                            resendQueue.Peek(out tempMessage);
+                            if (tempMessage.Sequence > remoteSequence)
+                            {
+                                if (debug) log.Debug("Found sequence " + tempMessage.Sequence + " on the resend queue. Requesting resend from " + remoteSequence + " to " + (tempMessage.Sequence - 1));
+                                TryRequestResend(remoteSequence,tempMessage.Sequence - 1);
+                                break;
+                            }
+                            if (tempMessage.Sequence == remoteSequence)
+                            {
+                                resendQueue.Dequeue(out messageFIX);
+                                break;
+                            }
+                            if( tempMessage.Sequence < remoteSequence)
+                            {
+                                resendQueue.Dequeue(out messageFIX);
+                            }
+                            if( tempMessage.Sequence > remoteSequence)
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (messageFIX == null)
+                    {
+                        Message message = null;
+                        if (Socket.TryGetMessage(out message))
+                        {
+                            var disconnect = message as DisconnectMessage;
+                            if (disconnect == null)
+                            {
+                                messageFIX = (MessageFIXT1_1) message;
+                            }
+                            else
+                            {
+                                OnDisconnect(disconnect.Socket);
+                            }
+                        }
+                    }
+
+                    if (messageFIX != null)
+                    {
+                        if (debug) log.Debug("Received FIX Message: " + messageFIX);
+                        if (messageFIX.MessageType == "A")
+                        {
+                            if (messageFIX.Sequence == 1 || messageFIX.Sequence < remoteSequence)
+                            {
+                                remoteSequence = messageFIX.Sequence;
+                                if (debug) log.Debug("FIX Server login message sequence was lower than expected. Resetting to " + remoteSequence);
+                                orderStore.LastSequenceReset = new TimeStamp(messageFIX.SendUtcTime);
+                            }
+                            if (HandleLogon(messageFIX))
+                            {
+                                ConnectionStatus = Status.PendingServerResend;
+                                TryEndRecovery();
+                            }
+                        }
+                    }
+
+                    if (messageFIX != null)
+                    {
+                        lastMessageTime = TimeStamp.UtcNow;
+                        switch (messageFIX.MessageType)
+                        {
+                            case "2":
+                                HandleResend(messageFIX);
+                                break;
+                        }
+                        var releaseFlag = true;
+                        var message4_4 = messageFIX as MessageFIX4_4;
+                        // Workaround for bug in MBT FIX Server that sends message from prior to 
+                        // last sequence number reset.
+                        if (messageFIX.IsPossibleDuplicate &&
+                            message4_4 != null && message4_4.OriginalSendTime != null &&
+                            new TimeStamp(message4_4.OriginalSendTime) < OrderStore.LastSequenceReset)
+                        {
+                            log.Info("Ignoring message with sequence " + messageFIX.Sequence + " as work around to MBT FIX server defect because original send time (122) " + new TimeStamp(message4_4.OriginalSendTime) + " is prior to last sequence reset " + OrderStore.LastSequenceReset);
+                        }
+                        else
+                        {
+
+                            if (!CheckForMissingMessages(messageFIX, out releaseFlag))
+                            {
+                                switch (messageFIX.MessageType)
+                                {
+                                    case "A": //logon
+                                        // Already handled and sequence incremented.
+                                        break;
+                                    case "2": // resend
+                                        // Already handled and sequence incremented.
+                                        break;
+                                    case "4": // gap fill
+                                        HandleGapFill(messageFIX);
+                                        break;
+                                    case "3": // reject
+                                        HandleReject(messageFIX);
+                                        break;
+                                    case "5": // log off confirm
+                                        if (debug) log.Debug("Logout message received.");
+                                        if (ConnectionStatus == Status.PendingLogOut)
+                                        {
+                                            Dispose();
+                                        }
+                                        else
+                                        {
+                                            socket.Dispose();
+                                        }
+                                        break;
+                                    default:
+                                        ReceiveMessage(messageFIX);
+                                        break;
+                                }
+                                orderStore.UpdateRemoteSequence(remoteSequence);
+                            }
+                        }
+                        if (releaseFlag)
+                        {
+                            Socket.MessageFactory.Release(messageFIX);
+                        }
+                        orderStore.IncrementUpdateCount();
+                        IncreaseHeartbeatTimeout();
+                        return Yield.DidWork.Repeat;
+                    }
+                    else
+                    {
+                        return Yield.NoWork.Repeat;
+                    }
+                case Status.Disconnected:
+                    return Yield.NoWork.Repeat;
+                default:
+                    throw new InvalidOperationException("Unknown connection status: " + ConnectionStatus);
+            }
+        }
 
         protected virtual bool HandleLogon(MessageFIXT1_1 message)
         {

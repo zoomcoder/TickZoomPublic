@@ -215,7 +215,7 @@ namespace TickZoom.Common
             if (trace) log.Trace("RemoveOrder( " + clientOrderId + ")");
             AssertAtomic();
             var topOrder = RemoveOrderInternal(clientOrderId);
-            if( topOrder.OriginalOrder != null)
+            if( topOrder != null && topOrder.OriginalOrder != null)
             {
                 topOrder.OriginalOrder.ReplacedBy = null;
             }

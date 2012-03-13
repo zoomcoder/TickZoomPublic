@@ -28,6 +28,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 using TickZoom.Api;
 
 namespace TickZoom.FIX
@@ -221,7 +222,6 @@ namespace TickZoom.FIX
 			fixListener.Bind();
 			fixListener.Listen( 5);
 			fixListener.OnConnect = OnConnectFIX;
-			fixListener.OnDisconnect = OnDisconnectFIX;
 			fixPort = fixListener.Port;
 			log.Info("Listening for FIX to " + localAddress + " on port " + fixPort);
 		}
@@ -232,7 +232,6 @@ namespace TickZoom.FIX
 			quoteListener.Bind();
 			quoteListener.Listen( 5);
 			quoteListener.OnConnect = OnConnectQuotes;
-			quoteListener.OnDisconnect = OnDisconnectQuotes;
 			quotesPort = quoteListener.Port;
 			log.Info("Listening for Quotes to " + localAddress + " on port " + quotesPort);
 		}
@@ -305,12 +304,10 @@ namespace TickZoom.FIX
             return Yield.DidWork.Repeat;
         }
 
-        private Socket previousFixSocket;
         private void OnDisconnectFIX(Socket socket)
 		{
 			if (this.fixSocket.Equals(socket)) {
 				log.Info("FIX socket disconnect: " + socket);
-			    previousFixSocket = socket;
                 StopFIXSimulation();
                 CloseFIXSocket();
 			}
@@ -390,6 +387,10 @@ namespace TickZoom.FIX
 		{
             if( isConnectionLost)
             {
+                if (!fixPacketQueue.IsFull && FIXReadLoop())
+                {
+                    return Yield.DidWork.Repeat;
+                }
                 CloseFIXSocket();
                 return Yield.NoWork.Repeat;
             }
@@ -567,7 +568,7 @@ namespace TickZoom.FIX
 		{
 			var mbtMsg = FixFactory.Create();
 			mbtMsg.AddHeader("2");
-			mbtMsg.SetBeginSeqNum(remoteSequence);
+			mbtMsg.SetBeginSeqNum(RemoteSequence);
 			mbtMsg.SetEndSeqNum(0);
 			if( debug) log.Debug("Sending resend request: " + mbtMsg);
             SendMessage(mbtMsg);
@@ -579,16 +580,27 @@ namespace TickZoom.FIX
         private int recoveryRemoteSequence = 1;
 		private bool FIXReadLoop()
 		{
-			if (isFIXSimulationStarted) {
-                if( previousFixSocket != null && previousFixSocket.TryGetMessage(out _fixReadMessage))
+			if (isFIXSimulationStarted)
+			{
+			    Message message;
+                if (fixSocket.TryGetMessage(out message))
+                {
+                    var disconnect = message as DisconnectMessage;
+                    if (disconnect == null)
+                    {
+                        _fixReadMessage = message;
+                    }
+                    else
+                    {
+                        OnDisconnectFIX(disconnect.Socket);
+                        return false;
+                    }
+                }
+                else
                 {
                     return false;
                 }
-				if (!fixSocket.TryGetMessage(out _fixReadMessage))
-				{
-				    return false;
-				}
-                var packetFIX = (MessageFIXT1_1)_fixReadMessage;
+			    var packetFIX = (MessageFIXT1_1)_fixReadMessage;
                 IncreaseHeartbeat();
                 if (debug) log.Debug("Received FIX message: " + packetFIX);
 			    isHeartbeatPending = TimeStamp.MaxValue;
@@ -601,20 +613,21 @@ namespace TickZoom.FIX
                             {
                                 throw new InvalidOperationException("Invalid FIX message type " + packetFIX.MessageType + ". Not yet logged in.");
                             }
-                            if (!packetFIX.IsResetSeqNum && packetFIX.Sequence < remoteSequence)
+                            if (!packetFIX.IsResetSeqNum && packetFIX.Sequence < RemoteSequence)
                             {
-                                throw new InvalidOperationException("Login sequence number was " + packetFIX.Sequence + " less than expected " + remoteSequence + ".");
+                                throw new InvalidOperationException("Login sequence number was " + packetFIX.Sequence + " less than expected " + RemoteSequence + ".");
                             }
                             HandleFIXLogin(packetFIX);
-                            if (packetFIX.Sequence > remoteSequence)
+                            if (packetFIX.Sequence > RemoteSequence)
                             {
-                                if (debug) log.Debug("Login packet sequence " + packetFIX.Sequence + " was greater than expected " + remoteSequence);
+                                if (debug) log.Debug("Login packet sequence " + packetFIX.Sequence + " was greater than expected " + RemoteSequence);
                                 recoveryRemoteSequence = packetFIX.Sequence;
                                 return Resend(packetFIX);
                             }
                             else
                             {
-                                remoteSequence = packetFIX.Sequence + 1;
+                                if (debug) log.Debug("Login packet sequence " + packetFIX.Sequence + " was less than or equal to expected " + RemoteSequence + " so updating remote sequence...");
+                                RemoteSequence = packetFIX.Sequence + 1;
                                 SendSessionStatusOnline();
                                 fixState = ServerState.Recovered;
                                 // Setup disconnect simulation.
@@ -630,12 +643,12 @@ namespace TickZoom.FIX
                                     HandleResend(packetFIX);
                                     break;
                             }
-                            if (packetFIX.Sequence > remoteSequence)
+                            if (packetFIX.Sequence > RemoteSequence)
                             {
-                                if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " greater than expected " + remoteSequence);
+                                if (debug) log.Debug("packet sequence " + packetFIX.Sequence + " greater than expected " + RemoteSequence);
                                 return Resend(packetFIX);
                             }
-                            if (packetFIX.Sequence < remoteSequence)
+                            if (packetFIX.Sequence < RemoteSequence)
                             {
                                 if (debug) log.Debug("Already received packet sequence " + packetFIX.Sequence + ". Ignoring.");
                                 return true;
@@ -658,7 +671,8 @@ namespace TickZoom.FIX
                                 {
                                     case "2": // resend request
                                         // already handled prior to sequence checking.
-                                        remoteSequence = packetFIX.Sequence + 1;
+                                        if (debug) log.Debug("Resend request with sequence " + packetFIX.Sequence + ". So updating remote sequence...");
+                                        RemoteSequence = packetFIX.Sequence + 1;
                                         break;
                                     case "4":
                                         return HandleGapFill(packetFIX);
@@ -730,7 +744,7 @@ namespace TickZoom.FIX
                 }
                 if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
                 FixFactory  = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
-                remoteSequence = packet.Sequence;
+                RemoteSequence = packet.Sequence;
             }
             else if (FixFactory == null)
             {
@@ -768,12 +782,12 @@ namespace TickZoom.FIX
             {
                 throw new InvalidOperationException("Only gap fill sequence reset supportted: \n" + packetFIX);
             }
-            if (packetFIX.NewSeqNum <= remoteSequence)  // ResetSeqNo
+            if (packetFIX.NewSeqNum <= RemoteSequence)  // ResetSeqNo
             {
-                throw new InvalidOperationException("Reset new sequence number must be greater than current sequence: " + remoteSequence + ".\n" + packetFIX);
+                throw new InvalidOperationException("Reset new sequence number must be greater than current sequence: " + RemoteSequence + ".\n" + packetFIX);
             }
-            remoteSequence = packetFIX.NewSeqNum;
-            if (debug) log.Debug("Received gap fill. Setting next sequence = " + remoteSequence);
+            RemoteSequence = packetFIX.NewSeqNum;
+            if (debug) log.Debug("Received gap fill. Setting next sequence = " + RemoteSequence);
             return true;
         }
 
@@ -858,14 +872,15 @@ namespace TickZoom.FIX
                 }
                 return true;
             }
-            remoteSequence = packetFIX.Sequence + 1;
+            if (debug) log.Debug("Processing message with " + packetFIX.Sequence + ". So updating remote sequence...");
+            RemoteSequence = packetFIX.Sequence + 1;
             switch (packetFIX.MessageType)
             {
                 case "G":
                     simulator = simulators[SimulatorType.BlackHole];
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
-                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         var message = (MessageFIX4_4) packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
@@ -877,7 +892,7 @@ namespace TickZoom.FIX
                     simulator = simulators[SimulatorType.BlackHole];
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
-                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
@@ -889,7 +904,7 @@ namespace TickZoom.FIX
                     simulator = simulators[SimulatorType.CancelBlackHole];
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
-                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + remoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
                         var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
@@ -1053,12 +1068,21 @@ namespace TickZoom.FIX
 
 		private bool QuotesReadLoop()
 		{
-			if (isQuoteSimulationStarted) {
-				if (quoteSocket.TryGetMessage(out _quoteReadMessage)) {
-					if (verbose)	log.Verbose("Local Read: " + _quoteReadMessage);
-					ParseQuotesMessage(_quoteReadMessage);
-                    quoteSocket.MessageFactory.Release(_quoteReadMessage);
-					return true;
+			if (isQuoteSimulationStarted)
+			{
+			    Message message;
+				if (quoteSocket.TryGetMessage(out message))
+				{
+				    var disconnect = message as DisconnectMessage;
+				    if (disconnect == null)
+				    {
+				        _quoteReadMessage = message;
+				        if (verbose) log.Verbose("Local Read: " + _quoteReadMessage);
+				        ParseQuotesMessage(_quoteReadMessage);
+				        quoteSocket.MessageFactory.Release(_quoteReadMessage);
+				        return true;
+				    }
+			        OnDisconnectQuotes(disconnect.Socket);
 				}
 			}
 			return false;
@@ -1106,11 +1130,10 @@ namespace TickZoom.FIX
                 if (trace) log.Trace("Local Write: " + message);
                 return true;
             }
-            else
-            {
-                log.Error("Failed to Write: " + message);
-                return false;
-            }
+            log.Error("Failed to Write: " + message);
+            Thread.Sleep(1000);
+            Environment.Exit(1);
+            return false;
         }
 
 		public bool WriteToQuotes()
@@ -1331,5 +1354,17 @@ namespace TickZoom.FIX
             }
         }
 
-    }
+        public int RemoteSequence
+        {
+            get { return remoteSequence; }
+            set
+            {
+                if( remoteSequence != value)
+                {
+                    if (debug) log.Debug("Remote sequence changed from " + remoteSequence + " to " + value);
+                    remoteSequence = value;
+                }
+            }
+        }
+	}
 }

@@ -70,7 +70,6 @@ namespace TickZoom.FIX
 			listener.Bind();
 			listener.Listen(5);
 			listener.OnConnect = OnConnect;
-			listener.OnDisconnect = OnDisconnect;
 			localPort = listener.Port;
 			log.Info("Listening to " + localAddress + " on port " + localPort);
 		}
@@ -114,7 +113,6 @@ namespace TickZoom.FIX
             remoteSocket = Factory.Provider.Socket("FilterRemoteSocket", remoteAddress,remotePort);
             remoteSocket.MessageFactory = new MessageFactoryFix44();
 			remoteSocket.OnConnect = OnConnect;
-			remoteSocket.OnDisconnect = OnDisconnect;
 			remoteSocket.Connect();
 			remoteConnectTimeout = Factory.TickCount + 2000;
 		}

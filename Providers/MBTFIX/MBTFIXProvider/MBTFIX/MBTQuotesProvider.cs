@@ -57,12 +57,18 @@ namespace TickZoom.MBTQuotes
 			RetryIncrease = 1;
 			RetryMaximum = 30;
 			if( SyncTicks.Enabled) {
-                //HeartbeatDelay = int.MaxValue;
-                HeartbeatDelay = 10;
+                if( System.Diagnostics.Debugger.IsAttached)
+                {
+                    HeartbeatDelay = int.MaxValue;
+                }
+                else
+                {
+                    HeartbeatDelay = 5;
+                }
             }
             else
             {
-	  			HeartbeatDelay = 10;
+	  			HeartbeatDelay = 5;
 			}
 		    log.Info("Ping timeout is " + HeartbeatDelay + " seconds.");
 		}
@@ -96,6 +102,12 @@ namespace TickZoom.MBTQuotes
         {
             Message message;
 		    if( !Socket.TryGetMessage(out message)) return false;
+            var disconnect = message as DisconnectMessage;
+            if( disconnect != null)
+            {
+                OnDisconnect(disconnect.Socket);
+                return false;
+            }
 	        message.BeforeRead();
             var loginResponse = new string(message.DataIn.ReadChars(message.Remaining));
             var firstChar = loginResponse[0];
