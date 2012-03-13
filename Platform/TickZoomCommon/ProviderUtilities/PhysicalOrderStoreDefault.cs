@@ -460,6 +460,14 @@ namespace TickZoom.Common
                 {
                     writer.Write((int) 0);
                 }
+                if (order.Action == OrderAction.Cancel && order.OriginalOrder == null)
+                {
+                    throw new ApplicationException("Cancel order w/o any original order setting: " + order);
+                }
+                if (order.Action == OrderAction.Change && order.OriginalOrder == null)
+                {
+                    throw new ApplicationException("Change order w/o any original order setting: " + order);
+                }
                 if (order.OriginalOrder != null)
                 {
                     try
@@ -714,7 +722,11 @@ namespace TickZoom.Common
                     ordersBySequence[order.Sequence] = order;
                     if( order.Action == OrderAction.Cancel && order.OriginalOrder == null)
                     {
-                        throw new ApplicationException("CancelOrder w/o any original order setting: " + order);
+                        throw new ApplicationException("Cancel order w/o any original order setting: " + order);
+                    }
+                    if (order.Action == OrderAction.Change && order.OriginalOrder == null)
+                    {
+                        throw new ApplicationException("Change order w/o any original order setting: " + order);
                     }
                 }
 
