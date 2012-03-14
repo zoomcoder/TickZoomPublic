@@ -1938,10 +1938,10 @@ namespace TickZoom.Common
             if (enableSyncTicks)
             {
                 tickSync.RemovePhysicalOrder(order);
-                if (removeOriginal && origOrder != null && (origOrder.IsPending))
-                {
-                    tickSync.RemovePhysicalOrder(origOrder);
-                }
+                //if (removeOriginal && origOrder != null && (origOrder.IsPending))
+                //{
+                //    tickSync.RemovePhysicalOrder(origOrder);
+                //}
             }
         }
 
