@@ -187,18 +187,28 @@ namespace TickZoom.Common
 
         private bool TryCancelBrokerOrder(CreateOrChangeOrder physical)
         {
+            return TryCancelBrokerOrder(physical, false);
+        }
+
+        private bool TryCancelBrokerOrder(CreateOrChangeOrder physical, bool forStaleOrder)
+        {
 			bool result = false;
             if (!physical.IsPending &&
                 // Market orders can't be canceled.
                 physical.Type != OrderType.BuyMarket &&
                 physical.Type != OrderType.SellMarket)
             {
-                result = Cancel(physical);
+                result = Cancel(physical,forStaleOrder);
             }
             return result;
         }
+
+        private bool CancelStale( CreateOrChangeOrder physical)
+        {
+            return Cancel(physical, true);
+        }
 		
-        public bool Cancel(CreateOrChangeOrder physical)
+        private bool Cancel(CreateOrChangeOrder physical, bool forStaleOrder)
         {
 			var result = false;
             physical.CancelCount++;
@@ -221,14 +231,20 @@ namespace TickZoom.Common
             {
                 if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
                 physicalOrderCache.SetOrder(cancelOrder);
-                TryAddPhysicalOrder(cancelOrder);
+                if( !forStaleOrder)
+                {
+                    TryAddPhysicalOrder(cancelOrder);
+                }
                 if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
                 {
                     result = true;
                 }
                 else
                 {
-                    TryRemovePhysicalOrder(cancelOrder);
+                    if( !forStaleOrder)
+                    {
+                        TryRemovePhysicalOrder(cancelOrder);
+                    }
                     physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
                 }
             }
@@ -1170,8 +1186,22 @@ namespace TickZoom.Common
         {
             var expiryLimit = Factory.Parallel.UtcNow;
             expiryLimit.AddSeconds(-5);
-            if (trace ) log.Trace("Checking for orders pending since: " + expiryLimit); 
-            var list = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.IsPending ));
+            if (trace) log.Trace("Checking for orders pending since: " + expiryLimit);
+            var foundAny = false;
+            var cancelList = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.IsPending) && x.Action == OrderAction.Cancel);
+            if( HandlePending(cancelList,expiryLimit))
+            {
+                foundAny = true;
+            }
+            var orderList = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.IsPending) && x.Action != OrderAction.Cancel);
+            if( HandlePending(orderList,expiryLimit))
+            {
+                foundAny = true;
+            }
+            return foundAny;
+        }
+
+        private bool HandlePending( List<CreateOrChangeOrder> list, TimeStamp expiryLimit) {
             var cancelOrders = new List<CreateOrChangeOrder>();
             var foundAny = false;
             foreach( var order in list)
@@ -1187,6 +1217,7 @@ namespace TickZoom.Common
                 {
                     if( order.Action == OrderAction.Cancel)
                     {
+                        order.OrderState = OrderState.Expired;
                         if (debug) log.Debug("Removing pending and stale Cancel order: " + order);
                         var origOrder = order.OriginalOrder;
                         if (origOrder != null)
@@ -1208,7 +1239,7 @@ namespace TickZoom.Common
                         {
                             log.Warn(message);
                         }
-                        if (!Cancel(order))
+                        if (!CancelStale(order))
                         {
                             if( debug) log.Debug("Cancel failed to send for order: " + order);
                         }
@@ -1220,9 +1251,9 @@ namespace TickZoom.Common
                 PerformCompareProtected();
                 foreach( var order in cancelOrders)
                 {
-                    if (enableSyncTicks)
+                    physicalOrderCache.RemoveOrder(order.BrokerOrder);
+                    if( order.OriginalOrder.OrderState != OrderState.Expired)
                     {
-                        physicalOrderCache.RemoveOrder(order.BrokerOrder);
                         tickSync.RemovePhysicalOrder(order);
                     }
                 }
@@ -1926,6 +1957,7 @@ namespace TickZoom.Common
             var origOrder = order.OriginalOrder;
             if (origOrder != null && origOrder.OrderState == OrderState.Expired)
             {
+                if (debug) log.Debug("Removing expired order: " + order.OriginalOrder);
                 physicalOrderCache.PurgeOriginalOrder(order);
                 if (isRealTime)
                 {
@@ -1938,10 +1970,6 @@ namespace TickZoom.Common
             if (enableSyncTicks)
             {
                 tickSync.RemovePhysicalOrder(order);
-                //if (removeOriginal && origOrder != null && (origOrder.IsPending))
-                //{
-                //    tickSync.RemovePhysicalOrder(origOrder);
-                //}
             }
         }
 
