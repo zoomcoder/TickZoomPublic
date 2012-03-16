@@ -77,7 +77,7 @@ namespace TickZoom.FIX
 		private Message _fixWriteMessage;
 		private Task task;
 		private bool isFIXSimulationStarted = false;
-		private MessageFactory _fixMessageFactory;
+        private MessageFactory currentMessageFactory;
 
 		// Quote fields.
 		private ushort quotesPort = 0;
@@ -103,7 +103,7 @@ namespace TickZoom.FIX
 
         public Dictionary<SimulatorType,SimulatorInfo> simulators = new Dictionary<SimulatorType, SimulatorInfo>();
 
-        public FIXSimulatorSupport(string mode, ProjectProperties projectProperties, ushort fixPort, ushort quotesPort, MessageFactory _fixMessageFactory, MessageFactory _quoteMessageFactory)
+        public FIXSimulatorSupport(string mode, ProjectProperties projectProperties, ushort fixPort, ushort quotesPort, MessageFactory createMessageFactory, MessageFactory _quoteMessageFactory)
         {
             this.partialFillSimulation = projectProperties.Simulator.PartialFillSimulation;
 		    this.fixPort = fixPort;
@@ -165,7 +165,7 @@ namespace TickZoom.FIX
                 simulator.MaxRepetitions = 100;
             }
 
-			this._fixMessageFactory = _fixMessageFactory;
+            this.currentMessageFactory = createMessageFactory;
 			this._quoteMessageFactory = _quoteMessageFactory;
         }
 
@@ -240,7 +240,7 @@ namespace TickZoom.FIX
 		{
 			fixSocket = socket;
             fixState = ServerState.Startup;
-            fixSocket.MessageFactory = _fixMessageFactory;
+		    fixSocket.MessageFactory = currentMessageFactory;
 			log.Info("Received FIX connection: " + socket);
 			StartFIXSimulation();
 			fixSocket.ReceiveQueue.ConnectInbound( task);
@@ -316,6 +316,13 @@ namespace TickZoom.FIX
         protected virtual void StopFIXSimulation()
         {
             isFIXSimulationStarted = false;
+            if( resetSequenceNumbersNextDisconnect)
+            {
+                resetSequenceNumbersNextDisconnect = false;
+                if (debug) log.Debug("Resetting sequence numbers because simulation rollover.");
+                remoteSequence = 1;
+                fixFactory = CreateFIXFactory(0, FixFactory.Sender, FixFactory.Destination);
+            }
         }
 
         private void OnDisconnectQuotes(Socket socket)
@@ -692,6 +699,7 @@ namespace TickZoom.FIX
 		}
 	    protected bool requestSessionStatus;
 
+        private bool resetSequenceNumbersNextDisconnect;
         private void SendSystemOffline()
         {
             var mbtMsg = (FIXMessage4_4)FixFactory.Create();
@@ -699,6 +707,7 @@ namespace TickZoom.FIX
             mbtMsg.SetText("System offline");
             SendMessage(mbtMsg);
             if (trace) log.Trace("Sending system offline simulation: " + mbtMsg);
+            //resetSequenceNumbersNextDisconnect = true;
         }
 
         public void SendSessionStatusOnline()
@@ -743,7 +752,7 @@ namespace TickZoom.FIX
                     throw new InvalidOperationException("Found reset sequence number flag is true but sequence was " + packet.Sequence + " instead of 1.");
                 }
                 if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
-                FixFactory  = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
+                fixFactory = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
                 RemoteSequence = packet.Sequence;
             }
             else if (FixFactory == null)
@@ -757,9 +766,7 @@ namespace TickZoom.FIX
             simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packet.Sequence);
             simulators[SimulatorType.SendServerOffline].UpdateNext(FixFactory.LastSequence);
             simulators[SimulatorType.ReceiveServerOffline].UpdateNext(packet.Sequence);
-
-            var simulate = simulators[SimulatorType.SystemOffline];
-            simulate.UpdateNext(packet.Sequence);
+            simulators[SimulatorType.SystemOffline].UpdateNext(packet.Sequence);
 
             var mbtMsg = (FIXMessage4_4)FixFactory.Create();
             mbtMsg.SetEncryption(0);
@@ -872,6 +879,15 @@ namespace TickZoom.FIX
                 }
                 return true;
             }
+
+            simulator = simulators[SimulatorType.SystemOffline];
+            if (IsRecovered && FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
+            {
+                simulator.UpdateNext(packetFIX.Sequence);
+                SendSystemOffline();
+                return true;
+            }
+
             if (debug) log.Debug("Processing message with " + packetFIX.Sequence + ". So updating remote sequence...");
             RemoteSequence = packetFIX.Sequence + 1;
             switch (packetFIX.MessageType)
@@ -1206,13 +1222,6 @@ namespace TickZoom.FIX
                 }
             }
 
-            simulator = simulators[SimulatorType.SystemOffline];
-            if (IsRecovered && FixFactory != null && simulator.CheckSequence(fixMessage.Sequence))
-            {
-                simulator.UpdateNext(fixMessage.Sequence);
-                SendSystemOffline();
-            }
-
             simulator = simulators[SimulatorType.SendServerOffline];
             if (IsRecovered && FixFactory != null && simulator.CheckSequence( fixMessage.Sequence))
             {
@@ -1342,16 +1351,6 @@ namespace TickZoom.FIX
         public FIXTFactory1_1 FixFactory
         {
             get { return fixFactory; }
-            set {
-                if( fixFactory != null && value == null)
-                {
-                    log.Warn("FixFactory set to null.\n" + Environment.StackTrace);
-                } else if( value == null)
-                {
-                    log.Info("FixFactory already null and set to null.\n" + Environment.StackTrace);
-                }
-                fixFactory = value;
-            }
         }
 
         public int RemoteSequence

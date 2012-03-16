@@ -533,7 +533,7 @@ namespace TickZoom.FIX
                         {
                             MessageFIXT1_1 tempMessage;
                             resendQueue.Peek(out tempMessage);
-                            if (tempMessage.Sequence > remoteSequence)
+                            if (tempMessage.Sequence > remoteSequence && isResendComplete)
                             {
                                 if (debug) log.Debug("Found sequence " + tempMessage.Sequence + " on the resend queue. Requesting resend from " + remoteSequence + " to " + (tempMessage.Sequence - 1));
                                 TryRequestResend(remoteSequence,tempMessage.Sequence - 1);
@@ -793,11 +793,6 @@ namespace TickZoom.FIX
             }
         }
 
-        private FIXTMessage1_1 GapFillMessage(int currentSequence)
-        {
-            return GapFillMessage(currentSequence, currentSequence + 1);
-        }
-
         private FIXTMessage1_1 GapFillMessage(int currentSequence, int newSequence)
         {
             var endText = newSequence == 0 ? "infinity" : newSequence.ToString();
@@ -812,11 +807,20 @@ namespace TickZoom.FIX
 
 	    protected abstract void ResendOrder(CreateOrChangeOrder order);
 
+
         private bool HandleResend(Message message)
         {
 			var messageFIX = (MessageFIXT1_1) message;
 			int end = messageFIX.EndSeqNum == 0 ? fixFactory.LastSequence : messageFIX.EndSeqNum;
-			if( debug) log.Debug( "Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
+            if (messageFIX.BegSeqNum == 1)
+            {
+                // Resend request was from 1. This means that the server restarted the sequence numbers.
+                // So we don't want to resend the active orders, simply fill the gap.
+                var textMessage = GapFillMessage(messageFIX.BegSeqNum, end + 1);
+                SendMessageInternal(textMessage);
+                return true;
+            }
+            if (debug) log.Debug("Found resend request for " + messageFIX.BegSeqNum + " to " + end + ": " + messageFIX);
             if (messageFIX.BegSeqNum <= end)
             {
                 var previous = messageFIX.BegSeqNum;
