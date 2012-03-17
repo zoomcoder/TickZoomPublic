@@ -47,6 +47,10 @@ namespace TickZoom.Common
                 trace = log.IsTraceEnabled;
             }
         }
+        private bool DoSyncTicks
+        {
+            get { return enableSyncTicks && !handleSimulatedExits; }
+        }
         private Log log;
 		private SymbolInfo symbol;
 		private PhysicalOrderHandler physicalOrderHandler;
@@ -114,7 +118,7 @@ namespace TickZoom.Common
             if( positionChange.Recency < recency)
             {
                 if( debug) log.Debug("PositionChange recency " + positionChange.Recency + " less than " + recency + " so ignoring.");
-                if( enableSyncTicks)
+                if( DoSyncTicks)
                 {
                     if (!tickSync.SentWaitingMatch)
                     {
@@ -133,7 +137,7 @@ namespace TickZoom.Common
             {
                 TrySyncPosition(positionChange.StrategyPositions);
                 var match = PerformCompareProtected();
-                if (enableSyncTicks && !match && isBrokerOnline)
+                if (DoSyncTicks && !match && isBrokerOnline)
                 {
                     if (!tickSync.SentWaitingMatch)
                     {
@@ -144,7 +148,7 @@ namespace TickZoom.Common
             else
             {
                 if (debug) log.Debug("PositionChange event received while FIX was offline or recovering. Skipping SyncPosition and ProcessOrders.");
-                if (enableSyncTicks && isBrokerOnline)
+                if (DoSyncTicks && isBrokerOnline)
                 {
                     if (!tickSync.SentWaitingMatch)
                     {
@@ -152,7 +156,7 @@ namespace TickZoom.Common
                     }
                 }
             }
-            if (enableSyncTicks && !handleSimulatedExits)
+            if (DoSyncTicks)
             {
                 tickSync.RemovePositionChange(name);
             }
@@ -273,12 +277,12 @@ namespace TickZoom.Common
 		}
 		
 		private void TryAddPhysicalOrder(CreateOrChangeOrder createOrChange) {
-			if( enableSyncTicks) tickSync.AddPhysicalOrder(createOrChange);
+            if (DoSyncTicks) tickSync.AddPhysicalOrder(createOrChange);
 		}
 
         private void TryRemovePhysicalOrder(CreateOrChangeOrder createOrChange)
         {
-            if (enableSyncTicks) tickSync.RemovePhysicalOrder(createOrChange);
+            if (DoSyncTicks) tickSync.RemovePhysicalOrder(createOrChange);
         }
 
         private bool TryCreateBrokerOrder(CreateOrChangeOrder physical)
@@ -1089,7 +1093,7 @@ namespace TickZoom.Common
                 log.Info("Sending adjustment order to position: " + createOrChange);
                 if( TryCreateBrokerOrder(createOrChange))
                 {
-                    if (enableSyncTicks)
+                    if (DoSyncTicks)
                     {
                         tickSync.RemoveProcessPhysicalOrders();
                     }
@@ -1117,7 +1121,7 @@ namespace TickZoom.Common
                     log.Info("Sending adjustment order to correct position: " + createOrChange);
                     if (TryCreateBrokerOrder(createOrChange))
                     {
-                        if (enableSyncTicks)
+                        if (DoSyncTicks)
                         {
                             tickSync.RemoveProcessPhysicalOrders();
                         }
@@ -1176,7 +1180,7 @@ namespace TickZoom.Common
 
         public void ProcessHeartBeat()
         {
-            if( enableSyncTicks)
+            if (DoSyncTicks)
             {
                 tickSync.TryHeartbeatReset();
             }
@@ -1231,7 +1235,7 @@ namespace TickZoom.Common
                         order.OrderState = OrderState.Expired;
                         var diff = Factory.Parallel.UtcNow - lastChange;
                         var message = "Attempting to cancel pending order " + order.BrokerOrder + " because it is stale over " + diff.TotalSeconds + " seconds.";
-                        if (enableSyncTicks)
+                        if (DoSyncTicks)
                         {
                             log.Info(message);
                         }
@@ -1299,7 +1303,7 @@ namespace TickZoom.Common
                     originalPhysicals.Remove(order.ReplacedBy);
                     physicalOrders.Remove(order.ReplacedBy);
                     physicalOrderCache.RemoveOrder(order.ReplacedBy.BrokerOrder);
-                    if( enableSyncTicks)
+                    if (DoSyncTicks)
                     {
                         tickSync.RemovePhysicalOrder(order.ReplacedBy);
                     }
@@ -1403,7 +1407,7 @@ namespace TickZoom.Common
                         }
                         else
                         {
-                            var extra = enableSyncTicks ? tickSync.ToString() : "";
+                            var extra = DoSyncTicks ? tickSync.ToString() : "";
                             if (debug) log.Debug("PerformCompare ignored. Position not yet synced. " + extra);
                         }
 
@@ -1420,8 +1424,7 @@ namespace TickZoom.Common
 			}
             if (compareSuccess)
             {
-                
-                if (enableSyncTicks)
+                if (DoSyncTicks && !handleSimulatedExits)
                 {
                     if (tickSync.SentWaitingMatch)
                     {
@@ -1438,7 +1441,7 @@ namespace TickZoom.Common
 		}
 		
 		private void TryRemovePhysicalFill(PhysicalFill fill) {
-			if( enableSyncTicks) tickSync.RemovePhysicalFill(fill);
+            if (DoSyncTicks) tickSync.RemovePhysicalFill(fill);
 		}
 		
 		private void ProcessFill( LogicalFillBinary fill, LogicalOrder filledOrder, bool isCompletePhysicalFill, bool isRealTime) {
@@ -1890,7 +1893,7 @@ namespace TickZoom.Common
             {
                 PerformCompareProtected();
             }
-            if (enableSyncTicks)
+            if (DoSyncTicks)
             {
                 tickSync.RemovePhysicalOrder(order);
             }
@@ -1915,7 +1918,7 @@ namespace TickZoom.Common
             {
                 PerformCompareProtected();
             }
-            if (enableSyncTicks)
+            if (DoSyncTicks)
             {
                 tickSync.RemovePhysicalOrder(order);
             }
@@ -1936,7 +1939,7 @@ namespace TickZoom.Common
             {
                 PerformCompareProtected();
             }
-            if (enableSyncTicks)
+            if (DoSyncTicks)
             {
                 tickSync.RemovePhysicalOrder(order);
             }
@@ -1967,7 +1970,7 @@ namespace TickZoom.Common
                     }
                 }
             }
-            if (enableSyncTicks)
+            if (DoSyncTicks)
             {
                 tickSync.RemovePhysicalOrder(order);
             }
@@ -1997,7 +2000,7 @@ namespace TickZoom.Common
             {
 			    PerformCompareProtected();
             }
-            if (enableSyncTicks)
+            if (DoSyncTicks)
             {
                 if( origOrder == null)
                 {
