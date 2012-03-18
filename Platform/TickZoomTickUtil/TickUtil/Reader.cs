@@ -249,6 +249,7 @@ namespace TickZoom.TickUtil
 							}
 							
 							box = tickBoxPool.Create();
+						    if( debug) log.Debug("Allocated box id in reader " + box.Id + ", count " + tickBoxPool.AllocatedCount);
 						    var tickId = box.TickBinary.Id;
 							box.TickBinary = tick;
 						    box.TickBinary.Id = tickId;

@@ -109,13 +109,10 @@ namespace TickZoom.Common
                 switch( eventType)
                 {
                     case EventType.Tick:
-                        TickBinaryBox box = (TickBinaryBox)eventItem.EventDetail;
+                        var box = (TickBinaryBox)eventItem.EventDetail;
                         tickBinary = box.TickBinary;
-                        if( symbolState == SymbolState.RealTime)
-                        {
-                            int x = 0; // log.Info(tickBinary.ToString());
-                        }
                         box.Free();
+                        if( debug) log.Debug("Freed box id in verify " + box.Id + ", count " + tickPool.AllocatedCount);
                         result = true;
                         filter.Pop();
                         break;

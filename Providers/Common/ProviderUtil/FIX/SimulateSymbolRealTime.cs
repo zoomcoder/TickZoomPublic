@@ -61,6 +61,7 @@ namespace TickZoom.FIX
         private Action<long> onEndTick;
         private PartialFillSimulation PartialFillSimulation;
         private long id;
+        private Pool<TickBinaryBox> tickPool;
         public Agent Agent
         {
             get { return agent; }
@@ -92,6 +93,7 @@ namespace TickZoom.FIX
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");
             if (debug) log.Debug("Openning tick file for reading.");
             reader = Factory.TickUtil.TickFile();
+            tickPool = Factory.Parallel.TickPool(symbol);
             try
             {
                 reader.Initialize("Test\\MockProviderData", symbolString, TickFileMode.Read);
@@ -136,6 +138,10 @@ namespace TickZoom.FIX
 		private bool DequeueTick() {
             LatencyManager.IncrementSymbolHandler();
             var result = false;
+            if( tickPool.AllocatedCount >= tickPool.Capacity / 2)
+            {
+                return false;
+            }
             while (!fixSimulatorSupport.QuotePacketQueue.IsFull)
             {
                 if( !reader.TryReadTick(temporaryTick))
