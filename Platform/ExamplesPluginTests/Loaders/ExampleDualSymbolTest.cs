@@ -93,7 +93,7 @@ namespace Loaders
             portfolio.TryMergeEquity();
 			double portfolioTotal = portfolio.Performance.Equity.CurrentEquity;
 			portfolioTotal -= portfolio.Performance.Equity.StartingEquity;
-			Assert.AreEqual(Math.Round(-121.60,2), Math.Round(portfolioTotal,2));
+			Assert.AreEqual(Math.Round(-177.4,2), Math.Round(portfolioTotal,2));
 			Assert.AreEqual(Math.Round(expected,2), Math.Round(portfolioTotal,2));
 		}
 		
@@ -106,7 +106,7 @@ namespace Loaders
 			double portfolioTotal = portfolio.Performance.Equity.ClosedEquity;
 			portfolioTotal -= portfolio.Performance.Equity.StartingEquity;
 			Assert.AreEqual(expected, portfolioTotal);
-			Assert.AreEqual(Math.Round(-121.20,2), Math.Round(portfolioTotal,2));
+			Assert.AreEqual(Math.Round(-177.00,2), Math.Round(portfolioTotal,2));
 		}
 		
 		[Test]
@@ -123,7 +123,7 @@ namespace Loaders
 			TransactionPairs fourTicksRTs = fourTicksStrategy.Performance.ComboTrades;
 			TransactionPairs fullTicksRTs = fullTicksStrategy.Performance.ComboTrades;
 			Assert.AreEqual(fourTicksRTs.Count,fullTicksRTs.Count, "trade count");
-			Assert.AreEqual(471,fullTicksRTs.Count, "trade count");
+			Assert.AreEqual(472,fullTicksRTs.Count, "trade count");
 		}
 			
 		[Test]

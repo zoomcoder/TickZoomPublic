@@ -442,7 +442,7 @@ namespace TickZoom.TickUtil
                         {
                             streamsToWrite.Peek(out memory);
                         }
-                        if (debug) log.Debug("Writing buffer size: " + memory.Position);
+                        if (trace) log.Trace("Writing buffer size: " + memory.Position);
                         fs.Write(memory.GetBuffer(), 0, (int)memory.Position);
                         fs.Flush();
                         memory.Position = 0;

@@ -444,7 +444,10 @@ namespace TickZoom.Common
 				case EventType.Terminate:
 					symbolState = SymbolState.None;
 					return true;
-				default:
+                case EventType.RequestPosition:
+                    symbolState = SymbolState.None;
+                    return false;
+                default:
 					throw new ApplicationException("Unexpected QueueException: " + ex.EntryType);
 			}
 			return false;

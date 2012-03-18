@@ -35,13 +35,22 @@ namespace TickZoom.Api
 	    private int referenceCount;
 	    private Pool<TickBinaryBox> pool;
 		public TickBinary TickBinary;
+	    private long id;
+	    private static long nextId;
+
         public TickBinaryBox( Pool<TickBinaryBox> pool)
         {
             this.pool = pool;
             referenceCount = 1;
+            id = ++nextId;
         }
 
-        public void ResetReference()
+	    public long Id
+	    {
+	        get { return id; }
+	    }
+
+	    public void ResetReference()
         {
             referenceCount = 1;
         }
@@ -50,14 +59,18 @@ namespace TickZoom.Api
         {
             if( referenceCount < 1)
             {
-                throw new ApplicationException("Reference count less than 1");
+                throw new ApplicationException("This item was already freed because reference count is " + referenceCount);
             }
-            Interlocked.Increment(ref referenceCount);
+            ++referenceCount;
         }
 
         public void Free()
         {
-            var value = Interlocked.Decrement(ref referenceCount);
+            if (referenceCount < 1)
+            {
+                throw new ApplicationException("This item was already freed because reference count is " + referenceCount);
+            }
+            var value = --referenceCount;
             if( value == 0)
             {
                 pool.Free(this);

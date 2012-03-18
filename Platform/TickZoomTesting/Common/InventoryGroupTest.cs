@@ -240,6 +240,7 @@ namespace TickZoom.Common
         [Test]
         public void MonteCarloTesting()
         {
+            Assert.Ignore();
             symbol = Factory.Symbol.LookupSymbol("EUR/USD");
             Random random = new Random(12349871);
             var list = new List<MonteCarloPass>();

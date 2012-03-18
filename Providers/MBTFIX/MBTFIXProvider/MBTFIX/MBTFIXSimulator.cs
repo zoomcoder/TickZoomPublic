@@ -122,7 +122,10 @@ namespace TickZoom.MBTFIX
             var writePacket = quoteSocket.MessageFactory.Create();
             string textMessage = "9|\n";
             writePacket.DataOut.Write(textMessage.ToCharArray());
-            quotePacketQueue.Enqueue(writePacket, Factory.Parallel.UtcNow.Internal);
+            if (quoteSocket.TrySendMessage(writePacket))
+            {
+                if (trace) log.Trace("Local Write: " + writePacket);
+            }
         }
 
 	    private void FIXOrderList(MessageFIX4_4 packet)
@@ -821,7 +824,7 @@ namespace TickZoom.MBTFIX
 
         public enum TickState
         {
-            Start,
+            None,
             Tick,
             Finish,
         }
@@ -901,7 +904,7 @@ namespace TickZoom.MBTFIX
                 var temp = currentTicks[i];
                 switch( temp.State)
                 {
-                    case TickState.Start:
+                    case TickState.None:
                         return;
                     case TickState.Tick:
                         if (currentTick == null || temp.TickIO.lUtcTime < currentTick.TickIO.lUtcTime)
@@ -914,7 +917,7 @@ namespace TickZoom.MBTFIX
                 }
             }
             if( currentTick == null) return;
-            currentTick.State = TickState.Start;
+            currentTick.State = TickState.None;
             var tick = currentTick.TickIO;
             var symbol = currentTick.Symbol;
             if( trace) log.Trace("TrySendTick( " + symbol + " " + tick + ")");

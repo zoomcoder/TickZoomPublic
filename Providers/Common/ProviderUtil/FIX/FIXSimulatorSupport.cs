@@ -419,10 +419,10 @@ namespace TickZoom.FIX
 							state = State.WriteFIX;
 							return Yield.NoWork.Repeat;
 						}
-						if( fixPacketQueue.Count > 0) {
-							state = State.ProcessFIX;
-							return Yield.DidWork.Repeat;
-						}
+                        //if( fixPacketQueue.Count > 0) {
+                        //    state = State.ProcessFIX;
+                        //    return Yield.DidWork.Repeat;
+                        //}
 					}
 					if( QuotesReadLoop()) {
 						result = true;
@@ -438,10 +438,11 @@ namespace TickZoom.FIX
 							state = State.WriteQuotes;
 							return Yield.NoWork.Repeat;
 						}
-						if( quotePacketQueue.Count > 0) {
-							state = State.ProcessQuotes;
-							return Yield.DidWork.Invoke(MainLoopMethod);
-						}
+                        //if( quotePacketQueue.Count > 0) {
+                        //    state = State.ProcessQuotes;
+                        //    return Yield.DidWork.Repeat;
+                        //    //return Yield.DidWork.Invoke(MainLoopMethod);
+                        //}
 					}
 					break;
 				case State.ProcessFIX:

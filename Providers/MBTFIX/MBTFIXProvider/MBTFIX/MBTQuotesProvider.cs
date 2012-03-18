@@ -56,15 +56,9 @@ namespace TickZoom.MBTQuotes
 			RetryStart = 1;
 			RetryIncrease = 1;
 			RetryMaximum = 30;
-			if( SyncTicks.Enabled) {
-                if( System.Diagnostics.Debugger.IsAttached)
-                {
-                    HeartbeatDelay = int.MaxValue;
-                }
-                else
-                {
-                    HeartbeatDelay = 5;
-                }
+            if( System.Diagnostics.Debugger.IsAttached)
+            {
+                HeartbeatDelay = int.MaxValue;
             }
             else
             {
