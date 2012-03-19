@@ -39,12 +39,15 @@ namespace TickZoom.TZData
 	{
 		public override void Run(string[] args)
 		{
-			if( args.Length != 1) {
+			if( args.Length < 1) {
 				Output("Migrate Usage:");
                 Usage();
                 return;
 			}
-			MigrateFile(args[0]);
+            for (var i = 0; i < args.Length; i++ )
+            {
+                MigrateFile(args[i]);
+            }
 		}
 		
 		private void MigrateFile(string file) {
@@ -57,36 +60,43 @@ namespace TickZoom.TZData
             int count = 0;
             TickIO firstTick = Factory.TickUtil.TickIO();
             TickIO tickIO = Factory.TickUtil.TickIO();
-            using (reader = Factory.TickUtil.TickFile())
-			{
-                using( writer = Factory.TickUtil.TickFile())
+            try
+            {
+                using (reader = Factory.TickUtil.TickFile())
                 {
-                    reader.Initialize(file, TickFileMode.Read);
-
-                    writer.EraseFileToStart = true;
-                    writer.Initialize(file + ".temp", TickFileMode.Write);
-
-                    bool first = true;
-                    while (reader.TryReadTick(tickIO))
+                    using (writer = Factory.TickUtil.TickFile())
                     {
-                        writer.WriteTick(tickIO);
-                        if (first)
+                        reader.Initialize(file, TickFileMode.Read);
+
+                        writer.EraseFileToStart = true;
+                        writer.Initialize(file + ".temp", TickFileMode.Write);
+
+                        bool first = true;
+                        while (reader.TryReadTick(tickIO))
                         {
-                            firstTick.Copy(tickIO);
-                            first = false;
+                            writer.WriteTick(tickIO);
+                            if (first)
+                            {
+                                firstTick.Copy(tickIO);
+                                first = false;
+                            }
+                            count++;
                         }
-                        count++;
                     }
                 }
+                Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
+                Alter.MoveFile(file, file + ".back");
+                Alter.MoveFile(file + ".temp", file);
             }
-            Output(reader.Symbol + ": Migrated " + count + " ticks from " + firstTick.Time + " to " + tickIO.Time);
-            Alter.MoveFile(file, file + ".back");
-            Alter.MoveFile(file + ".temp", file);
+            catch( Exception ex)
+            {
+                Output("Error: " + ex.Message);
+            }
 		}
 		
 		public override string[] UsageLines()
 		{
-		    return new string[] {AssemblyName + " migrate <file>"};
+		    return new string[] {AssemblyName + " migrate <file> ..."};
 		}
 	}
 }
