@@ -58,6 +58,7 @@ namespace TickZoom.Common
         private TimeStamp time;
 	    private int diagnoseMetric = Diagnose.RegisterMetric("Symbol Handler");
         private long tickCount = 0L;
+	    private int tickPoolCallerId;
         
         
 		public void Start()
@@ -81,6 +82,7 @@ namespace TickZoom.Common
 			this.quotesLatency = new LatencyMetric( "SymbolHandler-Quotes-" + symbol.Symbol.StripInvalidPathChars());
 			this.salesLatency = new LatencyMetric( "SymbolHandler-Trade-" + symbol.Symbol.StripInvalidPathChars());
             tickPool =  Factory.Parallel.TickPool(symbol);
+		    tickPoolCallerId = tickPool.GetCallerId("SymbolHandler-" + symbol + "-" + agent);
 		}
 		
 		bool errorWrongLevel1Type = false;
@@ -103,7 +105,7 @@ namespace TickZoom.Common
 						tickIO.SetSymbol(Symbol.BinaryIdentifier);
 						tickIO.SetTime(Time);
 						tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
-						var box = tickPool.Create();
+						var box = tickPool.Create(tickPoolCallerId);
                         if( debug) log.Debug("Allocated box id in handler " + box.Id + ", count " + tickPool.AllocatedCount);
                         var tickId = box.TickBinary.Id;
 						box.TickBinary = tickIO.Extract();
@@ -186,7 +188,7 @@ namespace TickZoom.Common
             {
                 tickIO.SetQuote(Bid, Ask, (short)BidSize, (short)AskSize);
             }
-            var box = tickPool.Create();
+            var box = tickPool.Create(tickPoolCallerId);
             var tickId = box.TickBinary.Id;
             box.TickBinary = tickIO.Extract();
             box.TickBinary.Id = tickId;
@@ -241,7 +243,7 @@ namespace TickZoom.Common
 				if( Symbol.QuoteType == QuoteType.Level1 && isQuoteInitialized && VerifyQuote()) {
 					tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
 				}
-				var box = tickPool.Create();
+				var box = tickPool.Create(tickPoolCallerId);
 			    var tickId = box.TickBinary.Id;
 				box.TickBinary = tickIO.Extract();
 			    box.TickBinary.Id = tickId;

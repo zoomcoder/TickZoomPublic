@@ -32,9 +32,14 @@ namespace TickZoom.LimeQuotes
     public class MessageFactoryLimeQuotes : MessageFactory
     {
         private Pool<LimeQuoteMessage> pool = Factory.Parallel.Pool<LimeQuoteMessage>();
+        private int callerId;
+        public MessageFactoryLimeQuotes()
+        {
+            callerId = pool.GetCallerId("MessageFactoryLimeQuotes");
+        }
         public Message Create()
         {
-            var message = pool.Create();
+            var message = pool.Create(callerId);
             message.Clear();
             return (Message)message;
         }

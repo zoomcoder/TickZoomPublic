@@ -149,6 +149,7 @@ namespace TickZoom.TickUtil
 		long start;
 		bool isTaskPrepared = false;
 		bool isStarted = false;
+        private int tickPoolCallerId;
 		
 		private void PrepareTask()
 		{
@@ -157,6 +158,7 @@ namespace TickZoom.TickUtil
 	        debug = log.IsDebugEnabled;
 	        trace = log.IsTraceEnabled;
 		    tickBoxPool = Factory.Parallel.TickPool(symbol);
+		    tickPoolCallerId = tickBoxPool.GetCallerId("Reader-" + symbol);
             progressDivisor = tickFile.Length / 20;
             progressCallback("Loading bytes...", tickFile.Position, tickFile.Length);
             isTaskPrepared = true;
@@ -248,7 +250,7 @@ namespace TickZoom.TickUtil
 								tickCount++;
 							}
 							
-							box = tickBoxPool.Create();
+							box = tickBoxPool.Create(tickPoolCallerId);
 						    if( debug) log.Debug("Allocated box id in reader " + box.Id + ", count " + tickBoxPool.AllocatedCount);
 						    var tickId = box.TickBinary.Id;
 							box.TickBinary = tick;

@@ -208,7 +208,7 @@ namespace TickZoom.Interceptors
                 }
                 catch (ArgumentException)
                 {
-                    throw new ApplicationException("An broker order id of " + order.BrokerOrder + " was already added.");
+                    throw new ApplicationException("A broker order id of " + order.BrokerOrder + " was already added.");
                 }
             }
             TriggerOperation operation = default(TriggerOperation);

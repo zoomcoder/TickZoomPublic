@@ -32,7 +32,8 @@ namespace TickZoom.Api
 {
 	public interface Pool<T>
 	{
-		T Create();
+	    int GetCallerId(string caller);
+		T Create(int callerId);
 		void Free(T item);
 		void Clear();
 	    int AllocatedCount { get; }

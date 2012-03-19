@@ -36,6 +36,7 @@ namespace TickZoom.Api
 	    private Pool<TickBinaryBox> pool;
 		public TickBinary TickBinary;
 	    private long id;
+	    private int callerId;
 	    private static long nextId;
 
         public TickBinaryBox( Pool<TickBinaryBox> pool)
@@ -50,8 +51,14 @@ namespace TickZoom.Api
 	        get { return id; }
 	    }
 
-	    public void ResetReference()
-        {
+	    public int CallerId
+	    {
+	        get { return callerId; }
+	    }
+
+	    public void ResetReference(int callerId)
+	    {
+	        this.callerId = callerId;
             referenceCount = 1;
         }
 
