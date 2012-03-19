@@ -157,7 +157,7 @@ namespace TickZoom.Common
             inventory.MaximumLotSize = 1000;
             inventory.MinimumLotSize = 1000;
             inventory.Goal = 5000;
-            Console.WriteLine("Price,Quantity,Cumulative,BreakEven,PandL");
+            //Console.WriteLine("Price,Quantity,Cumulative,BreakEven,PandL");
             var first = true;
             var sb = new StringBuilder();
             for (var price = 1.7000D; price > 1.4000; price -= 10*symbol.MinimumTick )
@@ -181,7 +181,7 @@ namespace TickZoom.Common
             inventory.MaximumLotSize = 1000;
             inventory.MinimumLotSize = 1000;
             inventory.Goal = 5000;
-            Console.WriteLine("Price,Quantity,Cumulative,BreakEven,PandL");
+            //Console.WriteLine("Price,Quantity,Cumulative,BreakEven,PandL");
             var first = true;
             var sb = new StringBuilder();
             var price = 1.7000D;
@@ -195,7 +195,7 @@ namespace TickZoom.Common
                 sb.AppendLine(Round(price) + "," + amountToOffer + "," + inventory.Size + "," + Round(inventory.BreakEven) + "," + Round(pandl));
                 price += symbol.MinimumTick*10;
             }
-            Console.Write(sb.ToString());
+            //Console.Write(sb.ToString());
         }
 
         [Test]
@@ -282,12 +282,12 @@ namespace TickZoom.Common
                 }
                 profitSum += pass.ProfitLoss;
             }
-            Console.WriteLine("Max Run Up " + Round(maxRunUp));
-            Console.WriteLine("Max DrawDown " + Round(maxDrawDown));
-            Console.WriteLine("Max Inventory " + Round(maxInventory));
-            Console.WriteLine("Max Profit " + Round(maxProfit));
-            Console.WriteLine("Profitable % " + Round(profitableCount*100/list.Count));
-            Console.WriteLine("Total Profit " + Round(profitSum));
+            //Console.WriteLine("Max Run Up " + Round(maxRunUp));
+            //Console.WriteLine("Max DrawDown " + Round(maxDrawDown));
+            //Console.WriteLine("Max Inventory " + Round(maxInventory));
+            //Console.WriteLine("Max Profit " + Round(maxProfit));
+            //Console.WriteLine("Profitable % " + Round(profitableCount*100/list.Count));
+            //Console.WriteLine("Total Profit " + Round(profitSum));
         }
 
         public double Round(double price)

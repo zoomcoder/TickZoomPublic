@@ -86,12 +86,12 @@ namespace TickZoom.Api
         }
         private bool CheckOnlyProcessingOrders()
         {
-            return (*state).physicalOrders == 0 && (*state).physicalFillsCreated == 0 && (*state).processPhysical > 0;
+            return (*state).physicalOrders == 0 && (*state).positionChange == 0 && (*state).physicalFillsCreated == 0 && (*state).processPhysical > 0;
         }
 
         private bool CheckOnlyReprocessOrders()
         {
-            return (*state).physicalOrders == 0 && (*state).physicalFillsCreated == 0 && (*state).reprocessPhysical > 0;
+            return (*state).physicalOrders == 0 && (*state).positionChange == 0 && (*state).physicalFillsCreated == 0 && (*state).reprocessPhysical > 0;
         }
 
         private void Changed()
