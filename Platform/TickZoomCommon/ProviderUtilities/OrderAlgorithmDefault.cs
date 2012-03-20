@@ -1091,13 +1091,7 @@ namespace TickZoom.Common
 			{
                 createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, OrderSide.Buy, OrderType.BuyMarket, OrderFlags.None, 0, (int) delta, 0, 0, 0, null, default(TimeStamp));
                 log.Info("Sending adjustment order to position: " + createOrChange);
-                if( TryCreateBrokerOrder(createOrChange))
-                {
-                    if (DoSyncTicks)
-                    {
-                        tickSync.RemoveProcessPhysicalOrders();
-                    }
-                }
+			    TryCreateBrokerOrder(createOrChange);
             }
             else if (delta < 0)
             {
@@ -1119,13 +1113,7 @@ namespace TickZoom.Common
                     side = physicalOrderCache.GetActualPosition(symbol) >= Math.Abs(delta) ? OrderSide.Sell : OrderSide.SellShort;
                     createOrChange = new CreateOrChangeOrderDefault(OrderAction.Create, OrderState.Pending, symbol, side, OrderType.SellMarket, OrderFlags.None, 0, (int) Math.Abs(delta), 0, 0, 0, null, default(TimeStamp));
                     log.Info("Sending adjustment order to correct position: " + createOrChange);
-                    if (TryCreateBrokerOrder(createOrChange))
-                    {
-                        if (DoSyncTicks)
-                        {
-                            tickSync.RemoveProcessPhysicalOrders();
-                        }
-                    }
+                    TryCreateBrokerOrder(createOrChange);
                 }
             }
         }

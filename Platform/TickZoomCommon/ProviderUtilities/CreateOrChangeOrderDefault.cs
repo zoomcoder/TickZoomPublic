@@ -221,11 +221,10 @@ namespace TickZoom.Common
                 sb.Append(" sequence: ");
                 sb.Append(binary.sequence);
             }
-            //if( !Factory.IsAutomatedTest)
-            //{
-                sb.Append(" last change: ");
-                sb.Append(binary.lastModifyTime);
-            //}
+            sb.Append(" create ");
+            sb.Append(binary.utcCreateTime);
+            sb.Append(" last change: ");
+            sb.Append(binary.lastModifyTime);
             return sb.ToString();
         }
 
