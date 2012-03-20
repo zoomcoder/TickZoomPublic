@@ -191,7 +191,10 @@ namespace TickZoom.FIX
                 {
                     FillSimulator.ProcessOrders();
                 }
-                tickSync.ClearReprocessPhysicalOrders();
+                if( tickSync.SentReprocessPhysicalOrders)
+                {
+                    tickSync.ClearReprocessPhysicalOrders();
+                }
             }
         }
 

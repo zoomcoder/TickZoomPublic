@@ -416,6 +416,11 @@ namespace TickZoom.Api
             get { return (*state).positionChange > 0; }
         }
 
+        public bool IsWaitingMatch
+        {
+            get { return (*state).positionChange == 0 && (*state).waitingMatch > 0; }
+        }
+
         public bool SentWaitingMatch
         {
             get { return (*state).waitingMatch > 0; }
