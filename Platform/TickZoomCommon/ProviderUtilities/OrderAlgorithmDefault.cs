@@ -1943,16 +1943,19 @@ namespace TickZoom.Common
             if (debug) log.Debug("RejectOrder(" + RejectRepeatCounter + ", " + (isRealTime ? "RealTime" : "Recovery") + ") " + order);
             physicalOrderCache.RemoveOrder(order.BrokerOrder);
             var origOrder = order.OriginalOrder;
-            if (origOrder != null && origOrder.OrderState == OrderState.Expired)
+            if (origOrder != null)
             {
-                if (debug) log.Debug("Removing expired order: " + order.OriginalOrder);
-                physicalOrderCache.PurgeOriginalOrder(order);
-                if (isRealTime)
+                if( origOrder.OrderState == OrderState.Expired)
                 {
-                    if (!CheckForPending())
-                    {
-                        PerformCompareProtected();
-                    }
+                    if (debug) log.Debug("Removing expired order: " + order.OriginalOrder);
+                    physicalOrderCache.PurgeOriginalOrder(order);
+                }
+            }
+            if (isRealTime)
+            {
+                if (!CheckForPending())
+                {
+                    PerformCompareProtected();
                 }
             }
             if (DoSyncTicks)
