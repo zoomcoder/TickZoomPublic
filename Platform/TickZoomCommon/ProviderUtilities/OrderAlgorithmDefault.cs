@@ -197,10 +197,7 @@ namespace TickZoom.Common
         private bool TryCancelBrokerOrder(CreateOrChangeOrder physical, bool forStaleOrder)
         {
 			bool result = false;
-            if (!physical.IsPending &&
-                // Market orders can't be canceled.
-                physical.Type != OrderType.BuyMarket &&
-                physical.Type != OrderType.SellMarket)
+            if (!physical.IsPending)
             {
                 result = Cancel(physical,forStaleOrder);
             }

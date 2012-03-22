@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -327,8 +327,9 @@ namespace Loaders
             var mbtfixFolder = Path.Combine(providersFolder, fileName);
             var databaseFolder = Path.Combine(appDataFolder, "Database");
             Directory.CreateDirectory(databaseFolder);
-            var filePaths = Directory.GetFiles(databaseFolder, "*_" + fileName + ".dat.*", SearchOption.TopDirectoryOnly);
-            foreach (var path in filePaths) {
+            var filePaths = Directory.GetFiles(databaseFolder, "*.dat*", SearchOption.TopDirectoryOnly);
+            foreach( var path in filePaths)
+            {
                 DeleteFile(path);
             }
             var filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
