@@ -212,16 +212,6 @@ namespace TickZoom.Common
         private bool Cancel(CreateOrChangeOrder physical, bool forStaleOrder)
         {
 			var result = false;
-            physical.CancelCount++;
-            if( physical.CancelCount > 15)
-            {
-                log.Error("Already tried canceling this order 3 times: " + physical);
-                while( true)
-                {
-                    Thread.Sleep(1000);
-                }
-                //throw new InvalidOperationException("Already tried canceling this order 3 times: " + physical);
-            }
             var cancelOrder = new CreateOrChangeOrderDefault(OrderState.Pending, symbol, physical);
             physical.ReplacedBy = cancelOrder;
             if (physicalOrderCache.HasCancelOrder(cancelOrder))
@@ -230,6 +220,15 @@ namespace TickZoom.Common
             }
             else
             {
+                if (physical.CancelCount > 15)
+                {
+                    log.Error("Already tried canceling this order " + physical.CancelCount + " times: " + physical);
+                    while (true)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                    //throw new InvalidOperationException("Already tried canceling this order 3 times: " + physical);
+                }
                 if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
                 physicalOrderCache.SetOrder(cancelOrder);
                 if( !forStaleOrder)
@@ -238,6 +237,7 @@ namespace TickZoom.Common
                 }
                 if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
                 {
+                    physical.CancelCount++;
                     result = true;
                 }
                 else
