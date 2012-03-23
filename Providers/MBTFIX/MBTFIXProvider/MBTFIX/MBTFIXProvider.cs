@@ -887,81 +887,63 @@ namespace TickZoom.MBTFIX
                 SendFill(packetFIX);
 			}
 		}
-		
-		private void CancelRejected( MessageFIX4_4 packetFIX) {
+
+        private void CancelRejected(MessageFIX4_4 packetFIX)
+        {
             var clientOrderId = 0L;
             long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
             var originalClientOrderId = 0L;
             long.TryParse(packetFIX.ClientOrderId, out originalClientOrderId);
-            if (debug && (LogRecovery || !IsRecovery))
+            if (debug) log.Debug("CancelRejected: " + packetFIX);
+            string orderStatus = packetFIX.OrderStatus;
+            switch (orderStatus)
             {
-				log.Debug("CancelRejected: " + packetFIX);
-			}
-			string orderStatus = packetFIX.OrderStatus;
-			switch( orderStatus) {
-				case "8": // Rejected
-					var rejectReason = false;
-                    if( packetFIX.Text.Contains("Order Server Not Available"))
+                case "8": // Rejected
+                    if (packetFIX.Text.Contains("Order Server Offline") ||
+                        packetFIX.Text.Contains("Trading temporarily unavailable") ||
+                        packetFIX.Text.Contains("Order Server Not Available"))
                     {
-                        rejectReason = true;
                         CancelRecovered();
                         TrySendEndBroker();
                         TryEndRecovery();
                     }
-                    else if( packetFIX.Text.Contains("Cannot cancel order. Probably already filled or canceled."))
-                    {
-                        rejectReason = true;
-                        log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
-                        //removeOriginal = true;
-                    }
-			        else if( packetFIX.Text.Contains("No such order"))
-                    {
-                        rejectReason = true;
-                        log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
-                        //removeOriginal = true;
-                    }
-                    else if( packetFIX.Text.Contains("Order pending remote") ||
-                        packetFIX.Text.Contains("Cancel request already pending") ||
-                        packetFIX.Text.Contains("ORDER in pending state") ||
-                        packetFIX.Text.Contains("General Order Replace Error"))
-                    {
-                        rejectReason = true;
-                    }
-                                      
+
                     CreateOrChangeOrder order;
-                    if( OrderStore.TryGetOrderById( clientOrderId, out order))
+                    if (OrderStore.TryGetOrderById(clientOrderId, out order))
                     {
                         var symbol = order.Symbol;
                         SymbolAlgorithm algorithm;
-                        if (!TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                        if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                        {
+                            if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
+                            {
+                                var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
+                                log.Warn(message);
+                            }
+
+                            var retryImmediately = algorithm.OrderAlgorithm.RejectRepeatCounter < 1;
+                            algorithm.OrderAlgorithm.RejectOrder(clientOrderId, IsRecovered, retryImmediately);
+                            if (!retryImmediately)
+                            {
+                                TrySendEndBroker(symbol);
+                            }
+                        }
+                        else
                         {
                             log.Info("Cancel rejected but OrderAlgorithm not found for " + symbol + ". Ignoring.");
                             break;
                         }
-                        var retryImmediately = true;
-                        algorithm.OrderAlgorithm.RejectOrder(clientOrderId, IsRecovered, retryImmediately);
                     }
                     else
                     {
-                        if( debug) log.Debug("Order not found for " + clientOrderId + ". Probably allready filled or canceled.");
+                        if (debug) log.Debug("Order not found for " + clientOrderId + ". Probably allready filled or canceled.");
                     }
 
-                    if (!rejectReason && IsRecovered)
-                    {
-						var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-						var stopping = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. ";
-						log.Warn( message);
-						log.Error( stopping );
-					} else {
-						if( LogRecovery || !IsRecovery) {
-							log.Info( "CancelReject(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId);
-						}
-					}
-					break;
-				default:
-					throw new ApplicationException("Unknown cancel rejected order status: '" + orderStatus + "'");
-			}
-		}
+                    break;
+                default:
+                    throw new ApplicationException("Unknown cancel rejected order status: '" + orderStatus + "'");
+            }
+        }
 		
 		private int SideToSign( string side) {
 			switch( side) {
