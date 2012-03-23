@@ -1964,22 +1964,26 @@ namespace TickZoom.Common
             }
         }
 
-        public void ConfirmCancel(long brokerOrder, bool isRealTime)
+        public void ConfirmCancel(long brokerOrderId, bool isRealTime)
         {
-            CreateOrChangeOrder cancelOrder;
-            if (!physicalOrderCache.TryGetOrderById(brokerOrder, out cancelOrder))
+            CreateOrChangeOrder brokerOrder;
+            if (!physicalOrderCache.TryGetOrderById(brokerOrderId, out brokerOrder))
             {
                 log.Warn("ConfirmCancel: Cannot find physical order for id " + brokerOrder);
                 return;
             }
-            if (cancelOrder.Action != OrderAction.Cancel)
+            if (brokerOrder.Action != OrderAction.Cancel)
             {
-                cancelOrder = cancelOrder.ReplacedBy;
+                var tempOrder = brokerOrder.ReplacedBy;
+                if( tempOrder != null && tempOrder.Action == OrderAction.Cancel)
+                {
+                    brokerOrder = tempOrder;
+                }
             }
-            var origOrder = cancelOrder.OriginalOrder;
+            var origOrder = brokerOrder.OriginalOrder;
             ++confirmedOrderCount;
-            if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + cancelOrder);
-            physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
+            if (debug) log.Debug("ConfirmCancel(" + (isRealTime ? "RealTime" : "Recovery") + ") " + brokerOrder);
+            physicalOrderCache.RemoveOrder(brokerOrder.BrokerOrder);
             if (origOrder != null)
             {
                 physicalOrderCache.RemoveOrder(origOrder.BrokerOrder);
@@ -1992,7 +1996,7 @@ namespace TickZoom.Common
             {
                 if( origOrder == null)
                 {
-                    log.Error("Original order is null: " + cancelOrder);
+                    log.Error("Original order is null: " + brokerOrder);
                 }
                 else
                 {

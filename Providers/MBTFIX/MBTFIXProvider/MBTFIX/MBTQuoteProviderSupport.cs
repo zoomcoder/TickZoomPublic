@@ -484,6 +484,7 @@ namespace TickZoom.MBTQuotes
 	            // Received the ping response.
 	            if( trace) log.Trace("Ping successfully received."); 
 	            isPingSent = false;
+	            SendStartRealTime();
 	        }
 	        else
 	        {
@@ -498,6 +499,10 @@ namespace TickZoom.MBTQuotes
 	            }
 	        }
 	    }
+
+        protected virtual void SendStartRealTime()
+        {
+        }
 
 	    private bool isPingSent = false;
 	    private void SendPing()

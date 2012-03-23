@@ -106,7 +106,6 @@ namespace TickZoom.Common
 						tickIO.SetTime(Time);
 						tickIO.SetQuote(Bid,Ask,(short)BidSize,(short)AskSize);
 						var box = tickPool.Create(tickPoolCallerId);
-                        if( debug) log.Debug("Allocated box id in handler " + box.Id + ", count " + tickPool.AllocatedCount);
                         var tickId = box.TickBinary.Id;
 						box.TickBinary = tickIO.Extract();
 					    box.TickBinary.Id = tickId;

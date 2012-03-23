@@ -56,7 +56,7 @@ namespace TickZoom.MBTQuotes
 			RetryStart = 1;
 			RetryIncrease = 1;
 			RetryMaximum = 30;
-            if( System.Diagnostics.Debugger.IsAttached)
+            if( System.Diagnostics.Debugger.IsAttached && SyncTicks.Enabled)
             {
                 HeartbeatDelay = int.MaxValue;
             }
@@ -277,7 +277,7 @@ namespace TickZoom.MBTQuotes
 			log.Error("Exception occurred", ex);
 		}
         
-		private void SendStartRealTime() {
+		protected override void SendStartRealTime() {
 			lock( symbolsRequestedLocker) {
 				foreach( var kvp in symbolsRequested) {
 					var symbol = kvp.Value;

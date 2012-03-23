@@ -42,7 +42,8 @@ namespace TickZoom.Examples
 		double multiplier = 1.0D;
 		double minimumTick;
 		int tradeSize;
-		
+	    private bool isShortOnly;
+
 		public ExampleOrderStrategy() {
 			Performance.GraphTrades = true;
 			Performance.Equity.GraphEquity = true;
@@ -81,8 +82,11 @@ namespace TickZoom.Examples
             {
                 if (isFlat)
                 {
-					Orders.Enter.NextBar.BuyStop(Bars.Close[0] + 10 * minimumTick,tradeSize);
-					Orders.Exit.NextBar.SellStop(Bars.Close[0] - 10 * minimumTick);
+					if( !isShortOnly)
+					{
+					    Orders.Enter.NextBar.BuyStop(Bars.Close[0] + 10 * minimumTick,tradeSize);
+                        Orders.Exit.NextBar.SellStop(Bars.Close[0] - 10 * minimumTick);
+                    }
 				    return true;
 				}
 				if( Position.IsShort) {
@@ -114,5 +118,11 @@ namespace TickZoom.Examples
 			get { return multiplier; }
 			set { multiplier = value; }
 		}
+
+	    public bool IsShortOnly
+	    {
+	        get { return isShortOnly; }
+	        set { isShortOnly = value; }
+	    }
 	}
 }

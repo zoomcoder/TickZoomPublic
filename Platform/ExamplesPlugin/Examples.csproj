@@ -103,6 +103,7 @@
     <Compile Include="Loaders\ExampleChartIndicator.cs" />
     <Compile Include="Loaders\ExampleCustomBarsLoader.cs" />
     <Compile Include="Loaders\ExampleLimitOrderLoader.cs" />
+    <Compile Include="Loaders\TestManySymbolLoader.cs" />
     <Compile Include="Loaders\ExampleMixedLoader.cs" />
     <Compile Include="Loaders\ExampleMixedTruePartial.cs" />
     <Compile Include="Loaders\MarketSimulatorLoader.cs" />
