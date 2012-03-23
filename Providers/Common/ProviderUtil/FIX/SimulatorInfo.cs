@@ -27,7 +27,7 @@ namespace TickZoom.FIX
         // Repetitions
         private bool isRepeating;
         private int repeatCounter;
-        private int repleatCurrentMax;
+        private int repeatCurrentMax;
         public int MaxRepetitions = 0;
         private SymbolInfo repeatingSymbol;
 
@@ -65,7 +65,7 @@ namespace TickZoom.FIX
                     return false;
                 }
                 repeatCounter++;
-                if (repeatCounter < repleatCurrentMax)
+                if (repeatCounter < repeatCurrentMax)
                 {
                     if( debug)
                     {
@@ -93,7 +93,7 @@ namespace TickZoom.FIX
                 }
                 if (MaxRepetitions > 0)
                 {
-                    repleatCurrentMax = random.Next(MaxRepetitions);
+                    repeatCurrentMax = random.Next(MaxRepetitions) + MaxRepetitions;
                     repeatCounter = 0;
                     isRepeating = true;
                     repeatingSymbol = symbol;

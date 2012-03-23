@@ -143,12 +143,12 @@ namespace TickZoom.FIX
 
             simulators[SimulatorType.ReceiveDisconnect].Enabled = allTests;
             simulators[SimulatorType.SendDisconnect].Enabled = allTests;
-            simulators[SimulatorType.SendServerOffline].Enabled = allTests;
+            simulators[SimulatorType.SendServerOffline].Enabled = false;
             simulators[SimulatorType.ReceiveServerOffline].Enabled = allTests;
             simulators[SimulatorType.BlackHole].Enabled = allTests;
             simulators[SimulatorType.CancelBlackHole].Enabled = allTests;
             simulators[SimulatorType.SystemOffline].Enabled = allTests;
-            simulators[SimulatorType.RejectSymbol].Enabled = false;
+            simulators[SimulatorType.RejectSymbol].Enabled = allTests;
             simulators[SimulatorType.RejectAll].Enabled = false;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
@@ -162,7 +162,7 @@ namespace TickZoom.FIX
 
                 simulator = simulators[SimulatorType.RejectSymbol];
                 simulator.Frequency = 10;
-                simulator.MaxRepetitions = 100;
+                simulator.MaxRepetitions = 5;
             }
 
             this.currentMessageFactory = createMessageFactory;

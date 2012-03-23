@@ -151,27 +151,6 @@ namespace TickZoom.Api
             if (trace) log.Trace("ForceClear(" +message+ ") " + this);
         }
 
-        public void TryHeartbeatReset()
-        {
-#if HEARTBEATRESET
-            var currentTime = TimeStamp.UtcNow;
-            var diff = currentTime - lastAddTime;
-            if (diff.TotalMilliseconds > 800 )
-            {
-                Interlocked.Exchange(ref (*state).physicalOrders, 0);
-                Interlocked.Exchange(ref (*state).orderChange, 0);
-                Interlocked.Exchange(ref (*state).blackHoleOrders, 0);
-                Interlocked.Exchange(ref (*state).positionChange, 0);
-                Interlocked.Exchange(ref (*state).waitingMatch, 0);
-                Interlocked.Exchange(ref (*state).physicalFillsCreated, 0);
-                Interlocked.Exchange(ref (*state).physicalFillsWaiting, 0);
-                Interlocked.Exchange(ref (*state).switchBrokerState, 0);
-                if (trace) log.Trace("TryHeartbeatReset() " + this);
-                Changed();
-            }
-#endif
-        }
-
         public override string ToString()
         {
             return ToString(*state);

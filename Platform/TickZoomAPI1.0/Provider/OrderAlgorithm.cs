@@ -35,8 +35,7 @@ namespace TickZoom.Api
         void ConfirmCreate(long brokerOrder, bool isRecovered);
         void ConfirmCancel(long brokerOrder, bool isRecovered);
         void ConfirmChange(long brokerOrder, bool isRecovered);
-        void RejectOrder(long brokerOrder, bool removeOriginal, bool isRealTime, bool retryImmediately);
-        int RejectRepeatCounter { get; }
+        void RejectOrder(long brokerOrder, bool isRealTime, bool retryImmediately);
     }
 
 	public interface OrderAlgorithm : PhysicalOrderConfirm
@@ -61,5 +60,6 @@ namespace TickZoom.Api
 	    int ProcessOrders();
 	    bool CheckForPending();
 	    void ProcessHeartBeat();
-	}
+        int RejectRepeatCounter { get; set;  }
+    }
 }

@@ -217,37 +217,40 @@ namespace TickZoom.Common
             if (physicalOrderCache.HasCancelOrder(cancelOrder))
             {
                 if (debug) log.Debug("Ignoring cancel broker order " + physical.BrokerOrder + " as physical order cache has a cancel or replace already.");
+                return result;
+            }
+            if (rejectRepeatCounter > 1)
+            {
+                if (debug) log.Debug("Ignoring broker order while waiting on reject recovery.");
+                return result;
+            }
+            if (physical.CancelCount > 15)
+            {
+                log.Error("Already tried canceling this order " + physical.CancelCount + " times: " + physical);
+                while (true)
+                {
+                    Thread.Sleep(1000);
+                }
+                //throw new InvalidOperationException("Already tried canceling this order 3 times: " + physical);
+            }
+            if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
+            physicalOrderCache.SetOrder(cancelOrder);
+            if( !forStaleOrder)
+            {
+                TryAddPhysicalOrder(cancelOrder);
+            }
+            if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
+            {
+                physical.CancelCount++;
+                result = true;
             }
             else
             {
-                if (physical.CancelCount > 15)
-                {
-                    log.Error("Already tried canceling this order " + physical.CancelCount + " times: " + physical);
-                    while (true)
-                    {
-                        Thread.Sleep(1000);
-                    }
-                    //throw new InvalidOperationException("Already tried canceling this order 3 times: " + physical);
-                }
-                if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
-                physicalOrderCache.SetOrder(cancelOrder);
                 if( !forStaleOrder)
                 {
-                    TryAddPhysicalOrder(cancelOrder);
+                    TryRemovePhysicalOrder(cancelOrder);
                 }
-                if (physicalOrderHandler.OnCancelBrokerOrder(cancelOrder))
-                {
-                    physical.CancelCount++;
-                    result = true;
-                }
-                else
-                {
-                    if( !forStaleOrder)
-                    {
-                        TryRemovePhysicalOrder(cancelOrder);
-                    }
-                    physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
-                }
+                physicalOrderCache.RemoveOrder(cancelOrder.BrokerOrder);
             }
 		    return result;
 		}
@@ -260,6 +263,11 @@ namespace TickZoom.Common
                 if (physicalOrderCache.HasCancelOrder(createOrChange))
                 {
                     if (debug) log.Debug("Ignoring broker order " + origOrder.BrokerOrder + " as physical order cache has a cancel or replace already.");
+                    return;
+                }
+	            if (rejectRepeatCounter > 1)
+                {
+                    if (debug) log.Debug("Ignoring broker order while waiting on reject recovery.");
                     return;
                 }
                 if (debug) log.Debug("Change Broker Order: " + createOrChange);
@@ -292,6 +300,11 @@ namespace TickZoom.Common
             if (physicalOrderCache.HasCreateOrder(physical))
             {
                 if( debug) log.Debug("Ignoring broker order as physical order cache has a create order already.");
+                return false;
+            }
+            if (rejectRepeatCounter > 1)
+            {
+                if (debug) log.Debug("Ignoring broker order while waiting on reject recovery.");
                 return false;
             }
             TryAddPhysicalOrder(physical);
@@ -1165,10 +1178,6 @@ namespace TickZoom.Common
 
         public void ProcessHeartBeat()
         {
-            if (DoSyncTicks)
-            {
-                tickSync.TryHeartbeatReset();
-            }
         }
 
         public bool CheckForPending()
@@ -1848,13 +1857,14 @@ namespace TickZoom.Common
         public int RejectRepeatCounter
         {
             get { return rejectRepeatCounter; }
+            set { rejectRepeatCounter = value; }
         }
 
         public bool IsBrokerOnline
         {
             get { return isBrokerOnline; }
             set { isBrokerOnline = value; }
-        }
+                    }
 
         public bool ReceivedDesiredPosition
         {
@@ -1930,7 +1940,7 @@ namespace TickZoom.Common
             }
         }
 
-        public void RejectOrder(long brokerOrder, bool removeOriginal, bool isRealTime, bool retryImmediately)
+        public void RejectOrder(long brokerOrder, bool isRealTime, bool retryImmediately)
         {
             CreateOrChangeOrder order;
             if (!physicalOrderCache.TryGetOrderById(brokerOrder, out order))
@@ -1951,7 +1961,7 @@ namespace TickZoom.Common
                     physicalOrderCache.PurgeOriginalOrder(order);
                 }
             }
-            if (isRealTime)
+            if (isRealTime && retryImmediately)
             {
                 if (!CheckForPending())
                 {
@@ -1963,6 +1973,8 @@ namespace TickZoom.Common
                 tickSync.RemovePhysicalOrder(order);
             }
         }
+
+        private int rejectCounter;
 
         public void ConfirmCancel(long brokerOrderId, bool isRealTime)
         {

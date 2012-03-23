@@ -856,7 +856,8 @@ namespace TickZoom.LimeFIX
             }
         }
 
-		private void CancelRejected( MessageFIX4_2 packetFIX) {
+        private void CancelRejected(MessageFIX4_2 packetFIX)
+        {
             var clientOrderId = 0L;
             long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
             var originalClientOrderId = 0L;
@@ -866,15 +867,11 @@ namespace TickZoom.LimeFIX
                 log.Debug("CancelRejected: " + packetFIX);
             }
             string orderStatus = packetFIX.OrderStatus;
-		    bool removeOriginal = false;
-			switch( orderStatus) {
+            switch (orderStatus)
+            {
                 case "8": // Rejected
                     var rejectReason = false;
-                    if (packetFIX.Text.Contains("Order is completed"))
-                    {
-                        rejectReason = true;
-                    }
-                    else if (packetFIX.Text.Contains("Order Server Not Available"))
+                    if (packetFIX.Text.Contains("Order Server Not Available"))
                     {
                         rejectReason = true;
                         CancelRecovered();
@@ -887,7 +884,7 @@ namespace TickZoom.LimeFIX
                         log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
                         //removeOriginal = true;
                     }
-                    else if (packetFIX.Text.Contains("No such order") || packetFIX.Text.Contains("Order is completed"))
+                    else if (packetFIX.Text.Contains("No such order"))
                     {
                         rejectReason = true;
                         log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
@@ -902,7 +899,7 @@ namespace TickZoom.LimeFIX
                     }
 
                     CreateOrChangeOrder order;
-                    if( OrderStore.TryGetOrderById( clientOrderId, out order))
+                    if (OrderStore.TryGetOrderById(clientOrderId, out order))
                     {
                         var symbol = order.Symbol;
                         SymbolAlgorithm algorithm;
@@ -912,21 +909,24 @@ namespace TickZoom.LimeFIX
                             break;
                         }
                         var retryImmediately = true;
-                        algorithm.OrderAlgorithm.RejectOrder(clientOrderId, removeOriginal, IsRecovered, retryImmediately);
+                        algorithm.OrderAlgorithm.RejectOrder(clientOrderId, IsRecovered, retryImmediately);
                     }
                     else
                     {
-                        if( debug) log.Debug("Order not found for " + clientOrderId + ". Probably allready filled or canceled.");
+                        if (debug) log.Debug("Order not found for " + clientOrderId + ". Probably allready filled or canceled.");
                     }
 
                     if (!rejectReason && IsRecovered)
                     {
                         var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-						var stopping = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. ";
+                        var stopping = "The cancel reject error message '" + packetFIX.Text + "' was unrecognized. ";
                         log.Warn(message);
                         log.Error(stopping);
-					} else {
-						if( LogRecovery || !IsRecovery) {
+                    }
+                    else
+                    {
+                        if (LogRecovery || !IsRecovery)
+                        {
                             log.Info("CancelReject(" + packetFIX.Text + ") Removed cancel order: " + packetFIX.ClientOrderId);
                         }
                     }
@@ -936,7 +936,8 @@ namespace TickZoom.LimeFIX
             }
         }
 
-		private int SideToSign( string side) {
+        private int SideToSign(string side)
+        {
 			switch( side) {
                 case "1": // Buy
                     return 1;
@@ -1010,60 +1011,38 @@ namespace TickZoom.LimeFIX
             var item = new EventItem(symbol, EventType.LogicalFill, fill);
             symbolReceiver.Agent.SendEvent(item);
         }
-        // *baladj* Continue
-        // *user logged in elsewhere*  ShutdownTrading 770-920-9618  713-681-3444.
-        // 
+
         public void RejectOrder(MessageFIX4_2 packetFIX)
         {
             var clientOrderId = 0L;
             long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
             var originalClientOrderId = 0L;
             long.TryParse(packetFIX.ClientOrderId, out originalClientOrderId);
-            var rejectReason = false;
-		    bool removeOriginal = false;
-            if (packetFIX.Text.Contains("Cannot change order. Probably already filled or canceled."))
-            {
-                rejectReason = true;
-                //removeOriginal = true;
-            }
-            else if (packetFIX.Text.Contains("No such order"))
-            {
-                rejectReason = true;
-                //removeOriginal = true;
-            }
-            else if (packetFIX.Text.Contains("Outside trading hours") ||
-                     packetFIX.Text.Contains("not accepted this session") ||
-                     packetFIX.Text.Contains("Pending live orders") ||
-                     packetFIX.Text.Contains("improper setting") ||
-                     packetFIX.Text.Contains("No position to close"))
-            {
-                rejectReason = true;
-            }
-
-            else if (packetFIX.Text.Contains("Order Server Offline") ||
+            if (packetFIX.Text.Contains("Order Server Offline") ||
                 packetFIX.Text.Contains("Trading temporarily unavailable") ||
                 packetFIX.Text.Contains("Order Server Not Available"))
             {
-                rejectReason = true;
                 CancelRecovered();
                 TrySendEndBroker();
                 TryEndRecovery();
-            }
-
-		    if( IsRecovered && !rejectReason ) {
-                var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-			    var stopping = "The reject error message '" + packetFIX.Text + "' was unrecognized.";
-                log.Warn(message);
-		    } else if( LogRecovery || IsRecovered) {
-			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + clientOrderId);
             }
 
             var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
             SymbolAlgorithm algorithm;
             if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
             {
-                var retryImmediately = true;
-                algorithm.OrderAlgorithm.RejectOrder(clientOrderId, removeOriginal, IsRecovered, retryImmediately);
+                if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
+                {
+                    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
+                    log.Warn(message);
+                }
+
+                var retryImmediately = algorithm.OrderAlgorithm.RejectRepeatCounter < 1;
+                algorithm.OrderAlgorithm.RejectOrder(clientOrderId, IsRecovered, retryImmediately);
+                if (!retryImmediately)
+                {
+                    TrySendEndBroker(symbol);
+                }
             }
             else
             {

@@ -221,6 +221,7 @@ namespace TickZoom.MBTFIX
             var item = new EventItem(symbol, EventType.EndBroker);
             symbolReceiver.Agent.SendEvent(item);
             algorithm.OrderAlgorithm.IsBrokerOnline = false;
+            if (debug) log.Debug("Sent EndBroker for " + symbol + ".");
         }
 
         private void RequestSessionUpdate()
@@ -378,9 +379,10 @@ namespace TickZoom.MBTFIX
                     foreach( var kvp in orderAlgorithms)
                     {
                         var algo = kvp.Value;
+                        algo.OrderAlgorithm.RejectRepeatCounter = 0;
                         if( !algo.OrderAlgorithm.CheckForPending())
                         {
-                            algo.OrderAlgorithm.ProcessHeartBeat();
+                            algo.OrderAlgorithm.ProcessOrders();
                         }
                     }
                 }
@@ -896,7 +898,6 @@ namespace TickZoom.MBTFIX
 				log.Debug("CancelRejected: " + packetFIX);
 			}
 			string orderStatus = packetFIX.OrderStatus;
-		    bool removeOriginal = false;
 			switch( orderStatus) {
 				case "8": // Rejected
 					var rejectReason = false;
@@ -938,7 +939,7 @@ namespace TickZoom.MBTFIX
                             break;
                         }
                         var retryImmediately = true;
-                        algorithm.OrderAlgorithm.RejectOrder(clientOrderId, removeOriginal, IsRecovered, retryImmediately);
+                        algorithm.OrderAlgorithm.RejectOrder(clientOrderId, IsRecovered, retryImmediately);
                     }
                     else
                     {
@@ -1043,51 +1044,31 @@ namespace TickZoom.MBTFIX
             long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
             var originalClientOrderId = 0L;
             long.TryParse(packetFIX.ClientOrderId, out originalClientOrderId);
-            var rejectReason = false;
-		    bool removeOriginal = false;
-		    if (packetFIX.Text.Contains("Cannot change order. Probably already filled or canceled."))
-		    {
-		        rejectReason = true;
-                //removeOriginal = true;
-		    }
-		    else if( packetFIX.Text.Contains("No such order"))
-		    {
-		        rejectReason = true;
-                //removeOriginal = true;
-            }
-		    else if (packetFIX.Text.Contains("Outside trading hours") ||
-		             packetFIX.Text.Contains("not accepted this session") ||
-		             packetFIX.Text.Contains("Pending live orders") ||
-		             packetFIX.Text.Contains("improper setting") ||
-                     packetFIX.Text.Contains("No position to close"))
-		    {
-		        rejectReason = true;
-		    }
-
-            else if (packetFIX.Text.Contains("Order Server Offline") ||
+            if (packetFIX.Text.Contains("Order Server Offline") ||
                 packetFIX.Text.Contains("Trading temporarily unavailable") ||
                 packetFIX.Text.Contains("Order Server Not Available"))
             {
-                rejectReason = true;
                 CancelRecovered();
                 TrySendEndBroker();
                 TryEndRecovery();
             }
 
-		    if( IsRecovered && !rejectReason ) {
-			    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-			    var stopping = "The reject error message '" + packetFIX.Text + "' was unrecognized.";
-			    log.Warn( message);
-		    } else if( LogRecovery || IsRecovered) {
-			    log.Info( "RejectOrder(" + packetFIX.Text + ") Removed order: " + clientOrderId);
-		    }
-
 		    var symbol = Factory.Symbol.LookupSymbol(packetFIX.Symbol);
             SymbolAlgorithm algorithm;
             if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
             {
-                var retryImmediately = true;
-                algorithm.OrderAlgorithm.RejectOrder(clientOrderId, removeOriginal, IsRecovered, retryImmediately);
+                if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
+                {
+                    var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
+                    log.Warn(message);
+                }
+
+                var retryImmediately = algorithm.OrderAlgorithm.RejectRepeatCounter < 1;
+                algorithm.OrderAlgorithm.RejectOrder(clientOrderId, IsRecovered, retryImmediately);
+                if( !retryImmediately)
+                {
+                    TrySendEndBroker(symbol);
+                }
             }
             else
             {
@@ -1140,7 +1121,10 @@ namespace TickZoom.MBTFIX
 			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             if( algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
             {
-                TrySendStartBroker(symbol,"position change sync");
+                if( algorithm.OrderAlgorithm.RejectRepeatCounter == 0)
+                {
+                    TrySendStartBroker(symbol, "position change sync");
+                }
             }
 		}
 		
