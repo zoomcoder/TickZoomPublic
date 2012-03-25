@@ -136,14 +136,7 @@ namespace TickZoom.Common
             if (isRecovered)
             {
                 TrySyncPosition(positionChange.StrategyPositions);
-                var match = PerformCompareProtected();
-                if (DoSyncTicks && !match && isBrokerOnline)
-                {
-                    if (!tickSync.SentWaitingMatch)
-                    {
-                        tickSync.AddWaitingMatch("PositionChange");
-                    }
-                }
+                PerformCompareProtected();
             }
             else
             {
@@ -1371,7 +1364,7 @@ namespace TickZoom.Common
 		}
 
         private TaskLock performCompareLocker = new TaskLock();
-		private bool PerformCompareProtected()
+		private void PerformCompareProtected()
 		{
 		    var count = ++recursiveCounter;
 		    var compareSuccess = false;
@@ -1431,7 +1424,13 @@ namespace TickZoom.Common
                     rejectRepeatCounter = 0;
                 }
             }
-		    return compareSuccess;
+            if (DoSyncTicks && !compareSuccess && isBrokerOnline)
+            {
+                if (!tickSync.SentWaitingMatch)
+                {
+                    tickSync.AddWaitingMatch("PositionChange");
+                }
+            }
 		}
 		
 		private void TryRemovePhysicalFill(PhysicalFill fill) {
