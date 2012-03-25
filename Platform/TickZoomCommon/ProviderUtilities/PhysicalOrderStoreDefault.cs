@@ -546,6 +546,7 @@ namespace TickZoom.Common
                 snapshotLength += memory.Length;
                 log.Info("Wrote snapshot. Sequence Remote = " + remoteSequence + ", Local = " + localSequence +
                          ", Size = " + memory.Length + ". File Size = " + snapshotLength);
+                fs.Flush();
             }
             if( isDisposed)
             {
@@ -789,8 +790,8 @@ namespace TickZoom.Common
                 if (debug) log.Debug("ForceSnapshot() - snapshot in progress. Waiting before beginning another snapshot...");
                 WaitForSnapshot();
             }
-            if (anySnapShotWritten)
-            {
+            //if (anySnapShotWritten)
+            //{
                 if (IsBusy)
                 {
                     if (debug) log.Debug("ForceSnapshot() - snapshot already started. Waiting before beginning another snapshot...");
@@ -803,7 +804,7 @@ namespace TickZoom.Common
                 WaitForSnapshot();
 
                 if (debug) log.Debug("ForceSnapshot() - snapshot complete.");
-            }
+            //}
         }
 
         private volatile bool isDisposed = false;

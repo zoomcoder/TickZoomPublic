@@ -182,6 +182,11 @@ namespace TickZoom.MBTFIX
             }
 		}
 
+        protected override MessageFactory CreateMessageFactory()
+        {
+            return new MessageFactoryFix44();
+        }
+
         public int ProcessOrders()
         {
             return 0;

@@ -157,6 +157,11 @@ namespace TickZoom.FIX
 			Append(554,password);
 		}
 
+        public void SetUserName(string username)
+        {
+            Append(553, username);
+        }
+
 		public override void AddHeader(string type)
 		{
 			this.type = type;

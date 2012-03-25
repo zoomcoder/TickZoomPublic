@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{E12CA83B-0ACF-4E59-8C6C-F4D51A3DDC3C}</ProjectGuid>
@@ -48,7 +48,7 @@
     <StartAction>Program</StartAction>
     <StartProgram>..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe</StartProgram>
     <UseVSHostingProcess>true</UseVSHostingProcess>
-    <DefineConstants>DEBUG;SkipPostSharp</DefineConstants>
+    <DefineConstants>DEBUG;SkipPostSharp;SkipPostSharp;LIME_TESTING</DefineConstants>
     <CustomCommands>
       <CustomCommands>
         <Command type="Execute" command="..\..\..\Tools\1.0\NUnit\bin\net-2.0\nunit.exe" />
@@ -67,6 +67,9 @@
   <Target Name="BeforeBuild">
   </Target>
   <ItemGroup>
+    <Reference Include="nunit.framework, Version=2.5.1.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core">
@@ -82,9 +85,6 @@
     </Reference>
     <Reference Include="nunit.core.interfaces, Version=2.5.1.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77">
       <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\lib\nunit.core.interfaces.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.framework">
-      <HintPath>..\..\..\Tools\1.0\NUnit\bin\net-2.0\framework\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
   </ItemGroup>

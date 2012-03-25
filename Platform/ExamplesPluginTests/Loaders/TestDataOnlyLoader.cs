@@ -41,7 +41,7 @@ namespace Loaders
 			/// IMPORTANT: You can personalize the name of each model loader.
 			/// </summary>
 			category = "Test";
-			name = "Data Only";
+			name = "Data Only Multi-Symbol";
 			this.IsVisibleInGUI = true;
 		}
 		

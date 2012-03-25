@@ -84,6 +84,10 @@
       <Project>{27D6C88D-52B6-432C-820B-CD38A299830C}</Project>
       <Name>API1.0</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\Platform\TickZoomLogging\Logging.csproj">
+      <Project>{1B4F3283-33FC-4EB7-8A39-33D339672BE4}</Project>
+      <Name>Logging</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Common\ProviderUtil\ProviderUtil.csproj">
       <Project>{00E10E7D-4270-448C-921C-72A795FBF13F}</Project>
       <Name>ProviderUtil</Name>

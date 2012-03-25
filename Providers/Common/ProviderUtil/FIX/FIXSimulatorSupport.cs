@@ -58,7 +58,7 @@ namespace TickZoom.FIX
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
-        private int heartbeatDelay = 1;
+        private int heartbeatDelay = int.MaxValue;
         //private int heartbeatDelay = int.MaxValue;
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailures = 5;
@@ -703,7 +703,7 @@ namespace TickZoom.FIX
         private bool resetSequenceNumbersNextDisconnect;
         private void SendSystemOffline()
         {
-            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            var mbtMsg = (FIXMessage4_2)FixFactory.Create();
             mbtMsg.AddHeader("5");
             mbtMsg.SetText("System offline");
             SendMessage(mbtMsg);
@@ -715,7 +715,7 @@ namespace TickZoom.FIX
         {
             if (debug) log.Debug("Sending session status online.");
             var wasOrderServerOnline = isOrderServerOnline;
-            SendSessionStatus("2");
+            
             if( !wasOrderServerOnline)
             {
                 SwitchBrokerState("online",true);
@@ -769,14 +769,20 @@ namespace TickZoom.FIX
             simulators[SimulatorType.ReceiveServerOffline].UpdateNext(packet.Sequence);
             simulators[SimulatorType.SystemOffline].UpdateNext(packet.Sequence);
 
-            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
-            mbtMsg.SetEncryption(0);
-            mbtMsg.SetHeartBeatInterval(HeartbeatDelay);
-            mbtMsg.AddHeader("A");
-            mbtMsg.SetSendTime(new TimeStamp(1800,1,1));
+            var mbtMsg = CreateHeartbeat();
             if (debug) log.Debug("Sending login response: " + mbtMsg);
             SendMessage(mbtMsg);
             return true;
+        }
+
+        private FIXTMessage1_1 CreateHeartbeat()
+        {
+            var mbtMsg = (FIXTMessage1_1)FixFactory.Create();
+            mbtMsg.SetEncryption(0);
+            mbtMsg.SetHeartBeatInterval(HeartbeatDelay);
+            mbtMsg.AddHeader("A");
+            mbtMsg.SetSendTime(new TimeStamp(1800, 1, 1));
+            return mbtMsg;
         }
 
         protected virtual FIXTFactory1_1 CreateFIXFactory(int sequence, string target, string sender)
@@ -898,7 +904,7 @@ namespace TickZoom.FIX
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_4) packetFIX;
+                        var message = (MessageFIX4_2) packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
                         //tickSync.AddBlackHole(message.ClientOrderId);
@@ -910,7 +916,7 @@ namespace TickZoom.FIX
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_4)packetFIX;
+                        var message = (MessageFIX4_2)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
                         //tickSync.AddBlackHole(message.ClientOrderId);
@@ -922,7 +928,7 @@ namespace TickZoom.FIX
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_4)packetFIX;
+                        var message = (MessageFIX4_2)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
                         //tickSync.AddBlackHole(message.ClientOrderId);
@@ -1245,7 +1251,7 @@ namespace TickZoom.FIX
         {
 			if( fixSocket != null && FixFactory != null)
 			{
-				var mbtMsg = (FIXMessage4_4) FixFactory.Create();
+				var mbtMsg = (FIXTMessage1_1) FixFactory.Create();
 				mbtMsg.AddHeader("1");
 				if( trace) log.Trace("Requesting heartbeat: " + mbtMsg);
                 SendMessage(mbtMsg);

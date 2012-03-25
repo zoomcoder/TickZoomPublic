@@ -1,4 +1,4 @@
-#region Copyright
+﻿#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2009 M. Wayne Walter
@@ -299,9 +299,9 @@ namespace Loaders
                 log.Error("Exception while running test: " + ex.Message, ex);
                 if( !System.Diagnostics.Debugger.IsAttached)
                 {
-                    Environment.Exit(1);
-                }
+                Environment.Exit(1);
             }
+        }
         }
 
         private ModelLoaderInterface GetLoaderInstance() {
@@ -311,6 +311,11 @@ namespace Loaders
 
         public static void CleanupFiles(string symbols, string dummyArg) {
             CleanupServerCache(symbols);
+            DeleteFiles("MBTFIXProvider");
+            DeleteFiles("LimeFIXProvider");
+        }
+
+        private static void DeleteFiles(string fileName) {
             var appDataFolder = Factory.Settings["AppDataFolder"];
             if( Directory.Exists(appDataFolder + Path.DirectorySeparatorChar + "MockProviderData"))
             {
@@ -319,12 +324,11 @@ namespace Loaders
             var providersFolder = Path.Combine(appDataFolder,"Providers");
             var providerServiceFolder = Path.Combine(providersFolder, "ProviderService");
             var warehouseTestConfig = Path.Combine(providerServiceFolder, "WarehouseTest.config");
-            var mbtfixFolder = Path.Combine(providersFolder,"MBTFIXProvider");
+            var mbtfixFolder = Path.Combine(providersFolder, fileName);
             var databaseFolder = Path.Combine(appDataFolder, "Database");
             Directory.CreateDirectory(databaseFolder);
-            var filePaths = Directory.GetFiles(databaseFolder, "MBTFIXProvider.dat*", SearchOption.TopDirectoryOnly);
-            foreach( var path in filePaths)
-            {
+            var filePaths = Directory.GetFiles(databaseFolder, "*_" + fileName + ".dat.*", SearchOption.TopDirectoryOnly);
+            foreach (var path in filePaths) {
                 DeleteFile(path);
             }
             var filePath = Path.Combine(mbtfixFolder, "LoginFailed.txt");
@@ -414,9 +418,9 @@ namespace Loaders
                 log.Error("Exiting because one of the tests failed.");
                 if (!System.Diagnostics.Debugger.IsAttached)
                 {
-                    Environment.Exit(1);
-                }
+                Environment.Exit(1);
             }
+        }
         }
 		
         public class TransactionInfo {

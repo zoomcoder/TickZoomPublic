@@ -136,9 +136,9 @@ namespace TickZoom.FIX
 		    var position = data.Position;
 			data.Position = 0;
 			string response = new string(dataIn.ReadChars((int)data.Length));
-			var result = response.Replace(FIXTBuffer.EndFieldStr,"  ");
+			//var result = response.Replace(FIXTBuffer.EndFieldStr,"  ");
 		    data.Position = position;
-		    return result;
+		    return response;
 		} 
 		
 		public int Remaining {
@@ -338,32 +338,32 @@ namespace TickZoom.FIX
 				case 9:
 					result = GetInt(out length);
 					break;
-				case 16:
+                case 10:
+                    result = GetInt(out checkSum);
+                    break;
+                case 16:
 					result = GetInt(out endSeqNum);
 					break;
-				case 35:
+                case 34:
+                    result = GetInt(out sequence);
+                    break;
+                case 35:
 					result = GetString(out messageType);
 					break;
                 case 36:
                     result = GetInt(out newSeqNum);
                     break;
-                case 49:
-					result = GetString(out sender);
-					break;
-				case 43:
-					string value;
-					result = GetString(out value);
-					isPossibleDuplicate = value == "Y";
-					break;
-				case 56:
-					result = GetString(out target);
-					break;
-				case 34:
-					result = GetInt(out sequence);
+                case 43:
+                    string value;
+                    result = GetString(out value);
+                    isPossibleDuplicate = value == "Y";
                     break;
                 case 45:
                     result = GetInt(out referenceSequence);
                     break;
+                case 49:
+					result = GetString(out sender);
+					break;
                 case 52:
 					result = GetString(out timeStamp);
 					if( result)
@@ -379,6 +379,9 @@ namespace TickZoom.FIX
                         }
 					}
 					break;
+                case 56:
+                    result = GetString(out target);
+                    break;
                 case 58:
                     result = GetString(out text);
                     break;
@@ -411,9 +414,6 @@ namespace TickZoom.FIX
                     result = GetString(out value);
                     isResetSeqNum = value == "Y";
                     break;
-                case 10:
-					result = GetInt(out checkSum);
-					break;
 				default:
 					result = SkipValue();
 					break;

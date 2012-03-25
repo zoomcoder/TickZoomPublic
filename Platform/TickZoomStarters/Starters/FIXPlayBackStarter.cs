@@ -43,13 +43,20 @@ namespace TickZoom.Starters
 			Factory.SysLog.RegisterHistorical("FIXRealTimePlayBack",GetDefaultLogConfig());
             Factory.SysLog.RegisterRealTime("FIXRealTimePlayBack", GetDefaultLogConfig());
             Config = "WarehouseTest.config";
+            //TODO: Change to support both LIME and MBTFIX tests
+#if !USE_LIME
 			var provider = "MBTFIXProvider/Simulate";
-			AddProvider(provider);
-            using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "FIXSimulator", "Simulate"))
-            { 
-				base.Run(loader);
-			}
-		}
+            var assemblyName = "MBTFIXProvider";
+#else
+            var provider = "LimeProvider/Simulate";
+            var assemblyName = "LimeProvider";
+#endif
+            AddProvider(provider);
+            using (Factory.Parallel.SpawnProvider(assemblyName, "FIXSimulator", "Simulate"))
+            {
+                base.Run(loader);
+            }
+        }
 		
 		public FIXSimulator FixServer {
 			get { return fixServer; }

@@ -52,11 +52,20 @@ namespace TickZoom.Starters
             Factory.SysLog.RegisterRealTime("FIXSimulator", GetDefaultLogConfig());
             Config = "WarehouseTest.config";
 		    Address = "inprocess";
-			AddProvider("MBTFIXProvider/Simulate");
+#if !USE_LIME
+            var provider = "MBTFIXProvider/Simulate";
+            var fixAssembly = "MBTFIXProvider";
+            var fixStmulator = "MBTFIXSimulator";
+#else
+            var provider = "LimeProvider/Simulate";
+            var fixAssembly = "LimeProvider";
+            var fixStmulator = "LimeFIXSimulator";
+#endif
+            AddProvider(provider);
             SetupProviderServiceConfig();
             var providerManager = Factory.Parallel.SpawnProvider("ProviderCommon", "ProviderManager");
             providerManager.SendEvent(new EventItem(EventType.SetConfig, "WarehouseTest"));
-            using (Factory.Parallel.SpawnProvider("MBTFIXProvider", "MBTFIXSimulator", "Simulate", ProjectProperties))
+            using (Factory.Parallel.SpawnProvider(fixAssembly, fixStmulator, "Simulate", ProjectProperties))
             { 
 				base.Run(loader);
 			}

@@ -39,9 +39,11 @@ namespace TickZoom.FIX
     {
         private PhysicalOrderStore orderStore;
         private readonly Log log;
+        private readonly Log fixLog;
         private volatile bool trace;
         private volatile bool debug;
         private volatile bool verbose;
+        private volatile bool fixTrace;
         public virtual void RefreshLogLevel()
         {
             if (log != null)
@@ -49,6 +51,8 @@ namespace TickZoom.FIX
                 debug = log.IsDebugEnabled;
                 trace = log.IsTraceEnabled;
             }
+            if (fixLog != null)
+                fixTrace = fixLog.IsTraceEnabled;
         }
         protected readonly object symbolsRequestedLocker = new object();
         public class SymbolReceiver
@@ -63,6 +67,7 @@ namespace TickZoom.FIX
 		protected Agent ClientAgent;
 		private long retryDelay = 30; // seconds
 		private long retryStart = 30; // seconds
+        protected bool ignoreRetryDelay = false;  
 		private long retryIncrease = 5;
 		private long retryMaximum = 30;
 		private volatile Status connectionStatus = Status.None;
@@ -72,6 +77,7 @@ namespace TickZoom.FIX
 		private string userName;
 		private	string password;
 		private	string accountNumber;
+        private string destination;
 		public abstract void OnDisconnect();
         public abstract void OnRetry();
 		public abstract bool OnLogin();
@@ -90,7 +96,7 @@ namespace TickZoom.FIX
         private SocketState lastSocketState = SocketState.New;
         private Status lastConnectionStatus = Status.None;
         private FastQueue<MessageFIXT1_1> resendQueue;
-        private string name;
+        protected string name;
         private Agent agent;
         public Agent Agent
         {
@@ -123,11 +129,14 @@ namespace TickZoom.FIX
 		    this.name = name;
             configSection = name;
             this.providerName = GetType().Name;
-            log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport) + "." + providerName);
+            log = Factory.SysLog.GetLogger(typeof(FIXProviderSupport) + "." + providerName + "." + name);
             log.Register(this);
+            fixLog = Factory.SysLog.GetLogger("FIX");
+            fixLog.Register(this);
             verbose = log.IsVerboseEnabled;
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
+            fixTrace = fixLog.IsTraceEnabled;
         }
 
         public void Start(EventItem eventItem)
@@ -151,8 +160,8 @@ namespace TickZoom.FIX
             socketTask.Scheduler = Scheduler.EarliestTime;
             retryTimer = Factory.Parallel.CreateTimer("Retry", socketTask, RetryTimerEvent);
             heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", socketTask, HeartBeatTimerEvent);
-            resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(providerName + ".Resend");
-            orderStore = Factory.Utility.PhyscalOrderStore(providerName);
+            resendQueue = Factory.Parallel.FastQueue<MessageFIXT1_1>(name + "_" + providerName + ".Resend");
+            orderStore = Factory.Utility.PhyscalOrderStore(name + "_" + providerName);
             resendQueue.ConnectInbound(socketTask);
             socketTask.Start();
             string logRecoveryString = Factory.Settings["LogRecovery"];
@@ -174,19 +183,20 @@ namespace TickZoom.FIX
             LoadProperties(configFile);
         }
 
-        protected void RegenerateSocket()
-        {
+        protected abstract MessageFactory CreateMessageFactory();
+
+		protected void RegenerateSocket() {
 			Socket old = socket;
 			if( socket != null && socket.State != SocketState.Closed) {
 				socket.Dispose();
                 // Wait for graceful socket shutdown.
 			    return;
 			}
-            socket = Factory.Provider.Socket("MBTFIXSocket", "127.0.0.1", port);
+            socket = Factory.Provider.Socket(this.GetType().Name + "Socket", AddrStr, port);
             socket.ReceiveQueue.ConnectInbound(socketTask);
             socket.SendQueue.ConnectOutbound(socketTask);
             socket.OnConnect = OnConnect;
-			socket.MessageFactory = new MessageFactoryFix44();
+			socket.MessageFactory = CreateMessageFactory();
 			if( debug) log.Debug("Created new " + socket);
 			ConnectionStatus = Status.New;
 			if( trace) {
@@ -204,9 +214,14 @@ namespace TickZoom.FIX
                     socket.Connect();
                     if (debug) log.Debug("Requested Connect for " + socket);
                     var startTime = TimeStamp.UtcNow;
-                    startTime.AddSeconds(RetryDelay);
+                    int fastRetry = 2;
+                    startTime.AddSeconds(ignoreRetryDelay ? fastRetry : RetryDelay);
                     retryTimer.Start(startTime);
+                    if (ignoreRetryDelay) 
+                        log.InfoFormat("Quick retry requested.  Connection will retry in {0} seconds", fastRetry);
+                    else
                     log.Info("Connection will timeout and retry in " + RetryDelay + " seconds.");
+                    ignoreRetryDelay = false;
                     return;
                 }
                 catch (SocketErrorException ex)
@@ -381,7 +396,7 @@ namespace TickZoom.FIX
                 }
                 else
                 {
-                    SetupRetry();
+            SetupRetry();
                 }
             }
             else
@@ -481,8 +496,8 @@ namespace TickZoom.FIX
 
         private Yield TrySetupRetry()
         {
-            switch (ConnectionStatus)
-            {
+                        switch (ConnectionStatus)
+                        {
                 case Status.PendingLogin:
                 case Status.PendingServerResend:
                 case Status.PendingRecovery:
@@ -490,7 +505,7 @@ namespace TickZoom.FIX
                     return TryProcessMessage();
                 case Status.Connected:
                 case Status.Disconnected:
-                case Status.New:
+                            case Status.New:
                     ConnectionStatus = Status.PendingRetry;
                     RetryDelay += retryIncrease;
                     RetryDelay = Math.Min(RetryDelay, retryMaximum);
@@ -536,7 +551,7 @@ namespace TickZoom.FIX
                             if (tempMessage.Sequence > remoteSequence && isResendComplete)
                             {
                                 if (debug) log.Debug("Found sequence " + tempMessage.Sequence + " on the resend queue. Requesting resend from " + remoteSequence + " to " + (tempMessage.Sequence - 1));
-                                TryRequestResend(remoteSequence,tempMessage.Sequence - 1);
+                                TryRequestResend(remoteSequence, tempMessage.Sequence - 1);
                                 break;
                             }
                             if (tempMessage.Sequence == remoteSequence)
@@ -544,11 +559,11 @@ namespace TickZoom.FIX
                                 resendQueue.Dequeue(out messageFIX);
                                 break;
                             }
-                            if( tempMessage.Sequence < remoteSequence)
+                            if (tempMessage.Sequence < remoteSequence)
                             {
                                 resendQueue.Dequeue(out messageFIX);
                             }
-                            if( tempMessage.Sequence > remoteSequence)
+                            if (tempMessage.Sequence > remoteSequence)
                             {
                                 break;
                             }
@@ -563,7 +578,7 @@ namespace TickZoom.FIX
                             var disconnect = message as DisconnectMessage;
                             if (disconnect == null)
                             {
-                                messageFIX = (MessageFIXT1_1) message;
+                                messageFIX = (MessageFIXT1_1)message;
                             }
                             else
                             {
@@ -637,7 +652,7 @@ namespace TickZoom.FIX
                                         }
                                         else
                                         {
-                                            socket.Dispose();
+                                            HandleUnexpectedLogout(messageFIX);
                                         }
                                         break;
                                     default:
@@ -666,6 +681,10 @@ namespace TickZoom.FIX
             }
         }
 
+        protected virtual void HandleUnexpectedLogout(MessageFIXT1_1 message) {
+            socket.Dispose();
+        }
+
         protected virtual bool HandleLogon(MessageFIXT1_1 message)
         {
             throw new NotImplementedException();
@@ -677,17 +696,17 @@ namespace TickZoom.FIX
             {
                 throw new InvalidOperationException("Only gap fill sequence reset supportted: \n" + packetFIX);
             }
-            if (packetFIX.NewSeqNum < remoteSequence)
+            if (packetFIX.NewSeqNum < RemoteSequence)
             {
-                throw new InvalidOperationException("Reset new sequence number must be greater than or equal to the next sequence: " + remoteSequence + ".\n" + packetFIX);
+                throw new InvalidOperationException("Reset new sequence number must be greater than or equal to the next sequence: " + RemoteSequence + ".\n" + packetFIX);
             }
-            remoteSequence = packetFIX.NewSeqNum;
+            RemoteSequence = packetFIX.NewSeqNum;
             isResendComplete = true;
-            if (packetFIX.Sequence > remoteSequence)
+            if (packetFIX.Sequence > RemoteSequence)
             {
                 HandleResend(packetFIX.Sequence, packetFIX);
             }
-            if (debug) log.Debug("Received gap fill. Setting next sequence = " + remoteSequence);
+            if (debug) log.Debug("Received gap fill. Setting next sequence = " + RemoteSequence);
         }
 
         private void HandleReject(MessageFIXT1_1 packetFIX)
@@ -711,6 +730,9 @@ namespace TickZoom.FIX
             }
             else
             {
+                if (debug) log.Debug("Starting history dump");
+                if ( debug) DumpHistory();
+                if (debug) log.Debug("Fiinished history dump");
                 throw new ApplicationException("Received administrative reject message with unrecognized error message: '" + packetFIX.Text + "'");
             }
         }
@@ -728,32 +750,32 @@ namespace TickZoom.FIX
             releaseFlag = true;
             if( messageFIX.MessageType == "A")
             {
-                if (messageFIX.Sequence == remoteSequence)
+                if (messageFIX.Sequence == RemoteSequence)
                 {
                     RemoteSequence = messageFIX.Sequence + 1;
                     if (debug) log.Debug("Login sequence matched. Incrementing remote sequence to " + RemoteSequence);
                 }
                 else
                 {
-                    if (debug) log.Debug("Login remote sequence " + messageFIX.Sequence + " mismatch expected sequence " + remoteSequence + ". Resend needed.");
+                    if (debug) log.Debug("Login remote sequence " + messageFIX.Sequence + " mismatch expected sequence " + RemoteSequence + ". Resend needed.");
                 }
                 return false;
             }
-            else if (ConnectionStatus == Status.PendingLogin)
+            else if (ConnectionStatus == Status.PendingLogin && messageFIX.MessageType != "5")
             {
                 resendQueue.Enqueue(messageFIX, TimeStamp.UtcNow.Internal);
                 releaseFlag = false;
                 return true;
             }
-            else if (messageFIX.Sequence > remoteSequence)
+            else if (messageFIX.Sequence > RemoteSequence && messageFIX.MessageType != "5")
             {
                 HandleResend(messageFIX.Sequence, messageFIX);
                 releaseFlag = false;
                 return true;
             }
-            else if( messageFIX.Sequence < remoteSequence)
+            else if( messageFIX.Sequence < RemoteSequence)
             {
-                if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Expecting " + remoteSequence + " as next sequence. Ignoring. \n" + messageFIX);
+                if (debug) log.Debug("Already received sequence " + messageFIX.Sequence + ". Expecting " + RemoteSequence + " as next sequence. Ignoring. \n" + messageFIX);
                 return true;
             }
             else
@@ -771,7 +793,7 @@ namespace TickZoom.FIX
         }
 
         private void HandleResend(int sequence, MessageFIXT1_1 messageFIX) {
-            if (debug) log.Debug("Sequence is " + sequence + " but expected sequence is " + remoteSequence + ". Buffering message.");
+            if (debug) log.Debug("Sequence is " + sequence + " but expected sequence is " + RemoteSequence + ". Buffering message.");
             resendQueue.Enqueue(messageFIX, TimeStamp.UtcNow.Internal);
             TryRequestResend(remoteSequence,sequence - 1);
         }
@@ -979,6 +1001,7 @@ namespace TickZoom.FIX
         	configFile.AssureValue("EquityDemo/AccountNumber","CHANGEME");
             configFile.AssureValue("EquityDemo/SessionIncludes", "*");
             configFile.AssureValue("EquityDemo/SessionExcludes", "");
+            configFile.AssureValue("EquityDemo/Destination", "7");
             configFile.AssureValue("ForexDemo/UseLocalFillTime", "true");
         	configFile.AssureValue("ForexDemo/ServerAddress","127.0.0.1");
         	configFile.AssureValue("ForexDemo/ServerPort","5679");
@@ -995,6 +1018,7 @@ namespace TickZoom.FIX
         	configFile.AssureValue("EquityLive/AccountNumber","CHANGEME");
             configFile.AssureValue("EquityLive/SessionIncludes", "*");
             configFile.AssureValue("EquityLive/SessionExcludes", "");
+            configFile.AssureValue("EquityLive/Destination", "7");
             configFile.AssureValue("ForexLive/UseLocalFillTime", "true");
         	configFile.AssureValue("ForexLive/ServerAddress","127.0.0.1");
         	configFile.AssureValue("ForexLive/ServerPort","5680");
@@ -1004,13 +1028,29 @@ namespace TickZoom.FIX
             configFile.AssureValue("ForexLive/SessionIncludes", "*");
             configFile.AssureValue("ForexLive/SessionExcludes", "");
             configFile.AssureValue("Simulate/UseLocalFillTime", "false");
-        	configFile.AssureValue("Simulate/ServerAddress","127.0.0.1");
-        	configFile.AssureValue("Simulate/ServerPort","6489");
-        	configFile.AssureValue("Simulate/UserName","Simulate1");
-        	configFile.AssureValue("Simulate/Password","only4sim");
-        	configFile.AssureValue("Simulate/AccountNumber","11111111");
+            configFile.AssureValue("Simulate/ServerAddress", "127.0.0.1");
+            configFile.AssureValue("Simulate/ServerPort", "6489");
+            configFile.AssureValue("Simulate/UserName", "Simulate1");
+            configFile.AssureValue("Simulate/Password", "only4sim");
+            configFile.AssureValue("Simulate/AccountNumber", "11111111");
             configFile.AssureValue("Simulate/SessionIncludes", "*");
-            configFile.AssureValue("Simulate/SessionExcludes", "");			
+            configFile.AssureValue("Simulate/SessionExcludes", "");
+            configFile.AssureValue("ClientTest/UseLocalFillTime", "false");
+            configFile.AssureValue("ClientTest/ServerAddress", "127.0.0.1");
+            configFile.AssureValue("ClientTest/ServerPort", "6489");
+            configFile.AssureValue("ClientTest/UserName", "Simulate1");
+            configFile.AssureValue("ClientTest/Password", "only4sim");
+            configFile.AssureValue("ClientTest/AccountNumber", "11111111");
+            configFile.AssureValue("ClientTest/SessionIncludes", "*");
+            configFile.AssureValue("ClientTest/SessionExcludes", "");
+            configFile.AssureValue("MarketTest/UseLocalFillTime", "false");
+            configFile.AssureValue("MarketTest/ServerAddress", "127.0.0.1");
+            configFile.AssureValue("MarketTest/ServerPort", "6489");
+            configFile.AssureValue("MarketTest/UserName", "Simulate1");
+            configFile.AssureValue("MarketTest/Password", "only4sim");
+            configFile.AssureValue("MarketTest/AccountNumber", "11111111");
+            configFile.AssureValue("MarketTest/SessionIncludes", "*");
+            configFile.AssureValue("MarketTest/SessionExcludes", "");
 			ParseProperties(configFile);
 		}
 
@@ -1029,6 +1069,7 @@ namespace TickZoom.FIX
 			userName = GetField("UserName",configFile, true);
 			password = GetField("Password",configFile, true);
 			accountNumber = GetField("AccountNumber",configFile, true);
+            destination = GetField("Destination", configFile, false);
             var includeString = GetField("SessionIncludes", configFile, false);
             var excludeString = GetField("SessionExcludes", configFile, false);
             sessionMatcher = new IncludeExcludeMatcher(includeString, excludeString);
@@ -1049,6 +1090,7 @@ namespace TickZoom.FIX
             return sessionMatcher.Compare(session);
         }
         
+        //TODO: Needs to change to reflect other providers
         private void Exception( string field, ConfigFile configFile) {
         	var sb = new StringBuilder();
         	sb.AppendLine("Sorry, an error occurred finding the '" + field +"' setting.");
@@ -1156,10 +1198,14 @@ namespace TickZoom.FIX
 		
 	    private void SendMessageInternal(FIXTMessage1_1 fixMsg) {
 			var fixString = fixMsg.ToString();
-			if( debug) {
+            if (fixTrace)
+                LogMessage(fixString, false);
+            else if (debug)
+            {
 				string view = fixString.Replace(FIXTBuffer.EndFieldStr,"  ");
 				log.Debug("Send FIX message: \n" + view);
 			}
+
 	        var packet = Socket.MessageFactory.Create();
 	        packet.SendUtcTime = TimeStamp.UtcNow.Internal;
 			packet.DataOut.Write(fixString.ToCharArray());
@@ -1261,14 +1307,19 @@ namespace TickZoom.FIX
 	    	get { return heartbeatDelay; }
 			set {
                 heartbeatDelay = value;
-                IncreaseHeartbeatTimeout();
+				IncreaseHeartbeatTimeout();
 			}
 		}
 		
 		public bool LogRecovery {
 			get { return logRecovery; }
 		}
-		
+
+        public string Destination
+        {
+            get { return destination; }
+        }
+
 		public string AccountNumber {
 			get { return accountNumber; }
 		}
@@ -1323,5 +1374,12 @@ namespace TickZoom.FIX
             get { return retryStart; }
             set { retryStart = value; }
         }
+
+        private unsafe void LogMessage(string messageFIX, bool received)
+        {
+            if (fixTrace)
+                fixLog.TraceFormat("{0}: {1}", received ? "RCV" : "SND", messageFIX);
+    }
+
     }
 }

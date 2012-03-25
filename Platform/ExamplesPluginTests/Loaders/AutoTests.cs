@@ -33,9 +33,14 @@ namespace Loaders
 {
 	[AutoTestFixture]
 	public class AutoTests : IAutoTestFixture {
-		public AutoTestMode GetModesToRun() {
-			return AutoTestMode.Default | AutoTestMode.FIXPlayBack;
-		}
+		public AutoTestMode GetModesToRun()
+        {
+#if !USE_LIME
+            return AutoTestMode.Default | AutoTestMode.FIXPlayBack;
+#else
+            return AutoTestMode.SimulateFIX;
+#endif
+        }
 		public AutoTestSettings[] GetAutoTestSettings() {
 			var list = new System.Collections.Generic.List<AutoTestSettings>();
 			var storeKnownGood = false;

@@ -105,6 +105,7 @@
     <Compile Include="Loaders\ExampleLimitOrderLoader.cs" />
     <Compile Include="Loaders\ExampleMixedLoader.cs" />
     <Compile Include="Loaders\ExampleMixedTruePartial.cs" />
+    <Compile Include="Loaders\MarketSimulatorLoader.cs" />
     <Compile Include="Loaders\ExampleMultiSymbolLoader.cs" />
     <Compile Include="Loaders\ExampleOptionLoader.cs" />
     <Compile Include="Loaders\ExampleOrdersLoader.cs" />
@@ -131,6 +132,7 @@
     <Compile Include="Strategies\InventoryGroup.cs" />
     <Compile Include="Strategies\InventoryGroupDefault.cs" />
     <Compile Include="Strategies\InventoryType.cs" />
+    <Compile Include="Strategies\MarketSimulatorStrategy.cs" />
     <Compile Include="Strategies\LimitBracketStrategy.cs" />
     <Compile Include="Strategies\LimitChangeStrategy.cs" />
     <Compile Include="Strategies\LimitReversalStrategy.cs" />
