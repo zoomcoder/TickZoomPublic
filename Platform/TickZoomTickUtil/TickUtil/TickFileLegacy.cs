@@ -40,6 +40,7 @@ namespace TickZoom.TickUtil
         private TimeStamp endTime = TimeStamp.MaxValue;
         private bool endOfData;
         private bool isInitialized = false;
+        private Stopwatch readFileStopwatch;
 
         public TickFileLegacy()
         {
@@ -246,6 +247,8 @@ namespace TickZoom.TickUtil
                     {
                         if (debug) log.Debug("Starting to read data.");
                     }
+                    readFileStopwatch = new Stopwatch();
+                    readFileStopwatch.Start();
                     break;
                 }
                 catch (Exception e)
@@ -327,6 +330,39 @@ namespace TickZoom.TickUtil
             }
         }
 
+        private void ReportEndOfData()
+        {
+            var elapsed = readFileStopwatch.Elapsed;
+            var sb = new StringBuilder();
+            if ((long)elapsed.TotalDays > 0)
+            {
+                sb.Append((long)elapsed.TotalDays + " days, ");
+                sb.Append((long)elapsed.Hours + " hours, ");
+                sb.Append((long)elapsed.Minutes + " minutes");
+            }
+            else if ((long)elapsed.TotalHours > 0)
+            {
+                sb.Append((long)elapsed.TotalHours + " hours, ");
+                sb.Append((long)elapsed.Minutes + " minutes");
+            }
+            else if ((long)elapsed.TotalMinutes > 0)
+            {
+                sb.Append((long)elapsed.TotalMinutes + " minutes, ");
+                sb.Append((long)elapsed.Seconds + " seconds");
+            }
+            else if ((long)elapsed.TotalSeconds > 0)
+            {
+                sb.Append((long)elapsed.TotalSeconds + " seconds, ");
+                sb.Append((long)elapsed.Milliseconds + " milliseconds");
+            }
+            else
+            {
+                sb.Append((long)elapsed.TotalMilliseconds + " milliseconds");
+            }
+            log.Notice(tickCount.ToString("0,0") + " ticks read for " + symbol + ". Finished in " + sb);
+            endOfData = true;
+        }
+
         public bool TryReadTick(TickIO tickIO)
         {
             if (!isInitialized) return false;
@@ -370,7 +406,7 @@ namespace TickZoom.TickUtil
                     var utcTime = new TimeStamp(tickIO.lUtcTime);
                     if (utcTime > EndTime)
                     {
-                        endOfData = true;
+                        ReportEndOfData();
                         return false;
                     }
                     tickIO.SetTime(utcTime);
@@ -380,6 +416,7 @@ namespace TickZoom.TickUtil
             }
             catch (EndOfStreamException ex)
             {
+                ReportEndOfData();
                 return false;
             }
         }

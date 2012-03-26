@@ -784,7 +784,7 @@ namespace TickZoom.MBTFIX
                             if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
                             {
                                 var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-                                log.Warn(message);
+                                log.Error(message);
                             }
 
                             var retryImmediately = algorithm.OrderAlgorithm.RejectRepeatCounter < 1;
@@ -896,7 +896,7 @@ namespace TickZoom.MBTFIX
                 if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
                 {
                     var message = "Order Rejected: " + packetFIX.Text + "\n" + packetFIX;
-                    log.Warn(message);
+                    log.Error(message);
                 }
 
                 var retryImmediately = algorithm.OrderAlgorithm.RejectRepeatCounter < 1;
