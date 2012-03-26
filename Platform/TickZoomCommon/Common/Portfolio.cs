@@ -241,7 +241,7 @@ namespace TickZoom.Common
 				Performance.Equity.OnChangeClosedEquity(change);
 				closedEquity = tempClosedEquity;
 			}
-            Performance.Equity.OnUpdateOpenEquity(tempOpenEquity);
+			Performance.Equity.OnUpdateOpenEquity(tempOpenEquity);
 		}
 		
 		/// <summary>
