@@ -1,0 +1,18 @@
+! Engine
+! SymbolManager
+0004           Engine ==> SymbolManager   PositionChange  (includes a stop)
+! ProviderManager
+0006    SymbolManager ==> ProviderManager PositionChange
+! FIXProvider
+0008  ProviderManager ==> FIXProvider     PositionChange
+! OrderAlgorithm
+0010      FIXProvider ==> OrderAlgorithm  PositionChange
+0011   OrderAlgorithm ==> ProviderManager RequestNotifyPrice( Symbol, price, condition)
+! QuotesProvider
+0013  ProviderManager ==> QuotesProvider  RequestNotifyPrice( Symbol, price, condition)
+# QuotesProvider waits for price and condition ( >, >=, <, <=) and then notifies
+...
+0016   QuotesProvider ==> ProviderManager NotifyPrice( Symbol, price)
+0017  ProviderManager ==> FIXProvider     NotifyPrice( Symbol, price)
+0018      FIXProvider ==> OrderAlgorithm  NotifyPrice( price)
+0019   OrderAlgorithm ==> FIXProvider     OnCreateBrokerOrder( market order)
