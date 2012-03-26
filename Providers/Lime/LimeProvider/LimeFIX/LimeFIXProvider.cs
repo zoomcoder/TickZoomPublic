@@ -363,29 +363,28 @@ namespace TickZoom.LimeFIX
         private void SendHeartbeat()
         {
             if (debug) log.Debug("SendHeartBeat Status " + ConnectionStatus + ", Session Status Online " + isOrderServerOnline + ", Resend Complete " + IsResendComplete);
-            //Lime doesn't support session update if (!isOrderServerOnline) RequestSessionUpdate();
             if (!IsRecovered) TryEndRecovery();
             if (IsRecovered)
             {
-                lock( orderAlgorithmsLocker)
+                lock (orderAlgorithmsLocker)
                 {
-                    foreach( var kvp in orderAlgorithms)
+                    foreach (var kvp in orderAlgorithms)
                     {
                         var algo = kvp.Value;
-                        if( !algo.OrderAlgorithm.CheckForPending())
+                        algo.OrderAlgorithm.RejectRepeatCounter = 0;
+                        if (!algo.OrderAlgorithm.CheckForPending())
                         {
-                            algo.OrderAlgorithm.ProcessHeartBeat();
+                            algo.OrderAlgorithm.ProcessOrders();
                         }
                     }
                 }
             }
             var fixMsg = (FIXMessage4_2)FixFactory.Create();
-			fixMsg.AddHeader("0");
-			SendMessage( fixMsg);
+            fixMsg.AddHeader("0");
+            SendMessage(fixMsg);
             previousHeartbeatTime = recentHeartbeatTime;
             recentHeartbeatTime = TimeStamp.UtcNow;
         }
-
 
         protected override void HandleUnexpectedLogout(MessageFIXT1_1 message)
         {
@@ -1095,7 +1094,10 @@ namespace TickZoom.LimeFIX
             var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
             if (algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
             {
-                TrySendStartBroker(symbol,"position change sync");
+                if (algorithm.OrderAlgorithm.RejectRepeatCounter == 0)
+                {
+                    TrySendStartBroker(symbol, "position change sync");
+                }
             }
         }
 
