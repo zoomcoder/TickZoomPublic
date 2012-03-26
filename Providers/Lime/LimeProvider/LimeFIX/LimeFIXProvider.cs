@@ -25,13 +25,9 @@
 #endregion
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-
 using TickZoom.Api;
 using TickZoom.FIX;
 
@@ -44,11 +40,8 @@ namespace TickZoom.LimeFIX
         private volatile bool trace = log.IsTraceEnabled;
         private volatile bool debug = log.IsDebugEnabled;
         private volatile bool verbose = log.IsVerboseEnabled;
-
-        private class SymbolAlgorithm
-        {
-            public OrderAlgorithm OrderAlgorithm;
-        }
+        Dictionary<int, int> physicalToLogicalOrderMap = new Dictionary<int, int>();
+        private string fixDestination = "LIME";
 
         public override void RefreshLogLevel()
         {
@@ -60,10 +53,6 @@ namespace TickZoom.LimeFIX
                 trace = log.IsTraceEnabled;
             }
         }
-        private static long nextConnectTime = 0L;
-        private readonly object orderAlgorithmsLocker = new object();
-        private Dictionary<long, SymbolAlgorithm> orderAlgorithms = new Dictionary<long, SymbolAlgorithm>();
-        long lastLoginTry = long.MinValue;
 
         public enum RecoverProgress
         {
@@ -71,7 +60,6 @@ namespace TickZoom.LimeFIX
             Completed,
             None,
         }
-        private string fixDestination = "LIME";
 
 
         public LimeFIXProvider(string name)
@@ -110,81 +98,6 @@ namespace TickZoom.LimeFIX
 		public override void OnRetry() {
 		}
 
-        private void TryRequestPosition(SymbolInfo symbol)
-        {
-            SymbolReceiver symbolReceiver;
-            if (!symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
-            {
-                throw new InvalidOperationException("Can't find symbol request for " + symbol);
-            }
-            if (!IsRecovered)
-            {
-                if (debug) log.Debug("Attempted RequestPosition but IsRecovered is " + IsRecovered);
-                return;
-            }
-            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if (symbolAlgorithm.OrderAlgorithm.IsBrokerOnline)
-	        {
-                if (debug) log.Debug("Attempted RequestPosition but isBrokerStarted is " + symbolAlgorithm.OrderAlgorithm.IsBrokerOnline);
-                return;
-            }
-            TrySend(EventType.RequestPosition, symbol, symbolReceiver.Agent);
-        }
-
-        private void TrySendStartBroker(SymbolInfo symbol, string message)
-        {
-            SymbolReceiver symbolReceiver;
-            if (!symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
-            {
-                throw new InvalidOperationException("Can't find symbol request for " + symbol);
-            }
-            if (!IsRecovered)
-            {
-                if (debug) log.Debug("Attempted StartBroker but IsRecovered is " + IsRecovered);
-                return;
-            }
-            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if (algorithm.OrderAlgorithm.ReceivedDesiredPosition)
-            {
-                if (algorithm.OrderAlgorithm.IsSynchronized)
-            {
-                    if (algorithm.OrderAlgorithm.IsBrokerOnline)
-                    {
-                        if (debug) log.Debug("Attempted StartBroker but isBrokerStarted is already " + algorithm.OrderAlgorithm.IsBrokerOnline);
-                return;
-            }
-                    if (debug) log.Debug("Sending StartBroker for " + symbol + ". Reason: " + message);
-            TrySend(EventType.StartBroker, symbol, symbolReceiver.Agent);
-                    algorithm.OrderAlgorithm.IsBrokerOnline = true;
-                }
-                else
-                {
-                    if (debug) log.Debug("Attempted StartBroker but OrderAlgorithm not yet synchronized");
-                }
-            }
-            else
-            {
-                TryRequestPosition(symbol);
-            }
-        }
-
-        private void TrySend(EventType type, SymbolInfo symbol, Agent agent)
-        {
-			lock( symbolsRequestedLocker) {
-                if (debug) log.Debug("Sending " + type + " for " + symbol + " ...");
-                SymbolAlgorithm algorithm;
-                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
-                {
-                    var item = new EventItem(symbol, type);
-                    agent.SendEvent(item);
-                }
-                else
-                {
-                    log.Info("TrySend " + type + " for " + symbol + " but OrderAlgorithm not found for " + symbol + ". Ignoring.");
-                }
-            }
-        }
-
         protected override MessageFactory CreateMessageFactory()
         {
             return new MessageFactoryFix42();
@@ -201,40 +114,9 @@ namespace TickZoom.LimeFIX
             set { }
         }
 
-        //TODO: Common code from MBTFIXProvider.  Move to common subclass?
-        #region Order Aligorthem
-        private void TrySendEndBroker() {
-
-            lock (symbolsRequestedLocker)
-            {
-				foreach(var kvp in symbolsRequested) {
-					var symbolReceiver = kvp.Value;
-                    TrySendEndBroker(symbolReceiver.Symbol);
-				}
-			}
-		}
-
-        private void TrySendEndBroker( SymbolInfo symbol)
-        {
-            var symbolReceiver = symbolsRequested[symbol.BinaryIdentifier];
-            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if (!algorithm.OrderAlgorithm.IsBrokerOnline)
-            {
-                if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
-                return;
-            }
-            var item = new EventItem(symbol, EventType.EndBroker);
-            symbolReceiver.Agent.SendEvent(item);
-            algorithm.OrderAlgorithm.IsBrokerOnline = false;
-        }
-
-        #endregion
-
         #region Login
         private void SendLogin(int localSequence)
         {
-            lastLoginTry = Factory.Parallel.TickCount;
-
             FixFactory = new FIXFactory4_2(localSequence + 1, UserName, fixDestination);
             var loginMessage = FixFactory.Create() as FIXMessage4_2;
             loginMessage.SetEncryption(0);
@@ -303,23 +185,8 @@ namespace TickZoom.LimeFIX
         }
 
         #region Logout
-        // TODO: could be moved to common subclass
-        public override void OnLogout()
-        {
-            if (isDisposed)
-            {
-                if (debug) log.Debug("LimeProvider.OnLogOut() already disposed.");
-                return;
-            }
-            var limeMessage = FixFactory.Create();
-            limeMessage.AddHeader("5");
-            SendMessage(limeMessage);
-            log.Info("Logout message sent: " + limeMessage);
-            log.Info("Logging out -- Sending EndBroker event.");
-            TrySendEndBroker();
-        }
 
-		protected override void OnStartRecovery()
+        protected override void OnStartRecovery()
 		{
 			if( !LogRecovery) {
 				MessageFIXT1_1.IsQuietRecovery = true;
@@ -328,7 +195,7 @@ namespace TickZoom.LimeFIX
             TryEndRecovery();
         }
 
-       protected override void OnFinishRecovery()
+       protected override void OnFinishRecovery() 
         {
         }
 
@@ -831,7 +698,6 @@ namespace TickZoom.LimeFIX
                         log.Debug("ExecutionReport Pending Replace: " + packetFIX);
                     }
                     OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
-                    var orderState = OrderState.Pending;
                     TryHandlePiggyBackFill(packetFIX);
                     break;
                 case "R": // Resumed.
@@ -932,19 +798,6 @@ namespace TickZoom.LimeFIX
                     break;
                 default:
                     throw new ApplicationException("Unknown cancel rejected order status: '" + orderStatus + "'");
-            }
-        }
-
-        private int SideToSign(string side)
-        {
-			switch( side) {
-                case "1": // Buy
-                    return 1;
-                case "2": // Sell
-                case "5": // SellShort
-                    return -1;
-                default:
-                    throw new ApplicationException("Unknown order side: " + side);
             }
         }
 
@@ -1066,27 +919,6 @@ namespace TickZoom.LimeFIX
             return symbolAlgorithm;
         }
 
-        private bool TryGetAlgorithm(long symbol, out SymbolAlgorithm algorithm)
-        {
-            lock (orderAlgorithmsLocker)
-            {
-                return orderAlgorithms.TryGetValue(symbol, out algorithm);
-            }
-        }
-
-        private SymbolAlgorithm GetAlgorithm(long symbol)
-        {
-            SymbolAlgorithm symbolAlgorithm;
-            lock (orderAlgorithmsLocker)
-            {
-                if (!orderAlgorithms.TryGetValue(symbol, out symbolAlgorithm))
-                {
-                    throw new ApplicationException("OrderAlgorirhm was not found for " + Factory.Symbol.LookupSymbol(symbol));
-                }
-            }
-            return symbolAlgorithm;
-        }
-
         public override void PositionChange(PositionChangeDetail positionChange)
         {
             var symbol = positionChange.Symbol;
@@ -1100,14 +932,6 @@ namespace TickZoom.LimeFIX
                 }
             }
         }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            nextConnectTime = Factory.Parallel.TickCount + 10000;
-        }
-
-        Dictionary<int, int> physicalToLogicalOrderMap = new Dictionary<int, int>();
 
         public bool OnCreateBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
         {
@@ -1278,22 +1102,6 @@ namespace TickZoom.LimeFIX
 #endif
             SendMessage(fixMsg);
         }
-
-		private int GetOrderSide( OrderSide side) {
-			switch( side) {
-                case OrderSide.Buy:
-                    return 1;
-                case OrderSide.Sell:
-                    return 2;
-                case OrderSide.SellShort:
-                    return 5;
-                case OrderSide.SellShortExempt:
-                // Lime doesn't support this.  return 6;
-                default:
-                    throw new ApplicationException("Unknown OrderSide: " + side);
-            }
-        }
-
 
 		private long GetUniqueOrderId() {
             return TimeStamp.UtcNow.Internal;

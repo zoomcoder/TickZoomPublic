@@ -185,7 +185,7 @@ namespace TickZoom.LimeQuotes
             {
                 //TODO: Implement options
                 throw new NotSupportedException();
-                StartSymbolOptionHandler(symbol, symbolAgent);
+                //StartSymbolOptionHandler(symbol, symbolAgent);
             }
 
             LimeQuoteMessage message = (LimeQuoteMessage)Socket.MessageFactory.Create();

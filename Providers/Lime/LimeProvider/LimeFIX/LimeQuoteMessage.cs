@@ -23,7 +23,6 @@ namespace TickZoom.LimeQuotes
         byte* _MessagePtr;
         MemoryStream _Data;
         ushort _Length;
-        long _TickUTCTime;
 
         public LimeQuoteMessage()
         {

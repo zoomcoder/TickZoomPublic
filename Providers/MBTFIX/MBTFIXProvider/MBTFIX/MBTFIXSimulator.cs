@@ -288,7 +288,6 @@ namespace TickZoom.MBTFIX
             SendPositionUpdate(cancelOrder.Symbol, GetPosition(cancelOrder.Symbol));
 		}
 
-	    private int rejectOrderCount;
         private void FIXCreateOrder(MessageFIX4_4 packet)
         {
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);

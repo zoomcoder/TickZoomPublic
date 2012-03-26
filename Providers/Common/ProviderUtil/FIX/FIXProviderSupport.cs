@@ -81,7 +81,6 @@ namespace TickZoom.FIX
 		public abstract void OnDisconnect();
         public abstract void OnRetry();
 		public abstract bool OnLogin();
-        public abstract void OnLogout();
         private string providerName;
         private TrueTimer retryTimer;
         private TrueTimer heartbeatTimer;
@@ -94,7 +93,6 @@ namespace TickZoom.FIX
         private TimeStamp lastMessageTime;
         private int remoteSequence = 1;
         private SocketState lastSocketState = SocketState.New;
-        private Status lastConnectionStatus = Status.None;
         private FastQueue<MessageFIXT1_1> resendQueue;
         protected string name;
         private Agent agent;
@@ -948,10 +946,6 @@ namespace TickZoom.FIX
 		    heartbeatTime.AddSeconds(heartbeatDelay);
 			heartbeatTimer.Start(heartbeatTime);
 		}
-		
-		protected abstract void OnStartRecovery();
-
-        protected abstract void OnFinishRecovery();
 
         protected abstract void ReceiveMessage(Message message);
 		
@@ -1146,10 +1140,11 @@ namespace TickZoom.FIX
 
         private bool isFinalized;
 
-        public abstract void PositionChange(PositionChangeDetail positionChange);
-		
-	 	protected volatile bool isDisposed = false;
-	    public void Dispose() 
+        protected volatile bool isDisposed = false;
+        protected readonly object orderAlgorithmsLocker = new object();
+        protected Dictionary<long, SymbolAlgorithm> orderAlgorithms = new Dictionary<long, SymbolAlgorithm>();
+
+        public void Dispose() 
 	    {
 	        Dispose(true);
 	        GC.SuppressFinalize(this);      
@@ -1381,5 +1376,200 @@ namespace TickZoom.FIX
                 fixLog.TraceFormat("{0}: {1}", received ? "RCV" : "SND", messageFIX);
     }
 
+        protected class SymbolAlgorithm
+        {
+            public OrderAlgorithm OrderAlgorithm;
+        }
+
+        protected SymbolAlgorithm GetAlgorithm(long symbol)
+        {
+            SymbolAlgorithm symbolAlgorithm;
+            lock (orderAlgorithmsLocker)
+            {
+                if (!orderAlgorithms.TryGetValue(symbol, out symbolAlgorithm))
+                {
+                    throw new ApplicationException("OrderAlgorirhm was not found for " + Factory.Symbol.LookupSymbol(symbol));
+                }
+            }
+            return symbolAlgorithm;
+        }
+
+        protected bool TryGetAlgorithm(long symbol, out SymbolAlgorithm algorithm)
+        {
+            lock (orderAlgorithmsLocker)
+            {
+                return orderAlgorithms.TryGetValue(symbol, out algorithm);
+            }
+        }
+
+        protected void TrySend(EventType type, SymbolInfo symbol, Agent agent)
+        {
+            lock( symbolsRequestedLocker) {
+                if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
+                SymbolAlgorithm algorithm;
+                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                {
+                    var item = new EventItem(symbol, type);
+                    agent.SendEvent(item);
+                }
+                else
+                {
+                    log.Info("TrySend " + type + " for " + symbol + " but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+                }
+            }
+        }
+
+        protected void TryRequestPosition(SymbolInfo symbol)
+        {
+            SymbolReceiver symbolReceiver;
+            if (!symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
+            {
+                throw new InvalidOperationException("Can't find symbol request for " + symbol);
+            }
+            if (!IsRecovered)
+            {
+                if (debug) log.Debug("Attempted RequestPosition but IsRecovered is " + IsRecovered);
+                return;
+            }
+            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if (symbolAlgorithm.OrderAlgorithm.IsBrokerOnline)
+            {
+                if (debug) log.Debug("Attempted RequestPosition but isBrokerStarted is " + symbolAlgorithm.OrderAlgorithm.IsBrokerOnline);
+                return;
+            }
+            TrySend(EventType.RequestPosition, symbol, symbolReceiver.Agent);
+        }
+
+        protected void TrySendStartBroker(SymbolInfo symbol, string message)
+        {
+            SymbolReceiver symbolReceiver;
+            if( !symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
+            {
+                throw new InvalidOperationException("Can't find symbol request for " + symbol);
+            }
+            if( !IsRecovered)
+            {
+                if (debug) log.Debug("Attempted StartBroker but IsRecovered is " + IsRecovered);
+                return;
+            }
+            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if (algorithm.OrderAlgorithm.ReceivedDesiredPosition)
+            {
+                if (algorithm.OrderAlgorithm.IsSynchronized)
+                {
+                    if (algorithm.OrderAlgorithm.IsBrokerOnline)
+                    {
+                        if (debug) log.Debug("Attempted StartBroker but isBrokerStarted is already " + algorithm.OrderAlgorithm.IsBrokerOnline);
+                        return;
+                    }
+                    if (debug) log.Debug("Sending StartBroker for " + symbol + ". Reason: " + message);
+                    TrySend(EventType.StartBroker, symbol, symbolReceiver.Agent);
+                    algorithm.OrderAlgorithm.IsBrokerOnline = true;
+                }
+                else
+                {
+                    if (debug) log.Debug("Attempted StartBroker but OrderAlgorithm not yet synchronized");
+                }
+            }
+            else
+            {
+                TryRequestPosition(symbol);
+            }
+        }
+
+        public void TrySendEndBroker() {
+
+            lock (symbolsRequestedLocker)
+            {
+                foreach(var kvp in symbolsRequested) {
+                    var symbolReceiver = kvp.Value;
+                    TrySendEndBroker(symbolReceiver.Symbol);
+                }
+            }
+        }
+
+        protected void TrySendEndBroker( SymbolInfo symbol)
+        {
+            var symbolReceiver = symbolsRequested[symbol.BinaryIdentifier];
+            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if (!algorithm.OrderAlgorithm.IsBrokerOnline)
+            {
+                if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
+                return;
+            }
+            var item = new EventItem(symbol, EventType.EndBroker);
+            symbolReceiver.Agent.SendEvent(item);
+            algorithm.OrderAlgorithm.IsBrokerOnline = false;
+            if (debug) log.Debug("Sent EndBroker for " + symbol + ".");
+        }
+
+        protected int GetOrderSide( OrderSide side) {
+            switch( side) {
+                case OrderSide.Buy:
+                    return 1;
+                case OrderSide.Sell:
+                    return 2;
+                case OrderSide.SellShort:
+                    return 5;
+                case OrderSide.SellShortExempt:
+                    return 6;
+                default:
+                    throw new ApplicationException("Unknown OrderSide: " + side);
+            }
+        }
+
+        public virtual void PositionChange(PositionChangeDetail positionChange)
+        {
+            var symbol = positionChange.Symbol;
+            if( debug) log.Debug( "PositionChange " + positionChange);
+            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
+            if( algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
+            {
+                if( algorithm.OrderAlgorithm.RejectRepeatCounter == 0)
+                {
+                    TrySendStartBroker(symbol, "position change sync");
+                }
+            }
+        }
+
+        protected int SideToSign( string side) {
+            switch( side) {
+                case "1": // Buy
+                    return 1;
+                case "2": // Sell
+                case "5": // SellShort
+                    return -1;
+                default:
+                    throw new ApplicationException("Unknown order side: " + side);
+            }
+        }
+
+        public virtual void OnLogout()
+        {
+            if (isDisposed)
+            {
+                if (debug) log.Debug("LimeProvider.OnLogOut() already disposed.");
+                return;
+            }
+            var limeMessage = FixFactory.Create();
+            limeMessage.AddHeader("5");
+            SendMessage(limeMessage);
+            log.Info("Logout message sent: " + limeMessage);
+            log.Info("Logging out -- Sending EndBroker event.");
+            TrySendEndBroker();
+        }
+
+        protected virtual void OnStartRecovery()
+        {
+            if( !LogRecovery) {
+                MessageFIXT1_1.IsQuietRecovery = true;
+            }
+            CancelRecovered();
+            TryEndRecovery();
+        }
+
+        protected virtual void OnFinishRecovery()
+        {
+        }
     }
 }

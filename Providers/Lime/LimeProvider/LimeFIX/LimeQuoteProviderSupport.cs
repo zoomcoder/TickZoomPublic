@@ -507,20 +507,6 @@ namespace TickZoom.LimeQuotes
 	        }
 	    }
 
-        private bool isPingSent = false;
-        private void SendPing()
-        {
-            Message message = Socket.MessageFactory.Create();
-            string textMessage = "9|\n";
-            if (trace) log.Trace("Ping request: " + textMessage);
-            message.DataOut.Write(textMessage.ToCharArray());
-            while (!Socket.TrySendMessage(message))
-            {
-                if (IsInterrupted) return;
-                Factory.Parallel.Yield();
-            }
-        }
-
 		protected void IncreaseRetryTimeout() {
             retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
             heartbeatTimeout = Factory.Parallel.TickCount + (long)heartbeatDelay * 1000L;

@@ -25,12 +25,8 @@
 #endregion
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
-using System.Threading;
-
 using TickZoom.Api;
 using TickZoom.FIX;
 
@@ -44,11 +40,6 @@ namespace TickZoom.MBTFIX
         private volatile bool debug = log.IsDebugEnabled;
         private volatile bool verbose = log.IsVerboseEnabled;
 
-        private class SymbolAlgorithm
-        {
-            public OrderAlgorithm OrderAlgorithm;
-        }
-
         public override void RefreshLogLevel()
         {
             base.RefreshLogLevel();
@@ -59,10 +50,6 @@ namespace TickZoom.MBTFIX
                 trace = log.IsTraceEnabled;
             }
         }
-        private static long nextConnectTime = 0L;
-		private readonly object orderAlgorithmsLocker = new object();
-        private Dictionary<long, SymbolAlgorithm> orderAlgorithms = new Dictionary<long, SymbolAlgorithm>();
-        long lastLoginTry = long.MinValue;
 
         public enum RecoverProgress
         {
@@ -107,81 +94,6 @@ namespace TickZoom.MBTFIX
 		public override void OnRetry() {
 		}
 
-        private void TryRequestPosition(SymbolInfo symbol)
-        {
-            SymbolReceiver symbolReceiver;
-            if (!symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
-            {
-                throw new InvalidOperationException("Can't find symbol request for " + symbol);
-            }
-            if (!IsRecovered)
-            {
-                if (debug) log.Debug("Attempted RequestPosition but IsRecovered is " + IsRecovered);
-                return;
-            }
-            var symbolAlgorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if (symbolAlgorithm.OrderAlgorithm.IsBrokerOnline)
-            {
-                if (debug) log.Debug("Attempted RequestPosition but isBrokerStarted is " + symbolAlgorithm.OrderAlgorithm.IsBrokerOnline);
-                return;
-            }
-            TrySend(EventType.RequestPosition, symbol, symbolReceiver.Agent);
-        }
-
-        private void TrySendStartBroker(SymbolInfo symbol, string message)
-        {
-            SymbolReceiver symbolReceiver;
-            if( !symbolsRequested.TryGetValue(symbol.BinaryIdentifier, out symbolReceiver))
-            {
-                throw new InvalidOperationException("Can't find symbol request for " + symbol);
-            }
-            if( !IsRecovered)
-            {
-                if (debug) log.Debug("Attempted StartBroker but IsRecovered is " + IsRecovered);
-                return;
-            }
-            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if (algorithm.OrderAlgorithm.ReceivedDesiredPosition)
-            {
-                if (algorithm.OrderAlgorithm.IsSynchronized)
-                {
-                    if (algorithm.OrderAlgorithm.IsBrokerOnline)
-                    {
-                        if (debug) log.Debug("Attempted StartBroker but isBrokerStarted is already " + algorithm.OrderAlgorithm.IsBrokerOnline);
-                        return;
-                    }
-                    if (debug) log.Debug("Sending StartBroker for " + symbol + ". Reason: " + message);
-                    TrySend(EventType.StartBroker, symbol, symbolReceiver.Agent);
-                    algorithm.OrderAlgorithm.IsBrokerOnline = true;
-                }
-                else
-                {
-                    if (debug) log.Debug("Attempted StartBroker but OrderAlgorithm not yet synchronized");
-                }
-            }
-            else
-            {
-                TryRequestPosition(symbol);
-            }
-        }
-
-        private void TrySend(EventType type, SymbolInfo symbol, Agent agent)
-        {
-			lock( symbolsRequestedLocker) {
-                if( debug) log.Debug("Sending " + type + " for " + symbol + " ...");
-                SymbolAlgorithm algorithm;
-                if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
-                {
-                    var item = new EventItem(symbol, type);
-                    agent.SendEvent(item);
-                }
-                else
-                {
-                    log.Info("TrySend " + type + " for " + symbol + " but OrderAlgorithm not found for " + symbol + ". Ignoring.");
-                }
-            }
-		}
-
         protected override MessageFactory CreateMessageFactory()
         {
             return new MessageFactoryFix44();
@@ -196,32 +108,6 @@ namespace TickZoom.MBTFIX
         {
             get { return false; }
             set { }
-        }
-		
-		private void TrySendEndBroker() {
-
-            lock (symbolsRequestedLocker)
-            {
-				foreach(var kvp in symbolsRequested) {
-					var symbolReceiver = kvp.Value;
-                    TrySendEndBroker(symbolReceiver.Symbol);
-				}
-			}
-		}
-
-        private void TrySendEndBroker( SymbolInfo symbol)
-        {
-            var symbolReceiver = symbolsRequested[symbol.BinaryIdentifier];
-            var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if (!algorithm.OrderAlgorithm.IsBrokerOnline)
-            {
-                if (debug) log.Debug("Tried to send EndBroker for " + symbol + " but broker status is already offline.");
-                return;
-            }
-            var item = new EventItem(symbol, EventType.EndBroker);
-            symbolReceiver.Agent.SendEvent(item);
-            algorithm.OrderAlgorithm.IsBrokerOnline = false;
-            if (debug) log.Debug("Sent EndBroker for " + symbol + ".");
         }
 
         private void RequestSessionUpdate()
@@ -240,8 +126,6 @@ namespace TickZoom.MBTFIX
 
         private void SendLogin(int localSequence)
         {
-            lastLoginTry = Factory.Parallel.TickCount;
-
             FixFactory = new FIXFactory4_4(localSequence+1, UserName, fixDestination);
             var mbtMsg = FixFactory.Create();
             mbtMsg.SetEncryption(0);
@@ -312,21 +196,6 @@ namespace TickZoom.MBTFIX
             return true;
         }
 
-        public override void OnLogout()
-        {
-            if (isDisposed)
-            {
-                if( debug) log.Debug("OnLogOut() already disposed.");
-                return;
-            }
-            var mbtMsg = FixFactory.Create();
-            mbtMsg.AddHeader("5");
-            SendMessage(mbtMsg);
-            log.Info("Logout message sent: " + mbtMsg);
-            log.Info("Logging out -- Sending EndBroker event.");
-            TrySendEndBroker();
-        }
-		
 		protected override void OnStartRecovery()
 		{
 			if( !LogRecovery) {
@@ -651,8 +520,6 @@ namespace TickZoom.MBTFIX
             }
         }
 
-
-
         private void PositionUpdate( MessageFIX4_4 packetFIX) {
 			if( packetFIX.MessageType == "AO") {
 				if(debug) log.Debug("PositionUpdate Complete.");
@@ -864,7 +731,6 @@ namespace TickZoom.MBTFIX
                         log.Debug("ExecutionReport Pending Replace: " + packetFIX);
                     }
                     OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
-                    var orderState = OrderState.Pending;
                     TryHandlePiggyBackFill(packetFIX);
                     break;
                 case "R": // Resumed.
@@ -944,20 +810,8 @@ namespace TickZoom.MBTFIX
                     throw new ApplicationException("Unknown cancel rejected order status: '" + orderStatus + "'");
             }
         }
-		
-		private int SideToSign( string side) {
-			switch( side) {
-				case "1": // Buy
-					return 1;
-				case "2": // Sell
-				case "5": // SellShort
-					return -1;
-				default:
-					throw new ApplicationException("Unknown order side: " + side);
-			}
-		}
-		
-		public void SendFill( MessageFIX4_4 packetFIX) {
+
+        public void SendFill( MessageFIX4_4 packetFIX) {
             var clientOrderId = 0L;
             long.TryParse(packetFIX.ClientOrderId, out clientOrderId);
             var originalClientOrderId = 0L;
@@ -1075,49 +929,6 @@ namespace TickZoom.MBTFIX
 			return symbolAlgorithm;
 		}
 
-        private bool TryGetAlgorithm(long symbol, out SymbolAlgorithm algorithm)
-        {
-            lock (orderAlgorithmsLocker)
-            {
-                return orderAlgorithms.TryGetValue(symbol, out algorithm);
-            }
-        }
-
-        private SymbolAlgorithm GetAlgorithm(long symbol)
-        {
-            SymbolAlgorithm symbolAlgorithm;
-            lock (orderAlgorithmsLocker)
-            {
-                if (!orderAlgorithms.TryGetValue(symbol, out symbolAlgorithm))
-                {
-                    throw new ApplicationException("OrderAlgorirhm was not found for " + Factory.Symbol.LookupSymbol(symbol));
-                }
-            }
-            return symbolAlgorithm;
-        }
-
-        public override void PositionChange(PositionChangeDetail positionChange)
-		{
-            var symbol = positionChange.Symbol;
-			if( debug) log.Debug( "PositionChange " + positionChange);
-			var algorithm = GetAlgorithm(symbol.BinaryIdentifier);
-            if( algorithm.OrderAlgorithm.PositionChange(positionChange, IsRecovered))
-            {
-                if( algorithm.OrderAlgorithm.RejectRepeatCounter == 0)
-                {
-                    TrySendStartBroker(symbol, "position change sync");
-                }
-            }
-		}
-		
-	    protected override void Dispose(bool disposing)
-	    {
-            base.Dispose(disposing);
-           	nextConnectTime = Factory.Parallel.TickCount + 10000;
-	    }    
-	        
-		Dictionary<int,int> physicalToLogicalOrderMap = new Dictionary<int, int>();
-	        
 		public bool OnCreateBrokerOrder(CreateOrChangeOrder createOrChangeOrder)
 		{
             if (!IsRecovered) return false;
@@ -1268,44 +1079,16 @@ namespace TickZoom.MBTFIX
 			SendMessage( fixMsg);
 		}
 
-		private int GetOrderSide( OrderSide side) {
-			switch( side) {
-				case OrderSide.Buy:
-					return 1;
-				case OrderSide.Sell:
-					return 2;
-				case OrderSide.SellShort:
-					return 5;
-				case OrderSide.SellShortExempt:
-					return 6;
-				default:
-					throw new ApplicationException("Unknown OrderSide: " + side);
-			}
-		}
-		
-
-		private long GetUniqueOrderId() {
-			return TimeStamp.UtcNow.Internal;
-		}
-
         protected override void ResendOrder(CreateOrChangeOrder order)
         {
             if( order.Action == OrderAction.Cancel)
             {
                 if (debug) log.Debug("Resending cancel order: " + order);
-                //if (SyncTicks.Enabled && !IsRecovered)
-                //{
-                //    TryAddPhysicalOrder(order);
-                //}
                 SendCancelOrder(order, true);
             }
             else
             {
                 if (debug) log.Debug("Resending order: " + order);
-                //if (SyncTicks.Enabled && !IsRecovered)
-                //{
-                //    TryAddPhysicalOrder(order);
-                //}
                 OnCreateOrChangeBrokerOrder(order, true);
             }
         }
@@ -1339,12 +1122,6 @@ namespace TickZoom.MBTFIX
             return true;
 
 		}
-
-        private void TryAddPhysicalOrder( CreateOrChangeOrder order)
-        {
-            var tickSync = SyncTicks.GetTickSync(order.Symbol.BinaryIdentifier);
-            tickSync.AddPhysicalOrder(order);
-        }
 
         private void SendCancelOrder( CreateOrChangeOrder order, bool resend)
         {

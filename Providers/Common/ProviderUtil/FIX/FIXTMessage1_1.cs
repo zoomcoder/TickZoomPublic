@@ -157,6 +157,10 @@ namespace TickZoom.FIX
 			Append(554,password);
 		}
 
+        /// <summary>
+        ///	553 end user who entered the trade should have their username specified here	
+        /// This method uses the "sender" field name as the username here.
+        /// </summary>
         public void SetUserName(string username)
         {
             Append(553, username);

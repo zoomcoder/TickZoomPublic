@@ -141,8 +141,6 @@ namespace TickZoom.FIX
 
         public class ReadQueueEmptyException : Exception { }
 
-        private bool alreadyEmpty = false;
-        private Integers queueCounts = Factory.Engine.Integers();
         private TickIO currentTick = Factory.TickUtil.TickIO();
         private Yield DequeueTick()
         {
