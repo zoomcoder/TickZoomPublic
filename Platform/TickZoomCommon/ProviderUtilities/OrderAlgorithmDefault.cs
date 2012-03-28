@@ -219,12 +219,7 @@ namespace TickZoom.Common
             }
             if (physical.CancelCount > 15)
             {
-                log.Error("Already tried canceling this order " + physical.CancelCount + " times: " + physical);
-                while (true)
-                {
-                    Thread.Sleep(1000);
-                }
-                //throw new InvalidOperationException("Already tried canceling this order 3 times: " + physical);
+                throw new InvalidOperationException("Already tried canceling this order " + physical.CancelCount + " times: " + physical);
             }
             if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
             physicalOrderCache.SetOrder(cancelOrder);

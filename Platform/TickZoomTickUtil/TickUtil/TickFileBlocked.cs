@@ -40,7 +40,8 @@ namespace TickZoom.TickUtil
         private bool isInitialized;
         private StackTrace constructorTrace;
         private bool isFirstTick = true;
-
+        private Stopwatch readFileStopwatch;
+        private long nextProgressUpdateSecond;
         private static object tickFilesLocker = new object();
         private static List<TickFileBlocked> tickFiles = new List<TickFileBlocked>();
 
@@ -489,9 +490,6 @@ namespace TickZoom.TickUtil
                 }
             }
         }
-
-        private Stopwatch readFileStopwatch;
-        private long nextProgressUpdateSecond;
 
         private unsafe void ReadNextTickBlock()
         {
