@@ -42,12 +42,13 @@ namespace Loaders
 #endif
         }
 		public AutoTestSettings[] GetAutoTestSettings() {
-			var list = new System.Collections.Generic.List<AutoTestSettings>();
+            AutoTestSettings next;
+            var list = new System.Collections.Generic.List<AutoTestSettings>();
 			var storeKnownGood = false;
 			var showCharts = false;
 			var primarySymbol = "USD/JPY";
 			try { 
-				list.Add( new AutoTestSettings {
+				list.Add( next = new AutoTestSettings {
 				    Mode = AutoTestMode.Default,
 				    Name = "ApexStrategyTest",
 				    Loader = Plugins.Instance.GetLoader("APX_Systems: APX Multi-Symbol Loader"),
@@ -63,9 +64,10 @@ namespace Loaders
 				}
 			}
 			
-			try { 
-				list.Add( new AutoTestSettings {
-				    Mode = AutoTestMode.Default,
+			try {
+                list.Add(next = new AutoTestSettings
+                {
+                    Mode = AutoTestMode.Default,
 				    Name = "Apex_NQ_MeltdownTest",
 				    Loader = Plugins.Instance.GetLoader("APX_Systems: APX Multi-Symbol Loader"),
 				    Symbols = "/NQU0",
@@ -80,9 +82,10 @@ namespace Loaders
 				}
 			}
 			
-			try { 
-				list.Add( new AutoTestSettings {
-				    Mode = AutoTestMode.Default,
+			try {
+                list.Add(next = new AutoTestSettings
+                {
+                    Mode = AutoTestMode.Default,
 				    Name = "ApexMeltdownTest",
 				    Loader = Plugins.Instance.GetLoader("APX_Systems: APX Multi-Symbol Loader"),
 				    Symbols = "GE,INTC",
@@ -98,7 +101,7 @@ namespace Loaders
 				}
 			}
 
-            list.Add(new AutoTestSettings
+			list.Add( next = new AutoTestSettings 
             {
                 Mode = AutoTestMode.Default,
                 Name = "ExampleBreakoutReversalTest",
@@ -110,7 +113,7 @@ namespace Loaders
                 IntervalDefault = Intervals.Minute1,
             });
 
-            list.Add(new AutoTestSettings
+			list.Add( next = new AutoTestSettings 
             {
                 Mode = AutoTestMode.Default,
                 Name = "DualStrategyLimitOrder",
@@ -121,8 +124,13 @@ namespace Loaders
                 EndTime = new TimeStamp(2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
 			
-			list.Add( new AutoTestSettings {
+			list.Add( next = new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Historical,
 			    Name = "ExampleDualStrategyTest",
 			    Loader = new ExampleDualStrategyLoader(),
@@ -133,7 +141,8 @@ namespace Loaders
 				IntervalDefault = Intervals.Day1,
 			});
 
-		    list.Add(new AutoTestSettings {
+			list.Add( next = new AutoTestSettings 
+		    {
                 Mode = AutoTestMode.Default,
                 Name = "LimitOrderTest",
                 Loader = new TestLimitOrderLoader(),
@@ -144,8 +153,16 @@ namespace Loaders
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
+		    next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SendServerOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveServerOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SystemOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
 			
-			list.Add( new AutoTestSettings {
+			list.Add( next = new AutoTestSettings 
+            {
 			    Mode = AutoTestMode.Default,
 			    Name = "MarketOrderTest",
 			    Loader = new MarketOrderLoader(),
@@ -155,8 +172,13 @@ namespace Loaders
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
 			
-			list.Add( new AutoTestSettings {
+			list.Add( next = new AutoTestSettings 
+            {
 			    Mode = AutoTestMode.Default,
 			    Name = "SyntheticMarketOrderTest",
 			    Loader = new MarketOrderLoader(),
@@ -166,8 +188,14 @@ namespace Loaders
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SystemOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
 			
-			list.Add( new AutoTestSettings {
+			list.Add( next = new AutoTestSettings 
+            {
 			    Mode = AutoTestMode.Historical,
 			    Name = "ExampleReversalOnSimData",
 			    Loader = new ExampleReversalLoader(),
@@ -178,7 +206,8 @@ namespace Loaders
 				IntervalDefault = Intervals.Day1,
 			});
 			
-			list.Add( new AutoTestSettings {
+			list.Add( next = new AutoTestSettings 
+            {
 			    Mode = AutoTestMode.Historical,
 			    Name = "ExampleMixedSimulated",
 			    Loader = new ExampleMixedLoader(),
@@ -189,7 +218,7 @@ namespace Loaders
 				IntervalDefault = Intervals.Day1,
 			});
 
-            list.Add(new AutoTestSettings
+            list.Add(next = new AutoTestSettings
             {
                 Mode = AutoTestMode.Historical | AutoTestMode.SimulateFIX,
                 Name = "ExampleMixedTruePartial",
@@ -203,7 +232,7 @@ namespace Loaders
                 PartialFillSimulation = PartialFillSimulation.PartialFillsIncomplete
             });
 
-            list.Add(new AutoTestSettings
+            list.Add(next = new AutoTestSettings
             {
 			    Mode = AutoTestMode.Default,
 			    Name = "ExampleMixedTest",
@@ -215,8 +244,9 @@ namespace Loaders
 				IntervalDefault = Intervals.Minute1,
 				Categories = { "Failed" },
 			});
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
 
-            list.Add(new AutoTestSettings
+            list.Add(next = new AutoTestSettings
             {
                 Mode = AutoTestMode.Historical,
                 Name = "ExampleMixedToTheEnd",
@@ -230,7 +260,7 @@ namespace Loaders
                 Categories = { "Failed" },
             });
 
-            list.Add(new AutoTestSettings
+            list.Add(next = new AutoTestSettings
             {
                 Mode = AutoTestMode.Default,
                 Name = "MixedWithInactiveSymbol",
@@ -245,7 +275,7 @@ namespace Loaders
                 Categories = { "Failed" },
             });
 
-            list.Add(new AutoTestSettings
+            list.Add(next = new AutoTestSettings
             {
                 Mode = AutoTestMode.Default,
                 Name = "ExampleLimitOrder",
@@ -257,9 +287,14 @@ namespace Loaders
                 IntervalDefault = Intervals.Minute1,
                 Categories = { "Failed" },
             });
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SendServerOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveServerOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
 
-
-            list.Add(new AutoTestSettings
+            list.Add(next = new AutoTestSettings
             {
                 Mode = AutoTestMode.Historical | AutoTestMode.SimulateFIX,
                 Name = "ExampleLimitTruePartial",
@@ -272,10 +307,10 @@ namespace Loaders
                 Categories = { "Failed" },
                 PartialFillSimulation = PartialFillSimulation.PartialFillsIncomplete
             });
-            
-            list.Add(new AutoTestSettings
+
+            list.Add(next = new AutoTestSettings
             {
-			    Mode = AutoTestMode.Default,
+                Mode = AutoTestMode.Default,
 			    Name = "ExampleReversalTest",
 			    Loader = new ExampleReversalLoader(),
 				Symbols = primarySymbol,
@@ -284,9 +319,16 @@ namespace Loaders
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
 			});
-			
-			list.Add( new AutoTestSettings {
-			    Mode = AutoTestMode.Default,
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SendServerOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveServerOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
+
+            list.Add(next = new AutoTestSettings
+            {
+                Mode = AutoTestMode.Default,
 			    Name = "LimitReversalTest",
 			    Loader = new LimitReversalLoader(),
 				Symbols = primarySymbol,
@@ -295,8 +337,12 @@ namespace Loaders
 				EndTime = new TimeStamp( 2009, 6, 10),
 				IntervalDefault = Intervals.Minute1,
             });
-			
-            list.Add(new AutoTestSettings
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
+
+            list.Add(next = new AutoTestSettings
             {
                 Mode = AutoTestMode.None,
                 Name = "LimitChangeOffsetTest",
@@ -309,7 +355,8 @@ namespace Loaders
             });
 
             // Fast Running CSCO real time tests...
-			var cscoRealTime = new AutoTestSettings {
+            list.Add(next = new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Default,
 			    Name = "RealTimeLimitOrderTest",
 			    Loader = new TestLimitOrderLoader(),
@@ -318,17 +365,21 @@ namespace Loaders
 				ShowCharts = showCharts,
 				EndTime = new TimeStamp( 2011,1,15,1,30,0),
 				IntervalDefault = Intervals.Minute1,
-			};
-			list.Add(cscoRealTime);
+			});
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SystemOffline] = 0;
 			
 			// Real time (slow running) CSCO real time test.
-			cscoRealTime = cscoRealTime.Copy();
-			cscoRealTime.Mode = AutoTestMode.None;
-			cscoRealTime.RelativeEndTime = new Elapsed(2,0,0);
-			list.Add( cscoRealTime);
+			next = next.Copy();
+			next.Mode = AutoTestMode.None;
+			next.RelativeEndTime = new Elapsed(2,0,0);
+			list.Add( next);
 			
 			// Fast Running SPY real time tests...
-			var spyTradeDataOnly = new AutoTestSettings {
+            list.Add(next = new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Historical,
 			    Name = "RealTimeSPYDataOnly",
 			    Loader = new TestDataOnlyLoader(),
@@ -337,16 +388,16 @@ namespace Loaders
 				ShowCharts = showCharts,
 				EndTime = new TimeStamp( 2011,2,17),
 				IntervalDefault = Intervals.Second10,
-			};
-			list.Add(spyTradeDataOnly);
+			});
 			
 			// Real time (slow running) CSCO real time test.
-			spyTradeDataOnly = spyTradeDataOnly.Copy();
-			spyTradeDataOnly.Mode = AutoTestMode.None;
-			spyTradeDataOnly.RelativeEndTime = new Elapsed(0,3,00);
-			list.Add( spyTradeDataOnly);
+			next = next.Copy();
+			next.Mode = AutoTestMode.None;
+			next.RelativeEndTime = new Elapsed(0,3,00);
+			list.Add( next);
 			
-			var spyQuoteDataOnly = new AutoTestSettings {
+            list.Add(next = new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Historical,
 			    Name = "RealTimeSPYQuoteOnly",
 			    Loader = new TestDataOnlyLoader(),
@@ -355,16 +406,16 @@ namespace Loaders
 				ShowCharts = showCharts,
 				EndTime = new TimeStamp( 2021,2,17),
 				IntervalDefault = Intervals.Second10,
-			};
-			list.Add(spyQuoteDataOnly);
+			});
 			
 			// Real time (slow running) CSCO real time test.
-			spyQuoteDataOnly = spyQuoteDataOnly.Copy();
-			spyQuoteDataOnly.Mode = AutoTestMode.None;
-			spyQuoteDataOnly.RelativeEndTime = new Elapsed(0,3,00);
-			list.Add( spyQuoteDataOnly);
+            next = next.Copy();
+            next.Mode = AutoTestMode.None;
+            next.RelativeEndTime = new Elapsed(0, 3, 00);
+            list.Add(next);
 			
-			var multiSymbolOrders = new AutoTestSettings {
+            list.Add(next = new AutoTestSettings
+            {
 			    Mode = AutoTestMode.Historical, 
 			    Name = "MultiSymbolOrders",
 			    Loader = new ExampleOrdersLoader(),
@@ -372,7 +423,7 @@ namespace Loaders
                     CN.1month, CT.1month, DJ.1month, DX.1month, EC.1month, ED.1month,
                     ER.1month, ES.1month, FC.1month, FV.1month, GC.1month, HG.1month,
                     HO.1month, JO.1month, JY.1month, KC.1month, LB.1month, LC.1month,
-                    LH.1month, ME.1month, MG.1month, MI.1month, NG.1month,
+                    LH.1month,  ME.1month, MG.1month, MI.1month, NG.1month,
                     NK.1month, NQ.1month, OA.1month, PA.1month, PB.1month, PL.1month,
                     SB.1month, SF.1month, SM.1month, SV.1month, SY.1month, TU.1month,
                     TY.1month, US.1month, WC.1month, XB.1month",
@@ -381,10 +432,9 @@ namespace Loaders
 				EndTime = new TimeStamp( 2010,3,3), 
 				IntervalDefault = Intervals.Hour1,
 				Categories = { "MultiSymbolOrders" },
-			};
-			list.Add(multiSymbolOrders);
+			});
 
-            var tenSymbolOrders = new AutoTestSettings
+            list.Add(next = new AutoTestSettings
             {
                 Mode = AutoTestMode.Default,
                 Name = "TenSymbolOrders",
@@ -396,8 +446,8 @@ namespace Loaders
                 EndTime = new TimeStamp(2010, 3, 3),
                 IntervalDefault = Intervals.Hour1,
                 Categories = { "MultiSymbolOrders" },
-            };
-            list.Add(tenSymbolOrders);
+            });
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
 
             return list.ToArray();
 		}

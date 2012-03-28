@@ -9,6 +9,24 @@ namespace TickZoom.FIX
         private volatile bool debug;
         private volatile bool trace;
         private volatile bool verbose;
+        private volatile int lastSequence;
+
+        public int Counter
+        {
+            get { return counter; }
+        }
+
+        public long AttemptCounter
+        {
+            get { return attemptCounter; }
+        }
+
+        public int Minimum
+        {
+            get { return minimum; }
+            set { minimum = value; }
+        }
+
         public virtual void RefreshLogLevel()
         {
             debug = log.IsDebugEnabled;
@@ -19,7 +37,9 @@ namespace TickZoom.FIX
         public int MaxFailures;
         public bool Enabled;
         public int Frequency = 50;
-        public int NextSequence = 100;
+        public int NextSequence = 0;
+        private int attemptCounter;
+        private int minimum = 2;
         private int counter;
         private Random random;
         private Func<int> getSymbolCount;
@@ -38,26 +58,59 @@ namespace TickZoom.FIX
             this.random = random;
             this.getSymbolCount = getSymbolCount;
         }
-        public void UpdateNext(int sequence)
+
+        private void NextRandom(int sequence)
         {
-            NextSequence = sequence + random.Next(Frequency * getSymbolCount()) + Frequency;
+            NextSequence = sequence + random.Next(Frequency * getSymbolCount() / 3) + Frequency;
             if (debug) log.Debug("Set " + Type + " sequence for = " + NextSequence);
         }
+
+        public void UpdateNext(int sequence)
+        {
+            if( lastSequence == 0)
+            {
+                NextRandom(sequence);
+            }
+            else
+            {
+                var remaining = NextSequence - lastSequence;
+                NextSequence = sequence + remaining;
+                if (debug) log.Debug("Set " + Type + " sequence for = " + NextSequence);
+            }
+        }
+
         public bool CheckSequence(int sequence)
         {
-            var result = Enabled && counter < MaxFailures && sequence >= NextSequence;
+            if( SyncTicks.Frozen) return false;
+            if (NextSequence == 0)
+            {
+                throw new ApplicationException("NextSequence was never initialized.");
+            }
+            lastSequence = sequence;
+            var result = false;
+            if (!Enabled) return result;
+            ++attemptCounter;
+            result = Counter < MaxFailures && sequence >= NextSequence;
             if( result)
             {
-                ++counter;
-                if (debug) log.Debug("Sequence " + sequence + " >= " + Type + " sequence " + NextSequence + " so causing negative test.");
+                counter = Counter + 1;
+                if (debug) log.Debug("Sequence " + sequence + " >= " + Type + " sequence " + NextSequence + " so causing negative test. " +
+                    SyncTicks.CurrentTestName + " attempts " + attemptCounter + ", count " + counter);
+                NextRandom(sequence);
             }
             return result;
         }
 
         public bool CheckFrequencyAndSymbol(SymbolInfo symbol)
         {
+            if (SyncTicks.Frozen) return false;
+            if (NextSequence == 0)
+            {
+                NextRandom(attemptCounter);
+            }
             var result = false;
             if (!Enabled) return result;
+            ++attemptCounter;
             if (isRepeating)
             {
                 if( symbol != null && symbol.BinaryIdentifier != repeatingSymbol.BinaryIdentifier)
@@ -80,16 +133,16 @@ namespace TickZoom.FIX
                 }
                 return result;
             }
-            var symbolCount = getSymbolCount();
-            var randomValue = random.Next(Frequency * symbolCount);
-            result = counter < MaxFailures && randomValue == 1;
+            result = Counter < MaxFailures && attemptCounter >= NextSequence;
             if (result)
             {
-                ++counter;
+                counter = Counter + 1;
+                NextRandom(attemptCounter);
                 if( debug)
                 {
                     var symbolText = symbol != null ? "For " + symbol + ": " : "";
-                    log.Debug(symbolText + "Random " + Type + " occurred so causing negative test.");
+                    if( debug) log.Debug(symbolText + "Random " + Type + " occurred so causing negative test. " + 
+                        SyncTicks.CurrentTestName + " attempts " + attemptCounter + ", count " + counter);
                 }
                 if (MaxRepetitions > 0)
                 {
@@ -112,18 +165,5 @@ namespace TickZoom.FIX
             return Type.ToString();
         }
 
-    }
-    public enum SimulatorType
-    {
-        ReceiveDisconnect,
-        SendDisconnect,
-        SendServerOffline,
-        ReceiveServerOffline,
-        BlackHole,
-        CancelBlackHole,
-        SystemOffline,
-        RejectSymbol,
-        RejectAll,
-        ServerOfflineReject
     }
 }

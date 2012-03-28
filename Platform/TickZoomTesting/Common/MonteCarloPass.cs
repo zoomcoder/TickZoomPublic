@@ -8,6 +8,7 @@ namespace TickZoom.Common
 {
     public class MonteCarloPass
     {
+        public Log log = Factory.SysLog.GetLogger(typeof (MonteCarloPass));
         public double MaxRunUp;
         public double MaxDrawDown;
         public double MaxInventorySize;
@@ -133,7 +134,7 @@ namespace TickZoom.Common
                                amountToOffer + "," + change + "," + inventory.Size + "," + pandl + "," +
                                cumulativeProfit + inventory.ToString();
                     if (writeOutput) sb.AppendLine(line);
-                    if (writeOutput && !debug) Console.WriteLine(line);
+                    if (writeOutput && !debug) log.Debug(line);
                 }
                 ProfitLoss = inventory.CumulativeProfit + inventory.CurrentProfitLoss(price);
             }

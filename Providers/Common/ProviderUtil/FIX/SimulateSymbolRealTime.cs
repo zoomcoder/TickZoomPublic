@@ -74,7 +74,7 @@ namespace TickZoom.FIX
 		    Action<long,SymbolInfo,Tick> onTick,
             Action<long> onEndTick,
             Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
-		    Action<CreateOrChangeOrder,bool,string> onRejectOrder, long id)
+		    Action<CreateOrChangeOrder,string> onRejectOrder, long id)
         {
             this.id = id;
             log.Register(this);

@@ -31,11 +31,15 @@ using System.Threading;
 
 namespace TickZoom.Api
 {
-	public struct SyncTicksState
+	public unsafe struct SyncTicksState
 	{
+        public const int MaxNameLength = 256;
 	    public bool enabled;
 	    public int pageCount;
 	    public bool frozen;
+        public bool success;
+	    public int currentTestNameLength;
+	    public fixed char currentTestName[MaxNameLength];
 	}
     
     /// <summary>
@@ -101,8 +105,11 @@ namespace TickZoom.Api
 		
 		public static void LogStatus() {
 			log.Info("TickSync status...");
-			foreach( var tickSync in TickSyncs) {
-				log.Info(tickSync);
+			foreach( var kvp in TickSyncs)
+			{
+			    var tickSync = kvp.Value;
+			    var symbol = Factory.Symbol.LookupSymbol(tickSync.SymbolBinaryId);
+				log.Info(symbol + " " + tickSync);
 			}
 		}
 		
@@ -118,6 +125,7 @@ namespace TickZoom.Api
                 if (value)
                 {
                     Frozen = false;
+                    Success = true;
                 }
             }
 		}
@@ -129,9 +137,50 @@ namespace TickZoom.Api
             {
                 if ((*Directory.SyncTicksState).frozen != value)
                 {
-                    log.Debug("Frozed flag changed from " + (*Directory.SyncTicksState).frozen + " to " + value);
+                    log.Debug("Frozen flag changed from " + (*Directory.SyncTicksState).frozen + " to " + value);
                     (*Directory.SyncTicksState).frozen = value;
                 }
+            }
+        }
+
+        public static bool Success
+        {
+            get { return (*Directory.SyncTicksState).success; }
+            set
+            {
+                if ((*Directory.SyncTicksState).success!= value)
+                {
+                    log.Debug("Success flag changed from " + (*Directory.SyncTicksState).success + " to " + value);
+                    (*Directory.SyncTicksState).success = value;
+                }
+            }
+        }
+
+        public static string CurrentTestName
+        {
+            get
+            {
+                var length = (*Directory.SyncTicksState).currentTestNameLength;
+                var buffer = (*Directory.SyncTicksState).currentTestName;
+                return new string(buffer, 0, length);
+            }
+            set
+            {
+                if( value == null)
+                {
+                    value = "EmptyTestName";
+                }
+                var array = value.ToCharArray();
+                if (array.Length > SyncTicksState.MaxNameLength)
+                {
+                    Array.Resize(ref array, SyncTicksState.MaxNameLength);
+                }
+                var start = (*Directory.SyncTicksState).currentTestName;
+                for( int i=0; i<array.Length; i++)
+                {
+                    start[i] = array[i];
+                }
+                (*Directory.SyncTicksState).currentTestNameLength = array.Length;
             }
         }
 

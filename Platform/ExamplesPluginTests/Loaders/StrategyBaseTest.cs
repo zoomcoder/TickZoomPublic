@@ -66,8 +66,6 @@ namespace Loaders
         Dictionary<string,FinalStatsInfo> testFinalStatsMap = new Dictionary<string,FinalStatsInfo>();
         Dictionary<string,List<TransactionInfo>> goodTransactionMap = new Dictionary<string,List<TransactionInfo>>();
         Dictionary<string,List<TransactionInfo>> testTransactionMap = new Dictionary<string,List<TransactionInfo>>();
-        Dictionary<string,List<TransactionInfo>> goodReconciliationMap = new Dictionary<string,List<TransactionInfo>>();
-        Dictionary<string,List<TransactionInfo>> testReconciliationMap = new Dictionary<string,List<TransactionInfo>>();
         public bool ShowCharts = false;
         private bool storeKnownGood = false;
         public CreateStarterCallback createStarterCallback;
@@ -85,11 +83,13 @@ namespace Loaders
         private Execute execute;
         private int testFinshedTimeout;
         private AutoTestSettings testSettings;
+        private string testName;
 
 
-        public StrategyBaseTest( AutoTestSettings testSettings )
+        public StrategyBaseTest( string testName, AutoTestSettings testSettings )
         {
             Factory.IsAutomatedTest = true;
+            this.testName = testName;
             this.testSettings = testSettings;
             this.autoTestMode = testSettings.Mode;
             this.loader = testSettings.Loader;
@@ -101,9 +101,7 @@ namespace Loaders
             this.endTime = testSettings.EndTime;
             this.relativeEndTime = testSettings.RelativeEndTime;
             this.testFinshedTimeout = testSettings.TestFinishedTimeout;
-            this.testFileName = string.IsNullOrEmpty(testSettings.KnownGoodName)
-                                    ? testSettings.Name
-                                    : testSettings.KnownGoodName;
+            this.testFileName = string.IsNullOrEmpty(testSettings.KnownGoodName) ? testSettings.Name : testSettings.KnownGoodName;
             this.intervalDefault = testSettings.IntervalDefault;
             createStarterCallback = CreateStarter;
             StaticGlobalFlags.isWriteFinalStats = false;
@@ -210,7 +208,9 @@ namespace Loaders
 			
         [TestFixtureSetUp]
         public virtual void RunStrategy() {
-            log.Notice("Beginning RunStrategy()");
+            log.Notice("Beginning RunStrategy() for " + testName);
+            SyncTicks.Success = true;
+            SyncTicks.CurrentTestName = testName;
             try
             {
                 StaticGlobal.Clear();
@@ -279,7 +279,6 @@ namespace Loaders
                     LoadBarData();
                     LoadStats();
                     LoadFinalStats();
-                    LoadReconciliation();
                 }
                 catch (AssertionException ex)
                 {
@@ -349,6 +348,11 @@ namespace Loaders
             }
         }
 
+        public void SimulatorSuccess( string strategyName)
+        {
+            Assert.IsTrue(SyncTicks.Success);
+        }
+
         public static void DeleteFile(string path)
         {
             var errors = new List<Exception>();
@@ -408,8 +412,6 @@ namespace Loaders
             testFinalStatsMap.Clear();
             goodTransactionMap.Clear();
             testTransactionMap.Clear();
-            goodReconciliationMap.Clear();
-            testReconciliationMap.Clear();
             topModel = null;
             Factory.Log.Flush();
             Factory.SysLog.Flush();
@@ -631,25 +633,6 @@ namespace Loaders
                         tempTransactions.Add(strategyName,transactionList);
                     }
                 }
-            }
-        }
-		
-        public void LoadReconciliation() {
-            string frontEndPath = Factory.SysLog.LogFolder + @"\Transactions.log";
-            string backEndPath = Factory.SysLog.LogFolder + @"\MockProviderTransactions.log";
-            if( File.Exists(backEndPath)) {
-                // Never store known good. That will get stored by LoadTransactions
-                // and merely used for reconciliation.
-                testReconciliationMap.Clear();
-                LoadReconciliation(backEndPath,testReconciliationMap);
-            } else {
-                log.Warn("Back end reconciliation file was not found: " + backEndPath);
-            }
-            if( File.Exists(frontEndPath)) {
-                goodReconciliationMap.Clear();
-                LoadReconciliation(frontEndPath,goodReconciliationMap);
-            } else {
-                log.Warn("Front end reconciliation file was not found: " + frontEndPath);
             }
         }
 		
@@ -905,46 +888,6 @@ namespace Loaders
             }
         }
 
-        public void PerformReconciliation(SymbolInfo symbolInfo) {
-            try {
-                var symbol = symbolInfo.Symbol;
-                var assertFlag = false;
-                List<TransactionInfo> goodTransactions = null;
-                goodReconciliationMap.TryGetValue(symbol,out goodTransactions);
-                List<TransactionInfo> testTransactions = null;
-                testReconciliationMap.TryGetValue(symbol,out testTransactions);
-                Assert.IsNotNull(goodTransactions, "front-end trades");
-                if( testTransactions == null) {
-                    log.Error("Transactions null for " + symbolInfo);
-                }
-                Assert.IsNotNull(testTransactions, "back-end trades");
-                for( int i=0; i<testTransactions.Count && i<goodTransactions.Count; i++) {
-                    var testInfo = testTransactions[i];
-                    var goodInfo = goodTransactions[i];
-                    var goodFill = goodInfo.Fill;
-                    var testFill = testInfo.Fill;
-                    AssertReconcile(ref assertFlag, goodFill,testFill,symbol + " transaction Fill at " + i);
-                    AssertEqual(ref assertFlag, goodInfo.Symbol,testInfo.Symbol,symbol + " transaction symbol at " + i);
-                }
-                Assert.IsFalse(assertFlag,"Checking for transaction fill errors.");
-			}
-            catch (AssertionException ex)
-            {
-                log.Error(ex.Message);
-                testFailed = true;
-                throw;
-            }
-            catch (IgnoreException)
-            {
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex.Message, ex);
-                testFailed = true;
-                throw;
-            }
-        }
-		
         public void VerifyStatsCount(StrategyInterface strategy) {
             DynamicStatsCount( strategy.Name);
         }

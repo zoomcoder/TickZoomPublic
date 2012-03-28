@@ -43,7 +43,7 @@ namespace TickZoom.FIX
                                       string symbolString,
                                       Action<Message, SymbolInfo, Tick> onTick,
                                       Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
-                                      Action<CreateOrChangeOrder, bool, string> onRejectOrder)
+                                      Action<CreateOrChangeOrder, string> onRejectOrder)
         {
             log.Register(this);
             this.fixSimulatorSupport = fixSimulatorSupport;

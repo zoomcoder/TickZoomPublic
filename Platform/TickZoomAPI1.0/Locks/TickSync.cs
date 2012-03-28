@@ -380,6 +380,11 @@ namespace TickZoom.Api
             Changed();
         }
 
+        public long SymbolBinaryId
+        {
+            get { return (*state).symbolBinaryId; }
+        }
+
         public bool SentPhysicalFillsWaiting
         {
             get { return (*state).physicalFillsWaiting > 0; }

@@ -15,6 +15,7 @@ namespace TickZoom.Properties
         private  bool enableNegativeTests;
         private TimeStamp warmStartTime = TimeStamp.MaxValue;
         private PartialFillSimulation partialFillSimulation = PartialFillSimulation.PartialFillsTillComplete;
+        private Dictionary<SimulatorType,int> negativeSimulatorMinimums = new Dictionary<SimulatorType, int>();
 
         public PartialFillSimulation PartialFillSimulation
         {
@@ -32,6 +33,11 @@ namespace TickZoom.Properties
         {
             get { return warmStartTime; }
             set { warmStartTime = value; }
+        }
+
+        public Dictionary<SimulatorType, int> NegativeSimulatorMinimums
+        {
+            get { return negativeSimulatorMinimums; }
         }
     }
 }

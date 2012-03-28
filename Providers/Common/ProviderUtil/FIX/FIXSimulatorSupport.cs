@@ -28,6 +28,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using TickZoom.Api;
 
@@ -95,6 +96,7 @@ namespace TickZoom.FIX
         private Agent agent;
         private PartialFillSimulation partialFillSimulation;
         private TimeStamp endTime;
+        private bool isResendComplete = true;
         public Agent Agent
         {
             get { return agent; }
@@ -140,30 +142,48 @@ namespace TickZoom.FIX
                 simulator.MaxFailures = maxFailures;
                 simulators.Add(simulatorType, simulator);
             }
-
-            simulators[SimulatorType.ReceiveDisconnect].Enabled = allTests;
-            simulators[SimulatorType.SendDisconnect].Enabled = allTests;
-            simulators[SimulatorType.SendServerOffline].Enabled = allTests;
-            simulators[SimulatorType.ReceiveServerOffline].Enabled = allTests;
-            simulators[SimulatorType.BlackHole].Enabled = allTests;
-            simulators[SimulatorType.CancelBlackHole].Enabled = allTests;
-            simulators[SimulatorType.SystemOffline].Enabled = allTests;
-            simulators[SimulatorType.RejectSymbol].Enabled = allTests;
-            simulators[SimulatorType.ServerOfflineReject].Enabled = allTests;
+            simulators[SimulatorType.BlackHole].Enabled = allTests;   // Passed individually.
+            simulators[SimulatorType.CancelBlackHole].Enabled = allTests;   // Passed individually.
+            simulators[SimulatorType.RejectSymbol].Enabled = allTests;   // Passed individually.
             simulators[SimulatorType.RejectAll].Enabled = false;
-            simulateReceiveFailed = allTests;
-            simulateSendFailed = allTests;
+            simulateReceiveFailed = allTests;    // Passed individually.
+            simulateSendFailed = allTests;      // Passed individually.
+            simulators[SimulatorType.SendServerOffline].Enabled = allTests; // Passed individually.
+            simulators[SimulatorType.ReceiveServerOffline].Enabled = allTests;  // Passed individually.
+            simulators[SimulatorType.ServerOfflineReject].Enabled = allTests;  // Passed individually.
+            simulators[SimulatorType.SendDisconnect].Enabled = allTests;        // Passed individually.
+            simulators[SimulatorType.ReceiveDisconnect].Enabled = allTests;     // Passed individually.
+            simulators[SimulatorType.SystemOffline].Enabled = allTests;     // Passed individually.
 
             {
-                var simulator = simulators[SimulatorType.CancelBlackHole];
-                simulator.Frequency = 3;
+                simulators[SimulatorType.ReceiveServerOffline].Frequency = 10;
+                simulators[SimulatorType.SendServerOffline].Frequency = 20;
+                simulators[SimulatorType.SendDisconnect].Frequency = 15;
+                simulators[SimulatorType.ReceiveDisconnect].Frequency = 8;
+                simulators[SimulatorType.CancelBlackHole].Frequency = 10;
+                simulators[SimulatorType.BlackHole].Frequency = 10;
+                simulators[SimulatorType.SystemOffline].Frequency = 10;
 
-                simulator = simulators[SimulatorType.BlackHole];
-                simulator.Frequency = 20;
+                simulators[SimulatorType.ServerOfflineReject].Frequency = 10;
 
-                simulator = simulators[SimulatorType.RejectSymbol];
+                var simulator = simulators[SimulatorType.RejectSymbol];
                 simulator.Frequency = 10;
-                simulator.MaxRepetitions = 5;
+                simulator.MaxRepetitions = 1;
+            }
+
+            foreach( var kvp in projectProperties.Simulator.NegativeSimulatorMinimums)
+            {
+                var type = kvp.Key;
+                var minimum = kvp.Value;
+                if( minimum == 0)
+                {
+                    simulators[type].Minimum = minimum;
+                    simulators[type].Enabled = false;
+                }
+                else
+                {
+                    simulators[type].Minimum = minimum;
+                }
             }
 
             this.currentMessageFactory = createMessageFactory;
@@ -189,7 +209,7 @@ namespace TickZoom.FIX
                 foreach( var kvp in simulators)
                 {
                     var simulator = kvp.Value;
-                    if( !simulator.Enabled)
+                    if( !simulator.Enabled && simulator.Minimum > 0)
                     {
                         log.Error(simulator + " is disabled");
                     }
@@ -300,6 +320,10 @@ namespace TickZoom.FIX
                 {
                     OnHeartbeat();
                 }
+            }
+            else
+            {
+                if( debug) log.Debug("Skipping heartbeat because fix state: " + fixState);
             }
             IncreaseHeartbeat();
             return Yield.DidWork.Repeat;
@@ -575,6 +599,7 @@ namespace TickZoom.FIX
 
         private bool Resend(MessageFIXT1_1 messageFix)
 		{
+            if( !isResendComplete) return true;
 			var mbtMsg = FixFactory.Create();
 			mbtMsg.AddHeader("2");
 			mbtMsg.SetBeginSeqNum(RemoteSequence);
@@ -664,17 +689,21 @@ namespace TickZoom.FIX
                             }
                             else
                             {
-                                if (fixState == ServerState.LoggedIn && packetFIX.Sequence >= recoveryRemoteSequence)
+                                if( packetFIX.Sequence >= recoveryRemoteSequence)
                                 {
-                                    // Sequences are synchronized now. Send TradeSessionStatus.
-                                    fixState = ServerState.Recovered;
-                                    if( requestSessionStatus)
+                                    isResendComplete = true;
+                                    if (fixState == ServerState.LoggedIn)
                                     {
-                                        SendSessionStatusOnline();
+                                        // Sequences are synchronized now. Send TradeSessionStatus.
+                                        fixState = ServerState.Recovered;
+                                        if (requestSessionStatus)
+                                        {
+                                            SendSessionStatusOnline();
+                                        }
+                                        // Setup disconnect simulation.
+                                        simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packetFIX.Sequence);
+                                        simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence);
                                     }
-                                    // Setup disconnect simulation.
-                                    simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packetFIX.Sequence);
-                                    simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence);
                                 }
                                 switch (packetFIX.MessageType)
                                 {
@@ -768,16 +797,15 @@ namespace TickZoom.FIX
             simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packet.Sequence);
             simulators[SimulatorType.SendServerOffline].UpdateNext(FixFactory.LastSequence);
             simulators[SimulatorType.ReceiveServerOffline].UpdateNext(packet.Sequence);
-            simulators[SimulatorType.ServerOfflineReject].UpdateNext(packet.Sequence);
             simulators[SimulatorType.SystemOffline].UpdateNext(packet.Sequence);
 
-            var mbtMsg = CreateHeartbeat();
+            var mbtMsg = CreateLoginResponse();
             if (debug) log.Debug("Sending login response: " + mbtMsg);
             SendMessage(mbtMsg);
             return true;
         }
 
-        private FIXTMessage1_1 CreateHeartbeat()
+        private FIXTMessage1_1 CreateLoginResponse()
         {
             var mbtMsg = (FIXTMessage1_1)FixFactory.Create();
             mbtMsg.SetEncryption(0);
@@ -857,7 +885,6 @@ namespace TickZoom.FIX
             if (FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
             {
                 if (debug) log.Debug("Ignoring message: " + packetFIX);
-                simulator.UpdateNext(packetFIX.Sequence);
                 // Ignore this message. Pretend we never received it AND disconnect.
                 // This will test the message recovery.)
                 SwitchBrokerState("disconnect",false);
@@ -875,7 +902,6 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
             {
                 if (debug) log.Debug("Skipping message: " + packetFIX);
-                simulator.UpdateNext(packetFIX.Sequence);
                 SwitchBrokerState("disconnect",false);
                 SetOrderServerOffline();
                 if( requestSessionStatus)
@@ -892,7 +918,6 @@ namespace TickZoom.FIX
             simulator = simulators[SimulatorType.SystemOffline];
             if (IsRecovered && FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
             {
-                simulator.UpdateNext(packetFIX.Sequence);
                 SendSystemOffline();
                 return true;
             }
@@ -902,41 +927,17 @@ namespace TickZoom.FIX
             switch (packetFIX.MessageType)
             {
                 case "G":
-                    simulator = simulators[SimulatorType.BlackHole];
-                    if (FixFactory != null && simulator.CheckFrequency())
-                    {
-                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_4) packetFIX;
-                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        //tickSync.AddBlackHole(message.ClientOrderId);
-                        return true;
-                    }
-                    break;
                 case "D":
                     simulator = simulators[SimulatorType.BlackHole];
-                    if (FixFactory != null && simulator.CheckFrequency())
-                    {
-                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_4)packetFIX;
-                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        //tickSync.AddBlackHole(message.ClientOrderId);
-                        return true;
-                    }
                     break;
                 case "F":
                     simulator = simulators[SimulatorType.CancelBlackHole];
-                    if (FixFactory != null && simulator.CheckFrequency())
-                    {
-                        if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_4)packetFIX;
-                        var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
-                        var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
-                        //tickSync.AddBlackHole(message.ClientOrderId);
-                        return true;
-                    }
                     break;
+            }
+            if (FixFactory != null && simulator.CheckFrequency())
+            {
+                if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
+                return true;
             }
             ParseFIXMessage(_fixReadMessage);
             return true;
@@ -963,7 +964,7 @@ namespace TickZoom.FIX
 		}
 
         protected long nextSimulateSymbolId;
-		public void AddSymbol(string symbol, Action<long, SymbolInfo, Tick> onTick, Action<long> onEndTick, Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill, Action<CreateOrChangeOrder,bool,string> onOrderReject)
+		public void AddSymbol(string symbol, Action<long, SymbolInfo, Tick> onTick, Action<long> onEndTick, Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill, Action<CreateOrChangeOrder,string> onOrderReject)
 		{
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
             using (symbolHandlersLocker.Using())
@@ -1198,7 +1199,6 @@ namespace TickZoom.FIX
             if (simulator.CheckSequence(fixMessage.Sequence) )
             {
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
-                simulator.UpdateNext(fixMessage.Sequence);
                 SwitchBrokerState("disconnect",false);
                 isConnectionLost = true;
                 return;
@@ -1239,7 +1239,6 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence( fixMessage.Sequence))
             {
                 if (debug) log.Debug("Skipping message: " + fixMessage);
-                simulator.UpdateNext(fixMessage.Sequence);
                 SwitchBrokerState("offline",false);
                 SetOrderServerOffline();
                 if( requestSessionStatus)
@@ -1308,6 +1307,47 @@ namespace TickZoom.FIX
 				isDisposed = true;
 				if (disposing) {
                     if (debug) log.Debug("Dispose()");
+				    var sb = new StringBuilder();
+				    var countFailedTests = 0;
+                    foreach( var kvp in simulators)
+                    {
+                        var sim = kvp.Value;
+                        if( sim.Enabled)
+                        {
+                            if( sim.Counter < sim.Minimum)
+                            {
+                                SyncTicks.Success = false;
+                                ++countFailedTests;
+                            }
+                            sb.AppendLine(SyncTicks.CurrentTestName + ": " + sim.Type + " attempts " + sim.AttemptCounter + ", count " + sim.Counter);
+                        }
+                    }
+                    if( countFailedTests > 0)
+                    {
+                        log.Error( countFailedTests + " negative simulators occured less than 2 times:\n" + sb);
+                    }
+                    else
+                    {
+                        log.Info("Active negative test simulator results:\n" + sb);
+                    }
+                    if( !isOrderServerOnline)
+                    {
+                        SyncTicks.Success = false;
+                        log.Error("The FIX order server ended in offline state.");
+                    }
+                    else 
+                    {
+                        log.Info("The FIX order server finished up online.");
+                    }
+                    if (isConnectionLost)
+                    {
+                        SyncTicks.Success = false;
+                        log.Error("The FIX order server ended in connection loss state.");
+                    }
+                    else
+                    {
+                        log.Info("The FIX order server finished up connected.");
+                    }
                     ShutdownHandlers();
                     CloseSockets();
                     if (fixListener != null)

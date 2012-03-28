@@ -418,7 +418,7 @@ namespace TickZoom.FIX
                 case 379:
                     result = GetString(out businessRejectReferenceId);
                     break;
-				default:
+                default:
 					result = SkipValue();
 					break;
 			}

@@ -367,7 +367,6 @@ namespace TickZoom.MBTFIX
 			errorOkay = text.Contains("FXORD2") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD01") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD02") ? true : errorOkay;
-            log.Error(packetFIX.Text + " -- Sending EndBroker event.");
             CancelRecovered();
             TrySendEndBroker();
             TryEndRecovery();
@@ -726,7 +725,7 @@ namespace TickZoom.MBTFIX
                     {
                         log.Debug("ExecutionReport Suspended: " + packetFIX);
                     }
-                    OrderStore.SetSequences(RemoteSequence, FixFactory.LastSequence);
+                    RejectOrder(packetFIX);
                     break;
                 case "A": // PendingNew
                     if (debug && (LogRecovery || !IsRecovery))
@@ -815,7 +814,8 @@ namespace TickZoom.MBTFIX
                         SymbolAlgorithm algorithm;
                         if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
                         {
-                            if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
+                            var orderAlgo = algorithm.OrderAlgorithm;
+                            if (IsRecovered && orderAlgo.RejectRepeatCounter > 0 && orderAlgo.IsBrokerOnline)
                             {
                                 var message = "Cancel Rejected on " + symbol + ": " + packetFIX.Text + "\n" + packetFIX;
                                 log.Error(message);
@@ -930,7 +930,14 @@ namespace TickZoom.MBTFIX
                 if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
                 {
                     var message = "Order Rejected on "+ symbol + ": " + packetFIX.Text + "\n" + packetFIX;
-                    log.Error(message);
+                    if( Factory.IsAutomatedTest)
+                    {
+                        log.Notice(message);
+                    }
+                    else
+                    {
+                        log.Error(message);
+                    }
                 }
 
                 var retryImmediately = algorithm.OrderAlgorithm.RejectRepeatCounter < 1;

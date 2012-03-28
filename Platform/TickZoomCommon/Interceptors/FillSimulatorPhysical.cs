@@ -77,7 +77,7 @@ namespace TickZoom.Interceptors
         private TimeStamp openTime;
 
         private Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill;
-        private Action<CreateOrChangeOrder, bool, string> onRejectOrder;
+        private Action<CreateOrChangeOrder, string> onRejectOrder;
         private Action<long> onPositionChange;
         private bool useSyntheticMarkets = true;
         private bool useSyntheticStops = true;
@@ -510,7 +510,7 @@ namespace TickZoom.Interceptors
             {
                 var wrapper = rejectQueue.Dequeue();
                 if (debug) log.Debug("Dequeuing reject " + wrapper.Order);
-                onRejectOrder(wrapper.Order, wrapper.RemoveOriginal, wrapper.Message);
+                onRejectOrder(wrapper.Order, wrapper.Message);
             }
         }
 
@@ -874,7 +874,7 @@ namespace TickZoom.Interceptors
             set { isBarData = value; }
         }
 
-        public Action<CreateOrChangeOrder, bool, string> OnRejectOrder
+        public Action<CreateOrChangeOrder, string> OnRejectOrder
         {
             get { return onRejectOrder; }
             set { onRejectOrder = value; }

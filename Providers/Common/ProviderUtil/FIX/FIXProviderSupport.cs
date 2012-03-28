@@ -307,8 +307,7 @@ namespace TickZoom.FIX
             log.Info("OnConnect( " + socket + " ) ");
             retryTimer.Cancel();
             ConnectionStatus = Status.Connected;
-            isResendComplete = true;
-            if (debug) log.Debug("Set resend complete: " + IsResendComplete);
+            IsResendComplete = true;
             using (OrderStore.BeginTransaction())
             {
                 if (OnLogin())
@@ -394,7 +393,7 @@ namespace TickZoom.FIX
                 }
                 else
                 {
-            SetupRetry();
+                    SetupRetry();
                 }
             }
             else
@@ -546,7 +545,7 @@ namespace TickZoom.FIX
                         {
                             MessageFIXT1_1 tempMessage;
                             resendQueue.Peek(out tempMessage);
-                            if (tempMessage.Sequence > remoteSequence && isResendComplete)
+                            if (tempMessage.Sequence > remoteSequence && IsResendComplete)
                             {
                                 if (debug) log.Debug("Found sequence " + tempMessage.Sequence + " on the resend queue. Requesting resend from " + remoteSequence + " to " + (tempMessage.Sequence - 1));
                                 TryRequestResend(remoteSequence, tempMessage.Sequence - 1);
@@ -607,12 +606,11 @@ namespace TickZoom.FIX
                     if (messageFIX != null)
                     {
                         lastMessageTime = TimeStamp.UtcNow;
-                        switch (messageFIX.MessageType)
-                        {
-                            case "2":
-                                HandleResend(messageFIX);
-                                break;
-                        }
+                        //switch (messageFIX.MessageType)
+                        //{
+                        //    case "2":
+                        //        break;
+                        //}
                         var releaseFlag = true;
                         var message4_4 = messageFIX as MessageFIX4_4;
                         // Workaround for bug in MBT FIX Server that sends message from prior to 
@@ -634,7 +632,7 @@ namespace TickZoom.FIX
                                         // Already handled and sequence incremented.
                                         break;
                                     case "2": // resend
-                                        // Already handled and sequence incremented.
+                                        HandleResend(messageFIX);
                                         break;
                                     case "4": // gap fill
                                         HandleGapFill(messageFIX);
@@ -699,7 +697,6 @@ namespace TickZoom.FIX
                 throw new InvalidOperationException("Reset new sequence number must be greater than or equal to the next sequence: " + RemoteSequence + ".\n" + packetFIX);
             }
             RemoteSequence = packetFIX.NewSeqNum;
-            isResendComplete = true;
             if (packetFIX.Sequence > RemoteSequence)
             {
                 HandleResend(packetFIX.Sequence, packetFIX);
@@ -778,10 +775,9 @@ namespace TickZoom.FIX
             }
             else
             {
-                if (!isResendComplete && messageFIX.Sequence >= expectedResendSequence)
+                if (!IsResendComplete && messageFIX.Sequence >= expectedResendSequence)
                 {
-                    isResendComplete = true;
-                    if (debug) log.Debug("Set resend complete: " + isResendComplete);
+                    IsResendComplete = true;
                     TryEndRecovery();
                 }
                 RemoteSequence = messageFIX.Sequence + 1;
@@ -798,11 +794,10 @@ namespace TickZoom.FIX
 
         private void TryRequestResend(int from, int to)
         {
-            if (isResendComplete)
+            if (IsResendComplete)
             {
-                isResendComplete = false;
-                if (debug) log.Debug("TryRequestResend() Set resend complete flag: " + isResendComplete);
-                expectedResendSequence = from;
+                IsResendComplete = false;
+                expectedResendSequence = to;
                 if (debug) log.Debug("Expected resend sequence set to " + expectedResendSequence);
                 var mbtMsg = fixFactory.Create();
                 mbtMsg.AddHeader("2");
@@ -878,6 +873,8 @@ namespace TickZoom.FIX
                             case "2":
                             case "0":
                             case "AN":
+                            case "G":
+                            case "F":
                                 break;
                             default:
                                 log.Warn("Message type " + missingMessage.Type + " skipped during resend: " + missingMessage);
@@ -1338,6 +1335,14 @@ namespace TickZoom.FIX
 	    public bool IsResendComplete
 	    {
 	        get { return isResendComplete; }
+	        set
+	        {
+	            if( isResendComplete != value)
+	            {
+                    if (debug) log.Debug("Resend Complete changed to " + value);
+	                isResendComplete = value;
+	            }
+	        }
 	    }
 
         public long RetryDelay

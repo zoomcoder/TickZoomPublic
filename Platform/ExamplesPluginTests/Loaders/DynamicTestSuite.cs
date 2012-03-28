@@ -66,7 +66,7 @@ namespace Loaders
 			foreach( var testSettings in autoTestFixture.GetAutoTestSettings() ) {
 				if( (testSettings.Mode & autoTestMode) != autoTestMode) continue;
 				testSettings.Mode = autoTestMode;
-				var fixture = new NUnitTestFixture(userFixtureType, new object[] { testSettings } );
+				var fixture = new NUnitTestFixture(userFixtureType, new object[] { testSettings.Name, testSettings } );
 				foreach( var category in testSettings.Categories) {
 					fixture.Categories.Add( category);
 				}
@@ -78,7 +78,7 @@ namespace Loaders
 		}
 			
 		private void AddStrategyTestCases(NUnitTestFixture fixture, AutoTestSettings testSettings) {
-			var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
+			var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { fixture.TestName.Name, testSettings } );
 			foreach( var modelName in strategyTest.GetModelNames()) {
 				var paramaterizedTest = new ParameterizedMethodSuite(modelName);
 				foreach( var category in testSettings.Categories) {
@@ -90,7 +90,7 @@ namespace Loaders
 				var methods = strategyTest.GetType().GetMethods();
 				foreach( var method in methods ) {
 					var parameters = method.GetParameters();
-					if( !method.IsSpecialName && method.IsPublic && parameters.Length == 1 && parameters[0].ParameterType == typeof(string)) {
+					if( !method.IsSpecialName && method.IsPublic && !method.IsStatic && parameters.Length == 1 && parameters[0].ParameterType == typeof(string)) {
 						if( CheckIgnoreMethod(testSettings.IgnoreTests, method.Name)) {
 							continue;
 						}
@@ -121,33 +121,6 @@ namespace Loaders
 	        return false;
 		}
 				           
-		private void AddSymbolTestCases(NUnitTestFixture fixture, AutoTestSettings testSettings) {
-			var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
-			foreach( var symbol in strategyTest.GetSymbols()) {
-				var paramaterizedTest = new ParameterizedMethodSuite(symbol.Symbol);
-				foreach( var category in testSettings.Categories) {
-					paramaterizedTest.Categories.Add( category);
-				}
-				fixture.Add(paramaterizedTest);
-				var parms = new ParameterSet();
-				parms.Arguments = new object[] { symbol };
-				var methods = strategyTest.GetType().GetMethods();
-				foreach( var method in methods ) {
-					var parameters = method.GetParameters();
-					if( !method.IsSpecialName && method.IsPublic && parameters.Length == 1 && parameters[0].ParameterType == typeof(SymbolInfo)) {
-						var testCase = NUnitTestCaseBuilder.BuildSingleTestMethod(method,parms);
-						testCase.TestName.Name = method.Name;
-						testCase.TestName.FullName = fixture.Parent.Parent.TestName.Name + "." +
-							fixture.Parent.TestName.Name + "." + 
-							fixture.TestName.Name + "." +
-							symbol + "." +
-							method.Name;
-						paramaterizedTest.Add( testCase);
-					}
-				}
-			}
-		}
-		
 		public bool CanBuildFrom(Type type)
 		{
 			var result = false;
@@ -178,7 +151,7 @@ namespace Loaders
 				if( (testSettings.Mode & autoTestMode) != autoTestMode) continue;
 				testSettings.Mode = autoTestMode;
 				var userFixtureType = typeof(StrategyBaseTest);
-				var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { testSettings } );
+				var strategyTest = (StrategyBaseTest) Reflect.Construct(userFixtureType, new object[] { "CheckCanBuild", testSettings } );
 				foreach( var modelName in strategyTest.GetModelNames()) {
 					result = true; // If at least one entry.
 					break;

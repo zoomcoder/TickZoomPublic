@@ -25,7 +25,7 @@ namespace Loaders
                                    EndTime = new TimeStamp(2009, 6, 10),
                                    IntervalDefault = Intervals.Minute1,
                                };
-            strategyBaseTest = new StrategyBaseTest( settings);
+            strategyBaseTest = new StrategyBaseTest( typeof(PendingOrderTest).Name, settings);
         }
 
         [TestFixtureSetUp]

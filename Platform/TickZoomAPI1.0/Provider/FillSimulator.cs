@@ -42,7 +42,7 @@ namespace TickZoom.Api
 		CreateOrChangeOrder GetOrderById( long orderId);
 		int ActualPosition { get; set; }
 		Action<PhysicalFill,CreateOrChangeOrder> OnPhysicalFill { get; set; }
-		Action<CreateOrChangeOrder,bool,string> OnRejectOrder { get; set; }
+		Action<CreateOrChangeOrder,string> OnRejectOrder { get; set; }
 		Action<long> OnPositionChange { get; set; }
 		PhysicalOrderConfirm ConfirmOrders { get; set; }
 		bool IsBarData { get; set; }

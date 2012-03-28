@@ -221,8 +221,18 @@ namespace TickZoom.Common
 			}
 			if( Symbol.QuoteType == QuoteType.Level1) {
 				if( !isQuoteInitialized && !VerifyQuote()) {
-					if( !errorNeverAnyLevel1Tick) {
-						log.Warn( "Found a Trade tick w/o any " + QuoteType.Level1 + " quote yet but " + Symbol + " is configured for QuoteType = " + Symbol.QuoteType + " in the symbol dictionary.");
+					if( !errorNeverAnyLevel1Tick)
+					{
+					    var message = "Found a Trade tick w/o any " + QuoteType.Level1 + " quote yet but " + Symbol +
+					                  " is configured for QuoteType = " + Symbol.QuoteType + " in the symbol dictionary.";
+                        if( Factory.IsAutomatedTest)
+                        {
+                            log.Notice(message);
+                        }
+                        else
+                        {
+                            log.Warn(message);
+                        }
 						errorNeverAnyLevel1Tick = true;
 					}
 				} else if( errorNeverAnyLevel1Tick) {
