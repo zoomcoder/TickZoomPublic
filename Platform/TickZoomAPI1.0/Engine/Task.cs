@@ -77,11 +77,6 @@ namespace TickZoom.Api
 			get;
 			set;
 		}
-		Action<Exception> OnException {
-			get;
-			set;
-		}
-		
 		Scheduler Scheduler {
 			get;
 			set;

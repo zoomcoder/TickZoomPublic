@@ -904,7 +904,7 @@ namespace TickZoom.FIX
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_2) packetFIX;
+                        var message = (MessageFIX4_4) packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
                         //tickSync.AddBlackHole(message.ClientOrderId);
@@ -916,7 +916,7 @@ namespace TickZoom.FIX
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_2)packetFIX;
+                        var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
                         //tickSync.AddBlackHole(message.ClientOrderId);
@@ -928,7 +928,7 @@ namespace TickZoom.FIX
                     if (FixFactory != null && simulator.CheckFrequency())
                     {
                         if (debug) log.Debug("Simulating order 'black hole' of 35=" + packetFIX.MessageType + " by incrementing sequence to " + RemoteSequence + " but ignoring message with sequence " + packetFIX.Sequence);
-                        var message = (MessageFIX4_2)packetFIX;
+                        var message = (MessageFIX4_4)packetFIX;
                         var symbol = Factory.Symbol.LookupSymbol(message.Symbol);
                         var tickSync = SyncTicks.GetTickSync(symbol.BinaryIdentifier);
                         //tickSync.AddBlackHole(message.ClientOrderId);
