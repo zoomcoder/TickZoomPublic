@@ -48,7 +48,7 @@ namespace TickZoom.Api
             }
             else
             {
-                if (debug) log.Debug("Unchanged strategy " + _id + " for " + _symbol + ". Actual position " + this.position + ".");
+                if (trace) log.Trace("Unchanged strategy " + _id + " for " + _symbol + ". Actual position " + this.position + ".");
             }
         }
 
