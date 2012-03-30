@@ -61,6 +61,7 @@ namespace TickZoom.FIX
 		private int begSeqNum;
 		private int endSeqNum;
         string text = null;
+        private string businessRejectReferenceId = null;
         private int length = 0;
 		private string messageType = null;
 		private string sender = null;
@@ -414,6 +415,9 @@ namespace TickZoom.FIX
                     result = GetString(out value);
                     isResetSeqNum = value == "Y";
                     break;
+                case 379:
+                    result = GetString(out businessRejectReferenceId);
+                    break;
 				default:
 					result = SkipValue();
 					break;
@@ -541,6 +545,11 @@ namespace TickZoom.FIX
         public long TransactTime
         {
             get { return transactTime; }
+        }
+
+        public string BusinessRejectReferenceId
+        {
+            get { return businessRejectReferenceId; }
         }
     }
 }

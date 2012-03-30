@@ -372,7 +372,41 @@ namespace TickZoom.MBTFIX
             TrySendEndBroker();
             TryEndRecovery();
             log.Info(packetFIX.Text + " Sent EndBroker event due to Message:\n" + packetFIX);
-            if (!errorOkay)
+            long clientOrderId;
+            if (packetFIX.BusinessRejectReferenceId != null && long.TryParse(packetFIX.BusinessRejectReferenceId, out clientOrderId))
+            {
+                CreateOrChangeOrder order;
+                if (OrderStore.TryGetOrderById(clientOrderId, out order))
+                {
+                    var symbol = order.Symbol;
+                    SymbolAlgorithm algorithm;
+                    if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
+                    {
+                        var orderAlgo = algorithm.OrderAlgorithm;
+                        if (IsRecovered && orderAlgo.RejectRepeatCounter > 0 && orderAlgo.IsBrokerOnline)
+                        {
+                            var message = "Business reject on " + symbol + ": " + packetFIX.Text + "\n" + packetFIX;
+                            log.Error(message);
+                        }
+
+                        var retryImmediately = algorithm.OrderAlgorithm.RejectRepeatCounter < 1;
+                        algorithm.OrderAlgorithm.RejectOrder(clientOrderId, IsRecovered, retryImmediately);
+                        if (!retryImmediately)
+                        {
+                            TrySendEndBroker(symbol);
+                        }
+                    }
+                    else
+                    {
+                        log.Info("Cancel rejected but OrderAlgorithm not found for " + symbol + ". Ignoring.");
+                    }
+                }
+                else
+                {
+                    if (debug) log.Debug("Order not found for " + clientOrderId + ". Probably allready filled or canceled.");
+                }
+            }
+            else if (!errorOkay)
             {
 				string message = "FIX Server reported an error: " + packetFIX.Text + "\n" + packetFIX;
 				throw new ApplicationException( message);

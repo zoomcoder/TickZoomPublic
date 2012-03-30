@@ -124,5 +124,6 @@ namespace TickZoom.FIX
         SystemOffline,
         RejectSymbol,
         RejectAll,
+        ServerOfflineReject
     }
 }

@@ -149,6 +149,7 @@ namespace TickZoom.FIX
             simulators[SimulatorType.CancelBlackHole].Enabled = allTests;
             simulators[SimulatorType.SystemOffline].Enabled = allTests;
             simulators[SimulatorType.RejectSymbol].Enabled = allTests;
+            simulators[SimulatorType.ServerOfflineReject].Enabled = allTests;
             simulators[SimulatorType.RejectAll].Enabled = false;
             simulateReceiveFailed = allTests;
             simulateSendFailed = allTests;
@@ -767,6 +768,7 @@ namespace TickZoom.FIX
             simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packet.Sequence);
             simulators[SimulatorType.SendServerOffline].UpdateNext(FixFactory.LastSequence);
             simulators[SimulatorType.ReceiveServerOffline].UpdateNext(packet.Sequence);
+            simulators[SimulatorType.ServerOfflineReject].UpdateNext(packet.Sequence);
             simulators[SimulatorType.SystemOffline].UpdateNext(packet.Sequence);
 
             var mbtMsg = CreateHeartbeat();
@@ -805,7 +807,7 @@ namespace TickZoom.FIX
             return true;
         }
 
-        private void SwitchBrokerState(string description, bool isOnline)
+        protected void SwitchBrokerState(string description, bool isOnline)
         {
             foreach (var kvp in symbolHandlers)
             {
@@ -998,7 +1000,11 @@ namespace TickZoom.FIX
                     handler.IsOnline = true;
                 }
             }
-            isOrderServerOnline = true;
+            if( !isOrderServerOnline)
+            {
+                isOrderServerOnline = true;
+                log.Info("Order server back online.");
+            }
         }
 
         public void SetOrderServerOffline()
