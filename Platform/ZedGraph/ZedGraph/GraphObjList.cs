@@ -36,7 +36,6 @@ namespace ZedGraph
 	{
 	    private List<GraphObj> list = new List<GraphObj>();
 	    private List<List<GraphObj>> zOrderList = new List<List<GraphObj>>();
-	    private SimpleLock listLock = new SimpleLock();
 
 	    public int Count
 	    {
@@ -45,9 +44,7 @@ namespace ZedGraph
 	
 		public void Add(GraphObj value)
 		{
-            listLock.Lock();
 		    list.Add(value);
-            listLock.Unlock();
 		}
 
 	    public GraphObj this[int index]
@@ -55,9 +52,7 @@ namespace ZedGraph
             get { return list[index]; }
             set
             {
-                listLock.Lock();
                 list[index] = value;
-                listLock.Unlock();
             }
 	    }
 
@@ -78,15 +73,11 @@ namespace ZedGraph
 		/// <param name="rhs">The <see cref="GraphObjList"/> object from which to copy</param>
 		public GraphObjList( GraphObjList rhs )
 		{
-            rhs.listLock.Lock();
-            listLock.Lock();
             for (var i = 0; i < rhs.list.Count; i++ )
             {
                 var item = rhs.list[i];
                 list.Add((GraphObj)((ICloneable)item).Clone());
             }
-            rhs.listLock.Unlock();
-            listLock.Unlock();
 		}
 
 		/// <summary>
@@ -186,16 +177,13 @@ namespace ZedGraph
 		public int IndexOfTag( string tag )
 		{
 			int index = 0;
-            using( listLock.Using())
+            for (var i = 0; i < list.Count; i++)
             {
-                for (var i = 0; i < list.Count; i++)
-                {
-                    var p = list[i];
-                    if (p.Tag is string &&
-                                String.Compare((string)p.Tag, tag, true) == 0)
-                        return index;
-                    index++;
-                }
+                var p = list[i];
+                if (p.Tag is string &&
+                            String.Compare((string)p.Tag, tag, true) == 0)
+                    return index;
+                index++;
             }
 
 			return -1;
@@ -224,9 +212,7 @@ namespace ZedGraph
 				return -1;
 
 			GraphObj graphObj = this[index];
-            listLock.Lock();
 			list.RemoveAt( index );
-            listLock.Unlock();
 
 			index += relativePos;
 			if ( index < 0 )
@@ -234,9 +220,7 @@ namespace ZedGraph
 			if ( index > list.Count )
 				index = list.Count;
 
-            listLock.Lock();
 			list.Insert( index, graphObj );
-            listLock.Unlock();
 			return index;
 		}
 
@@ -247,13 +231,11 @@ namespace ZedGraph
 		for( int i = 0; i<zOrderList.Count; i++) {
 			zOrderList[i].Clear();
 		}
-        listLock.Lock();
 		for( var i=0; i< list.Count; i++)
 		{
 		    var graphObj = list[i];
 			zOrderList[(int)graphObj.ZOrder].Add(graphObj);
 		}
-        listLock.Unlock();
 	}
 	
 	private MultiDimBitArray isPixelDrawn = null;
@@ -377,21 +359,18 @@ namespace ZedGraph
 		{
 			index = -1;
 			// Search in reverse direction to honor the Z-order))
-		    using (listLock.Using())
-		    {
-                for (int i = list.Count - 1; i >= 0; i--)
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                if (predicate != null && !predicate(this[i]))
                 {
-                    if (predicate != null && !predicate(this[i]))
+                    continue;
+                }
+                if (this[i].PointInBox(mousePt, pane, g, scaleFactor))
+                {
+                    if ((index >= 0 && this[i].ZOrder > this[index].ZOrder) || index < 0)
                     {
-                        continue;
-                    }
-                    if (this[i].PointInBox(mousePt, pane, g, scaleFactor))
-                    {
-                        if ((index >= 0 && this[i].ZOrder > this[index].ZOrder) || index < 0)
-                        {
-                            index = i;
-                            break;
-                        }
+                        index = i;
+                        break;
                     }
                 }
             }
@@ -409,22 +388,19 @@ namespace ZedGraph
                 throw new ArgumentNullException("predicate");
             }
             // First look for graph objects that lie in front of the data points
-            using( listLock.Using())
+            for (var i = 0; i < list.Count; i++)
             {
-                for (var i = 0; i < list.Count; i++)
-                {
-                    var graphObj = list[i];
-                    link = graphObj._link;
-                    bool inFront = graphObj.IsInFrontOfData;
+                var graphObj = list[i];
+                link = graphObj._link;
+                bool inFront = graphObj.IsInFrontOfData;
 
-                    if (link.IsActive)
+                if (link.IsActive)
+                {
+                    if (predicate(graphObj))
                     {
-                        if (predicate(graphObj))
-                        {
-                            source = graphObj;
-                            index = i;
-                            return true;
-                        }
+                        source = graphObj;
+                        index = i;
+                        return true;
                     }
                 }
             }

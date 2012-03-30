@@ -1,3 +1,4 @@
+using TickZoom.Api;
 using TickZoom.Presentation;
 #region Header
 
@@ -43,7 +44,9 @@ namespace TickZoom.GUI
         [STAThread]
         static void Main()
         {
-            try {
+            try
+            {
+                BootStrap.IsApplicationRunning = true;
                 DebugWriter d = new DebugWriter();
                 System.Console.SetOut(d);
                 Application.EnableVisualStyles();

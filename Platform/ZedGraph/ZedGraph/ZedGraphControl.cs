@@ -510,11 +510,10 @@ namespace ZedGraph
 		{
 			InitializeComponent();
 			
-			try {
+			if( BootStrap.IsApplicationRunning)
+            {
  				log = Factory.SysLog.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
  				debug = log.IsDebugEnabled;
-			} catch( Exception) {
-				// This means we're running inside the Windows Forms Designer.
 			}
      		
      		// These commands do nothing, but they get rid of the compiler warnings for

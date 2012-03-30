@@ -35,6 +35,7 @@ namespace TickZoom.Api
 	/// </summary>
 	public class BootStrap
 	{
+	    public static bool IsApplicationRunning;
 		private readonly string assemblyName = "PluginLoader.dll";
 		private readonly string interfaceName = "FactoryLoader";
 	    public FactoryLoader FactoryLoader()

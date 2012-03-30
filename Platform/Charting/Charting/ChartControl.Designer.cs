@@ -64,6 +64,7 @@ namespace TickZoom.Charting
             this.dataGraph = new ZedGraph.ZedGraphControl();
             this.indicatorValues = new System.Windows.Forms.Label();
             this.audioCheckBox = new System.Windows.Forms.CheckBox();
+            this.simulatedTradingLabel = new System.Windows.Forms.Label();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -106,7 +107,7 @@ namespace TickZoom.Charting
             this.dataGraph.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
                         | System.Windows.Forms.AnchorStyles.Left)
                         | System.Windows.Forms.AnchorStyles.Right)));
-            this.dataGraph.Location = new System.Drawing.Point(10, 3);
+            this.dataGraph.Location = new System.Drawing.Point(-2, 3);
             this.dataGraph.Name = "dataGraph";
             this.dataGraph.ScrollGrace = 0;
             this.dataGraph.ScrollMaxX = 0;
@@ -135,18 +136,32 @@ namespace TickZoom.Charting
             // 
             this.audioCheckBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.audioCheckBox.AutoSize = true;
-            this.audioCheckBox.BackColor = System.Drawing.Color.Transparent;
-            this.audioCheckBox.Location = new System.Drawing.Point(681, 14);
+            this.audioCheckBox.BackColor = System.Drawing.Color.White;
+            this.audioCheckBox.Location = new System.Drawing.Point(672, 14);
             this.audioCheckBox.Name = "audioCheckBox";
             this.audioCheckBox.Size = new System.Drawing.Size(89, 17);
             this.audioCheckBox.TabIndex = 9;
             this.audioCheckBox.Text = "Enable Audio";
             this.audioCheckBox.UseVisualStyleBackColor = false;
             // 
+            // simulatedTradingLabel
+            // 
+            this.simulatedTradingLabel.AutoSize = true;
+            this.simulatedTradingLabel.BackColor = System.Drawing.Color.Yellow;
+            this.simulatedTradingLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.simulatedTradingLabel.ForeColor = System.Drawing.Color.Red;
+            this.simulatedTradingLabel.Location = new System.Drawing.Point(123, 15);
+            this.simulatedTradingLabel.Name = "simulatedTradingLabel";
+            this.simulatedTradingLabel.Size = new System.Drawing.Size(144, 13);
+            this.simulatedTradingLabel.TabIndex = 10;
+            this.simulatedTradingLabel.Text = "Simulated Trading Mode";
+            this.simulatedTradingLabel.Visible = false;
+            // 
             // ChartControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.simulatedTradingLabel);
             this.Controls.Add(this.audioCheckBox);
             this.Controls.Add(this.indicatorValues);
             this.Controls.Add(this.logTextBox);
@@ -171,6 +186,7 @@ namespace TickZoom.Charting
         private System.Windows.Forms.TextBox logTextBox;
         private System.Windows.Forms.Label indicatorValues;
         private System.Windows.Forms.CheckBox audioCheckBox;
+        private System.Windows.Forms.Label simulatedTradingLabel;
 		
 		public ZedGraphControl DataGraph {
 			get { return dataGraph; }

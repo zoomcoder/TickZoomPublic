@@ -81,7 +81,7 @@ namespace TickZoom.Charting
         SymbolInfo symbol;
 		private volatile bool isDrawn = false;
 		private Execute execute;
-        
+
 	    public ChartControl(Execute execute)
 		{
 			//
@@ -252,6 +252,14 @@ namespace TickZoom.Charting
 				dataGraph.IsEnableVZoom = false;
 			}
 		}
+
+        private void SetupSimulated()
+        {
+            MasterPane master = dataGraph.MasterPane;
+            master.Fill = new Fill(Color.Yellow, Color.Yellow, 45.0f);
+            audioCheckBox.BackColor = Color.Yellow;
+            simulatedTradingLabel.Visible = true;
+        }
 		
 		GraphPane createPane() {
 			MasterPane master = dataGraph.MasterPane;
@@ -264,9 +272,8 @@ namespace TickZoom.Charting
 			myPaneT.Fill.IsVisible = false;
 			
 			// pretty it up a little
-	//			myPaneT.Chart.Fill = new Fill( Color.White, Color.LightGoldenrodYellow, 45.0f );
-			myPaneT.Chart.Fill = new Fill( Color.White, Color.White, 45.0f );
-			myPaneT.Border = new Border(true, Color.Black, 2);
+            myPaneT.Chart.Fill = new Fill( Color.White, Color.White, 45.0f );
+            myPaneT.Border = new Border(true, Color.Black, 2);
 			// set the dimension so fonts look bigger.
 			myPaneT.BaseDimension = 3.0F;
 			
