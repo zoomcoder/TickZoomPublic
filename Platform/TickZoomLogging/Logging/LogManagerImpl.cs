@@ -38,6 +38,7 @@ using log4net.Appender;
 using log4net.Core;
 using log4net.Filter;
 using log4net.Repository;
+using log4net.Repository.Hierarchy;
 using TickZoom.Api;
 
 namespace TickZoom.Logging
@@ -109,6 +110,26 @@ namespace TickZoom.Logging
                 throw new ApplicationException("Please call RegisterRealTime() before calling ReconfigureRealTime().");
             }
             Reconfigure(realTimeConfig, realTimeDefaultConfig);
+        }
+
+        public void RealTimeForSymbol(string symbol)
+        {
+            var hierarchy = (Hierarchy)repository;
+            if( hierarchy.Root.Level == null || hierarchy.Root.Level > Level.Debug)
+            {
+                hierarchy.Root.Level = Level.Debug;
+                foreach( var kvp in map)
+                {
+                    var logger = kvp.Value;
+                    logger.NofityLogLevelChange();
+                }
+            }
+            //var logger = (LogImpl)GetLogger("TickZoom.Engine.SymbolController");
+            //var log4Logger = (Logger) logger.Log.Logger;
+            //if (log4Logger.Level == null || log4Logger.Level < Level.Debug)
+            //{
+            //    log4Logger.Level = Level.Verbose;
+            //}
         }
 
         public void Reconfigure(string extension)

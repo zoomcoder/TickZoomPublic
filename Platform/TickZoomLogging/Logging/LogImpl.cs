@@ -32,7 +32,6 @@ using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 using log4net.Core;
@@ -49,188 +48,12 @@ namespace TickZoom.Logging
     public class LogImpl : Log
     {
 		private readonly static Type callingType = typeof(LogImpl);
-		private LogImplWrapper log;
+		private LogImplWrapper logWrapper;
 		private static Dictionary<string,string> symbolMap;
 		private static TimeStamp beginTime;
 		private static TimeStamp endTime;
-		
-		private class LogImplWrapper : log4net.Core.LogImpl {
-			private Level m_levelVerbose;
-			private Level m_levelTrace;
-			private Level m_levelDebug;
-			private Level m_levelInfo;
-			private Level m_levelNotice;
-			private Level m_levelWarn;
-			private Level m_levelError;
-			private Level m_levelFatal;
-			private bool verbose;
-			private bool trace;
-			private bool debug;
-			private bool info;
-			private bool notice;
-			private bool warn;
-			private bool error;
-			private bool fatal;
-			private bool isInitialized = false;
-            private List<WeakReference> logListeners = new List<WeakReference>();
-			
-			public LogImplWrapper(ILogger logger) : base( logger) {
-            }
-			
-			private static readonly Level[] levels = new Level[] {
-				Level.Verbose,
-				Level.Trace,
-				Level.Debug,
-				Level.Info,
-				Level.Notice,
-				Level.Warn,
-				Level.Error,
-				Level.Fatal
-			};
 
-            public void Register(LogAware aware)
-            {
-                var reference = new WeakReference(aware);
-                logListeners.Add(reference);
-            }
-
-            private void NotifyListeners()
-            {
-                for (int i = logListeners.Count - 1; i >= 0; i--)
-                {
-                    var reference = logListeners[i];
-                    if( reference != null)
-                    {
-                        if (!reference.IsAlive)
-                        {
-                            logListeners.RemoveAt(i);
-                        }
-                        else
-                        {
-                            var hardReference = reference.Target;
-                            if( hardReference != null)
-                            {
-                                var logAware = (LogAware)reference.Target;
-                                logAware.RefreshLogLevel();
-                            }
-                        }
-                    }
-                }
-            }
-			
-			protected override void ReloadLevels(log4net.Repository.ILoggerRepository repository)
-			{
-				base.ReloadLevels(repository);
-				m_levelVerbose = repository.LevelMap.LookupWithDefault(Level.Verbose);
-				m_levelTrace = repository.LevelMap.LookupWithDefault(Level.Trace);
-				m_levelDebug = repository.LevelMap.LookupWithDefault(Level.Debug);
-				m_levelInfo = repository.LevelMap.LookupWithDefault(Level.Info);
-				m_levelNotice = repository.LevelMap.LookupWithDefault(Level.Notice);
-				m_levelWarn = repository.LevelMap.LookupWithDefault(Level.Warn);
-				m_levelError = repository.LevelMap.LookupWithDefault(Level.Error);
-				m_levelFatal = repository.LevelMap.LookupWithDefault(Level.Fatal);
-				FindAnyEnabled();
-				verbose = IsAnyEnabledFor(m_levelVerbose);
-				trace = IsAnyEnabledFor(m_levelTrace);
-				debug = IsAnyEnabledFor(m_levelDebug);
-				info = IsAnyEnabledFor(m_levelInfo);
-				notice = IsAnyEnabledFor(m_levelNotice);
-				warn = IsAnyEnabledFor(m_levelWarn);
-				error = IsAnyEnabledFor(m_levelError);
-				fatal = IsAnyEnabledFor(m_levelFatal);
-                isInitialized = true;
-                NotifyListeners();
-			}
-			
-			private void TryReloadLevels() {
-				if( !isInitialized) {
-                    ReloadLevels(Logger.Repository);
-                }
-			}
-			
-			public bool IsVerboseEnabled {
-				get { TryReloadLevels(); return verbose; }
-			}
-			
-			public bool IsTraceEnabled {
-				get { TryReloadLevels(); return trace; }
-			}
-			
-			public override bool IsDebugEnabled {
-				get { TryReloadLevels(); return debug; }
-			}
-			
-			public override bool IsInfoEnabled {
-				get { TryReloadLevels(); return info; }
-			}
-			
-			public bool IsNoticeEnabled {
-				get { TryReloadLevels(); return notice; }
-			}
-			
-			public override bool IsWarnEnabled {
-				get { TryReloadLevels(); return warn; }
-			}
-			
-			public override bool IsErrorEnabled {
-				get { TryReloadLevels(); return error; }
-			}
-			
-			public override bool IsFatalEnabled {
-				get { TryReloadLevels(); return fatal; }
-			}
-			
-			private bool IsAnyEnabledFor(Level level) {
-				while( true) {
-					try {
-						return CheckAnyEnabled(level);
-					} catch( InvalidOperationException) {
-					} catch( KeyNotFoundException) {
-					}
-				}
-			}
-
-			private Dictionary<Level,int> childrenByLevel = new Dictionary<Level, int>();
-            private object childrenLocker = new object();
-			
-			private void FindAnyEnabled() {
-                lock(childrenLocker)
-                {
-			        foreach( var level in levels) {
-					    childrenByLevel[level] = 0;
-				    }
-				    ILogger[] loggers = null;
-				    while( loggers == null) {
-					    try {
-						    loggers = Logger.Repository.GetCurrentLoggers();
-					    } catch( InvalidOperationException) {
-    						
-					    }
-				    }
-				    for( var i=0; i<loggers.Length; i++) {
-					    var child = loggers[i];
-					    foreach( var level in levels) {
-						    if( child.IsEnabledFor(level)) {
-							    if( child.Name.StartsWith(Logger.Name)) {
-                                    childrenByLevel[level]++;
-							    } else if( child.Name.Contains("*") || child.Name.Contains("?")) {
-								    var wildcard = new Wildcard(child.Name, RegexOptions.IgnoreCase);
-								    if( wildcard.IsMatch(Logger.Name)) {
-									    childrenByLevel[level]++;
-								    }
-							    }
-						    }
-					    }
-				    }
-                }
-            }
-			
-			private bool CheckAnyEnabled(Level level) {
-				return childrenByLevel[level] > 0;
-			}
-		}
-		
-#region OldStuff
+	    #region OldStuff
         private static LoggingQueue messageQueue = null; 
         private static object locker = new object();
         private string fileName;
@@ -239,7 +62,7 @@ namespace TickZoom.Logging
         public LogImpl(LogManagerImpl manager, ILogger logger)
         {
             logManager = manager;
-			log = new LogImplWrapper(logger);
+			logWrapper = new LogImplWrapper(logger);
         	Connect();
 			if( symbolMap == null) {
 				lock( locker) {
@@ -249,6 +72,11 @@ namespace TickZoom.Logging
         		}
 			}
        	}
+
+        internal void NofityLogLevelChange()
+        {
+            logWrapper.ReloadLevels();
+        }
         
  		private void ConvertSymbols() {
 			symbolMap = new Dictionary<string, string>();
@@ -260,25 +88,6 @@ namespace TickZoom.Logging
 					if( symbol.Length>0) {
 						symbolMap[symbol] = null;
 					}
-				}
-			}
-		}
-		
-		private void ConvertTimes() {
-			beginTime = TimeStamp.MinValue;
-			string beginTimeStr = Factory.Settings["LogTickStart"];
-			if( beginTimeStr != null) {
-				beginTimeStr = beginTimeStr.Trim();
-				if( beginTimeStr.Length > 0) {
-					beginTime = new TimeStamp(beginTimeStr);
-				}
-			}
-			endTime = TimeStamp.MaxValue;
-			string endTimeStr = Factory.Settings["LogTickStop"];
-			if( endTimeStr != null) {
-				endTimeStr = endTimeStr.Trim();
-				if( endTimeStr.Length > 0) {
-					endTime = new TimeStamp(endTimeStr);
 				}
 			}
 		}
@@ -398,41 +207,46 @@ namespace TickZoom.Logging
 		}
 		
 		public bool IsNoticeEnabled {
-			get { return log.IsNoticeEnabled; }
+			get { return LogWrapper.IsNoticeEnabled; }
 		}
 		
 		public bool IsVerboseEnabled {
-			get { return log.IsVerboseEnabled; }
+			get { return LogWrapper.IsVerboseEnabled; }
 		}
 		
 		public bool IsTraceEnabled {
-			get { return log.IsTraceEnabled; }
+			get { return LogWrapper.IsTraceEnabled; }
 		}
 		
 		public bool IsDebugEnabled {
-			get { return log.IsDebugEnabled; }
+			get { return LogWrapper.IsDebugEnabled; }
 		}
 		
 		public bool IsInfoEnabled {
-			get { return log.IsInfoEnabled; }
+			get { return LogWrapper.IsInfoEnabled; }
 		}
 		
 		public bool IsWarnEnabled {
-			get { return log.IsWarnEnabled; }
+			get { return LogWrapper.IsWarnEnabled; }
 		}
 		
 		public bool IsErrorEnabled {
-			get { return log.IsErrorEnabled; }
+			get { return LogWrapper.IsErrorEnabled; }
 		}
 		
 		public bool IsFatalEnabled {
-			get { return log.IsFatalEnabled; }
+			get { return LogWrapper.IsFatalEnabled; }
 		}
-		
-		public void Assert(bool test) {
+
+	    internal LogImplWrapper LogWrapper
+	    {
+	        get { return logWrapper; }
+	    }
+
+	    public void Assert(bool test) {
 			if( test == false) {
 				Exception ex = new AssertFailedException(new StackTrace(1,true));
-				log.Error("Assertion Failed", ex);
+				LogWrapper.Error("Assertion Failed", ex);
 				throw ex;
 			}
 		}
@@ -481,14 +295,14 @@ namespace TickZoom.Logging
 		{
 			if (IsNoticeEnabled)
 			{
-				var data = BuildEventData(log.Logger.Name, Level.Notice, message, t);
-				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				var data = BuildEventData(LogWrapper.Logger.Name, Level.Notice, message, t);
+				var loggingEvent = new LoggingEvent( callingType, LogWrapper.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
 				SetProperties(loggingEvent);
         		WriteScreen(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
 			}
 		}
 		
@@ -496,13 +310,13 @@ namespace TickZoom.Logging
 		{
 			if (IsVerboseEnabled)
 			{
-				var data = BuildEventData(log.Logger.Name, Level.Verbose, message, t);
-				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				var data = BuildEventData(LogWrapper.Logger.Name, Level.Verbose, message, t);
+				var loggingEvent = new LoggingEvent( callingType, LogWrapper.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
 				SetProperties(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
 			}
 		}
 		
@@ -510,13 +324,13 @@ namespace TickZoom.Logging
 		{
 			if (IsTraceEnabled)
 			{
-				var data = BuildEventData(log.Logger.Name, Level.Trace, message, t);
-				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				var data = BuildEventData(LogWrapper.Logger.Name, Level.Trace, message, t);
+				var loggingEvent = new LoggingEvent( callingType, LogWrapper.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
 				SetProperties(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
 			}
 		}
 		
@@ -602,13 +416,13 @@ namespace TickZoom.Logging
 		{
 			if (IsDebugEnabled)
 			{
-				var data = BuildEventData(log.Logger.Name, Level.Debug, message, t);
-				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				var data = BuildEventData(LogWrapper.Logger.Name, Level.Debug, message, t);
+				var loggingEvent = new LoggingEvent( callingType, LogWrapper.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
 				SetProperties(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
 			}
 		}
 		
@@ -616,13 +430,13 @@ namespace TickZoom.Logging
 		{
 			if (IsInfoEnabled)
 			{
-				var data = BuildEventData(log.Logger.Name, Level.Info, message, t);
-				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				var data = BuildEventData(LogWrapper.Logger.Name, Level.Info, message, t);
+				var loggingEvent = new LoggingEvent( callingType, LogWrapper.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
 				SetProperties(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
 			}
 		}
 		
@@ -647,14 +461,14 @@ namespace TickZoom.Logging
 		{
 			if (IsWarnEnabled)
 			{
-				var data = BuildEventData(log.Logger.Name, Level.Warn, message, t);
-				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				var data = BuildEventData(LogWrapper.Logger.Name, Level.Warn, message, t);
+				var loggingEvent = new LoggingEvent( callingType, LogWrapper.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
 				SetProperties(loggingEvent);
 	        	WriteScreen(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
                 logManager.Flush();
 			}
 		}
@@ -663,14 +477,14 @@ namespace TickZoom.Logging
 		{
 			if (IsErrorEnabled)
 			{
-				var data = BuildEventData(log.Logger.Name, Level.Error, message, t);
-				var loggingEvent = new LoggingEvent( callingType, log.Logger.Repository, data);
+				var data = BuildEventData(LogWrapper.Logger.Name, Level.Error, message, t);
+				var loggingEvent = new LoggingEvent( callingType, LogWrapper.Logger.Repository, data);
 				if( t!=null) {
 					System.Diagnostics.Debug.WriteLine(message + "\n" + t);
 				}
 				SetProperties(loggingEvent);
 	        	WriteScreen(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
                 logManager.Flush();
             }
 		}
@@ -726,10 +540,10 @@ namespace TickZoom.Logging
 		{
 			if (IsFatalEnabled)
 			{
-				LoggingEvent loggingEvent = new LoggingEvent(callingType, log.Logger.Repository, log.Logger.Name, Level.Fatal, message, t);
+				LoggingEvent loggingEvent = new LoggingEvent(callingType, LogWrapper.Logger.Repository, LogWrapper.Logger.Name, Level.Fatal, message, t);
 				SetProperties(loggingEvent);
 	        	WriteScreen(loggingEvent);
-				log.Logger.Log(loggingEvent);
+				LogWrapper.Logger.Log(loggingEvent);
 			}
 		}
 		
@@ -746,12 +560,12 @@ namespace TickZoom.Logging
 		
 		public void DebugFormat(string format, params object[] args)
 		{
-			log.DebugFormat(format, args);
+			LogWrapper.DebugFormat(format, args);
 		}
 		
 		public void InfoFormat(string format, params object[] args)
 		{
-			log.InfoFormat(format, args);
+			LogWrapper.InfoFormat(format, args);
 		}
 		
 		public void NoticeFormat(string format, params object[] args)
@@ -761,17 +575,17 @@ namespace TickZoom.Logging
 		
 		public void WarnFormat(string format, params object[] args)
 		{
-			log.WarnFormat(format, args);
+			LogWrapper.WarnFormat(format, args);
 		}
 		
 		public void ErrorFormat(string format, params object[] args)
 		{
-			log.ErrorFormat(format, args);
+			LogWrapper.ErrorFormat(format, args);
 		}
 		
 		public void FatalFormat(string format, params object[] args)
 		{
-			log.FatalFormat(format, args);
+			LogWrapper.FatalFormat(format, args);
 		}
 		
 		public void VerboseFormat(IFormatProvider provider, string format, params object[] args)
@@ -786,12 +600,12 @@ namespace TickZoom.Logging
 		
 		public void DebugFormat(IFormatProvider provider, string format, params object[] args)
 		{
-			log.DebugFormat(provider, format, args);
+			LogWrapper.DebugFormat(provider, format, args);
 		}
 		
 		public void InfoFormat(IFormatProvider provider, string format, params object[] args)
 		{
-			log.InfoFormat(provider, format, args);
+			LogWrapper.InfoFormat(provider, format, args);
 		}
 		
 		public void NoticeFormat(IFormatProvider provider, string format, params object[] args)
@@ -801,17 +615,17 @@ namespace TickZoom.Logging
 		
 		public void WarnFormat(IFormatProvider provider, string format, params object[] args)
 		{
-			log.WarnFormat(provider, format, args);
+			LogWrapper.WarnFormat(provider, format, args);
 		}
 		
 		public void ErrorFormat(IFormatProvider provider, string format, params object[] args)
 		{
-			log.ErrorFormat(provider, format, args);
+			LogWrapper.ErrorFormat(provider, format, args);
 		}
 		
 		public void FatalFormat(IFormatProvider provider, string format, params object[] args)
 		{
-			log.FatalFormat(provider, format, args);
+			LogWrapper.FatalFormat(provider, format, args);
 		}
 
         #region Log Members
@@ -819,7 +633,7 @@ namespace TickZoom.Logging
 
         public void Register(LogAware logAware)
         {
-            log.Register(logAware);
+            LogWrapper.Register(logAware);
             logAware.RefreshLogLevel();
         }
 

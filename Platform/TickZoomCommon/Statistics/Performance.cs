@@ -52,13 +52,13 @@ namespace TickZoom.Statistics
 		    transactionDebug = transactionLog.IsDebugEnabled;
 		    statsDebug = statsLog.IsDebugEnabled;
         }
-        private static readonly Log barDataLog = Factory.SysLog.GetLogger("BarDataLog");
+        private static readonly Log barDataLog = Factory.SysLog.GetLogger("TestLog.BarDataLog");
         private volatile bool barDataDebug = barDataLog.IsDebugEnabled;
-		private static readonly Log tradeLog = Factory.SysLog.GetLogger("TradeLog");
+        private static readonly Log tradeLog = Factory.SysLog.GetLogger("TestLog.TradeLog");
         private volatile bool tradeDebug = tradeLog.IsDebugEnabled;
-		private static readonly Log transactionLog = Factory.SysLog.GetLogger("TransactionLog.Performance");
+        private static readonly Log transactionLog = Factory.SysLog.GetLogger("TestLog.TransactionLog");
         private volatile bool transactionDebug = transactionLog.IsDebugEnabled;
-		private static readonly Log statsLog = Factory.SysLog.GetLogger("StatsLog");
+        private static readonly Log statsLog = Factory.SysLog.GetLogger("TestLog.StatsLog");
         private volatile bool statsDebug = statsLog.IsDebugEnabled;
 		private TransactionPairs comboTrades;
 		private TransactionPairsBinary comboTradesBinary;

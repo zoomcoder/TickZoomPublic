@@ -42,6 +42,7 @@ namespace TickZoom.Starters
 			parallelMode = ParallelMode.RealTime;
             Factory.SysLog.RegisterRealTime("RealTime", GetDefaultLogConfig()); // This creates the config if not exists.
             Factory.SysLog.RegisterHistorical("Historical", HistoricalStarter.GetDefaultLogConfig()); // This creates the config if not exists.
+            Factory.SysLog.ReconfigureForRealTime();
             base.Run(loader);
 		}
 	
@@ -56,29 +57,11 @@ namespace TickZoom.Starters
 <configuration>
  <log4net>
     <root>
-	<level value=""DEBUG"" />
+	<level value=""INFO"" />
 	<appender-ref ref=""FileAppender"" />
-	<appender-ref ref=""ConsoleAppender"" />
     </root>
-    <logger name=""StatsLog"">
+    <logger name=""TestLog"">
         <level value=""INFO"" />
-    	<additivity value=""false"" />
-	    <appender-ref ref=""StatsLogAppender"" />
-    </logger>
-    <logger name=""TradeLog"">
-        <level value=""INFO"" />
-    	<additivity value=""false"" />
-	    <appender-ref ref=""TradeLogAppender"" />
-    </logger>
-    <logger name=""TransactionLog.Performance"">
-        <level value=""INFO"" />
-    	<additivity value=""false"" />
-	    <appender-ref ref=""TransactionLogAppender"" />
-    </logger>
-    <logger name=""BarDataLog"">
-        <level value=""INFO"" />
-    	<additivity value=""false"" />
-	    <appender-ref ref=""BarDataLogAppender"" />
     </logger>
  </log4net>
 </configuration>

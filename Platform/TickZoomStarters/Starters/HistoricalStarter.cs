@@ -86,36 +86,9 @@ namespace TickZoom.Starters
     <root>
 	<level value=""INFO"" />
 	<appender-ref ref=""FileAppender"" />
-	<appender-ref ref=""ConsoleAppender"" />
     </root>
-    <logger name=""StatsLog"">
+    <logger name=""TestLog"">
         <level value=""INFO"" />
-    	<additivity value=""false"" />
-	<appender-ref ref=""StatsLogAppender"" />
-    </logger>
-    <logger name=""TradeLog"">
-        <level value=""INFO"" />
-    	<additivity value=""false"" />
-	<appender-ref ref=""TradeLogAppender"" />
-    </logger>
-    <logger name=""TransactionLog.Performance"">
-        <level value=""INFO"" />
-    	<additivity value=""false"" />
-	<appender-ref ref=""TransactionLogAppender"" />
-    </logger>
-    <logger name=""BarDataLog"">
-        <level value=""INFO"" />
-    	<additivity value=""false"" />
-	<appender-ref ref=""BarDataLogAppender"" />
-    </logger>
-    <logger name=""TickZoom.FIX"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.MBTFIX"">
-        <level value=""DEBUG"" />
-    </logger>
-    <logger name=""TickZoom.MBTQuotes"">
-        <level value=""DEBUG"" />
     </logger>
  </log4net>
 </configuration>

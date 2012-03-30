@@ -58,7 +58,7 @@ namespace TickZoom.FIX
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
-        private int heartbeatDelay = int.MaxValue;
+        private int heartbeatDelay = 1;
         //private int heartbeatDelay = int.MaxValue;
         private ServerState fixState = ServerState.Startup;
         private readonly int maxFailures = 5;
@@ -703,7 +703,7 @@ namespace TickZoom.FIX
         private bool resetSequenceNumbersNextDisconnect;
         private void SendSystemOffline()
         {
-            var mbtMsg = (FIXMessage4_2)FixFactory.Create();
+            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
             mbtMsg.AddHeader("5");
             mbtMsg.SetText("System offline");
             SendMessage(mbtMsg);
@@ -715,7 +715,7 @@ namespace TickZoom.FIX
         {
             if (debug) log.Debug("Sending session status online.");
             var wasOrderServerOnline = isOrderServerOnline;
-            
+            SendSessionStatus("2");
             if( !wasOrderServerOnline)
             {
                 SwitchBrokerState("online",true);
@@ -1175,7 +1175,7 @@ namespace TickZoom.FIX
 		{
 		    var timeStamp = TimeStamp.UtcNow;
 		    timeStamp.AddSeconds(HeartbeatDelay);
-            if (verbose) log.Verbose("Setting next heartbeat for " + timeStamp);
+            if (debug) log.Debug("Setting next heartbeat for " + timeStamp);
             heartbeatTimer.Start(timeStamp);
 		}		
 

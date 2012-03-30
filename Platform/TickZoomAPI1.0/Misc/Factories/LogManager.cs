@@ -47,5 +47,6 @@ namespace TickZoom.Api
 	    List<string> GetConfigNames();
 	    void Reconfigure(string extension);
 	    void Flush();
+	    void RealTimeForSymbol(string symbol);
 	}	
 }
