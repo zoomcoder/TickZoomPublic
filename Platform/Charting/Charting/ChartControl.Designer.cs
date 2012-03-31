@@ -152,9 +152,9 @@ namespace TickZoom.Charting
             this.simulatedTradingLabel.ForeColor = System.Drawing.Color.Red;
             this.simulatedTradingLabel.Location = new System.Drawing.Point(123, 15);
             this.simulatedTradingLabel.Name = "simulatedTradingLabel";
-            this.simulatedTradingLabel.Size = new System.Drawing.Size(144, 13);
+            this.simulatedTradingLabel.Size = new System.Drawing.Size(109, 13);
             this.simulatedTradingLabel.TabIndex = 10;
-            this.simulatedTradingLabel.Text = "Simulated Trading Mode";
+            this.simulatedTradingLabel.Text = "Simulated Trading";
             this.simulatedTradingLabel.Visible = false;
             // 
             // ChartControl

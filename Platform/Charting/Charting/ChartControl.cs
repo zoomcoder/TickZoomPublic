@@ -81,7 +81,9 @@ namespace TickZoom.Charting
         SymbolInfo symbol;
 		private volatile bool isDrawn = false;
 		private Execute execute;
-
+        private Fill simulatedSaveFill;
+        private Color simulatedSaveColor;
+        
 	    public ChartControl(Execute execute)
 		{
 			//
@@ -120,6 +122,16 @@ namespace TickZoom.Charting
             {
                 AutoZoom(dataGraph.GraphPane);
             }
+        }
+
+        public void SetBrokerConnected()
+        {
+            execute.OnUIThread(ResetSimulated);
+        }
+
+        public void SetBrokerDisconnected()
+        {
+            execute.OnUIThread(SetSimulated);
         }
 		
 		public void WriteLine(string text) {
@@ -236,12 +248,14 @@ namespace TickZoom.Charting
 				}
 				master.IsCommonScaleFactor = true;
 				master.SetLayout(g, true, layout, proportions);
+               
 				
 				// Synchronize the Axes
 				dataGraph.IsAutoScrollRange = true;
 				dataGraph.IsShowHScrollBar = true;
 				dataGraph.IsSynchronizeXAxes = true;
 				dataGraph.IsShowDrawObjectTags = false;
+			    dataGraph.BackColor = Color.DeepPink;
 				
 				// Horizontal pan and zoom allowed
 				dataGraph.IsEnableHPan = true;
@@ -253,9 +267,20 @@ namespace TickZoom.Charting
 			}
 		}
 
-        private void SetupSimulated()
+        private void ResetSimulated()
         {
             MasterPane master = dataGraph.MasterPane;
+            master.Fill = simulatedSaveFill;
+            audioCheckBox.BackColor = simulatedSaveColor;
+            simulatedTradingLabel.Visible = false;
+        }
+
+        private void SetSimulated()
+        {
+            MasterPane master = dataGraph.MasterPane;
+            simulatedSaveFill = master.Fill;
+            simulatedSaveColor = audioCheckBox.BackColor;
+
             master.Fill = new Fill(Color.Yellow, Color.Yellow, 45.0f);
             audioCheckBox.BackColor = Color.Yellow;
             simulatedTradingLabel.Visible = true;

@@ -146,5 +146,7 @@ namespace TickZoom.Api
         }
 
 	    List<IndicatorInterface> Indicators { get; }
+	    void SetBrokerConnected();
+	    void SetBrokerDisconnected();
 	}
 }
