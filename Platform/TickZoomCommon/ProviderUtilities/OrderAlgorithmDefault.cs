@@ -1171,7 +1171,14 @@ namespace TickZoom.Common
         public bool CheckForPending()
         {
             var expiryLimit = Factory.Parallel.UtcNow;
-            expiryLimit.AddSeconds(-5);
+            if( Factory.IsAutomatedTest)
+            {
+                expiryLimit.AddSeconds(-5);
+            }
+            else
+            {
+                expiryLimit.AddSeconds(-30);
+            }
             if (trace) log.Trace("Checking for orders pending since: " + expiryLimit);
             var foundAny = false;
             var cancelList = physicalOrderCache.GetOrdersList((x) => x.Symbol == symbol && (x.IsPending) && x.Action == OrderAction.Cancel);
