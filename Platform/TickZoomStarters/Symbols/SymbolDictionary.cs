@@ -279,7 +279,7 @@ namespace TickZoom.Symbols
 <category name=""Universal"">
   <category name=""Synthetic"">
     <property name=""DisplayTimeZone"" value=""Local"" />
-    	<symbol name=""TimeSync""/>
+    <symbol name=""TimeSync"" />
   </category>
   <category name=""Stock"">
     <property name=""DisplayTimeZone"" value=""Local"" />
@@ -329,8 +329,8 @@ namespace TickZoom.Symbols
         <property name=""TimeAndSales"" value=""None"" />
         <property name=""QuoteType"" value=""Level1"" />
       </symbol>
-      <symbol name=""GE""/>
-      <symbol name=""INTC""/>
+      <symbol name=""GE"" />
+      <symbol name=""INTC"" />
       <symbol name=""Design"" />
       <symbol name=""FullTick"" />
       <symbol name=""Daily4Ticks"" />
@@ -360,14 +360,14 @@ namespace TickZoom.Symbols
     <property name=""FIXSimulationType"" value=""BrokerHeldStopOrder"" />
     <property name=""TimeInForce"" value=""GTC"" />
     <category name=""4 Pip"">
-    <property name=""MinimumTick"" value=""0.00001"" />
+      <property name=""MinimumTick"" value=""0.00001"" />
       <symbol name=""USD/CHF"" universal=""USDCHF"">
         <property name=""TimeAndSales"" value=""Extrapolated"" />
       </symbol>
       <symbol name=""USD/CAD"" universal=""USDCAD"" />
       <symbol name=""AUD/USD"" universal=""AUDUSD"" />
       <symbol name=""USD/NOK"" universal=""USDNOK"" />
-      <symbol name=""EUR/USD"" universal=""EURUSD"" >
+      <symbol name=""EUR/USD"" universal=""EURUSD"">
         <property name=""MinimumTick"" value=""0.00001"" />
         <property name=""UseSyntheticLimits"" value=""false"" />
         <property name=""UseSyntheticStops"" value=""false"" />
@@ -387,17 +387,17 @@ namespace TickZoom.Symbols
     </category>
     <category name=""2 Pip"">
       <property name=""MinimumTick"" value=""0.001"" />
-      <symbol name=""USD/JPY"" >
+      <symbol name=""USD/JPY"">
         <property name=""UseSyntheticLimits"" value=""false"" />
         <property name=""UseSyntheticStops"" value=""false"" />
         <property name=""UseSyntheticMarkets"" value=""false"" />
       </symbol>
       <category name=""Testing"">
-        <symbol name=""USD/JPY_Synthetic"" >
+        <symbol name=""USD/JPY_Synthetic"">
           <property name=""UseSyntheticLimits"" value=""true"" />
           <property name=""UseSyntheticStops"" value=""true"" />
           <property name=""UseSyntheticMarkets"" value=""true"" />
-         </symbol>
+        </symbol>
         <symbol name=""USD_JPY"">
           <property name=""DisplayTimeZone"" value=""UTC"" />
           <property name=""SessionStart"" value=""01:00:00"" />
@@ -412,7 +412,7 @@ namespace TickZoom.Symbols
           <property name=""DisplayTimeZone"" value=""UTC"" />
         </symbol>
         <symbol name=""USDJPYBenchMark"">
-		   <property name=""FullPointValue"" value=""0.0076651847309520159435842403801932"" />
+          <property name=""FullPointValue"" value=""0.0076651847309520159435842403801932"" />
         </symbol>
         <symbol name=""USDJPY2ndHalfBenchMark"" />
         <symbol name=""USD_JPY_Volume"" />
@@ -453,8 +453,8 @@ namespace TickZoom.Symbols
     <property name=""QuoteType"" value=""Level1"" />
     <category name=""Testing"">
       <symbol name=""KC"">
-	    <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	    <property name=""MinimumTick"" value=""0.05"" />
+        <property name=""TimeZone"" value=""Eastern Standard Time"" />
+        <property name=""MinimumTick"" value=""0.05"" />
       </symbol>
       <symbol name=""/ESZ9"">
         <property name=""Commission"" value=""CustomCommission"" />
@@ -462,448 +462,460 @@ namespace TickZoom.Symbols
         <property name=""Slippage"" value=""CustomSlippage"" />
         <property name=""Destination"" value=""CustomDestination"" />
       </symbol>
+      <symbol name=""/ESM2"" />
       <symbol name=""/ESZ0"" />
       <symbol name=""/ESU0"" />
-      <symbol name=""/NQU0"" />
-      <symbol name=""/ESH1""/>
+      <symbol name=""/ESH1"" />
       <symbol name=""TestException"" />
       <symbol name=""TestPending"" />
       <category name=""TradeOnly"">
         <property name=""TimeAndSales"" value=""ActualTrades"" />
         <property name=""QuoteType"" value=""None"" />
-        <symbol name=""/ESH0""/>
-        <symbol name=""/ESH0TradeBar""/>
+        <symbol name=""/ESH0"" />
+        <symbol name=""/ESH0TradeBar"" />
       </category>
     </category>
-        <category name=""Coffee"">
-          <property name=""FullPointValue"" value=""375"" />
-          <property name=""MinimumTick"" value=""0.05"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""3:30:00"" />
-	    <property name=""SessionEnd"" value=""14:00:00"" />
-              <symbol name=""KC""/>
-        </category>
-        <category name=""Cotton"">
-          <property name=""FullPointValue"" value=""500"" />
-          <property name=""MinimumTick"" value=""0.01"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""21:00:00"" />
-	    <property name=""SessionEnd"" value=""14:15:00"" />
-              <symbol name=""CT""/>
-        </category>
-        <category name=""Cocoa"">
-          <property name=""FullPointValue"" value=""10"" />
-          <property name=""MinimumTick"" value=""1"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""4:00:00"" />
-	    <property name=""SessionEnd"" value=""14:00:00"" />
-              <symbol name=""CC""/>
-        </category>
-        <category name=""Orange juice"">
-          <property name=""FullPointValue"" value=""150"" />
-          <property name=""MinimumTick"" value=""0.05"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""8:00:00"" />
-	    <property name=""SessionEnd"" value=""14:00:00"" />
-              <symbol name=""JO""/>
-        </category>
-        <category name=""Lumber"">
-          <property name=""FullPointValue"" value=""110"" />
-          <property name=""MinimumTick"" value=""0.1"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""9:00:00"" />
-	    <property name=""SessionEnd"" value=""13:55:00"" />
-              <symbol name=""LB""/>
-        </category>
-        <category name=""Copper"">
-          <property name=""FullPointValue"" value=""250"" />
-          <property name=""MinimumTick"" value=""0.05"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""HG""/>
-        </category>
-        <category name=""Nymex crude"">
-          <property name=""FullPointValue"" value=""1000"" />
-          <property name=""MinimumTick"" value=""0.01"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""CL""/>
-        </category>
-        <category name=""Heating oil"">
-          <property name=""FullPointValue"" value=""42000"" />
-          <property name=""MinimumTick"" value=""0.0001"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""HO""/>
-        </category>
-        <category name=""Feeder cattle"">
-          <property name=""FullPointValue"" value=""500"" />
-          <property name=""MinimumTick"" value=""0.025"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""FC""/>
-        </category>
-        <category name=""Live cattle"">
-          <property name=""FullPointValue"" value=""400"" />
-          <property name=""MinimumTick"" value=""0.025"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""LC""/>
-        </category>
-        <category name=""Lean hog"">
-          <property name=""FullPointValue"" value=""400"" />
-          <property name=""MinimumTick"" value=""0.025"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""LH""/>
-        </category>
-        <category name=""Pork bellie"">
-          <property name=""FullPointValue"" value=""400"" />
-          <property name=""MinimumTick"" value=""0.025"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""PB""/>
-        </category>
-        <category name=""Eurodollar"">
-          <property name=""FullPointValue"" value=""1000"" />
-          <property name=""MinimumTick"" value=""0.005"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""ED""/>
-        </category>
-        <category name=""Comex palladium"">
-          <property name=""FullPointValue"" value=""100"" />
-          <property name=""MinimumTick"" value=""0.05"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""PA""/>
-        </category>
-        <category name=""Comex platinum"">
-          <property name=""FullPointValue"" value=""50"" />
-          <property name=""MinimumTick"" value=""0.10"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""PL""/>
-        </category>
-        <category name=""Comex silver"">
-          <property name=""FullPointValue"" value=""50"" />
-          <property name=""MinimumTick"" value=""0.005"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""SV""/>
-        </category>
-        <category name=""Comex Gold"">
-          <property name=""FullPointValue"" value=""100"" />
-          <property name=""MinimumTick"" value=""0.10"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""GC""/>
-              <symbol name=""/GCG2""/>
-        </category>
-        <category name=""CME currency 125k variants"">
-          <property name=""FullPointValue"" value=""125000"" />
-          <property name=""MinimumTick"" value=""0.0001"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""JY""/>
-              <symbol name=""EC""/>
-              <symbol name=""SF""/>
-        </category>
-        <category name=""CME currency 100k variants"">
-          <property name=""FullPointValue"" value=""100000"" />
-          <property name=""MinimumTick"" value=""0.0001"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""AD""/>
-              <symbol name=""CD""/>
-        </category>
-        <category name=""British Pound variants"">
-          <property name=""FullPointValue"" value=""62500"" />
-          <property name=""MinimumTick"" value=""0.0001"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""BP""/>
-        </category>
-        <category name=""Mexican Peso variants"">
-          <property name=""FullPointValue"" value=""500000"" />
-          <property name=""MinimumTick"" value=""0.000025"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""ME""/>
-        </category>
-        <category name=""Dollar Index variants"">
-          <property name=""FullPointValue"" value=""1000"" />
-          <property name=""MinimumTick"" value=""0.005"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""15:00:00"" />
-              <symbol name=""DX""/>
-        </category>
-        <category name=""Nasdaq full size variants"">
-          <property name=""FullPointValue"" value=""100"" />
-          <property name=""MinimumTick"" value=""0.25"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-              <symbol name=""ND""/>
-        </category>
-        <category name=""Natural gas variants"">
-          <property name=""FullPointValue"" value=""10000"" />
-          <property name=""MinimumTick"" value=""0.001"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:00:00"" />
-	    <property name=""SessionEnd"" value=""16:15:00"" />
-              <symbol name=""NG""/>
-        </category>
-        <category name=""Nikkei variants"">
-          <property name=""FullPointValue"" value=""5"" />
-          <property name=""MinimumTick"" value=""5"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-              <symbol name=""NK""/>
-        </category>
-        <category name=""Sugar variants"">
-          <property name=""FullPointValue"" value=""1120"" />
-          <property name=""MinimumTick"" value=""0.01"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""3:30:00"" />
-	    <property name=""SessionEnd"" value=""14:00:00"" />
-              <symbol name=""SB""/>
-        </category>
-        <category name=""Mini Russell variants"">
-          <property name=""FullPointValue"" value=""100"" />
-          <property name=""MinimumTick"" value=""0.10"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""20:00:00"" />
-	    <property name=""SessionEnd"" value=""18:00:00"" />
-              <symbol name=""ER""/>
-        </category>
-        <category name=""Full size S and P Symbol SP variants"">
-          <property name=""FullPointValue"" value=""250"" />
-          <property name=""MinimumTick"" value=""0.05"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-              <symbol name=""SP""/>
-        </category>
-        <category name=""Emini S and P Symbol ES variants"">
-          <property name=""FullPointValue"" value=""50"" />
-          <property name=""MinimumTick"" value=""0.25"" />
-	    <property name=""TimeZone"" value=""Central Standard Time"" />
-	    <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-              <symbol name=""ES""/>
-              <symbol name=""/ESM1"">
-                <property name=""TimeAndSales"" value=""ActualTrades"" />
-                <property name=""QuoteType"" value=""Level1"" />
-                <property name=""LimitOrderQuoteSimulation"" value=""OppositeQuoteTouch"" />
-                <property name=""LimitOrderTradeSimulation"" value=""None"" />
-              </symbol>
-              <symbol name=""/ESH2""/>
-        </category>
-        <category name=""Emini NASDAQ Symbol NQ variants"">
-          <property name=""FullPointValue"" value=""20"" />
-          <property name=""MinimumTick"" value=""0.25"" />
-	    <property name=""TimeZone"" value=""Central Standard Time"" />
-	    <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-         	    <symbol name=""NQ""/>
-         	    <symbol name=""/NQH2""/>
-        </category>
-        <category name=""Full size S and P 400 MidCap variants"">
-          <property name=""FullPointValue"" value=""500"" />
-          <property name=""MinimumTick"" value=""0.05"" />
-	    <property name=""TimeZone"" value=""Central Standard Time"" />
-	    <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-          	    <symbol name=""MD""/>
-        </category>
-        <category name=""Emini S and P 400 MidCap variants"">
-          <property name=""FullPointValue"" value=""100"" />
-          <property name=""MinimumTick"" value=""0.10"" />
-	    <property name=""TimeZone"" value=""Central Standard Time"" />
-	    <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-          	    <symbol name=""MI""/>
-        </category>
-        <category name=""Emini MSCI EAFE variants"">
-          <property name=""FullPointValue"" value=""50"" />
-          <property name=""MinimumTick"" value=""0.10"" />
-	    <property name=""TimeZone"" value=""Central Standard Time"" />
-	    <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-          	    <symbol name=""MG""/>
-        </category>
-        <category name=""Full size Dow DJIA ($10) variants"">
-          <property name=""FullPointValue"" value=""10"" />
-          <property name=""MinimumTick"" value=""1"" />
-	    <property name=""TimeZone"" value=""Central Standard Time"" />
-	    <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-          	    <symbol name=""DJ""/>
-        </category>
-        <category name=""Mini Dow variants"">
-          <property name=""FullPointValue"" value=""5"" />
-          <property name=""MinimumTick"" value=""1"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""15:30:00"" />
-	    <property name=""SessionEnd"" value=""15:15:00"" />
-              <symbol name=""YM""/>
-        </category>
-        <category name=""CBT grain $50 variants"">
-          <property name=""FullPointValue"" value=""50"" />
-          <property name=""MinimumTick"" value=""0.25"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""9:30:00"" />
-	    <property name=""SessionEnd"" value=""13:15:00"" />
-              <symbol name=""CN""/>
-              <symbol name=""OA""/>
-              <symbol name=""SY""/>
-              <symbol name=""WC""/>
-        </category>
-        <category name=""Soybean meal variants"">
-          <property name=""FullPointValue"" value=""100"" />
-          <property name=""MinimumTick"" value=""0.1"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""13:15:00"" />
-              <symbol name=""SM""/>
-        </category>
-        <category name=""Soybean oil variants"">
-          <property name=""FullPointValue"" value=""600"" />
-          <property name=""MinimumTick"" value=""0.01"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""13:15:00"" />
-              <symbol name=""BO""/>
-        </category>
-        <category name=""2 YR notes variants"">
-          <property name=""FullPointValue"" value=""2000"" />
-          <!-- 32nds and quarters from CME.com as of 1/6/2011 -->
-          <property name=""MinimumTick"" value=""0.0078125"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:30:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""TU""/>
-        </category>
-        <category name=""5 YR notes variants"">
-          <property name=""FullPointValue"" value=""1000"" />
-          <!-- 32nds and quarters from CME.com as of 1/6/2011 -->
-          <property name=""MinimumTick"" value=""0.0078125"" />
-	  <property name=""SessionStart"" value=""17:30:00"" />
-	  <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""FV""/>
-        </category>
-        <category name=""10 YR notes variants"">
-          <property name=""FullPointValue"" value=""1000"" />
-          <!-- 32nds and halves from CME.com as of 1/6/2011 -->
-          <property name=""MinimumTick"" value=""0.015625"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:30:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-              <symbol name=""TY""/>
-        </category>
-        <category name=""30 YR bond variants"">
-          <property name=""FullPointValue"" value=""1000"" />
-          <!-- 32nds from CME.com as of 1/6/2011, tick data in 32nds and halves -->
-          <property name=""MinimumTick"" value=""0.015625"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""17:30:00"" />
-	    <property name=""SessionEnd"" value=""16:00:00"" />
-	    <!-- *** pit trading times, start after major reports *** -->
-              <!-->
+    <category name=""Coffee"">
+      <property name=""FullPointValue"" value=""375"" />
+      <property name=""MinimumTick"" value=""0.05"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""3:30:00"" />
+      <property name=""SessionEnd"" value=""14:00:00"" />
+      <symbol name=""KC"" />
+    </category>
+    <category name=""Cotton"">
+      <property name=""FullPointValue"" value=""500"" />
+      <property name=""MinimumTick"" value=""0.01"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""21:00:00"" />
+      <property name=""SessionEnd"" value=""14:15:00"" />
+      <symbol name=""CT"" />
+    </category>
+    <category name=""Cocoa"">
+      <property name=""FullPointValue"" value=""10"" />
+      <property name=""MinimumTick"" value=""1"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""4:00:00"" />
+      <property name=""SessionEnd"" value=""14:00:00"" />
+      <symbol name=""CC"" />
+    </category>
+    <category name=""Orange juice"">
+      <property name=""FullPointValue"" value=""150"" />
+      <property name=""MinimumTick"" value=""0.05"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""8:00:00"" />
+      <property name=""SessionEnd"" value=""14:00:00"" />
+      <symbol name=""JO"" />
+    </category>
+    <category name=""Lumber"">
+      <property name=""FullPointValue"" value=""110"" />
+      <property name=""MinimumTick"" value=""0.1"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""9:00:00"" />
+      <property name=""SessionEnd"" value=""13:55:00"" />
+      <symbol name=""LB"" />
+    </category>
+    <category name=""Copper"">
+      <property name=""FullPointValue"" value=""250"" />
+      <property name=""MinimumTick"" value=""0.05"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""HG"" />
+    </category>
+    <category name=""Nymex crude"">
+      <property name=""FullPointValue"" value=""1000"" />
+      <property name=""MinimumTick"" value=""0.01"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""CL"" />
+    </category>
+    <category name=""Heating oil"">
+      <property name=""FullPointValue"" value=""42000"" />
+      <property name=""MinimumTick"" value=""0.0001"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""HO"" />
+    </category>
+    <category name=""Feeder cattle"">
+      <property name=""FullPointValue"" value=""500"" />
+      <property name=""MinimumTick"" value=""0.025"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""FC"" />
+    </category>
+    <category name=""Live cattle"">
+      <property name=""FullPointValue"" value=""400"" />
+      <property name=""MinimumTick"" value=""0.025"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""LC"" />
+    </category>
+    <category name=""Lean hog"">
+      <property name=""FullPointValue"" value=""400"" />
+      <property name=""MinimumTick"" value=""0.025"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""LH"" />
+    </category>
+    <category name=""Pork bellie"">
+      <property name=""FullPointValue"" value=""400"" />
+      <property name=""MinimumTick"" value=""0.025"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""PB"" />
+    </category>
+    <category name=""Eurodollar"">
+      <property name=""FullPointValue"" value=""1000"" />
+      <property name=""MinimumTick"" value=""0.005"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""ED"" />
+    </category>
+    <category name=""Comex palladium"">
+      <property name=""FullPointValue"" value=""100"" />
+      <property name=""MinimumTick"" value=""0.05"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""PA"" />
+    </category>
+    <category name=""Comex platinum"">
+      <property name=""FullPointValue"" value=""50"" />
+      <property name=""MinimumTick"" value=""0.10"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""PL"" />
+    </category>
+    <category name=""Comex silver"">
+      <property name=""FullPointValue"" value=""50"" />
+      <property name=""MinimumTick"" value=""0.005"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""SV"" />
+    </category>
+    <category name=""Comex Gold"">
+      <property name=""FullPointValue"" value=""100"" />
+      <property name=""MinimumTick"" value=""0.10"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""GC"" />
+      <symbol name=""/GCG2"" />
+    </category>
+    <category name=""CME currency 125k variants"">
+      <property name=""FullPointValue"" value=""125000"" />
+      <property name=""MinimumTick"" value=""0.0001"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""JY"" />
+      <symbol name=""EC"" />
+      <symbol name=""SF"" />
+    </category>
+    <category name=""CME currency 100k variants"">
+      <property name=""FullPointValue"" value=""100000"" />
+      <property name=""MinimumTick"" value=""0.0001"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""AD"" />
+      <symbol name=""CD"" />
+    </category>
+    <category name=""British Pound variants"">
+      <property name=""FullPointValue"" value=""62500"" />
+      <property name=""MinimumTick"" value=""0.0001"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""BP"" />
+    </category>
+    <category name=""Mexican Peso variants"">
+      <property name=""FullPointValue"" value=""500000"" />
+      <property name=""MinimumTick"" value=""0.000025"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""ME"" />
+    </category>
+    <category name=""Dollar Index variants"">
+      <property name=""FullPointValue"" value=""1000"" />
+      <property name=""MinimumTick"" value=""0.005"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""15:00:00"" />
+      <symbol name=""DX"" />
+    </category>
+    <category name=""Nasdaq full size variants"">
+      <property name=""FullPointValue"" value=""100"" />
+      <property name=""MinimumTick"" value=""0.25"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""ND"" />
+    </category>
+    <category name=""Natural gas variants"">
+      <property name=""FullPointValue"" value=""10000"" />
+      <property name=""MinimumTick"" value=""0.001"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""16:15:00"" />
+      <symbol name=""NG"" />
+    </category>
+    <category name=""Nikkei variants"">
+      <property name=""FullPointValue"" value=""5"" />
+      <property name=""MinimumTick"" value=""5"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""NK"" />
+    </category>
+    <category name=""Sugar variants"">
+      <property name=""FullPointValue"" value=""1120"" />
+      <property name=""MinimumTick"" value=""0.01"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""3:30:00"" />
+      <property name=""SessionEnd"" value=""14:00:00"" />
+      <symbol name=""SB"" />
+    </category>
+    <category name=""Mini Russell variants"">
+      <property name=""FullPointValue"" value=""100"" />
+      <property name=""MinimumTick"" value=""0.10"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""20:00:00"" />
+      <property name=""SessionEnd"" value=""18:00:00"" />
+      <symbol name=""ER"" />
+    </category>
+    <category name=""Full size S and P Symbol SP variants"">
+      <property name=""FullPointValue"" value=""250"" />
+      <property name=""MinimumTick"" value=""0.05"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""SP"" />
+    </category>
+    <category name=""Emini S and P Symbol ES variants"">
+      <property name=""FullPointValue"" value=""50"" />
+      <property name=""MinimumTick"" value=""0.25"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""ES"" />
+      <symbol name=""/ESM1"">
+        <property name=""TimeAndSales"" value=""ActualTrades"" />
+        <property name=""QuoteType"" value=""Level1"" />
+        <property name=""LimitOrderQuoteSimulation"" value=""OppositeQuoteTouch"" />
+        <property name=""LimitOrderTradeSimulation"" value=""None"" />
+      </symbol>
+      <symbol name=""/ESH2"" />
+    </category>
+    <category name=""Emini NASDAQ Symbol NQ variants"">
+      <property name=""FullPointValue"" value=""20"" />
+      <property name=""MinimumTick"" value=""0.25"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""NQ"" />
+      <symbol name=""/NQH2"" />
+      <symbol name=""/NQM2"" />
+    </category>
+    <category name=""Mini Dow Jones Futures contract"">
+      <property name=""FullPointValue"" value=""5"" />
+      <property name=""MinimumTick"" value=""1"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:00:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""YM"" />
+      <symbol name=""/YMH2"" />
+      <symbol name=""/YMM2"" />
+    </category>
+    <category name=""Full size S and P 400 MidCap variants"">
+      <property name=""FullPointValue"" value=""500"" />
+      <property name=""MinimumTick"" value=""0.05"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""MD"" />
+    </category>
+    <category name=""Emini S and P 400 MidCap variants"">
+      <property name=""FullPointValue"" value=""100"" />
+      <property name=""MinimumTick"" value=""0.10"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""MI"" />
+    </category>
+    <category name=""Emini MSCI EAFE variants"">
+      <property name=""FullPointValue"" value=""50"" />
+      <property name=""MinimumTick"" value=""0.10"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""MG"" />
+    </category>
+    <category name=""Full size Dow DJIA ($10) variants"">
+      <property name=""FullPointValue"" value=""10"" />
+      <property name=""MinimumTick"" value=""1"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""DJ"" />
+    </category>
+    <category name=""Mini Dow variants"">
+      <property name=""FullPointValue"" value=""5"" />
+      <property name=""MinimumTick"" value=""1"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""15:30:00"" />
+      <property name=""SessionEnd"" value=""15:15:00"" />
+      <symbol name=""YM"" />
+    </category>
+    <category name=""CBT grain $50 variants"">
+      <property name=""FullPointValue"" value=""50"" />
+      <property name=""MinimumTick"" value=""0.25"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""9:30:00"" />
+      <property name=""SessionEnd"" value=""13:15:00"" />
+      <symbol name=""CN"" />
+      <symbol name=""OA"" />
+      <symbol name=""SY"" />
+      <symbol name=""WC"" />
+    </category>
+    <category name=""Soybean meal variants"">
+      <property name=""FullPointValue"" value=""100"" />
+      <property name=""MinimumTick"" value=""0.1"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""13:15:00"" />
+      <symbol name=""SM"" />
+    </category>
+    <category name=""Soybean oil variants"">
+      <property name=""FullPointValue"" value=""600"" />
+      <property name=""MinimumTick"" value=""0.01"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""13:15:00"" />
+      <symbol name=""BO"" />
+    </category>
+    <category name=""2 YR notes variants"">
+      <property name=""FullPointValue"" value=""2000"" />
+      <!-- 32nds and quarters from CME.com as of 1/6/2011 -->
+      <property name=""MinimumTick"" value=""0.0078125"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:30:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""TU"" />
+    </category>
+    <category name=""5 YR notes variants"">
+      <property name=""FullPointValue"" value=""1000"" />
+      <!-- 32nds and quarters from CME.com as of 1/6/2011 -->
+      <property name=""MinimumTick"" value=""0.0078125"" />
+      <property name=""SessionStart"" value=""17:30:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""FV"" />
+    </category>
+    <category name=""10 YR notes variants"">
+      <property name=""FullPointValue"" value=""1000"" />
+      <!-- 32nds and halves from CME.com as of 1/6/2011 -->
+      <property name=""MinimumTick"" value=""0.015625"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:30:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <symbol name=""TY"" />
+    </category>
+    <category name=""30 YR bond variants"">
+      <property name=""FullPointValue"" value=""1000"" />
+      <!-- 32nds from CME.com as of 1/6/2011, tick data in 32nds and halves -->
+      <property name=""MinimumTick"" value=""0.015625"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""17:30:00"" />
+      <property name=""SessionEnd"" value=""16:00:00"" />
+      <!-- *** pit trading times, start after major reports *** -->
+      <!-->
 	    <property name=""SessionStart"" value=""7:45:00"" />
 	    <property name=""SessionEnd"" value=""14:00:00"" />
               <-->
-              <symbol name=""US""/>
-              <symbol name=""ZB""/>
-        </category>
-        <category name=""Mini gold variants"">
-          <property name=""FullPointValue"" value=""33.20"" />
-          <property name=""MinimumTick"" value=""0.1"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""19:16:00"" />
-	    <property name=""SessionEnd"" value=""17:00:00"" />
-              <symbol name=""XG""/>
-        </category>
-        <category name=""Mini silver variants"">
-          <property name=""FullPointValue"" value=""5"" />
-          <property name=""MinimumTick"" value=""1"" />
-	  <property name=""TimeZone"" value=""Eastern Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""19:16:00"" />
-	    <property name=""SessionEnd"" value=""17:00:00"" />
-              <symbol name=""YS""/>
-        </category>
-        <category name=""RBOB Gasoline variants"">
-          <property name=""FullPointValue"" value=""42000"" />
-          <property name=""MinimumTick"" value=""0.0001"" />
-	  <property name=""TimeZone"" value=""Central Standard Time"" />
-	  <property name=""DisplayTimeZone"" value=""Local"" />
-	    <property name=""SessionStart"" value=""18:00:00"" />
-	    <property name=""SessionEnd"" value=""17:15:00"" />
-              <symbol name=""XB""/>
-              <symbol name=""HU""/>
-        </category>
+      <symbol name=""US"" />
+      <symbol name=""ZB"" />
+    </category>
+    <category name=""Mini gold variants"">
+      <property name=""FullPointValue"" value=""33.20"" />
+      <property name=""MinimumTick"" value=""0.1"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""19:16:00"" />
+      <property name=""SessionEnd"" value=""17:00:00"" />
+      <symbol name=""XG"" />
+    </category>
+    <category name=""Mini silver variants"">
+      <property name=""FullPointValue"" value=""5"" />
+      <property name=""MinimumTick"" value=""1"" />
+      <property name=""TimeZone"" value=""Eastern Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""19:16:00"" />
+      <property name=""SessionEnd"" value=""17:00:00"" />
+      <symbol name=""YS"" />
+    </category>
+    <category name=""RBOB Gasoline variants"">
+      <property name=""FullPointValue"" value=""42000"" />
+      <property name=""MinimumTick"" value=""0.0001"" />
+      <property name=""TimeZone"" value=""Central Standard Time"" />
+      <property name=""DisplayTimeZone"" value=""Local"" />
+      <property name=""SessionStart"" value=""18:00:00"" />
+      <property name=""SessionEnd"" value=""17:15:00"" />
+      <symbol name=""XB"" />
+      <symbol name=""HU"" />
+    </category>
   </category>
 </category>";
 #endregion
