@@ -81,8 +81,8 @@ namespace TickZoom.Charting
         SymbolInfo symbol;
 		private volatile bool isDrawn = false;
 		private Execute execute;
-        private Fill simulatedSaveFill;
-        private Color simulatedSaveColor;
+        private Color simulatedPaneColor = Color.Yellow;
+        private Color normalPaneColor = PaneBase.Default.FillColor;
         
 	    public ChartControl(Execute execute)
 		{
@@ -269,20 +269,11 @@ namespace TickZoom.Charting
 
         private void ResetSimulated()
         {
-            MasterPane master = dataGraph.MasterPane;
-            master.Fill = simulatedSaveFill;
-            audioCheckBox.BackColor = simulatedSaveColor;
             simulatedTradingLabel.Visible = false;
         }
 
         private void SetSimulated()
         {
-            MasterPane master = dataGraph.MasterPane;
-            simulatedSaveFill = master.Fill;
-            simulatedSaveColor = audioCheckBox.BackColor;
-
-            master.Fill = new Fill(Color.Yellow, Color.Yellow, 45.0f);
-            audioCheckBox.BackColor = Color.Yellow;
             simulatedTradingLabel.Visible = true;
         }
 		
@@ -295,7 +286,6 @@ namespace TickZoom.Charting
 				symbol.Symbol );
 			
 			myPaneT.Fill.IsVisible = false;
-			
 			// pretty it up a little
             myPaneT.Chart.Fill = new Fill( Color.White, Color.White, 45.0f );
             myPaneT.Border = new Border(true, Color.Black, 2);
