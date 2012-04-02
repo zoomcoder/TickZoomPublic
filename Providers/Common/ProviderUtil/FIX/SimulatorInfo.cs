@@ -76,6 +76,7 @@ namespace TickZoom.FIX
                 var remaining = NextSequence - lastSequence;
                 NextSequence = sequence + remaining;
                 if (debug) log.Debug("Set " + Type + " sequence for = " + NextSequence);
+                lastSequence = sequence;
             }
         }
 

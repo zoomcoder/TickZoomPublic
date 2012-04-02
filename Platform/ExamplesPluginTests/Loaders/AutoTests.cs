@@ -160,6 +160,7 @@ namespace Loaders
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveServerOffline] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SystemOffline] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
 			
 			list.Add( next = new AutoTestSettings 
             {
@@ -245,6 +246,7 @@ namespace Loaders
 				Categories = { "Failed" },
 			});
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.CancelBlackHole] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
 
             list.Add(next = new AutoTestSettings
             {
@@ -293,6 +295,7 @@ namespace Loaders
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SendServerOffline] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveServerOffline] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
 
             list.Add(next = new AutoTestSettings
             {
@@ -325,6 +328,7 @@ namespace Loaders
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SendServerOffline] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveServerOffline] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
 
             list.Add(next = new AutoTestSettings
             {

@@ -762,7 +762,7 @@ namespace TickZoom.FIX
                 releaseFlag = false;
                 return true;
             }
-            else if (messageFIX.Sequence > RemoteSequence && messageFIX.MessageType != "5")
+            else if (messageFIX.Sequence > RemoteSequence)
             {
                 HandleResend(messageFIX.Sequence, messageFIX);
                 releaseFlag = false;

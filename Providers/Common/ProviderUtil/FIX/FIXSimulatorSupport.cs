@@ -701,7 +701,6 @@ namespace TickZoom.FIX
                                             SendSessionStatusOnline();
                                         }
                                         // Setup disconnect simulation.
-                                        simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packetFIX.Sequence);
                                         simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence);
                                     }
                                 }
