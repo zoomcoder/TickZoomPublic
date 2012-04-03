@@ -279,6 +279,7 @@ namespace Loaders
                 Categories = { "Failed" },
             });
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SendServerOffline] = 0;
 
             list.Add(next = new AutoTestSettings
             {
