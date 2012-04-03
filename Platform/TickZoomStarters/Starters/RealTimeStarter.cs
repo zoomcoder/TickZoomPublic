@@ -60,6 +60,15 @@ namespace TickZoom.Starters
 	<level value=""INFO"" />
 	<appender-ref ref=""FileAppender"" />
     </root>
+    <logger name=""TickZoom.FIX"">
+        <level value=""DEBUG"" />
+    </logger>
+    <logger name=""TickZoom.MBTFIX"">
+        <level value=""DEBUG"" />
+    </logger>
+    <logger name=""TickZoom.MBTQuotes"">
+        <level value=""DEBUG"" />
+    </logger>
     <logger name=""TestLog"">
         <level value=""INFO"" />
     </logger>
