@@ -278,6 +278,7 @@ namespace Loaders
                 IntervalDefault = Intervals.Minute1,
                 Categories = { "Failed" },
             });
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
 
             list.Add(next = new AutoTestSettings
             {
@@ -377,6 +378,7 @@ namespace Loaders
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.SystemOffline] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
 			
 			// Real time (slow running) CSCO real time test.
 			next = next.Copy();

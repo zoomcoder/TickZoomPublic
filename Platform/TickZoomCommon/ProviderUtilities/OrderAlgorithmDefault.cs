@@ -217,10 +217,12 @@ namespace TickZoom.Common
                 if (debug) log.Debug("Ignoring broker order while waiting on reject recovery.");
                 return result;
             }
+#if CancelLimit
             if (physical.CancelCount > 15)
             {
                 throw new InvalidOperationException("Already tried canceling this order " + physical.CancelCount + " times: " + physical);
             }
+#endif
             if (debug) log.Debug("Cancel Broker Order: " + cancelOrder);
             physicalOrderCache.SetOrder(cancelOrder);
             if( !forStaleOrder)
