@@ -128,6 +128,7 @@ namespace Loaders
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.BlackHole] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.RejectSymbol] = 0;
             next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ServerOfflineReject] = 0;
+            next.SimulatorProperties.NegativeSimulatorMinimums[SimulatorType.ReceiveDisconnect] = 0;
 			
 			list.Add( next = new AutoTestSettings
             {

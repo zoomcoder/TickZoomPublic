@@ -246,6 +246,7 @@ namespace TickZoom.Common
 		private void TryChangeBrokerOrder(CreateOrChangeOrder createOrChange, CreateOrChangeOrder origOrder) {
             if (origOrder.OrderState == OrderState.Active)
             {
+                createOrChange.Side = origOrder.Side;
                 createOrChange.OriginalOrder = origOrder;
                 origOrder.ReplacedBy = createOrChange;
                 if (physicalOrderCache.HasCancelOrder(createOrChange))

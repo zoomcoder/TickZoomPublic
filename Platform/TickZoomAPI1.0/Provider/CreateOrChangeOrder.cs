@@ -108,9 +108,6 @@ namespace TickZoom.Api
 
 	public interface CreateOrChangeOrder : PhysicalOrder
 	{
-
-	    OrderSide Side { get; }
-
 	    int LogicalOrderId { get; }
 
 	    long LogicalSerialNumber { get; }
@@ -122,5 +119,6 @@ namespace TickZoom.Api
 	    int CancelCount { get; set; }
 	    int PendingCount { get; set; }
 	    OrderType Type { get; set; }
+	    OrderSide Side { get; set; }
 	}
 }

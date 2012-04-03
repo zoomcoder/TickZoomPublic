@@ -291,6 +291,7 @@ namespace TickZoom.Common
 		
 		public OrderSide Side {
             get { return binary.side; }
+            set { binary.side = value; }
 		}
 		
 		public OrderState OrderState {
