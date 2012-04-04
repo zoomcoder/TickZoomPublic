@@ -38,8 +38,10 @@ using TickZoom.LimeQuotes;
 namespace TickZoom.LimeFIX 
 {
     public class LimeFIXSimulator : FIXSimulatorSupport, LogAware {
-        public LimeFIXSimulator(string mode, ProjectProperties projectProperties, ushort fixPort, 
-            ushort quotesPort, MessageFactory createMessageFactory, MessageFactory _quoteMessageFactory) : base(mode, projectProperties, fixPort, quotesPort, createMessageFactory, _quoteMessageFactory) {
+        public LimeFIXSimulator(string mode, ProjectProperties projectProperties, ProviderSimulatorSupport providerSimulator)
+            : base(mode, projectProperties, providerSimulator, 6489, new MessageFactoryFix44())
+        {
+            
         }
 
 #if REDO
@@ -990,6 +992,16 @@ namespace TickZoom.LimeFIX
         }
 
         #endregion
+
+        public override void OnRejectOrder(CreateOrChangeOrder order, string error)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void OnPhysicalFill(PhysicalFill fill, CreateOrChangeOrder order)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

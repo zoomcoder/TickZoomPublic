@@ -97,6 +97,7 @@
     <Compile Include="FIX\FIXSimulatorSupport.cs" />
     <Compile Include="FIX\MessageFactoryFix42.cs" />
     <Compile Include="FIX\PacketFIX4_2.cs" />
+    <Compile Include="FIX\QuoteSimulatorSupport.cs" />
     <Compile Include="FIX\ServerState.cs" />
     <Compile Include="FIX\SimulateSymbol.cs" />
     <Compile Include="FIX\SimulateSymbolPlayback.cs" />
@@ -115,7 +116,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="FIX\SimulatorInfo.cs" />
-    <Compile Include="FIX\SymbolSimulators.cs" />
+    <Compile Include="FIX\ProviderSimulatorSupport.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

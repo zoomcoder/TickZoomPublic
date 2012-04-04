@@ -76,7 +76,7 @@ namespace Loaders
         private Interval intervalDefault = Intervals.Minute1;
         private ModelInterface topModel = null;
         private AutoTestMode autoTestMode = AutoTestMode.Historical;
-        private long realTimeOffset;
+        //private long realTimeOffset;
         private StarterConfig config;
         private bool ignoreMissingKnownGood;
         private Thread guiThread;
@@ -239,13 +239,13 @@ namespace Loaders
                         }
                         topModel = config.TopModel;
 
-                        if (tempStarter is FIXPlayBackStarter)
-                        {
-                            var starter = tempStarter as FIXPlayBackStarter;
-                            realTimeOffset = starter.FixServer.RealTimeOffset;
-                            var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
-                            log.Info("Real time offset is " + realTimeOffset + " or " + realTimeOffsetElapsed);
-                        }
+                        //if (tempStarter is FIXPlayBackStarter)
+                        //{
+                        //    var starter = tempStarter as FIXPlayBackStarter;
+                        //    realTimeOffset = starter.FixServer.RealTimeOffset;
+                        //    var realTimeOffsetElapsed = new Elapsed(realTimeOffset);
+                        //    log.Info("Real time offset is " + realTimeOffset + " or " + realTimeOffsetElapsed);
+                        //}
                     }
                     catch (ApplicationException ex)
                     {
@@ -1039,7 +1039,7 @@ namespace Loaders
                 for( int i=0; i<testStats.Count && i<goodStats.Count && errorCount<10; i++) {
                     StatsInfo testInfo = testStats[i];
                     StatsInfo goodInfo = goodStats[i];
-                    goodInfo.Time += realTimeOffset;
+                    //goodInfo.Time += realTimeOffset;
                     var assertFlag = false;
                     AssertEqual(ref assertFlag, goodInfo.Time,testInfo.Time,strategyName + " - [" + i + "] Stats time at " + testInfo.Time);
                     AssertEqual(ref assertFlag, goodInfo.ClosedEquity,testInfo.ClosedEquity,strategyName + " - [" + i + "] Closed Equity time at " + testInfo.Time);
@@ -1103,8 +1103,8 @@ namespace Loaders
                 for( ; i<testBarData.Count && i<goodBarData.Count && errorCount < 10; i++) {
                     BarInfo testInfo = testBarData[i];
                     BarInfo goodInfo = goodBarData[i];
-                    goodInfo.Time += realTimeOffset;
-                    goodInfo.EndTime += realTimeOffset;
+                    //goodInfo.Time += realTimeOffset;
+                    //goodInfo.EndTime += realTimeOffset;
                     var assertFlag = false;
                     AssertEqual(ref assertFlag, goodInfo.Time,testInfo.Time,strategyName + ": Time at bar " + i );
                     AssertEqual(ref assertFlag, goodInfo.EndTime, testInfo.EndTime,strategyName + ": End Time at bar " + i);
@@ -1132,7 +1132,7 @@ namespace Loaders
                 }
                 for( var j=0; i<goodBarData.Count && j<10; i++, j++) {
                     BarInfo goodInfo = goodBarData[i];
-                    goodInfo.Time += realTimeOffset;
+                    //goodInfo.Time += realTimeOffset;
                     log.Error("Extra good bar: #"+i+" " + goodInfo);
                     errorCount++;
                 }

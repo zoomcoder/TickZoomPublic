@@ -51,7 +51,8 @@ namespace TickZoom.FIX
 		private TickIO nextTick = Factory.TickUtil.TickIO();
 		private bool isFirstTick = true;
 		private FIXSimulatorSupport fixSimulatorSupport;
-		private LatencyMetric latency;
+        private QuoteSimulatorSupport quoteSimulatorSupport;
+        private LatencyMetric latency;
 		private long tickCounter = 0;
 	    private int diagnoseMetric;
         private TickIO currentTick = Factory.TickUtil.TickIO();
@@ -69,6 +70,7 @@ namespace TickZoom.FIX
         }
 
         public SimulateSymbolRealTime(FIXSimulatorSupport fixSimulatorSupport, 
+            QuoteSimulatorSupport quoteSimulatorSupport,
 		    string symbolString,
             PartialFillSimulation partialFillSimulation,
 		    Action<long,SymbolInfo,Tick> onTick,
@@ -80,6 +82,7 @@ namespace TickZoom.FIX
             log.Register(this);
             this.onEndTick = onEndTick;
 			this.fixSimulatorSupport = fixSimulatorSupport;
+            this.quoteSimulatorSupport = quoteSimulatorSupport;
 			this.onTick = onTick;
 		    this.PartialFillSimulation = partialFillSimulation;
 		    this.symbolString = symbolString;
@@ -114,7 +117,7 @@ namespace TickZoom.FIX
             queueTask = task;
             queueTask.Name = "SimulateSymbolRealTime-" + symbolString;
             queueTask.Scheduler = Scheduler.RoundRobin;
-            fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
+            quoteSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();
         }
 
@@ -142,7 +145,7 @@ namespace TickZoom.FIX
             {
                 return false;
             }
-            while (!fixSimulatorSupport.QuotePacketQueue.IsFull)
+            while (!quoteSimulatorSupport.QuotePacketQueue.IsFull)
             {
                 if( !reader.TryReadTick(temporaryTick))
                 {
@@ -186,7 +189,7 @@ namespace TickZoom.FIX
 		    LatencyManager.IncrementSymbolHandler();
 		    if (quoteMessage == null)
 		    {
-		        quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+		        quoteMessage = quoteSimulatorSupport.QuoteSocket.MessageFactory.Create();
 		    }
 		    onTick(id, Symbol, nextTick);
 		}

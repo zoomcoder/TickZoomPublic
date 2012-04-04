@@ -24,6 +24,7 @@ namespace TickZoom.FIX
         private bool isFirstTick = true;
         private long playbackOffset;
         private FIXSimulatorSupport fixSimulatorSupport;
+        private QuoteSimulatorSupport quoteSimulatorSupport;
         private LatencyMetric latency;
         private TrueTimer tickTimer;
         private long intervalTime = 1000000;
@@ -40,6 +41,7 @@ namespace TickZoom.FIX
         }
 
         public SimulateSymbolPlayback(FIXSimulatorSupport fixSimulatorSupport,
+                                      QuoteSimulatorSupport quoteSimulatorSupport,
                                       string symbolString,
                                       Action<Message, SymbolInfo, Tick> onTick,
                                       Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
@@ -47,6 +49,7 @@ namespace TickZoom.FIX
         {
             log.Register(this);
             this.fixSimulatorSupport = fixSimulatorSupport;
+            this.quoteSimulatorSupport = quoteSimulatorSupport;
             this.onTick = onTick;
             this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             reader = Factory.TickUtil.TickFile();
@@ -69,7 +72,7 @@ namespace TickZoom.FIX
             queueTask.Name = "SimulateSymbolPlayback-" + symbolString;
             tickTimer = Factory.Parallel.CreateTimer("Tick", queueTask, PlayBackTick);
             queueTask.Scheduler = Scheduler.EarliestTime;
-            fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
+            quoteSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();
             latency = new LatencyMetric("SimulateSymbolPlayback-" + symbolString.StripInvalidPathChars());
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");
@@ -251,7 +254,7 @@ namespace TickZoom.FIX
             LatencyManager.IncrementSymbolHandler();
             if (quoteMessage == null)
             {
-                quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+                quoteMessage = quoteSimulatorSupport.QuoteSocket.MessageFactory.Create();
             }
             onTick(quoteMessage, Symbol, nextTick);
             if (trace) log.Trace("Added tick to packet: " + nextTick.UtcTime);
@@ -266,9 +269,9 @@ namespace TickZoom.FIX
             {
                 return Yield.NoWork.Return;
             }
-            fixSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
+            quoteSimulatorSupport.QuotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
             if (trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
-            quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+            quoteMessage = quoteSimulatorSupport.QuoteSocket.MessageFactory.Create();
             tickStatus = TickStatus.Sent;
             return Yield.DidWork.Return;
         }

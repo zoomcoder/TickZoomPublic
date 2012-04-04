@@ -31,7 +31,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using TickZoom.Api;
-using TickZoom.TZData;
 
 namespace TickZoom.Starters
 {
@@ -55,7 +54,7 @@ namespace TickZoom.Starters
 #if !USE_LIME
             var provider = "MBTFIXProvider/Simulate";
             var fixAssembly = "MBTFIXProvider";
-            var fixStmulator = "MBTFIXSimulator";
+            var fixSimulator = "MBTProviderSimulator";
 #else
             var provider = "LimeProvider/Simulate";
             var fixAssembly = "LimeProvider";
@@ -65,7 +64,7 @@ namespace TickZoom.Starters
             SetupProviderServiceConfig();
             var providerManager = Factory.Parallel.SpawnProvider("ProviderCommon", "ProviderManager");
             providerManager.SendEvent(new EventItem(EventType.SetConfig, "WarehouseTest"));
-            using (Factory.Parallel.SpawnProvider(fixAssembly, fixStmulator, "Simulate", ProjectProperties))
+            using (Factory.Parallel.SpawnProvider(fixAssembly, fixSimulator, "Simulate", ProjectProperties))
             { 
 				base.Run(loader);
 			}

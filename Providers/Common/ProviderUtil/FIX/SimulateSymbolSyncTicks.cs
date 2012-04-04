@@ -53,7 +53,8 @@ namespace TickZoom.FIX
 		private TickIO nextTick = Factory.TickUtil.TickIO();
 		private bool isFirstTick = true;
 		private FIXSimulatorSupport fixSimulatorSupport;
-		private LatencyMetric latency;
+        private QuoteSimulatorSupport quoteSimulatorSupport;
+        private LatencyMetric latency;
 		private long tickCounter = 0;
 	    private int diagnoseMetric;
         private TickIO currentTick = Factory.TickUtil.TickIO();
@@ -70,26 +71,25 @@ namespace TickZoom.FIX
         }
 	
 		public SimulateSymbolSyncTicks( FIXSimulatorSupport fixSimulatorSupport, 
+            QuoteSimulatorSupport quoteSimulatorSupport,
 		    string symbolString,
             PartialFillSimulation partialFillSimulation,
-		    Action<long,SymbolInfo,Tick> onTick,
-            Action<long> onEndTick,
             TimeStamp endTime,
-            Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
-		    Action<CreateOrChangeOrder,string> onRejectOrder, long id)
+            long id)
 		{
             log.Register(this);
             this.id = id;
-		    this.onEndTick = onEndTick;
             this.fixSimulatorSupport = fixSimulatorSupport;
-			this.onTick = onTick;
-		    this.PartialFillSimulation = partialFillSimulation;
+		    this.quoteSimulatorSupport = quoteSimulatorSupport;
+            this.onTick = quoteSimulatorSupport.OnTick;
+            this.onEndTick = quoteSimulatorSupport.OnEndTick;
+            this.PartialFillSimulation = partialFillSimulation;
 		    this.symbolString = symbolString;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
 		    fillSimulator.EnableSyncTicks = SyncTicks.Enabled;
-            FillSimulator.OnPhysicalFill = onPhysicalFill;
-            FillSimulator.OnRejectOrder = onRejectOrder;
+            FillSimulator.OnPhysicalFill = fixSimulatorSupport.OnPhysicalFill;
+            FillSimulator.OnRejectOrder = fixSimulatorSupport.OnRejectOrder;
             fillSimulator.PartialFillSimulation = partialFillSimulation;
             tickSync = SyncTicks.GetTickSync(Symbol.BinaryIdentifier);
             latency = new LatencyMetric("SimulateSymbolSyncTicks-" + symbolString.StripInvalidPathChars());
@@ -117,7 +117,7 @@ namespace TickZoom.FIX
             queueTask = task;
             queueTask.Name = "SimulateSymbolSyncTicks-" + symbolString;
             queueTask.Scheduler = Scheduler.RoundRobin;
-            fixSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
+            quoteSimulatorSupport.QuotePacketQueue.ConnectOutbound(queueTask);
             queueTask.Start();
             tickSync.ChangeCallBack = TickSyncChangedEvent;
         }
@@ -235,7 +235,7 @@ namespace TickZoom.FIX
             LatencyManager.IncrementSymbolHandler();
             if (quoteMessage == null)
             {
-                quoteMessage = fixSimulatorSupport.QuoteSocket.MessageFactory.Create();
+                quoteMessage = quoteSimulatorSupport.QuoteSocket.MessageFactory.Create();
             }
 			onTick( id, Symbol, nextTick);
             queueTask.Pause();

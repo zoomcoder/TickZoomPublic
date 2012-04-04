@@ -48,7 +48,7 @@ namespace TickZoom.FIX
             verbose = log.IsVerboseEnabled;
         }
 
-        private SymbolSimulators symbolSimulators;
+        private ProviderSimulatorSupport providerSimulator;
         private FIXTFactory1_1 fixFactory;
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
@@ -72,17 +72,10 @@ namespace TickZoom.FIX
 		private Task task;
 		private bool isFIXSimulationStarted = false;
         private MessageFactory currentMessageFactory;
-
-		// Quote fields.
-		private ushort quotesPort = 0;
-		private Socket quoteListener;
-		protected Socket quoteSocket;
-		private Message _quoteReadMessage;
-		private Message _quoteWriteMessage;
-		private bool isQuoteSimulationStarted = false;
-		private MessageFactory _quoteMessageFactory;
 		private FastQueue<Message> fixPacketQueue = Factory.Parallel.FastQueue<Message>("SimulatorFIX");
-		protected FastQueue<Message> quotePacketQueue = Factory.Parallel.FastQueue<Message>("SimulatorQuote");
+        private QueueFilter filter;
+        private int frozenHeartbeatCounter;
+
         private TrueTimer heartbeatTimer;
         private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;
         private Agent agent;
@@ -95,10 +88,10 @@ namespace TickZoom.FIX
 
         public Dictionary<SimulatorType,SimulatorInfo> simulators = new Dictionary<SimulatorType, SimulatorInfo>();
 
-        public FIXSimulatorSupport(string mode, ProjectProperties projectProperties, ushort fixPort, ushort quotesPort, MessageFactory createMessageFactory, MessageFactory _quoteMessageFactory)
+        public FIXSimulatorSupport(string mode, ProjectProperties projectProperties, ProviderSimulatorSupport providerSimulator, ushort fixPort, MessageFactory createMessageFactory)
         {
 		    this.fixPort = fixPort;
-		    this.quotesPort = quotesPort;
+            this.providerSimulator = providerSimulator;
 		    var randomSeed = new Random().Next(int.MaxValue);
             if (heartbeatDelay > 1)
             {
@@ -124,7 +117,7 @@ namespace TickZoom.FIX
 
             foreach (SimulatorType simulatorType in Enum.GetValues(typeof(SimulatorType)))
             {
-                var simulator = new SimulatorInfo(simulatorType, random, () => SymbolSimulators.Count);
+                var simulator = new SimulatorInfo(simulatorType, random, () => ProviderSimulator.Count);
                 simulator.Enabled = false;
                 simulator.MaxFailures = maxFailures;
                 simulators.Add(simulatorType, simulator);
@@ -174,7 +167,6 @@ namespace TickZoom.FIX
             }
 
             this.currentMessageFactory = createMessageFactory;
-			this._quoteMessageFactory = _quoteMessageFactory;
         }
 
         public void Initialize(Task task)
@@ -182,13 +174,11 @@ namespace TickZoom.FIX
             this.task = task;
             filter = task.GetFilter();
             task.Scheduler = Scheduler.EarliestTime;
-            quotePacketQueue.ConnectInbound(task);
             fixPacketQueue.ConnectInbound(task);
             heartbeatTimer = Factory.Parallel.CreateTimer("Heartbeat", task, HeartbeatTimerEvent);
             IncreaseHeartbeat();
             task.Start();
             ListenToFIX();
-            ListenToQuotes();
             MainLoopMethod = Invoke;
             if (debug) log.Debug("Starting FIX Simulator.");
             if (allTests)
@@ -234,16 +224,6 @@ namespace TickZoom.FIX
 			log.Info("Listening for FIX to " + localAddress + " on port " + fixPort);
 		}
 
-		private void ListenToQuotes()
-		{
-            quoteListener = Factory.Provider.Socket(typeof(FIXSimulatorSupport).Name, localAddress, quotesPort);
-			quoteListener.Bind();
-			quoteListener.Listen( 5);
-			quoteListener.OnConnect = OnConnectQuotes;
-			quotesPort = quoteListener.Port;
-			log.Info("Listening for Quotes to " + localAddress + " on port " + quotesPort);
-		}
-
 		protected virtual void OnConnectFIX(Socket socket)
 		{
 			fixSocket = socket;
@@ -254,19 +234,6 @@ namespace TickZoom.FIX
 			fixSocket.ReceiveQueue.ConnectInbound( task);
             fixSocket.SendQueue.ConnectOutbound(task);
 		}
-
-		protected virtual void OnConnectQuotes(Socket socket)
-		{
-			quoteSocket = socket;
-			quoteSocket.MessageFactory = _quoteMessageFactory;
-			log.Info("Received quotes connection: " + socket);
-			StartQuoteSimulation();
-			quoteSocket.ReceiveQueue.ConnectInbound( task);
-            quoteSocket.SendQueue.ConnectOutbound(task);
-		}
-
-        private QueueFilter filter;
-        private int frozenHeartbeatCounter;
 
         private Yield HeartbeatTimerEvent()
         {
@@ -337,15 +304,6 @@ namespace TickZoom.FIX
             }
         }
 
-        private void OnDisconnectQuotes(Socket socket)
-		{
-			if (this.quoteSocket.Equals(socket)) {
-				log.Info("Quotes socket disconnect: " + socket);
-			    SymbolSimulators.Shutdown();
-				CloseQuoteSocket();
-			}
-		}
-
         protected void CloseFIXSocket()
         {
             if (fixPacketQueue != null && fixPacketQueue.Count > 0)
@@ -358,18 +316,6 @@ namespace TickZoom.FIX
             }
         }
 
-        protected void CloseQuoteSocket()
-        {
-            if (quotePacketQueue != null)
-            {
-                quotePacketQueue.Clear();
-            }
-            if (quoteSocket != null)
-            {
-                quoteSocket.Dispose();
-            }
-        }
-
 		protected void CloseSockets()
 		{
             if (task != null)
@@ -378,7 +324,6 @@ namespace TickZoom.FIX
                 task.Join();
             }
             CloseFIXSocket();
-            CloseQuoteSocket();
 		}
 
 		public virtual void StartFIXSimulation()
@@ -387,18 +332,12 @@ namespace TickZoom.FIX
             isConnectionLost = false;
         }
 
-		public virtual void StartQuoteSimulation()
-		{
-			isQuoteSimulationStarted = true;
-		}
-
         public void Shutdown()
         {
             Dispose();
         }
-
 		
-		private enum State { Start, ProcessFIX, WriteFIX, ProcessQuotes, WriteQuotes, Return };
+		private enum State { Start, ProcessFIX, WriteFIX, Return };
 		private State state = State.Start;
 		private bool hasQuotePacket = false;
 		private bool hasFIXPacket = false;
@@ -436,35 +375,11 @@ namespace TickZoom.FIX
                         //    return Yield.DidWork.Repeat;
                         //}
 					}
-					if( QuotesReadLoop()) {
-						result = true;
-					}
-				ProcessQuotes: 
-					hasQuotePacket = ProcessQuotePackets();
-					if( hasQuotePacket) {
-						result = true;
-					}
-				WriteQuotes:
-					if( hasQuotePacket) {
-						if( !WriteToQuotes()) {
-							state = State.WriteQuotes;
-							return Yield.NoWork.Repeat;
-						}
-                        //if( quotePacketQueue.Count > 0) {
-                        //    state = State.ProcessQuotes;
-                        //    return Yield.DidWork.Repeat;
-                        //    //return Yield.DidWork.Invoke(MainLoopMethod);
-                        //}
-					}
-					break;
+			        break;
 				case State.ProcessFIX:
 					goto ProcessFIX;
 				case State.WriteFIX:
 					goto WriteFIX;
-				case State.WriteQuotes:
-					goto WriteQuotes;
-				case State.ProcessQuotes:
-					goto ProcessQuotes;
 			}
 			state = State.Start;
 			if( result) {
@@ -549,28 +464,15 @@ namespace TickZoom.FIX
         protected abstract void RemoveTickSync(MessageFIXT1_1 textMessage);
         protected abstract void RemoveTickSync(FIXTMessage1_1 textMessage);
 
-        private bool ProcessQuotePackets()
-        {
-			if( _quoteWriteMessage == null && quotePacketQueue.Count == 0) {
-				return false;
-			}
-			if( trace) log.Trace("ProcessQuotePackets( " + quotePacketQueue.Count + " packets in queue.)");
-			if( quotePacketQueue.TryDequeue(out _quoteWriteMessage)) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-
         public bool SendSessionStatus(string status)
         {
             switch( status)
             {
                 case "2":
-                    SymbolSimulators.SetOrderServerOnline();
+                    ProviderSimulator.SetOrderServerOnline();
                     break;
                 case "3":
-                    SymbolSimulators.SetOrderServerOffline();
+                    ProviderSimulator.SetOrderServerOffline();
                     break;
                 default:
                     throw new ApplicationException("Unknown session status:" + status);
@@ -730,13 +632,13 @@ namespace TickZoom.FIX
         public void SendSessionStatusOnline()
         {
             if (debug) log.Debug("Sending session status online.");
-            var wasOrderServerOnline = SymbolSimulators.IsOrderServerOnline;
+            var wasOrderServerOnline = ProviderSimulator.IsOrderServerOnline;
             SendSessionStatus("2");
             if( !wasOrderServerOnline)
             {
-                SymbolSimulators.SwitchBrokerState("online",true);
+                ProviderSimulator.SwitchBrokerState("online",true);
             }            
-            SymbolSimulators.FlushFillQueues();
+            ProviderSimulator.FlushFillQueues();
         }
 
 
@@ -820,7 +722,7 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Ignoring message: " + packetFIX);
                 // Ignore this message. Pretend we never received it AND disconnect.
                 // This will test the message recovery.)
-                SymbolSimulators.SwitchBrokerState("disconnect",false);
+                ProviderSimulator.SwitchBrokerState("disconnect",false);
                 isConnectionLost = true;
                 return true;
             }
@@ -835,8 +737,8 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
             {
                 if (debug) log.Debug("Skipping message: " + packetFIX);
-                SymbolSimulators.SwitchBrokerState("disconnect", false);
-                SymbolSimulators.SetOrderServerOffline();
+                ProviderSimulator.SwitchBrokerState("disconnect", false);
+                ProviderSimulator.SetOrderServerOffline();
                 if( requestSessionStatus)
                 {
                     SendSessionStatus("3"); //offline
@@ -896,35 +798,8 @@ namespace TickZoom.FIX
 			return realTimeOffset;
 		}
 
-		private bool QuotesReadLoop()
-		{
-			if (isQuoteSimulationStarted)
-			{
-			    Message message;
-				if (quoteSocket.TryGetMessage(out message))
-				{
-				    var disconnect = message as DisconnectMessage;
-				    if (disconnect == null)
-				    {
-				        _quoteReadMessage = message;
-				        if (verbose) log.Verbose("Local Read: " + _quoteReadMessage);
-				        ParseQuotesMessage(_quoteReadMessage);
-				        quoteSocket.MessageFactory.Release(_quoteReadMessage);
-				        return true;
-				    }
-			        OnDisconnectQuotes(disconnect.Socket);
-				}
-			}
-			return false;
-		}
-
 		public virtual void ParseFIXMessage(Message message)
 		{
-		}
-
-		public virtual void ParseQuotesMessage(Message message)
-		{
-			if (debug) log.Debug("Received Quotes message: " + message);
 		}
 
 		public bool WriteToFIX()
@@ -966,18 +841,6 @@ namespace TickZoom.FIX
             return false;
         }
 
-		public bool WriteToQuotes()
-		{
-			if (!isQuoteSimulationStarted || _quoteWriteMessage == null) return true;
-			if( quoteSocket.TrySendMessage(_quoteWriteMessage)) {
-				if (trace) log.Trace("Local Write: " + _quoteWriteMessage);
-				_quoteWriteMessage = null;
-				return true;
-			} else {
-				return false;
-			}
-		}
-
 		private void IncreaseHeartbeat()
 		{
 		    var timeStamp = TimeStamp.UtcNow;
@@ -999,7 +862,7 @@ namespace TickZoom.FIX
             if (simulator.CheckSequence(fixMessage.Sequence) )
             {
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
-                SymbolSimulators.SwitchBrokerState("disconnect",false);
+                ProviderSimulator.SwitchBrokerState("disconnect",false);
                 isConnectionLost = true;
                 return;
             }
@@ -1039,8 +902,8 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence( fixMessage.Sequence))
             {
                 if (debug) log.Debug("Skipping message: " + fixMessage);
-                SymbolSimulators.SwitchBrokerState("offline",false);
-                SymbolSimulators.SetOrderServerOffline();
+                ProviderSimulator.SwitchBrokerState("offline",false);
+                ProviderSimulator.SetOrderServerOffline();
                 if( requestSessionStatus)
                 {
                     SendSessionStatus("3");
@@ -1070,7 +933,6 @@ namespace TickZoom.FIX
 		}
 
 		protected volatile bool isDisposed = false;
-        //private int heartbeatResponseTimeoutSeconds = System.Diagnostics.Debugger.IsAttached ? int.MaxValue : 15;
         private int heartbeatResponseTimeoutSeconds = 15;
 
         public void Dispose()
@@ -1108,7 +970,7 @@ namespace TickZoom.FIX
                     {
                         log.Info("Active negative test simulator results:\n" + sb);
                     }
-                    if( !SymbolSimulators.IsOrderServerOnline)
+                    if( !ProviderSimulator.IsOrderServerOnline)
                     {
                         SyncTicks.Success = false;
                         log.Error("The FIX order server ended in offline state.");
@@ -1126,15 +988,10 @@ namespace TickZoom.FIX
                     {
                         log.Info("The FIX order server finished up connected.");
                     }
-                    SymbolSimulators.Shutdown();
                     CloseSockets();
                     if (fixListener != null)
                     {
                         fixListener.Dispose();
-                    }
-                    if (quoteListener != null)
-                    {
-                        quoteListener.Dispose();
                     }
                     if( task != null)
                     {
@@ -1153,20 +1010,8 @@ namespace TickZoom.FIX
 			get { return fixPort; }
 		}
 
-		public ushort QuotesPort {
-			get { return quotesPort; }
-		}
-		
 		public long RealTimeOffset {
 			get { return realTimeOffset; }
-		}
-		
-		public Socket QuoteSocket {
-			get { return quoteSocket; }
-		}
-		
-		public FastQueue<Message> QuotePacketQueue {
-			get { return quotePacketQueue; }
 		}
 
 	    public int HeartbeatDelay
@@ -1192,9 +1037,12 @@ namespace TickZoom.FIX
             }
         }
 
-        public SymbolSimulators SymbolSimulators
+        public ProviderSimulatorSupport ProviderSimulator
         {
-            get { return symbolSimulators; }
+            get { return providerSimulator; }
         }
+
+        public abstract void OnRejectOrder(CreateOrChangeOrder order, string error);
+        public abstract void OnPhysicalFill(PhysicalFill fill, CreateOrChangeOrder order);
 	}
 }

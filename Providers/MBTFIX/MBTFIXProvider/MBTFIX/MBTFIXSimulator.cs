@@ -28,7 +28,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading;
 
 using TickZoom.Api;
@@ -37,7 +36,7 @@ using TickZoom.MBTQuotes;
 
 namespace TickZoom.MBTFIX
 {
-	public class MBTFIXSimulator : FIXSimulatorSupport, LogAware {
+    public class MBTFIXSimulator : FIXSimulatorSupport {
 		private static Log log = Factory.SysLog.GetLogger(typeof(MBTFIXSimulator));
         private volatile bool debug;
         private volatile bool trace;
@@ -47,22 +46,14 @@ namespace TickZoom.MBTFIX
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
         }
-        private ServerState quoteState = ServerState.Startup;
         private Random random = new Random(1234);
 
-        public MBTFIXSimulator(string mode, ProjectProperties projectProperties)
-            : base(mode, projectProperties, 6489, 6488, new MessageFactoryFix44(), new MessageFactoryMbtQuotes())
+        public MBTFIXSimulator(string mode, ProjectProperties projectProperties, ProviderSimulatorSupport providerSimulator)
+            : base(mode, projectProperties, providerSimulator, 6489, new MessageFactoryFix44())
         {
 		    log.Register(this);
-            InitializeSnippets();
 		}
 
-        protected override void OnConnectFIX(Socket socket)
-		{
-			quoteState = ServerState.Startup;
-			base.OnConnectFIX(socket);
-		}
-		
 		public override void ParseFIXMessage(Message message)
 		{
 			var packetFIX = (MessageFIX4_4) message;
@@ -98,36 +89,6 @@ namespace TickZoom.MBTFIX
 			}			
 		}
 		
-		public override void ParseQuotesMessage(Message message)
-		{
-			var packetQuotes = (MessageMbtQuotes) message;
-			char firstChar = (char) packetQuotes.Data.GetBuffer()[packetQuotes.Data.Position];
-			switch( firstChar) {
-				case 'L': // Login
-					QuotesLogin( packetQuotes);
-					break;
-				case 'S':
-					SymbolRequest( packetQuotes);
-					break;
-                case '9':
-                    RespondPing();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException("Unexpected quotes message: " + firstChar);
-            }			
-		}
-
-	    private void RespondPing()
-	    {
-            var writePacket = quoteSocket.MessageFactory.Create();
-            string textMessage = "9|\n";
-            writePacket.DataOut.Write(textMessage.ToCharArray());
-            if (quoteSocket.TrySendMessage(writePacket))
-            {
-                if (trace) log.Trace("Local Write: " + writePacket);
-            }
-        }
-
 	    private void FIXOrderList(MessageFIX4_4 packet)
 		{
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
@@ -149,7 +110,7 @@ namespace TickZoom.MBTFIX
 		private void FIXChangeOrder(MessageFIX4_4 packet) {
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if (!SymbolSimulators.IsOrderServerOnline)
+            if (!ProviderSimulator.IsOrderServerOnline)
             {
                 log.Info(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, symbol + ": Order Server Offline.");
@@ -167,8 +128,8 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
                 OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
-                SymbolSimulators.SwitchBrokerState("offline", false);
-                SymbolSimulators.SetOrderServerOffline();
+                ProviderSimulator.SwitchBrokerState("offline", false);
+                ProviderSimulator.SetOrderServerOffline();
                 return;
             }
             CreateOrChangeOrder origOrder = null;
@@ -181,7 +142,7 @@ namespace TickZoom.MBTFIX
                     log.Error("original client order id " + packet.OriginalClientOrderId + " cannot be converted to long: " + packet);
                     origClientId = 0;
                 }
-                origOrder = SymbolSimulators.GetOrderById(symbol, origClientId);
+                origOrder = ProviderSimulator.GetOrderById(symbol, origClientId);
 			} catch( ApplicationException ex) {
 				if( debug) log.Debug( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.  Message: " + ex.Message);
                 OnRejectOrder(order, symbol + ": Cannot change order. Probably already filled or canceled.");
@@ -202,16 +163,16 @@ namespace TickZoom.MBTFIX
 				return;     
 			}
 #endif
-            SymbolSimulators.ChangeOrder(order);
+            ProviderSimulator.ChangeOrder(order);
             ProcessChangeOrder(order);
 		}
 
         private void ProcessChangeOrder(CreateOrChangeOrder order)
         {
 			SendExecutionReport( order, "E", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
-            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
+            SendPositionUpdate(order.Symbol, ProviderSimulator.GetPosition(order.Symbol));
 			SendExecutionReport( order, "5", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
-            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
+            SendPositionUpdate(order.Symbol, ProviderSimulator.GetPosition(order.Symbol));
         }
 
 	    private bool onlineNextTime = false;
@@ -229,10 +190,10 @@ namespace TickZoom.MBTFIX
             requestSessionStatus = true;
             if (onlineNextTime)
             {
-                SymbolSimulators.SetOrderServerOnline();
+                ProviderSimulator.SetOrderServerOnline();
                 onlineNextTime = false;
             }
-            if (SymbolSimulators.IsOrderServerOnline)
+            if (ProviderSimulator.IsOrderServerOnline)
             {
                 SendSessionStatusOnline();
             }
@@ -247,7 +208,7 @@ namespace TickZoom.MBTFIX
         private void FIXCancelOrder(MessageFIX4_4 packet)
         {
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-            if (!SymbolSimulators.IsOrderServerOnline)
+            if (!ProviderSimulator.IsOrderServerOnline)
             {
                 if (debug) log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Order Server Offline.");
                 OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, symbol + ": Order Server Offline");
@@ -265,8 +226,8 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
                 OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
-                SymbolSimulators.SwitchBrokerState("offline", false);
-                SymbolSimulators.SetOrderServerOffline();
+                ProviderSimulator.SwitchBrokerState("offline", false);
+                ProviderSimulator.SetOrderServerOffline();
                 return;
             }
             if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
@@ -280,7 +241,7 @@ namespace TickZoom.MBTFIX
                               " cannot be converted to long: " + packet);
                     origClientId = 0;
                 }
-                origOrder = SymbolSimulators.GetOrderById(symbol, origClientId);
+                origOrder = ProviderSimulator.GetOrderById(symbol, origClientId);
             }
             catch (ApplicationException)
             {
@@ -290,9 +251,9 @@ namespace TickZoom.MBTFIX
             }
             var cancelOrder = ConstructCancelOrder(packet, packet.ClientOrderId);
             cancelOrder.OriginalOrder = origOrder;
-            SymbolSimulators.CancelOrder(cancelOrder);
+            ProviderSimulator.CancelOrder(cancelOrder);
             ProcessCancelOrder(cancelOrder);
-            SymbolSimulators.TryProcessAdustments(cancelOrder);
+            ProviderSimulator.TryProcessAdustments(cancelOrder);
             return;
         }
 
@@ -301,9 +262,9 @@ namespace TickZoom.MBTFIX
             var origOrder = cancelOrder.OriginalOrder;
 		    var randomOrder = random.Next(0, 10) < 5 ? cancelOrder : origOrder;
             SendExecutionReport( randomOrder, "6", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
-            SendPositionUpdate(cancelOrder.Symbol, SymbolSimulators.GetPosition(cancelOrder.Symbol));
+            SendPositionUpdate(cancelOrder.Symbol, ProviderSimulator.GetPosition(cancelOrder.Symbol));
             SendExecutionReport( randomOrder, "4", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
-            SendPositionUpdate(cancelOrder.Symbol, SymbolSimulators.GetPosition(cancelOrder.Symbol));
+            SendPositionUpdate(cancelOrder.Symbol, ProviderSimulator.GetPosition(cancelOrder.Symbol));
 		}
 
         private void FIXCreateOrder(MessageFIX4_4 packet)
@@ -311,7 +272,7 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if (!SymbolSimulators.IsOrderServerOnline)
+            if (!ProviderSimulator.IsOrderServerOnline)
             {
                 if (debug) log.Debug(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, symbol + ": Order Server Offline.");
@@ -329,8 +290,8 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
                 OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
-                SymbolSimulators.SwitchBrokerState("offline", false);
-                SymbolSimulators.SetOrderServerOffline();
+                ProviderSimulator.SwitchBrokerState("offline", false);
+                ProviderSimulator.SetOrderServerOffline();
                 return;
             }
             if (packet.Symbol == "TestPending")
@@ -343,26 +304,26 @@ namespace TickZoom.MBTFIX
                 {
                     System.Diagnostics.Debugger.Break();
                 }
-                SymbolSimulators.CreateOrder(order);
+                ProviderSimulator.CreateOrder(order);
                 ProcessCreateOrder(order);
-                SymbolSimulators.TryProcessAdustments(order);
+                ProviderSimulator.TryProcessAdustments(order);
             }
             return;
         }
 
 	    private void ProcessCreateOrder(CreateOrChangeOrder order) {
 			SendExecutionReport( order, "A", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
-            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
+            SendPositionUpdate(order.Symbol, ProviderSimulator.GetPosition(order.Symbol));
             if( order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
                 (order.Type == OrderType.BuyStop || order.Type == OrderType.StopLoss))
             {
                 SendExecutionReport(order, "A", "D", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
-                SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
+                SendPositionUpdate(order.Symbol, ProviderSimulator.GetPosition(order.Symbol));
             }
             else
             {
                 SendExecutionReport(order, "0", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
-                SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
+                SendPositionUpdate(order.Symbol, ProviderSimulator.GetPosition(order.Symbol));
             }
 		}
 		
@@ -461,38 +422,8 @@ namespace TickZoom.MBTFIX
 		
 		private string target;
 		private string sender;
-		
-		private void QuotesLogin(MessageMbtQuotes message) {
-			if( quoteState != ServerState.Startup) {
-				CloseWithQuotesError(message, "Invalid login request. Already logged in.");
-			}
-			quoteState = ServerState.LoggedIn;
-		    var writePacket = quoteSocket.MessageFactory.Create();
-			string textMessage = "G|100=DEMOXJSP;8055=demo01\n";
-			if( debug) log.Debug("Login response: " + textMessage);
-			writePacket.DataOut.Write(textMessage.ToCharArray());
-		    quotePacketQueue.Enqueue(writePacket, message.SendUtcTime);
-		}
-		
-		private void OnPhysicalFill( PhysicalFill fill, CreateOrChangeOrder order) {
-            if( order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
-                (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
-            {
-                order.Type = order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
-                var marketOrder = Factory.Utility.PhysicalOrder(order.Action, order.OrderState,
-                                                                order.Symbol, order.Side, order.Type, OrderFlags.None, 0,
-                                                                order.Size, order.LogicalOrderId,
-                                                                order.LogicalSerialNumber,
-                                                                order.BrokerOrder, null, TimeStamp.UtcNow);
-                SendExecutionReport(marketOrder, "0", 0.0, 0, 0, 0, (int)marketOrder.Size, TimeStamp.UtcNow);
-            }
-			if( debug) log.Debug    ("Converting physical fill to FIX: " + fill);
-            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
-			var orderStatus = fill.CumulativeSize == fill.TotalSize ? "2" : "1";
-			SendExecutionReport( order, orderStatus, "F", fill.Price, fill.TotalSize, fill.CumulativeSize, fill.Size, fill.RemainingSize, fill.UtcTime);
-		}
 
-		private void OnRejectOrder(CreateOrChangeOrder order, string error)
+        public override void OnRejectOrder(CreateOrChangeOrder order, string error)
 		{
 			var mbtMsg = (FIXMessage4_4) FixFactory.Create();
 			mbtMsg.SetAccount( "33006566");
@@ -504,6 +435,25 @@ namespace TickZoom.MBTFIX
             mbtMsg.AddHeader("8");
             if (trace) log.Trace("Sending reject order: " + mbtMsg);
             SendMessage(mbtMsg);
+        }
+
+        public override void OnPhysicalFill(PhysicalFill fill, CreateOrChangeOrder order)
+        {
+            if (order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
+                (order.Type == OrderType.BuyStop || order.Type == OrderType.SellStop))
+            {
+                order.Type = order.Type == OrderType.BuyStop ? OrderType.BuyMarket : OrderType.SellMarket;
+                var marketOrder = Factory.Utility.PhysicalOrder(order.Action, order.OrderState,
+                                                                order.Symbol, order.Side, order.Type, OrderFlags.None, 0,
+                                                                order.Size, order.LogicalOrderId,
+                                                                order.LogicalSerialNumber,
+                                                                order.BrokerOrder, null, TimeStamp.UtcNow);
+                SendExecutionReport(marketOrder, "0", 0.0, 0, 0, 0, (int)marketOrder.Size, TimeStamp.UtcNow);
+            }
+            if (debug) log.Debug("Converting physical fill to FIX: " + fill);
+            SendPositionUpdate(order.Symbol, ProviderSimulator.GetPosition(order.Symbol));
+            var orderStatus = fill.CumulativeSize == fill.TotalSize ? "2" : "1";
+            SendExecutionReport(order, orderStatus, "F", fill.Price, fill.TotalSize, fill.CumulativeSize, fill.Size, fill.RemainingSize, fill.UtcTime);
         }
 
         private void OnBusinessRejectOrder(string clientOrderId, string error)
@@ -726,455 +676,6 @@ namespace TickZoom.MBTFIX
             if (trace) log.Trace("Sending logout confirmation: " + mbtMsg);
         }
 		
-		private unsafe Yield SymbolRequest(MessageMbtQuotes message) {
-			var symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
-			log.Info("Received symbol request for " + symbolInfo);
-            SymbolSimulators.AddSymbol(symbolInfo.Symbol, OnTick, OnEndTick, OnPhysicalFill, OnRejectOrder);
-			switch( message.FeedType) {
-				case "20000": // Level 1
-					if( symbolInfo.QuoteType != QuoteType.Level1) {
-						throw new ApplicationException("Requested data feed of Level1 but Symbol.QuoteType is " + symbolInfo.QuoteType);
-					}
-					break;
-				case "20001": // Level 2
-					if( symbolInfo.QuoteType != QuoteType.Level2) {
-						throw new ApplicationException("Requested data feed of Level2 but Symbol.QuoteType is " + symbolInfo.QuoteType);
-					}
-					break;
-				case "20002": // Level 1 & Level 2
-					if( symbolInfo.QuoteType != QuoteType.Level2) {
-						throw new ApplicationException("Requested data feed of Level1 and Level2 but Symbol.QuoteType is " + symbolInfo.QuoteType);
-					}
-					break;
-				case "20003": // Trades
-					if( symbolInfo.TimeAndSales != TimeAndSales.ActualTrades) {
-						throw new ApplicationException("Requested data feed of Trades but Symbol.TimeAndSale is " + symbolInfo.TimeAndSales);
-					}
-					break;
-				case "20004": // Option Chains
-					break;
-				default:
-					throw new ApplicationException("Sorry, unknown data type: " + message.FeedType);
-			}
-			return Yield.DidWork.Repeat;
-		}
 
-        private SimpleLock quoteBuildersLocker = new SimpleLock();
-        //private Dictionary<long, TickIO> lastTicks = new Dictionary<long, TickIO>();
-        private SimpleLock lastTicksLocker = new SimpleLock();
-        private TickIO[] lastTicks = new TickIO[0];
-        private CurrentTick[] currentTicks = new CurrentTick[0];
-
-	    private byte[][] tradeSnippetBytes;
-	    private string[] tradeSnippets;
-        private byte[][] quoteSnippetBytes;
-        private string[] quoteSnippets;
-        public unsafe void InitializeSnippets()
-        {
-            tradeSnippets = new[] {
-                               "3|2026=USD;1003=",
-                               // symbol
-                               ";2037=0;2085=.144;2048=00/00/2009;2049=00/00/2009;2002=",
-                               // price
-                               ";2007=",
-                               // size
-                               ";2050=0;",
-                               // bid
-                               "2051=0;",
-                               // ask
-                               "2052=00/00/2010;",
-                               // bid size;
-                               "2053=00/00/2010;",
-                               // ask size;
-                               "2008=0.0;2056=0.0;2009=0.0;2057=0;2010=0.0;2058=1;2011=0.0;2012=6828928;2013=20021;2014=",                           
-                               // time of day
-                           };
-            tradeSnippetBytes = new byte[tradeSnippets.Length][];
-            for( var i=0; i<tradeSnippets.Length;i++)
-            {
-                tradeSnippetBytes[i] = new byte[tradeSnippets[i].Length];
-                for( var pos=0; pos<tradeSnippets[i].Length; pos++)
-                {
-                    tradeSnippetBytes[i][pos] = (byte) tradeSnippets[i][pos];
-                }
-            }
-            quoteSnippets = new[] {
-                               "1|2026=USD;1003=",
-                               // symbol
-                               ";2037=0;2085=.144;2048=00/00/2009;2049=00/00/2009;2050=0;",
-                               // bid, 
-                               "2051=0;",
-                               // ask
-			                   "2052=00/00/2010;",
-                               // bid size, 
-                               "2053=00/00/2010;",
-                               // ask size
-			                   "2008=0.0;2056=0.0;2009=0.0;2057=0;2010=0.0;2058=1;2011=0.0;2012=6828928;2013=20021;2014=",
-                               // time of day.
-                           };
-            quoteSnippetBytes = new byte[quoteSnippets.Length][];
-            for (var i = 0; i < quoteSnippets.Length; i++)
-            {
-                quoteSnippetBytes[i] = new byte[quoteSnippets[i].Length];
-                for (var pos = 0; pos < quoteSnippets[i].Length; pos++)
-                {
-                    quoteSnippetBytes[i][pos] = (byte)quoteSnippets[i][pos];
-                }
-            }
-        }
-
-        private byte[] bytebuffer = new byte[64];
-        private int ConvertPriceToBytes(long value)
-        {
-            var pos = 0;
-            var anydigit = false;
-            for( var i=0; i<9 && value>0L; i++)
-            {
-                var digit = value%10;
-                value /= 10;
-                if (digit > 0L || anydigit)
-                {
-                    anydigit = true;
-                    bytebuffer[pos] = (byte) ('0' + digit);
-                    pos++;
-                }
-            }
-            if( pos > 0)
-            {
-                bytebuffer[pos] = (byte) '.';
-                pos++;
-                if( value == 0L)
-                {
-                    bytebuffer[pos] = (byte)'0';
-                    pos++;
-                }
-            }
-            while( value > 0)
-            {
-                var digit = value%10;
-                value /= 10;
-                bytebuffer[pos] = (byte) ('0' + digit);
-                pos++;
-            }
-            return pos;
-        }
-
-        public enum TickState
-        {
-            None,
-            Tick,
-            Finish,
-        }
-
-        private class CurrentTick
-        {
-
-            public TickState State;
-            public SymbolInfo Symbol;
-            public TickIO TickIO = Factory.TickUtil.TickIO();
-        }
-
-        private void ExtendLastTicks()
-        {
-            var length = lastTicks.Length == 0 ? 256 : lastTicks.Length * 2;
-            Array.Resize(ref lastTicks, length);
-            for (var i = 0; i < lastTicks.Length; i++)
-            {
-                if (lastTicks[i] == null)
-                {
-                    lastTicks[i] = Factory.TickUtil.TickIO();
-                }
-            }
-        }
-
-        private void ExtendCurrentTicks()
-        {
-            var length = currentTicks.Length == 0 ? 256 : currentTicks.Length * 2;
-            Array.Resize(ref currentTicks, length);
-            for (var i = 0; i < currentTicks.Length; i++)
-            {
-                if (currentTicks[i] == null)
-                {
-                    currentTicks[i] = new CurrentTick();
-                }
-            }
-        }
-
-
-        private void OnEndTick( long id)
-        {
-            if (SymbolSimulators.NextSimulateSymbolId >= currentTicks.Length)
-            {
-                ExtendCurrentTicks();
-            }
-            var currentTick = currentTicks[id];
-            currentTick.State = TickState.Finish;
-            TrySendTick();
-        }
-
-        private unsafe void OnTick( long id, SymbolInfo anotherSymbol, Tick anotherTick)
-        {
-            if (trace) log.Trace("Sending tick: " + anotherTick);
-
-            if (anotherSymbol.BinaryIdentifier >= lastTicks.Length)
-            {
-                ExtendLastTicks();
-            }
-
-            if (SymbolSimulators.NextSimulateSymbolId >= currentTicks.Length)
-            {
-                ExtendCurrentTicks();
-            }
-
-            var currentTick = currentTicks[id];
-            currentTick.TickIO.Inject(anotherTick.Extract());
-            currentTick.Symbol = anotherSymbol;
-            currentTick.State = TickState.Tick;
-
-            TrySendTick();
-        }
-
-        private void TrySendTick() {
-    	    CurrentTick currentTick = null;
-            for( var i=0; i< SymbolSimulators.NextSimulateSymbolId; i++)
-            {
-                var temp = currentTicks[i];
-                switch( temp.State)
-                {
-                    case TickState.None:
-                        return;
-                    case TickState.Tick:
-                        if (currentTick == null || temp.TickIO.lUtcTime < currentTick.TickIO.lUtcTime)
-                        {
-                            currentTick = temp;
-                        }
-                        break;
-                    case TickState.Finish:
-                        break;
-                }
-            }
-            if( currentTick == null) return;
-            currentTick.State = TickState.None;
-            var tick = currentTick.TickIO;
-            var symbol = currentTick.Symbol;
-            if( trace) log.Trace("TrySendTick( " + symbol + " " + tick + ")");
-            var quoteMessage = QuoteSocket.MessageFactory.Create();
-		    var lastTick = lastTicks[symbol.BinaryIdentifier];
-            var buffer = quoteMessage.Data.GetBuffer();
-            var position = quoteMessage.Data.Position;
-            quoteMessage.Data.SetLength(1024);
-            if( tick.IsTrade)
-            {
-                var index = 0;
-                var snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                // Symbol
-                var value = symbol.Symbol.ToCharArray();
-                for( var i=0; i<value.Length; i++)
-                {
-                    buffer[position] = (byte) value[i];
-                    ++position;
-                }
-
-                ++index; snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet,0,buffer,position,snippet.Length);
-                position += snippet.Length;
-
-                // Price
-                var len = ConvertPriceToBytes(tick.lPrice);
-                var pos = len;
-                for (var i = 0; i < len; i++)
-                {
-                    buffer[position] = (byte) bytebuffer[--pos];
-                    ++position;
-                }
-
-                ++index; snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                // Size
-                value = tick.Size.ToString().ToCharArray();
-                for (var i = 0; i < value.Length; i++)
-                {
-                    buffer[position] = (byte)value[i];
-                    ++position;
-                }
-
-                ++index; snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                // Bid
-                if (tick.lBid != lastTick.lBid)
-                {
-                    value = ("2003=" + tick.Bid + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                // Ask
-                if (tick.lAsk != lastTick.lAsk)
-                {
-                    value = ("2004=" + tick.Ask + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                // Ask size
-                var askSize = Math.Max((int)tick.AskLevel(0), 1);
-                if (askSize != lastTick.AskLevel(0))
-                {
-                    value = ("2005=" + askSize + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                // Bid size
-                var bidSize = Math.Max((int)tick.BidLevel(0), 1);
-                if (bidSize != lastTick.BidLevel(0))
-                {
-                    value = ("2006=" + bidSize + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = tradeSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-            }
-            else
-            {
-                var index = 0;
-                var snippet = quoteSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                var value = symbol.Symbol.ToCharArray();
-                for (var i = 0; i < value.Length; i++)
-                {
-                    buffer[position] = (byte)value[i];
-                    ++position;
-                }
-
-                ++index; snippet = quoteSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                if (tick.lBid != lastTick.lBid)
-                {
-                    value = ("2003=" + tick.Bid + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = quoteSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                if (tick.lAsk != lastTick.lAsk)
-                {
-                    value = ("2004=" + tick.Ask + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = quoteSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                var askSize = Math.Max((int)tick.AskLevel(0), 1);
-			    if( askSize != lastTick.AskLevel(0)) {
-                    value = ("2005=" + askSize + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = quoteSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-
-                var bidSize = Math.Max((int)tick.BidLevel(0), 1);
-			    if( bidSize != lastTick.BidLevel(0)) {
-                    value = ("2006=" + bidSize + ";").ToCharArray();
-                    for (var i = 0; i < value.Length; i++)
-                    {
-                        buffer[position] = (byte)value[i];
-                        ++position;
-                    }
-                }
-
-                ++index; snippet = quoteSnippetBytes[index];
-                Array.Copy(snippet, 0, buffer, position, snippet.Length);
-                position += snippet.Length;
-            }
-
-            var strValue = (tick.UtcTime.TimeOfDay + "." + tick.UtcTime.Microsecond.ToString("000") + ";2015=" + tick.UtcTime.Month.ToString("00") +
-                "/" + tick.UtcTime.Day.ToString("00") + "/" + tick.UtcTime.Year + "\n").ToCharArray();
-            for (var i = 0; i < strValue.Length; i++)
-            {
-                buffer[position] = (byte)strValue[i];
-                ++position;
-            }
-
-            if( trace)
-            {
-                var message = Encoding.ASCII.GetString(buffer, 0, (int)position);
-                log.Trace("Tick message: " + message);
-            }
-            quoteMessage.Data.Position = position;
-            quoteMessage.Data.SetLength(position);
-            lastTick.Inject(tick.Extract());
-
-            if (trace) log.Trace("Added tick to packet: " + tick.UtcTime);
-            quoteMessage.SendUtcTime = tick.UtcTime.Internal;
-
-            if (quoteMessage.Data.GetBuffer().Length == 0)
-            {
-                return;
-            }
-            quotePacketQueue.Enqueue(quoteMessage, quoteMessage.SendUtcTime);
-            if (trace) log.Trace("Enqueued tick packet: " + new TimeStamp(quoteMessage.SendUtcTime));
-        }
-
-		private void CloseWithQuotesError(MessageMbtQuotes message, string textMessage) {
-		}
-		
-	}
+    }
 }

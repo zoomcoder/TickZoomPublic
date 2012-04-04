@@ -70,6 +70,8 @@
     <Compile Include="MBTFIX\MBTAssemblyFactory.cs" />
     <Compile Include="MBTFIX\MBTFIXFilter.cs" />
     <Compile Include="MBTFIX\MBTFIXProvider.cs" />
+    <Compile Include="MBTFIX\MBTProviderSimulator.cs" />
+    <Compile Include="MBTFIX\MBTQuoteSimulator.cs" />
     <Compile Include="MBTFIX\ServerState.cs" />
     <Compile Include="MBTFIX\MBTFIXSimulator.cs" />
     <Compile Include="MBTFIX\MBTQuotesProvider.cs" />
