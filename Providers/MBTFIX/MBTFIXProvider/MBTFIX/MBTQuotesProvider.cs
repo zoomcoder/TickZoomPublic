@@ -26,14 +26,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Security.Cryptography;
-
+using System.Text;
 using TickZoom.Api;
+using TickZoom.FIX;
 
 namespace TickZoom.MBTQuotes
 {
-	public class MBTQuotesProvider : MBTQuoteProviderSupport, LogAware
+	public class MBTQuotesProvider : QuotesProviderSupport
 	{
 		private static Log log = Factory.SysLog.GetLogger(typeof(MBTQuotesProvider));
         private volatile bool debug;
@@ -47,7 +47,7 @@ namespace TickZoom.MBTQuotes
         private Dictionary<long, SymbolHandler> symbolHandlers = new Dictionary<long, SymbolHandler>();
         private Dictionary<long, SymbolHandler> symbolOptionHandlers = new Dictionary<long, SymbolHandler>();	
 		
-		private MBTQuotesProvider(string name) : base( name)
+		private MBTQuotesProvider(string name) : base( name, new MessageFactoryMbtQuotes())
 		{
 		    log.Register(this);
 			if( name.Contains(".config")) {
@@ -120,7 +120,7 @@ namespace TickZoom.MBTQuotes
 			EndRecovery();
 		}
 		
-		protected override void ReceiveMessage(MessageMbtQuotes message)
+		protected void ReceiveMessage(MessageMbtQuotes message)
 		{
 			switch( message.MessageType) {
 				case '1':
@@ -154,8 +154,50 @@ namespace TickZoom.MBTQuotes
                     throw new ApplicationException("MBTQuotes message type '" + message.MessageType + "' was unknown: \n" + messageInError);
 			}
 		}
-		
-		private unsafe void Level1Update( MessageMbtQuotes message)
+
+	    protected override void SendPing()
+        {
+            Message message = Socket.MessageFactory.Create();
+            string textMessage = "9|\n";
+            if (trace) log.Trace("Ping request: " + textMessage);
+            message.DataOut.Write(textMessage.ToCharArray());
+            while (!Socket.TrySendMessage(message))
+            {
+                if (IsInterrupted) return;
+                Factory.Parallel.Yield();
+            }
+        }
+
+        protected override void ProcessSocketMessage(Message rawMessage)
+        {
+            var message = (MessageMbtQuotes)rawMessage;
+            message.BeforeRead();
+            if (trace)
+            {
+                log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
+            }
+            if (message.MessageType == '9')
+            {
+                // Received the ping response.
+                if (trace) log.Trace("Ping response successfully received.");
+                ReceivedPing();
+                SendStartRealTime();
+            }
+            else
+            {
+                try
+                {
+                    ReceiveMessage(message);
+                }
+                catch (Exception ex)
+                {
+                    var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
+                    log.Error("Unable to process this message:\n" + loggingString, ex);
+                }
+            }
+        }
+
+	    private void Level1Update(MessageMbtQuotes message)
 		{
 		    SymbolHandler handler;
             try
@@ -203,7 +245,7 @@ namespace TickZoom.MBTQuotes
             handler.Time = currentTime;
         }
 
-        private unsafe void OptionChainUpdate(MessageMbtQuotes message)
+        private void OptionChainUpdate(MessageMbtQuotes message)
         {
             var symbol = message.Symbol;
             var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
@@ -273,10 +315,6 @@ namespace TickZoom.MBTQuotes
             return;
 		}
 		
-		private void OnException( Exception ex) {
-			log.Error("Exception occurred", ex);
-		}
-        
 		protected override void SendStartRealTime() {
 			lock( symbolsRequestedLocker) {
 				foreach( var kvp in symbolsRequested) {

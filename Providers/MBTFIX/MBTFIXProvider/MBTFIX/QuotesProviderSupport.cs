@@ -27,17 +27,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 
 using TickZoom.Api;
 
-
-
-namespace TickZoom.MBTQuotes
+namespace TickZoom.FIX
 {
-	public abstract class MBTQuoteProviderSupport : AgentPerformer, LogAware
+	public abstract class QuotesProviderSupport : AgentPerformer, LogAware
 	{
 		private readonly Log log;
 		private volatile bool debug;
@@ -83,16 +79,21 @@ namespace TickZoom.MBTQuotes
 	    private int timeSeconds = 10;
 	    private TrueTimer taskTimer;
         private Agent agent;
+	    private MessageFactory messageFactory;
+        protected abstract void ProcessSocketMessage(Message rawMessage);
+        protected abstract void SendPing();
+
         public Agent Agent
         {
             get { return agent; }
             set { agent = value; }
         }
 
-		public MBTQuoteProviderSupport(string name)
+		public QuotesProviderSupport(string config, MessageFactory messageFactory)
 		{
-		    configSection = name;
-			log = Factory.SysLog.GetLogger(typeof(MBTQuoteProviderSupport)+"."+GetType().Name);
+		    configSection = config;
+		    this.messageFactory = messageFactory;
+			log = Factory.SysLog.GetLogger(typeof(QuotesProviderSupport)+"."+GetType().Name);
 		    log.Register(this);
             providerName = GetType().Name;
             RefreshLogLevel();
@@ -100,7 +101,7 @@ namespace TickZoom.MBTQuotes
             logRecovery = !string.IsNullOrEmpty(logRecoveryString) && logRecoveryString.ToLower().Equals("true");
             if( timeSeconds > 30)
             {
-                log.Error("MBTQuotesProvider retry time greater then 30 seconds: " + int.MaxValue);
+                log.Error("QuotesProvider retry time greater then 30 seconds: " + int.MaxValue);
             }
         }
 
@@ -198,16 +199,16 @@ namespace TickZoom.MBTQuotes
             }
             else
             {
-                log.Error("MBTQuoteProvider disconnected.");
+                log.Error("QuoteProvider disconnected.");
                 CreateNewSocket();
             }
         }
 
         private void CreateNewSocket()
         {
-            socket = Factory.Provider.Socket("MBTQuoteSocket", addrStr, port);
+            socket = Factory.Provider.Socket(providerName, addrStr, port);
             socket.OnConnect = OnConnect;
-            socket.MessageFactory = new MessageFactoryMbtQuotes();
+            socket.MessageFactory = messageFactory;
             socket.ReceiveQueue.ConnectInbound(socketTask);
             socket.SendQueue.ConnectOutbound(socketTask);
             if (debug) log.Debug("Created new " + socket);
@@ -232,8 +233,14 @@ namespace TickZoom.MBTQuotes
                 }
             }
         }
-	
-		public bool IsInterrupted {
+
+        protected void ReceivedPing()
+        {
+            isPingSent = false;
+        }
+
+        public bool IsInterrupted
+        {
 			get {
 				return isDisposed || socket.State != SocketState.Connected;
 			}
@@ -347,7 +354,7 @@ namespace TickZoom.MBTQuotes
     				return Yield.NoWork.Repeat;
 				case SocketState.PendingConnect:
 					if( Factory.Parallel.TickCount >= retryTimeout) {
-                        log.Info("MBTQuoteProvider connect timed out. Retrying.");
+                        log.Info(providerName + " connect timed out. Retrying.");
 						SetupRetry();
 						retryDelay += retryIncrease;
                         IncreaseRetryTimeout();
@@ -384,7 +391,7 @@ namespace TickZoom.MBTQuotes
 	                return Yield.NoWork.Repeat;
 	            case Status.PendingRetry:
 	                if( Factory.Parallel.TickCount >= retryTimeout) {
-	                    log.Info("MBTQuoteProvider retry time elapsed. Retrying.");
+	                    log.Info(providerName + " retry time elapsed. Retrying.");
 	                    OnRetry();
 	                    CreateNewSocket();
 	                    if( trace) log.Trace("ConnectionStatus changed to: " + ConnectionStatus);
@@ -400,7 +407,7 @@ namespace TickZoom.MBTQuotes
 	        }
 	    }
 
-	    private Yield TryProcessMessage()
+        private Yield TryProcessMessage()
 	    {
 	        switch( ConnectionStatus) {
 	            case Status.Connected:
@@ -438,7 +445,7 @@ namespace TickZoom.MBTQuotes
 	                        else
 	                        {
 	                            isPingSent = false;
-	                            log.Warn("MBTQuotesProvider ping timed out.");
+	                            log.Warn("QuotesProvider ping timed out.");
 	                            SetupRetry();
 	                            IncreaseRetryTimeout();
 	                            return Yield.DidWork.Repeat;
@@ -471,61 +478,15 @@ namespace TickZoom.MBTQuotes
 	        }
 	    }
 
-	    private void ProcessSocketMessage(Message rawMessage)
-	    {
-	        var message = (MessageMbtQuotes) rawMessage;
-	        message.BeforeRead();
-	        if (trace)
-	        {
-	            log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
-	        }
-	        if (message.MessageType == '9')
-	        {
-	            // Received the ping response.
-	            if( trace) log.Trace("Ping successfully received."); 
-	            isPingSent = false;
-	            SendStartRealTime();
-	        }
-	        else
-	        {
-	            try
-	            {
-	                ReceiveMessage(message);
-	            }
-	            catch( Exception ex)
-	            {
-	                var loggingString = Encoding.ASCII.GetString(message.Data.GetBuffer(), 0, (int)message.Data.Length);
-	                log.Error("Unable to process this message:\n" + loggingString, ex);
-	            }
-	        }
-	    }
-
-        protected virtual void SendStartRealTime()
-        {
-        }
+	    protected abstract void SendStartRealTime();
 
 	    private bool isPingSent = false;
-	    private void SendPing()
-	    {
-            Message message = Socket.MessageFactory.Create();
-            string textMessage = "9|\n";
-            if (trace) log.Trace("Ping request: " + textMessage);
-            message.DataOut.Write(textMessage.ToCharArray());
-            while (!Socket.TrySendMessage(message))
-            {
-                if (IsInterrupted) return;
-                Factory.Parallel.Yield();
-            }
-	    }
-
 		protected void IncreaseRetryTimeout() {
 			retryTimeout = Factory.Parallel.TickCount + retryDelay * 1000;
 			heartbeatTimeout = Factory.Parallel.TickCount + (long)heartbeatDelay * 1000L;
 		}
 		
 		protected abstract void OnStartRecovery();
-		
-		protected abstract void ReceiveMessage(MessageMbtQuotes message);
 		
 		private long retryTimeout;
 		
@@ -652,8 +613,8 @@ namespace TickZoom.MBTQuotes
             sb.AppendLine("You can choose the section either in your project.tzproj file or");
             sb.AppendLine("if you run a standalone ProviderService, in the ProviderServer\\Default.config file.");
             sb.AppendLine("In either case, you may set the ProviderAssembly value as <AssemblyName>/<Section>");
-            sb.AppendLine("For example, MBTFIXProvider/EquityDemo will choose the MBTFIXProvider.exe assembly");
-            sb.AppendLine("with the EquityDemo section within the MBTFIXProvider\\Default.config file for that assembly.");
+            sb.AppendLine("For example, " + providerName + "/EquityDemo will choose the " + providerName + ".exe assembly");
+            sb.AppendLine("with the EquityDemo section within the " + providerName + "\\Default.config file for that assembly.");
             throw new ApplicationException(sb.ToString());
         }
         
@@ -804,7 +765,7 @@ namespace TickZoom.MBTQuotes
 			get { return logRecovery; }
 		}
 		
-		public MBTQuoteProviderSupport.Status ConnectionStatus
+		public Status ConnectionStatus
 		{
 		    get { return connectionStatus; }
 		    set
@@ -820,5 +781,6 @@ namespace TickZoom.MBTQuotes
 	    public bool UseLocalTickTime {
 			get { return useLocalTickTime; }
 		}
+
 	}
 }
