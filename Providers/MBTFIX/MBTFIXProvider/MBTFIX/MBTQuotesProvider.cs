@@ -286,7 +286,7 @@ namespace TickZoom.MBTQuotes
             return;
         }
 
-        private unsafe void TimeAndSalesUpdate(MessageMbtQuotes message)
+        private void TimeAndSalesUpdate(MessageMbtQuotes message)
         {
 			var symbol = message.Symbol;
 			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);

@@ -54,7 +54,7 @@ namespace TickZoom.MBTFIX
             QuotePacketQueue.Enqueue(writePacket, message.SendUtcTime);
         }
 
-        private unsafe Yield SymbolRequest(MessageMbtQuotes message)
+        private void SymbolRequest(MessageMbtQuotes message)
         {
             var symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
             log.Info("Received symbol request for " + symbolInfo);
@@ -90,7 +90,6 @@ namespace TickZoom.MBTFIX
                 default:
                     throw new ApplicationException("Sorry, unknown data type: " + message.FeedType);
             }
-            return Yield.DidWork.Repeat;
         }
 
         private void RespondPing()
@@ -103,11 +102,6 @@ namespace TickZoom.MBTFIX
                 if (trace) log.Trace("Local Write: " + writePacket);
             }
         }
-
-        private SimpleLock quoteBuildersLocker = new SimpleLock();
-        private SimpleLock lastTicksLocker = new SimpleLock();
-        private TickIO[] lastTicks = new TickIO[0];
-        private CurrentTick[] currentTicks = new CurrentTick[0];
 
         private byte[][] tradeSnippetBytes;
         private string[] tradeSnippets;
@@ -203,104 +197,8 @@ namespace TickZoom.MBTFIX
             return pos;
         }
 
-        public enum TickState
+        protected override void TrySendTick(SymbolInfo symbol, TickIO tick)
         {
-            None,
-            Tick,
-            Finish,
-        }
-
-        private class CurrentTick
-        {
-
-            public TickState State;
-            public SymbolInfo Symbol;
-            public TickIO TickIO = Factory.TickUtil.TickIO();
-        }
-
-        private void ExtendLastTicks()
-        {
-            var length = lastTicks.Length == 0 ? 256 : lastTicks.Length * 2;
-            Array.Resize(ref lastTicks, length);
-            for (var i = 0; i < lastTicks.Length; i++)
-            {
-                if (lastTicks[i] == null)
-                {
-                    lastTicks[i] = Factory.TickUtil.TickIO();
-                }
-            }
-        }
-
-        private void ExtendCurrentTicks()
-        {
-            var length = currentTicks.Length == 0 ? 256 : currentTicks.Length * 2;
-            Array.Resize(ref currentTicks, length);
-            for (var i = 0; i < currentTicks.Length; i++)
-            {
-                if (currentTicks[i] == null)
-                {
-                    currentTicks[i] = new CurrentTick();
-                }
-            }
-        }
-
-        public override void OnEndTick(long id)
-        {
-            if (ProviderSimulator.NextSimulateSymbolId >= currentTicks.Length)
-            {
-                ExtendCurrentTicks();
-            }
-            var currentTick = currentTicks[id];
-            currentTick.State = TickState.Finish;
-            TrySendTick();
-        }
-
-        public override unsafe void OnTick(long id, SymbolInfo anotherSymbol, Tick anotherTick)
-        {
-            if (trace) log.Trace("Sending tick: " + anotherTick);
-
-            if (anotherSymbol.BinaryIdentifier >= lastTicks.Length)
-            {
-                ExtendLastTicks();
-            }
-
-            if (ProviderSimulator.NextSimulateSymbolId >= currentTicks.Length)
-            {
-                ExtendCurrentTicks();
-            }
-
-            var currentTick = currentTicks[id];
-            currentTick.TickIO.Inject(anotherTick.Extract());
-            currentTick.Symbol = anotherSymbol;
-            currentTick.State = TickState.Tick;
-
-            TrySendTick();
-        }
-
-        private void TrySendTick()
-        {
-            CurrentTick currentTick = null;
-            for (var i = 0; i < ProviderSimulator.NextSimulateSymbolId; i++)
-            {
-                var temp = currentTicks[i];
-                switch (temp.State)
-                {
-                    case TickState.None:
-                        return;
-                    case TickState.Tick:
-                        if (currentTick == null || temp.TickIO.lUtcTime < currentTick.TickIO.lUtcTime)
-                        {
-                            currentTick = temp;
-                        }
-                        break;
-                    case TickState.Finish:
-                        break;
-                }
-            }
-            if (currentTick == null) return;
-            currentTick.State = TickState.None;
-            var tick = currentTick.TickIO;
-            var symbol = currentTick.Symbol;
             if (trace) log.Trace("TrySendTick( " + symbol + " " + tick + ")");
             var quoteMessage = QuoteSocket.MessageFactory.Create();
             var lastTick = lastTicks[symbol.BinaryIdentifier];

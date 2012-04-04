@@ -705,7 +705,6 @@ namespace TickZoom.FIX
                     {
                         socketTask.Stop();
                     }
-	            	nextConnectTime = Factory.Parallel.TickCount + 10000;
 	            }
     		}
 	    }

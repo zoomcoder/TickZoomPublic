@@ -216,6 +216,9 @@ namespace TickZoom.FIX
         }
 
         protected volatile bool isDisposed = false;
+        protected TickIO[] lastTicks = new TickIO[0];
+        protected CurrentTick[] currentTicks = new CurrentTick[0];
+
         public void Dispose()
         {
             Dispose(true);
@@ -269,7 +272,107 @@ namespace TickZoom.FIX
             set { agent = value; }
         }
 
-        public abstract void OnEndTick(long id);
-        public abstract unsafe void OnTick(long id, SymbolInfo anotherSymbol, Tick anotherTick);
+        public enum TickState
+        {
+            None,
+            Tick,
+            Finish,
+        }
+
+        protected class CurrentTick
+        {
+
+            public TickState State;
+            public SymbolInfo Symbol;
+            public TickIO TickIO = Factory.TickUtil.TickIO();
+        }
+
+        protected void ExtendLastTicks()
+        {
+            var length = lastTicks.Length == 0 ? 256 : lastTicks.Length * 2;
+            Array.Resize(ref lastTicks, length);
+            for (var i = 0; i < lastTicks.Length; i++)
+            {
+                if (lastTicks[i] == null)
+                {
+                    lastTicks[i] = Factory.TickUtil.TickIO();
+                }
+            }
+        }
+
+        protected void ExtendCurrentTicks()
+        {
+            var length = currentTicks.Length == 0 ? 256 : currentTicks.Length * 2;
+            Array.Resize(ref currentTicks, length);
+            for (var i = 0; i < currentTicks.Length; i++)
+            {
+                if (currentTicks[i] == null)
+                {
+                    currentTicks[i] = new CurrentTick();
+                }
+            }
+        }
+
+        protected abstract void TrySendTick(SymbolInfo symbol, TickIO tick);
+
+        public void OnTick(long id, SymbolInfo anotherSymbol, Tick anotherTick)
+        {
+            if (trace) log.Trace("Sending tick: " + anotherTick);
+
+            if (anotherSymbol.BinaryIdentifier >= lastTicks.Length)
+            {
+                ExtendLastTicks();
+            }
+
+            if (ProviderSimulator.NextSimulateSymbolId >= currentTicks.Length)
+            {
+                ExtendCurrentTicks();
+            }
+
+            var currentTick = currentTicks[id];
+            currentTick.TickIO.Inject(anotherTick.Extract());
+            currentTick.Symbol = anotherSymbol;
+            currentTick.State = TickState.Tick;
+
+            TryFindTick();
+        }
+
+        private void TryFindTick()
+        {
+            CurrentTick currentTick = null;
+            for (var i = 0; i < ProviderSimulator.NextSimulateSymbolId; i++)
+            {
+                var temp = currentTicks[i];
+                switch (temp.State)
+                {
+                    case TickState.None:
+                        return;
+                    case TickState.Tick:
+                        if (currentTick == null || temp.TickIO.lUtcTime < currentTick.TickIO.lUtcTime)
+                        {
+                            currentTick = temp;
+                        }
+                        break;
+                    case TickState.Finish:
+                        break;
+                }
+            }
+            if (currentTick == null) return;
+            currentTick.State = TickState.None;
+            var tick = currentTick.TickIO;
+            var symbol = currentTick.Symbol;
+            TrySendTick(symbol, tick);
+        }
+
+        public virtual void OnEndTick(long id)
+        {
+            if (ProviderSimulator.NextSimulateSymbolId >= currentTicks.Length)
+            {
+                ExtendCurrentTicks();
+            }
+            var currentTick = currentTicks[id];
+            currentTick.State = TickState.Finish;
+            TryFindTick();
+        }
     }
 }
