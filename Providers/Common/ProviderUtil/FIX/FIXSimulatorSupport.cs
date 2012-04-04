@@ -34,13 +34,6 @@ using TickZoom.Api;
 
 namespace TickZoom.FIX
 {
-    public enum ServerState
-    {
-        Startup,
-        LoggedIn,
-        Recovered,
-    }
-
     public abstract class FIXSimulatorSupport : FIXSimulator, LogAware
 	{
 		private string localAddress = "0.0.0.0";
@@ -54,8 +47,9 @@ namespace TickZoom.FIX
             trace = log.IsTraceEnabled;
             verbose = log.IsVerboseEnabled;
         }
-        private SimpleLock symbolHandlersLocker = new SimpleLock();
-		private FIXTFactory1_1 fixFactory;
+
+        private SymbolSimulators symbolSimulators;
+        private FIXTFactory1_1 fixFactory;
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
@@ -67,7 +61,6 @@ namespace TickZoom.FIX
         private bool simulateReceiveFailed;
         private bool simulateSendFailed;
 
-        private bool isOrderServerOnline = false;
         private bool isConnectionLost = false;
 
 		// FIX fields.
@@ -90,12 +83,9 @@ namespace TickZoom.FIX
 		private MessageFactory _quoteMessageFactory;
 		private FastQueue<Message> fixPacketQueue = Factory.Parallel.FastQueue<Message>("SimulatorFIX");
 		protected FastQueue<Message> quotePacketQueue = Factory.Parallel.FastQueue<Message>("SimulatorQuote");
-		private Dictionary<long, SimulateSymbol> symbolHandlers = new Dictionary<long, SimulateSymbol>();
         private TrueTimer heartbeatTimer;
         private TimeStamp isHeartbeatPending = TimeStamp.MaxValue;
         private Agent agent;
-        private PartialFillSimulation partialFillSimulation;
-        private TimeStamp endTime;
         private bool isResendComplete = true;
         public Agent Agent
         {
@@ -107,10 +97,8 @@ namespace TickZoom.FIX
 
         public FIXSimulatorSupport(string mode, ProjectProperties projectProperties, ushort fixPort, ushort quotesPort, MessageFactory createMessageFactory, MessageFactory _quoteMessageFactory)
         {
-            this.partialFillSimulation = projectProperties.Simulator.PartialFillSimulation;
 		    this.fixPort = fixPort;
 		    this.quotesPort = quotesPort;
-            this.endTime = projectProperties.Starter.EndTime;
 		    var randomSeed = new Random().Next(int.MaxValue);
             if (heartbeatDelay > 1)
             {
@@ -132,12 +120,11 @@ namespace TickZoom.FIX
 		            break;
 		    }
 
-
             allTests = projectProperties.Simulator.EnableNegativeTests;
 
             foreach (SimulatorType simulatorType in Enum.GetValues(typeof(SimulatorType)))
             {
-                var simulator = new SimulatorInfo(simulatorType, random, () => symbolHandlers.Count);
+                var simulator = new SimulatorInfo(simulatorType, random, () => SymbolSimulators.Count);
                 simulator.Enabled = false;
                 simulator.MaxFailures = maxFailures;
                 simulators.Add(simulatorType, simulator);
@@ -354,7 +341,7 @@ namespace TickZoom.FIX
 		{
 			if (this.quoteSocket.Equals(socket)) {
 				log.Info("Quotes socket disconnect: " + socket);
-			    ShutdownHandlers();
+			    SymbolSimulators.Shutdown();
 				CloseQuoteSocket();
 			}
 		}
@@ -580,10 +567,10 @@ namespace TickZoom.FIX
             switch( status)
             {
                 case "2":
-                    SetOrderServerOnline();
+                    SymbolSimulators.SetOrderServerOnline();
                     break;
                 case "3":
-                    SetOrderServerOffline();
+                    SymbolSimulators.SetOrderServerOffline();
                     break;
                 default:
                     throw new ApplicationException("Unknown session status:" + status);
@@ -743,30 +730,15 @@ namespace TickZoom.FIX
         public void SendSessionStatusOnline()
         {
             if (debug) log.Debug("Sending session status online.");
-            var wasOrderServerOnline = isOrderServerOnline;
+            var wasOrderServerOnline = SymbolSimulators.IsOrderServerOnline;
             SendSessionStatus("2");
             if( !wasOrderServerOnline)
             {
-                SwitchBrokerState("online",true);
-            }
-            var handlers = new List<SimulateSymbol>();
-            using( symbolHandlersLocker.Using())
-            {
-                if (debug) log.Debug("Flushing all fill queues.");
-                foreach (var kvp in symbolHandlers)
-                {
-                    handlers.Add(kvp.Value);
-                }
-            }
-            foreach(var handler in handlers) {
-                handler.FillSimulator.FlushFillQueue();
-            }
-            if (debug) log.Debug("Current FIX Simulator orders.");
-            foreach( var handler in handlers)
-            {
-                handler.FillSimulator.LogActiveOrders();
-            }
+                SymbolSimulators.SwitchBrokerState("online",true);
+            }            
+            SymbolSimulators.FlushFillQueues();
         }
+
 
         protected bool HandleFIXLogin(MessageFIXT1_1 packet)
         {
@@ -834,44 +806,6 @@ namespace TickZoom.FIX
             return true;
         }
 
-        protected void SwitchBrokerState(string description, bool isOnline)
-        {
-            foreach (var kvp in symbolHandlers)
-            {
-                var symbolBinary = kvp.Key;
-                var handler = kvp.Value;
-                var tickSync = SyncTicks.GetTickSync(symbolBinary);
-                tickSync.SetSwitchBrokerState(description);
-                if( handler.IsOnline != isOnline)
-                {
-                    handler.IsOnline = isOnline;
-                    if( !isOnline)
-                    {
-                        while (tickSync.SentPhyscialOrders)
-                        {
-                            tickSync.RemovePhysicalOrder("Rollback");
-                        }
-                        while (tickSync.SentOrderChange)
-                        {
-                            tickSync.RemoveOrderChange();
-                        }
-                        while (tickSync.SentPhysicalFillsCreated)
-                        {
-                            tickSync.RemovePhysicalFill("Rollback");
-                        }
-                        while (tickSync.SentPositionChange)
-                        {
-                            tickSync.RemovePositionChange("Rollback");
-                        }
-                        while (tickSync.SentWaitingMatch)
-                        {
-                            tickSync.RemoveWaitingMatch("Rollback");
-                        }
-                    }
-                }
-            }
-        }
-
         private bool ProcessMessage(MessageFIXT1_1 packetFIX)
         {
             if( isConnectionLost)
@@ -886,7 +820,7 @@ namespace TickZoom.FIX
                 if (debug) log.Debug("Ignoring message: " + packetFIX);
                 // Ignore this message. Pretend we never received it AND disconnect.
                 // This will test the message recovery.)
-                SwitchBrokerState("disconnect",false);
+                SymbolSimulators.SwitchBrokerState("disconnect",false);
                 isConnectionLost = true;
                 return true;
             }
@@ -901,8 +835,8 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence(packetFIX.Sequence))
             {
                 if (debug) log.Debug("Skipping message: " + packetFIX);
-                SwitchBrokerState("disconnect",false);
-                SetOrderServerOffline();
+                SymbolSimulators.SwitchBrokerState("disconnect", false);
+                SymbolSimulators.SetOrderServerOffline();
                 if( requestSessionStatus)
                 {
                     SendSessionStatus("3"); //offline
@@ -961,139 +895,6 @@ namespace TickZoom.FIX
 			}
 			return realTimeOffset;
 		}
-
-        protected long nextSimulateSymbolId;
-		public void AddSymbol(string symbol, Action<long, SymbolInfo, Tick> onTick, Action<long> onEndTick, Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill, Action<CreateOrChangeOrder,string> onOrderReject)
-		{
-			var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
-            using (symbolHandlersLocker.Using())
-            {
-                if (!symbolHandlers.ContainsKey(symbolInfo.BinaryIdentifier))
-                {
-                    if (SyncTicks.Enabled)
-                    {
-                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolSyncTicks),
-                            this, symbol, partialFillSimulation, onTick, onEndTick, endTime, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
-                        symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
-                    }
-                    else
-                    {
-                        var symbolHandler = (SimulateSymbol)Factory.Parallel.SpawnPerformer(typeof(SimulateSymbolRealTime),
-                            this, symbol, partialFillSimulation, onTick, onEndTick, onPhysicalFill, onOrderReject, nextSimulateSymbolId++);
-                        symbolHandlers.Add(symbolInfo.BinaryIdentifier, symbolHandler);
-                    }
-                }
-            }
-            if (IsOrderServerOnline)
-            {
-                SetOrderServerOnline();
-            }
-        }
-
-        public void SetOrderServerOnline()
-        {
-            using (symbolHandlersLocker.Using())
-            {
-                foreach (var kvp in symbolHandlers)
-                {
-                    var handler = kvp.Value;
-                    handler.IsOnline = true;
-                }
-            }
-            if( !isOrderServerOnline)
-            {
-                isOrderServerOnline = true;
-                log.Info("Order server back online.");
-            }
-        }
-
-        public void SetOrderServerOffline()
-        {
-            using (symbolHandlersLocker.Using())
-            {
-                foreach (var kvp in symbolHandlers)
-                {
-                    var handler = kvp.Value;
-                    handler.IsOnline = false;
-                }
-            }
-            isOrderServerOnline = false;
-        }
-
-        public int GetPosition(SymbolInfo symbol)
-		{
-            // Don't lock. This call always wrapped in a locked using clause.
-            SimulateSymbol symbolSyncTicks;
-            if( symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolSyncTicks))
-            {
-                return symbolSyncTicks.ActualPosition;
-            }
-            return 0;
-		}
-
-        public void CreateOrder(CreateOrChangeOrder order)
-        {
-            SimulateSymbol symbolSyncTicks;
-            using (symbolHandlersLocker.Using())
-            {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
-            }
-            if( symbolSyncTicks != null) {
-                symbolSyncTicks.CreateOrder(order);
-            }
-        }
-
-        public void TryProcessAdustments(CreateOrChangeOrder order)
-        {
-            SimulateSymbol symbolSyncTicks;
-            using (symbolHandlersLocker.Using())
-            {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
-            }
-            if (symbolSyncTicks != null)
-            {
-                symbolSyncTicks.TryProcessAdjustments();
-            }
-        }
-
-        public void ChangeOrder(CreateOrChangeOrder order)
-        {
-            SimulateSymbol symbolSyncTicks;
-            using (symbolHandlersLocker.Using())
-            {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
-            }
-            if( symbolSyncTicks != null) {
-                symbolSyncTicks.ChangeOrder(order);
-            }
-        }
-
-        public void CancelOrder(CreateOrChangeOrder order)
-        {
-            SimulateSymbol symbolSyncTicks;
-            using (symbolHandlersLocker.Using())
-            {
-                symbolHandlers.TryGetValue(order.Symbol.BinaryIdentifier, out symbolSyncTicks);
-            }
-            if( symbolSyncTicks != null) {
-                symbolSyncTicks.CancelOrder(order);
-            }
-        }
-
-        public CreateOrChangeOrder GetOrderById(SymbolInfo symbol, long clientOrderId) {
-            SimulateSymbol symbolSyncTicks;
-            using (symbolHandlersLocker.Using())
-            {
-                symbolHandlers.TryGetValue(symbol.BinaryIdentifier, out symbolSyncTicks);
-            }
-            if( symbolSyncTicks != null) {
-                return symbolSyncTicks.GetOrderById(clientOrderId);
-            }
-            else
-            {
-                throw new ApplicationException("StartSymbol was never called for " + symbol + " so now symbol handler was found.");
-            }
-       }
 
 		private bool QuotesReadLoop()
 		{
@@ -1198,7 +999,7 @@ namespace TickZoom.FIX
             if (simulator.CheckSequence(fixMessage.Sequence) )
             {
                 if (debug) log.Debug("Ignoring message: " + fixMessage);
-                SwitchBrokerState("disconnect",false);
+                SymbolSimulators.SwitchBrokerState("disconnect",false);
                 isConnectionLost = true;
                 return;
             }
@@ -1238,8 +1039,8 @@ namespace TickZoom.FIX
             if (IsRecovered && FixFactory != null && simulator.CheckSequence( fixMessage.Sequence))
             {
                 if (debug) log.Debug("Skipping message: " + fixMessage);
-                SwitchBrokerState("offline",false);
-                SetOrderServerOffline();
+                SymbolSimulators.SwitchBrokerState("offline",false);
+                SymbolSimulators.SetOrderServerOffline();
                 if( requestSessionStatus)
                 {
                     SendSessionStatus("3");
@@ -1278,28 +1079,6 @@ namespace TickZoom.FIX
 			GC.SuppressFinalize(this);
 		}
 
-        private void ShutdownHandlers()
-        {
-            if( debug) log.Debug("ShutdownHandlers()");
-            if (symbolHandlers != null)
-            {
-                using( symbolHandlersLocker.Using()) {
-                    if (debug) log.Debug("There are " + symbolHandlers.Count + " symbolHandlers.");
-                    foreach (var kvp in symbolHandlers)
-                    {
-                        var handler = kvp.Value;
-                        if (debug) log.Debug("Disposing symbol handler " + handler);
-                        handler.Agent.SendEvent(new EventItem(EventType.Shutdown));
-                    }
-                    symbolHandlers.Clear();
-                }
-            }
-            else
-            {
-                if (debug) log.Debug("symbolHandlers is null.");
-            }
-        }
-
 		protected virtual void Dispose(bool disposing)
 		{
 			if (!isDisposed) {
@@ -1329,7 +1108,7 @@ namespace TickZoom.FIX
                     {
                         log.Info("Active negative test simulator results:\n" + sb);
                     }
-                    if( !isOrderServerOnline)
+                    if( !SymbolSimulators.IsOrderServerOnline)
                     {
                         SyncTicks.Success = false;
                         log.Error("The FIX order server ended in offline state.");
@@ -1347,7 +1126,7 @@ namespace TickZoom.FIX
                     {
                         log.Info("The FIX order server finished up connected.");
                     }
-                    ShutdownHandlers();
+                    SymbolSimulators.Shutdown();
                     CloseSockets();
                     if (fixListener != null)
                     {
@@ -1395,11 +1174,6 @@ namespace TickZoom.FIX
 	        get { return heartbeatDelay; }
 	    }
 
-        public bool IsOrderServerOnline
-        {
-            get { return isOrderServerOnline; }
-        }
-
         public FIXTFactory1_1 FixFactory
         {
             get { return fixFactory; }
@@ -1416,6 +1190,11 @@ namespace TickZoom.FIX
                     remoteSequence = value;
                 }
             }
+        }
+
+        public SymbolSimulators SymbolSimulators
+        {
+            get { return symbolSimulators; }
         }
 	}
 }

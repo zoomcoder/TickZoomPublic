@@ -149,7 +149,7 @@ namespace TickZoom.MBTFIX
 		private void FIXChangeOrder(MessageFIX4_4 packet) {
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if (!IsOrderServerOnline)
+            if (!SymbolSimulators.IsOrderServerOnline)
             {
                 log.Info(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, symbol + ": Order Server Offline.");
@@ -167,8 +167,8 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
                 OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
-                SwitchBrokerState("offline", false);
-                SetOrderServerOffline();
+                SymbolSimulators.SwitchBrokerState("offline", false);
+                SymbolSimulators.SetOrderServerOffline();
                 return;
             }
             CreateOrChangeOrder origOrder = null;
@@ -181,7 +181,7 @@ namespace TickZoom.MBTFIX
                     log.Error("original client order id " + packet.OriginalClientOrderId + " cannot be converted to long: " + packet);
                     origClientId = 0;
                 }
-				origOrder = GetOrderById( symbol, origClientId);
+                origOrder = SymbolSimulators.GetOrderById(symbol, origClientId);
 			} catch( ApplicationException ex) {
 				if( debug) log.Debug( symbol + ": Rejected " + packet.ClientOrderId + ". Cannot change order: " + packet.OriginalClientOrderId + ". Already filled or canceled.  Message: " + ex.Message);
                 OnRejectOrder(order, symbol + ": Cannot change order. Probably already filled or canceled.");
@@ -202,16 +202,16 @@ namespace TickZoom.MBTFIX
 				return;     
 			}
 #endif
-			ChangeOrder(order);
+            SymbolSimulators.ChangeOrder(order);
             ProcessChangeOrder(order);
 		}
 
         private void ProcessChangeOrder(CreateOrChangeOrder order)
         {
 			SendExecutionReport( order, "E", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
-			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
+            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
 			SendExecutionReport( order, "5", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
-			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
+            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
         }
 
 	    private bool onlineNextTime = false;
@@ -229,10 +229,10 @@ namespace TickZoom.MBTFIX
             requestSessionStatus = true;
             if (onlineNextTime)
             {
-                SetOrderServerOnline();
+                SymbolSimulators.SetOrderServerOnline();
                 onlineNextTime = false;
             }
-            if (IsOrderServerOnline)
+            if (SymbolSimulators.IsOrderServerOnline)
             {
                 SendSessionStatusOnline();
             }
@@ -247,7 +247,7 @@ namespace TickZoom.MBTFIX
         private void FIXCancelOrder(MessageFIX4_4 packet)
         {
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
-            if( !IsOrderServerOnline)
+            if (!SymbolSimulators.IsOrderServerOnline)
             {
                 if (debug) log.Debug(symbol + ": Cannot cancel order by client id: " + packet.OriginalClientOrderId + ". Order Server Offline.");
                 OnRejectCancel(packet.Symbol, packet.ClientOrderId, packet.OriginalClientOrderId, symbol + ": Order Server Offline");
@@ -265,8 +265,8 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
                 OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
-                SwitchBrokerState("offline", false);
-                SetOrderServerOffline();
+                SymbolSimulators.SwitchBrokerState("offline", false);
+                SymbolSimulators.SetOrderServerOffline();
                 return;
             }
             if (debug) log.Debug("FIXCancelOrder() for " + packet.Symbol + ". Original client id: " + packet.OriginalClientOrderId);
@@ -280,7 +280,7 @@ namespace TickZoom.MBTFIX
                               " cannot be converted to long: " + packet);
                     origClientId = 0;
                 }
-                origOrder = GetOrderById(symbol, origClientId);
+                origOrder = SymbolSimulators.GetOrderById(symbol, origClientId);
             }
             catch (ApplicationException)
             {
@@ -290,9 +290,9 @@ namespace TickZoom.MBTFIX
             }
             var cancelOrder = ConstructCancelOrder(packet, packet.ClientOrderId);
             cancelOrder.OriginalOrder = origOrder;
-            CancelOrder(cancelOrder);
+            SymbolSimulators.CancelOrder(cancelOrder);
             ProcessCancelOrder(cancelOrder);
-            TryProcessAdustments(cancelOrder);
+            SymbolSimulators.TryProcessAdustments(cancelOrder);
             return;
         }
 
@@ -301,9 +301,9 @@ namespace TickZoom.MBTFIX
             var origOrder = cancelOrder.OriginalOrder;
 		    var randomOrder = random.Next(0, 10) < 5 ? cancelOrder : origOrder;
             SendExecutionReport( randomOrder, "6", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
-            SendPositionUpdate(cancelOrder.Symbol, GetPosition(cancelOrder.Symbol));
+            SendPositionUpdate(cancelOrder.Symbol, SymbolSimulators.GetPosition(cancelOrder.Symbol));
             SendExecutionReport( randomOrder, "4", 0.0, 0, 0, 0, (int)origOrder.Size, TimeStamp.UtcNow);
-            SendPositionUpdate(cancelOrder.Symbol, GetPosition(cancelOrder.Symbol));
+            SendPositionUpdate(cancelOrder.Symbol, SymbolSimulators.GetPosition(cancelOrder.Symbol));
 		}
 
         private void FIXCreateOrder(MessageFIX4_4 packet)
@@ -311,7 +311,7 @@ namespace TickZoom.MBTFIX
             if (debug) log.Debug("FIXCreateOrder() for " + packet.Symbol + ". Client id: " + packet.ClientOrderId);
             var symbol = Factory.Symbol.LookupSymbol(packet.Symbol);
             var order = ConstructOrder(packet, packet.ClientOrderId);
-            if (!IsOrderServerOnline)
+            if (!SymbolSimulators.IsOrderServerOnline)
             {
                 if (debug) log.Debug(symbol + ": Rejected " + packet.ClientOrderId + ". Order server offline.");
                 OnRejectOrder(order, symbol + ": Order Server Offline.");
@@ -329,8 +329,8 @@ namespace TickZoom.MBTFIX
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
                 OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
-                SwitchBrokerState("offline", false);
-                SetOrderServerOffline();
+                SymbolSimulators.SwitchBrokerState("offline", false);
+                SymbolSimulators.SetOrderServerOffline();
                 return;
             }
             if (packet.Symbol == "TestPending")
@@ -343,26 +343,26 @@ namespace TickZoom.MBTFIX
                 {
                     System.Diagnostics.Debugger.Break();
                 }
-                CreateOrder(order);
+                SymbolSimulators.CreateOrder(order);
                 ProcessCreateOrder(order);
-                TryProcessAdustments(order);
+                SymbolSimulators.TryProcessAdustments(order);
             }
             return;
         }
 
 	    private void ProcessCreateOrder(CreateOrChangeOrder order) {
 			SendExecutionReport( order, "A", 0.0, 0, 0, 0, (int) order.Size, TimeStamp.UtcNow);
-			SendPositionUpdate( order.Symbol, GetPosition(order.Symbol));
+            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
             if( order.Symbol.FixSimulationType == FIXSimulationType.BrokerHeldStopOrder &&
                 (order.Type == OrderType.BuyStop || order.Type == OrderType.StopLoss))
             {
                 SendExecutionReport(order, "A", "D", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
-                SendPositionUpdate(order.Symbol, GetPosition(order.Symbol));
+                SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
             }
             else
             {
                 SendExecutionReport(order, "0", 0.0, 0, 0, 0, (int)order.Size, TimeStamp.UtcNow);
-                SendPositionUpdate(order.Symbol, GetPosition(order.Symbol));
+                SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
             }
 		}
 		
@@ -487,7 +487,7 @@ namespace TickZoom.MBTFIX
                 SendExecutionReport(marketOrder, "0", 0.0, 0, 0, 0, (int)marketOrder.Size, TimeStamp.UtcNow);
             }
 			if( debug) log.Debug    ("Converting physical fill to FIX: " + fill);
-			SendPositionUpdate(order.Symbol, GetPosition(order.Symbol));
+            SendPositionUpdate(order.Symbol, SymbolSimulators.GetPosition(order.Symbol));
 			var orderStatus = fill.CumulativeSize == fill.TotalSize ? "2" : "1";
 			SendExecutionReport( order, orderStatus, "F", fill.Price, fill.TotalSize, fill.CumulativeSize, fill.Size, fill.RemainingSize, fill.UtcTime);
 		}
@@ -729,7 +729,7 @@ namespace TickZoom.MBTFIX
 		private unsafe Yield SymbolRequest(MessageMbtQuotes message) {
 			var symbolInfo = Factory.Symbol.LookupSymbol(message.Symbol);
 			log.Info("Received symbol request for " + symbolInfo);
-			AddSymbol(symbolInfo.Symbol, OnTick, OnEndTick, OnPhysicalFill, OnRejectOrder);
+            SymbolSimulators.AddSymbol(symbolInfo.Symbol, OnTick, OnEndTick, OnPhysicalFill, OnRejectOrder);
 			switch( message.FeedType) {
 				case "20000": // Level 1
 					if( symbolInfo.QuoteType != QuoteType.Level1) {
@@ -903,7 +903,7 @@ namespace TickZoom.MBTFIX
 
         private void OnEndTick( long id)
         {
-            if (nextSimulateSymbolId >= currentTicks.Length)
+            if (SymbolSimulators.NextSimulateSymbolId >= currentTicks.Length)
             {
                 ExtendCurrentTicks();
             }
@@ -921,7 +921,7 @@ namespace TickZoom.MBTFIX
                 ExtendLastTicks();
             }
 
-            if (nextSimulateSymbolId >= currentTicks.Length)
+            if (SymbolSimulators.NextSimulateSymbolId >= currentTicks.Length)
             {
                 ExtendCurrentTicks();
             }
@@ -936,7 +936,7 @@ namespace TickZoom.MBTFIX
 
         private void TrySendTick() {
     	    CurrentTick currentTick = null;
-            for( var i=0; i< nextSimulateSymbolId; i++)
+            for( var i=0; i< SymbolSimulators.NextSimulateSymbolId; i++)
             {
                 var temp = currentTicks[i];
                 switch( temp.State)
