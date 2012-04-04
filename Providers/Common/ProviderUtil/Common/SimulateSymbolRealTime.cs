@@ -73,24 +73,21 @@ namespace TickZoom.FIX
             QuoteSimulatorSupport quoteSimulatorSupport,
 		    string symbolString,
             PartialFillSimulation partialFillSimulation,
-		    Action<long,SymbolInfo,Tick> onTick,
-            Action<long> onEndTick,
-            Action<PhysicalFill,CreateOrChangeOrder> onPhysicalFill,
-		    Action<CreateOrChangeOrder,string> onRejectOrder, long id)
+		    long id)
         {
             this.id = id;
             log.Register(this);
-            this.onEndTick = onEndTick;
+            this.onEndTick = quoteSimulatorSupport.OnEndTick;
 			this.fixSimulatorSupport = fixSimulatorSupport;
             this.quoteSimulatorSupport = quoteSimulatorSupport;
-			this.onTick = onTick;
+            this.onTick = quoteSimulatorSupport.OnTick;
 		    this.PartialFillSimulation = partialFillSimulation;
 		    this.symbolString = symbolString;
 			this.symbol = Factory.Symbol.LookupSymbol(symbolString);
             fillSimulator = Factory.Utility.FillSimulator("FIX", Symbol, false, true, null);
             fillSimulator.EnableSyncTicks = SyncTicks.Enabled;
-            FillSimulator.OnPhysicalFill = onPhysicalFill;
-            FillSimulator.OnRejectOrder = onRejectOrder;
+            FillSimulator.OnPhysicalFill = fixSimulatorSupport.OnPhysicalFill;
+            FillSimulator.OnRejectOrder = fixSimulatorSupport.OnRejectOrder;
             fillSimulator.PartialFillSimulation = partialFillSimulation;
             latency = new LatencyMetric("SimulateSymbolRealTime-" + symbolString.StripInvalidPathChars());
             diagnoseMetric = Diagnose.RegisterMetric("Simulator");
