@@ -43,14 +43,13 @@ namespace TickZoom.FIX
             debug = log.IsDebugEnabled;
             trace = log.IsTraceEnabled;
         }
-        private static long nextConnectTime = 0L;
         protected class SymbolReceiver
         {
-            internal SymbolInfo Symbol;
-            internal Agent Agent;
+            public SymbolInfo Symbol;
+            public Agent Agent;
         }
 		protected readonly object symbolsRequestedLocker = new object();
-        protected Dictionary<long, SymbolReceiver> symbolsRequested = new Dictionary<long, SymbolReceiver>();
+        protected Dictionary<long, QuotesProviderSupport.SymbolReceiver> symbolsRequested = new Dictionary<long, SymbolReceiver>();
 		private Socket socket;
         protected Task socketTask;
 		private string failedFile;

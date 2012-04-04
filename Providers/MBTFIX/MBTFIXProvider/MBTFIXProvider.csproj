@@ -77,7 +77,6 @@
     <Compile Include="MBTFIX\MBTQuotesProvider.cs" />
     <Compile Include="MBTFIX\MessageFactoryMbtQuotes.cs" />
     <Compile Include="MBTFIX\PacketMBTQuotes.cs" />
-    <Compile Include="MBTFIX\QuotesProviderSupport.cs" />
     <Compile Include="Program.cs" />
     <None Include="app.config" />
   </ItemGroup>

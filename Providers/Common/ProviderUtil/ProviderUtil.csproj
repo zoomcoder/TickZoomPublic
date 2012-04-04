@@ -97,11 +97,11 @@
     <Compile Include="FIX\FIXSimulatorSupport.cs" />
     <Compile Include="FIX\MessageFactoryFix42.cs" />
     <Compile Include="FIX\PacketFIX4_2.cs" />
-    <Compile Include="FIX\QuoteSimulatorSupport.cs" />
-    <Compile Include="FIX\ServerState.cs" />
-    <Compile Include="FIX\SimulateSymbol.cs" />
-    <Compile Include="FIX\SimulateSymbolPlayback.cs" />
-    <Compile Include="FIX\SimulateSymbolRealTime.cs" />
+    <Compile Include="Quotes\QuoteSimulatorSupport.cs" />
+    <Compile Include="Common\ServerState.cs" />
+    <Compile Include="Common\SimulateSymbol.cs" />
+    <Compile Include="Common\SimulateSymbolPlayback.cs" />
+    <Compile Include="Common\SimulateSymbolRealTime.cs" />
     <Compile Include="FIX\FIXTBuffer.cs" />
     <Compile Include="FIX\FIXTFactory.cs" />
     <Compile Include="FIX\FIXTFactory1_1.cs" />
@@ -112,12 +112,13 @@
     <Compile Include="FIX\PacketFIX4_4.cs" />
     <Compile Include="FIX\PacketFIXT1_1.cs">
     </Compile>
-    <Compile Include="FIX\SimulateSymbolSyncTicks.cs">
+    <Compile Include="Common\SimulateSymbolSyncTicks.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="FIX\SimulatorInfo.cs" />
-    <Compile Include="FIX\ProviderSimulatorSupport.cs" />
+    <Compile Include="Common\SimulatorInfo.cs" />
+    <Compile Include="Common\ProviderSimulatorSupport.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Quotes\QuotesProviderSupport.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Platform\TickZoomAPI1.0\API1.0.csproj">
