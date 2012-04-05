@@ -367,6 +367,10 @@ namespace TickZoom.MBTFIX
 			errorOkay = text.Contains("FXORD2") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD01") ? true : errorOkay;
 			errorOkay = text.Contains("FXORD02") ? true : errorOkay;
+            if( errorOkay)
+            {
+                isOrderServerOnline = false;
+            }
             CancelRecovered();
             TrySendEndBroker();
             TryEndRecovery();

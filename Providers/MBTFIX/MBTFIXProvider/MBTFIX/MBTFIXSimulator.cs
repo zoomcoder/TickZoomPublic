@@ -127,7 +127,7 @@ namespace TickZoom.MBTFIX
             if (FixFactory != null && simulator.CheckFrequency())
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
-                OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
+                OnBusinessRejectOrder(packet.ClientOrderId, "Server offline for change order.");
                 ProviderSimulator.SwitchBrokerState("offline", false);
                 ProviderSimulator.SetOrderServerOffline();
                 return;
@@ -225,7 +225,7 @@ namespace TickZoom.MBTFIX
             if (FixFactory != null && simulator.CheckFrequency())
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
-                OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
+                OnBusinessRejectOrder(packet.ClientOrderId, "Server offline for cancel order.");
                 ProviderSimulator.SwitchBrokerState("offline", false);
                 ProviderSimulator.SetOrderServerOffline();
                 return;
@@ -289,7 +289,7 @@ namespace TickZoom.MBTFIX
             if (FixFactory != null && simulator.CheckFrequency())
             {
                 if (debug) log.Debug("Simulating order server offline business reject of 35=" + packet.MessageType);
-                OnBusinessRejectOrder(packet.ClientOrderId, "Testing reject of change order.");
+                OnBusinessRejectOrder(packet.ClientOrderId, "Server offline for create order.");
                 ProviderSimulator.SwitchBrokerState("offline", false);
                 ProviderSimulator.SetOrderServerOffline();
                 return;
