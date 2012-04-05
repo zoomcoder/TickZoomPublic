@@ -931,7 +931,8 @@ namespace TickZoom.MBTFIX
             SymbolAlgorithm algorithm;
             if (TryGetAlgorithm(symbol.BinaryIdentifier, out algorithm))
             {
-                if (IsRecovered && algorithm.OrderAlgorithm.RejectRepeatCounter > 0)
+                var orderAlgo = algorithm.OrderAlgorithm;
+                if (IsRecovered && orderAlgo.RejectRepeatCounter > 0 && orderAlgo.IsBrokerOnline)
                 {
                     var message = "Order Rejected on "+ symbol + ": " + packetFIX.Text + "\n" + packetFIX;
                     if( Factory.IsAutomatedTest)
