@@ -586,6 +586,8 @@ namespace TickZoom.FIX
 
                     if (messageFIX != null)
                     {
+                        if (fixTrace)
+                            LogMessage(messageFIX.ToString(), true);
                         if (debug) log.Debug("Received FIX Message: " + messageFIX);
                         if (messageFIX.MessageType == "A")
                         {
@@ -1137,11 +1139,11 @@ namespace TickZoom.FIX
 
         private bool isFinalized;
 
-        protected volatile bool isDisposed = false;
+	 	protected volatile bool isDisposed = false;
         protected readonly object orderAlgorithmsLocker = new object();
         protected Dictionary<long, SymbolAlgorithm> orderAlgorithms = new Dictionary<long, SymbolAlgorithm>();
 
-        public void Dispose() 
+	    public void Dispose() 
 	    {
 	        Dispose(true);
 	        GC.SuppressFinalize(this);      
@@ -1488,7 +1490,8 @@ namespace TickZoom.FIX
             {
                 foreach(var kvp in symbolsRequested) {
                     var symbolReceiver = kvp.Value;
-                    TrySendEndBroker(symbolReceiver.Symbol);
+                    if (!symbolReceiver.Symbol.DisableRealtimeSimulation)
+                        TrySendEndBroker(symbolReceiver.Symbol);
                 }
             }
         }

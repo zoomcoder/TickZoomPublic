@@ -212,8 +212,13 @@ namespace TickZoom.LimeQuotes
             }
 
             //TODO: Options not yet implemented
-            var item = new EventItem(symbol, EventType.StartBroker);
-            symbolAgent.SendEvent(item);
+
+            EventItem item;
+
+            if (symbol.DisableRealtimeSimulation) {
+                item = new EventItem(symbol, EventType.StartBroker);
+                symbolAgent.SendEvent(item);
+            }
 
             item = new EventItem(symbol, EventType.StartRealTime);
             symbolAgent.SendEvent(item);

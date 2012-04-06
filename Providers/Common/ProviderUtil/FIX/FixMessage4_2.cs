@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2012 M. Wayne Walter
@@ -340,6 +340,15 @@ namespace TickZoom.FIX
         public void SetUserName()
         {
             Append(553, Sender);
+        }
+
+        /// <summary>
+        ///	553 end user who entered the trade should have their username specified here	
+        /// This method uses the "sender" field name as the username here.
+        /// </summary>
+        public void SetUserName(string sender)
+        {
+            Append(553, sender);
         }
 
         ///<summary>

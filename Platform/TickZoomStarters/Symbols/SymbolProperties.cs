@@ -73,6 +73,7 @@ namespace TickZoom.Symbols
 	    private OptionChain optionChain = OptionChain.None;
 	    private TimeInForce timeInForce;
 	    private string symbolFile;
+        private bool _disableRealtimeSimulation = false;
 
         public SymbolProperties()
         {
@@ -322,5 +323,14 @@ namespace TickZoom.Symbols
 	        get { return partialFillSimulation; }
 	        set { partialFillSimulation = value; }
 	    }
-	}
+
+        #region SymbolInfo Members
+
+	    public bool DisableRealtimeSimulation {
+	        get { return _disableRealtimeSimulation; }
+	        set { _disableRealtimeSimulation = value; }
+	    }
+
+	    #endregion
+    }
 }

@@ -314,5 +314,10 @@ namespace TickZoom.Api
         /// Order time in force. GTC required for Forex. All others should be set to Day.
         /// </summary>
         TimeInForce TimeInForce { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+	    bool DisableRealtimeSimulation { get; }
     }
 }

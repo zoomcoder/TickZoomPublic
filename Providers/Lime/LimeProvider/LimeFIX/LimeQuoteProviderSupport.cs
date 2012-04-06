@@ -482,7 +482,7 @@ namespace TickZoom.LimeQuotes
 	        message.BeforeRead();
 	        if (trace)
 	        {
-	            log.Trace("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
+                log.Trace("Received tick: " + message.ToString());
 	        }
 			//TODO: Lime Ping code needed??
 #if MBT_PING

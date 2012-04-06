@@ -1,4 +1,4 @@
-﻿#region Copyright
+#region Copyright
 /*
  * Software: TickZoom Trading Platform
  * Copyright 2012 M. Wayne Walter
@@ -271,7 +271,8 @@ namespace TickZoom.LimeFIX
                         OrderStore.SetSequences(OrderStore.RemoteSequence, newSequenceNumber);
                         Socket.Dispose();
                         handled = true;
-                        // Temp disable ignoreRetryDelay = true;
+                        RetryStart = 2;
+                        ignoreRetryDelay = true;
                     }
                 }
                 else
@@ -322,6 +323,7 @@ namespace TickZoom.LimeFIX
             }
             if (VerifyLoginAck(message))
             {
+                RetryStart = 30;
                 return true;
             }
             else
@@ -358,7 +360,8 @@ namespace TickZoom.LimeFIX
                     break;
                 case "0":
                     if (trace) log.Trace("Received Hearbeat");
-                    // Received heartbeat
+			        SetOrderServerOnline();
+			        // Received heartbeat
                     break;
                 case "1":
                     if (trace) log.Trace("Received Test Request");
@@ -384,6 +387,16 @@ namespace TickZoom.LimeFIX
                     log.Warn("Ignoring Message: '" + packetFIX.MessageType + "'\n" + packetFIX);
                     break;
             }
+        }
+
+        private void SetOrderServerOnline() {
+            if ( !isOrderServerOnline )
+                log.Notice("Lime Order Server now Online");
+            isOrderServerOnline = true;
+            if (debug) log.Debug("Setting Order Server online");
+            CancelRecovered();
+            TrySendEndBroker();
+            TryEndRecovery();
         }
 
         private void BusinessReject(MessageFIX4_2 packetFIX) {
@@ -734,34 +747,18 @@ namespace TickZoom.LimeFIX
             string orderStatus = packetFIX.OrderStatus;
             switch (orderStatus)
             {
-                case "8": // Rejected
+                case "2":  //Filled
                     var rejectReason = false;
-                    if (packetFIX.Text.Contains("Order Server Not Available"))
-                    {
-                        rejectReason = true;
-                        CancelRecovered();
-                        TrySendEndBroker();
-                        TryEndRecovery();
-                    }
-                    else if (packetFIX.Text.Contains("Cannot cancel order. Probably already filled or canceled."))
+
+                    if (packetFIX.Text.Contains("Unknown order") || packetFIX.Text.Contains("Order is completed"))
                     {
                         rejectReason = true;
                         log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
                         //removeOriginal = true;
+                    } else {
+                        log.Error("Unknown text meesage in CancelReject: " + packetFIX.Text);
                     }
-                    else if (packetFIX.Text.Contains("No such order"))
-                    {
-                        rejectReason = true;
-                        log.Warn("RemoveOriginal=FALSE for: " + packetFIX.Text);
-                        //removeOriginal = true;
-                    }
-                    else if (packetFIX.Text.Contains("Order pending remote") ||
-                        packetFIX.Text.Contains("Cancel request already pending") ||
-                        packetFIX.Text.Contains("ORDER in pending state") ||
-                        packetFIX.Text.Contains("General Order Replace Error"))
-                    {
-                        rejectReason = true;
-                    }
+                   
 
                     CreateOrChangeOrder order;
                     if (OrderStore.TryGetOrderById(clientOrderId, out order))
@@ -909,7 +906,7 @@ namespace TickZoom.LimeFIX
                 {
                     var symbolInfo = Factory.Symbol.LookupSymbol(symbol);
                     var orderCache = Factory.Engine.LogicalOrderCache(symbolInfo, false);
-                    var algorithm = Factory.Utility.OrderAlgorithm("mbtfix", symbolInfo, this, orderCache, OrderStore);
+                    var algorithm = Factory.Utility.OrderAlgorithm("limefix", symbolInfo, this, orderCache, OrderStore);
                     algorithm.EnableSyncTicks = SyncTicks.Enabled;
                     symbolAlgorithm = new SymbolAlgorithm { OrderAlgorithm = algorithm };
                     orderAlgorithms.Add(symbol, symbolAlgorithm);
@@ -978,21 +975,20 @@ namespace TickZoom.LimeFIX
 			} else {
 				fixMsg.SetClientOrderId(order.BrokerOrder.ToString());
             }
-			fixMsg.SetAccount(AccountNumber);
+
             if (order.Action == OrderAction.Change)
             {
                 fixMsg.AddHeader("G");
 			} else {
                 fixMsg.AddHeader("D");
 				if( order.Symbol.Destination.ToLower() == "default") {
-					fixMsg.SetDestination("MBTX");
+                    fixMsg.SetDestination(Destination);
 				} else {
                     fixMsg.SetDestination(order.Symbol.Destination);
                 }
             }
-			fixMsg.SetHandlingInstructions(1);
             fixMsg.SetSymbol(order.Symbol.Symbol);
-            fixMsg.SetSide(GetOrderSide(order.Side));
+            fixMsg.SetSide(order.Side == OrderSide.Buy ? 1 : 5);
 			switch( order.Type) {
                 case OrderType.BuyLimit:
                     fixMsg.SetOrderType(2);
@@ -1173,13 +1169,13 @@ namespace TickZoom.LimeFIX
             var newClientOrderId = order.BrokerOrder;
             fixMsg.SetOriginalClientOrderId(order.OriginalOrder.BrokerOrder.ToString());
             fixMsg.SetClientOrderId(newClientOrderId.ToString());
-            fixMsg.SetAccount(AccountNumber);
 #if NOT_LIME
+            fixMsg.SetAccount(AccountNumber);
             fixMsg.SetSide(GetOrderSide(order.OriginalOrder.Side));
-            fixMsg.AddHeader("F");
             fixMsg.SetSymbol(order.Symbol.Symbol);
             fixMsg.SetTransactTime(TimeStamp.UtcNow);
 #endif
+            fixMsg.AddHeader("F");
             if (resend)
             {
                 fixMsg.SetDuplicate(true);

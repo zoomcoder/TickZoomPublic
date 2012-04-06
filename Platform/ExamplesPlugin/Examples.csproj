@@ -58,7 +58,9 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CustomBars\PointFigureBars.cs" />
@@ -98,6 +100,7 @@
     <Compile Include="Indicators\YearLow.cs" />
     <Compile Include="Indicators\YearMiddle.cs" />
     <Compile Include="Loaders\BenchmarkSimpleLoader.cs" />
+    <Compile Include="Loaders\ClientSimulatorLoader.cs" />
     <Compile Include="Loaders\ExampleBreakoutReversalLoader.cs" />
     <Compile Include="Loaders\ExampleBreakoutStopsLoader.cs" />
     <Compile Include="Loaders\ExampleChartIndicator.cs" />
@@ -127,6 +130,7 @@
     <Compile Include="Portfolios\Portfolio5000Strategies.cs" />
     <Compile Include="Portfolios\SimplexPortfolio.cs" />
     <Compile Include="Strategies\BaseSimpleStrategy.cs" />
+    <Compile Include="Strategies\ClientSimulatorStrategy.cs" />
     <Compile Include="Strategies\ExampleBreakoutReversal.cs" />
     <Compile Include="Strategies\ExampleBreakoutStops.cs" />
     <Compile Include="Strategies\ExampleOptionStrategy.cs" />

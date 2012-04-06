@@ -3,8 +3,8 @@ using TickZoom.Common;
 
 namespace TickZoom.Examples
 {
-    public class MarketSimulatorStrategy : Strategy
-    {
+    public class MarketSimulatorStrategy : Strategy {
+        private double tickOffset = 3;
         double multiplier = 1.0D;
         double minimumTick;
         int tradeSize;
@@ -26,8 +26,8 @@ namespace TickZoom.Examples
         public override bool OnProcessTick(Tick tick)
         {
             var midPoint = (tick.Ask + tick.Bid)/2;
-            var bid = midPoint - Data.SymbolInfo.MinimumTick;
-            var ask = midPoint + Data.SymbolInfo.MinimumTick;
+            var bid = midPoint - Data.SymbolInfo.MinimumTick * tickOffset;
+            var ask = midPoint + Data.SymbolInfo.MinimumTick * tickOffset;
             if (Position.IsFlat) 
             {
                 if( Performance.ComboTrades.Count <= 0 || Performance.ComboTrades.Tail.Completed)
