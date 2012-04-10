@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Reflection;
 using TickZoom.Api;
+using TickZoom.LimeFIX;
+using TickZoom.LimeQuotes;
 
 namespace TickZoom.LimeFix
 {
@@ -8,26 +10,17 @@ namespace TickZoom.LimeFix
     {
         public AgentPerformer CreatePerformer(string className, params object[] args)
         {
-            if (className.Contains( "Quotes" ) )
-                className = "LimeQuotesProvider";
-            else if ( className.Contains( "FIXProvider" ) )
-                className = "LimeFIXProvider";
-            var typeToSpawn = Type.GetType(className);
-            var assembly = Assembly.GetExecutingAssembly();
-            foreach (var t in assembly.GetTypes())
-            {
-                if (t.IsClass && !t.IsAbstract && !t.IsInterface)
-                {
-                    if (t.GetInterface(typeof(AgentPerformer).FullName) != null)
-                    {
-                        if (t.FullName.Contains(className))
-                        {
-                            return (AgentPerformer)Factory.Parallel.Spawn(t, args);
-                        }
-                    }
-                }
+            switch( className) {
+                case "MBTFIXProvider":
+                    return (AgentPerformer)Factory.Parallel.Spawn(typeof(LimeFIXProvider), args);
+                case "MBTQuotesProvider":
+                    return (AgentPerformer)Factory.Parallel.Spawn(typeof(LimeQuotesProvider), args);
+                case "ProviderSimulator":
+                    return (AgentPerformer)Factory.Parallel.Spawn(typeof(LimeProviderSimulator), args);
+                default:
+                    throw new ApplicationException("Unexpected type to construct: " + className);
+
             }
-            throw new ApplicationException("Unexpected type to construct: " + className);
         }
     }
 }

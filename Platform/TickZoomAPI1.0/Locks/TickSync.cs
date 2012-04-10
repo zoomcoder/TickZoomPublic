@@ -171,7 +171,7 @@ namespace TickZoom.Api
             lastAddTime = Factory.Parallel.UtcNow; 
             var value = Interlocked.Increment(ref (*state).ticks);
             if (trace) log.Trace("AddTick(" + tick + ") " + this);
-            if( value > 1)
+            if( value > 2)
             {
                 throw new ApplicationException("Tick counter was allowed to go over 1.");
             }

@@ -209,5 +209,11 @@ namespace TickZoom.FIX
             get { return duplicate;  }
 	    }
 
+	    /// <summary>
+	    ///	58 Error or other message text.
+	    /// </summary>
+	    public void SetText(string value ) {
+	        Append(58,value);
+	    }
 	}
 }

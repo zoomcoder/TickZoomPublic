@@ -58,7 +58,7 @@ namespace TickZoom.Starters
 #else
             var provider = "LimeProvider/Simulate";
             var fixAssembly = "LimeProvider";
-            var fixStmulator = "LimeFIXSimulator";
+            var fixSimulator = "ProviderSimulator";
 #endif
             AddProvider(provider);
             SetupProviderServiceConfig();

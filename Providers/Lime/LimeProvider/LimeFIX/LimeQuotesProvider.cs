@@ -52,6 +52,7 @@ namespace TickZoom.LimeQuotes
         private Dictionary<uint, bool> _IDToBookRebuild = new Dictionary<uint, bool>();
         private SimpleLock _SymbolIDLock = new SimpleLock();
 
+       //internal static TimeStamp SimulatorTime = new TimeStamp(0L);
 
         public LimeQuotesProvider(string name)
             : base(name)
@@ -401,16 +402,12 @@ namespace TickZoom.LimeQuotes
             bool bookUpdate = true;
             if ( !_IDToBookRebuild.TryGetValue( symbolIndex, out bookUpdate ) )
                 bookUpdate = true;
-            if (isTopOfBook)
-            {
+            if (isTopOfBook) {
                 SymbolHandler handler;
-                try
-                {
+                try {
                     SymbolInfo symbolInfo = Factory.Symbol.LookupSymbol(symbol);
                     handler = symbolHandlers[symbolInfo.BinaryIdentifier];
-                }
-                catch (ApplicationException)
-                {
+                } catch (ApplicationException) {
                     log.Info("Received tick: " + new string(message.DataIn.ReadChars(message.Remaining)));
                     throw;
                 }
@@ -419,46 +416,44 @@ namespace TickZoom.LimeQuotes
                 // both prices to appear in one quote.  So we cache the ask, then send the quote on the bid.
                 bool sendQuote = false;
                 double price = LimeQuoteMessage.priceToDouble(order->common.price_mantissa, order->common.price_exponent);
-                long ordertime = order->common.timestamp | ((long)order->common.order_id << 32);
-                if (order->common.side == LimeQuotesInterop.quote_side.SELL)
-                {
+                long ordertime = order->common.timestamp | ((long) order->common.order_id << 32);
+                if (order->common.side == LimeQuotesInterop.quote_side.SELL) {
                     handler.Ask = price;
-                    handler.AskSize = (int)Reverse(order->common.shares);
-                    sendQuote = true;
-                    if (trace) log.TraceFormat("Ask {0} at {1} size {2} time: {3}", symbol, price, handler.BidSize, new TimeStamp(ordertime));
-                }
-                else
-                {
+                    handler.AskSize = (int) Reverse(order->common.shares);
+                    if (trace)
+                        log.TraceFormat("Ask {0} at {1} size {2} time: {3}", symbol, price, handler.AskSize,
+                                        new TimeStamp(ordertime));
+                } else {
                     handler.Bid = price;
-                    handler.BidSize = (int)Reverse(order->common.shares);
-                    if (trace) log.TraceFormat("Bid {0} at {1} size {2} time: {3}", symbol, price, handler.BidSize, new TimeStamp(ordertime));
+                    handler.BidSize = (int) Reverse(order->common.shares);
+                    if (trace)
+                        log.TraceFormat("Bid {0} at {1} size {2} time: {3}", symbol, price, handler.BidSize,
+                                        new TimeStamp(ordertime));
+                    sendQuote = true;
                 }
 
                 //TODO: Translate Cirtris timestamp to internal
-                if (UseLocalTickTime)
-                {
-                    if (trace) log.TraceFormat("{0}: Bid {1} Ask: {2} BidShares {3} AskShares: {4}", symbol,
-                      handler.Bid, handler.Ask, handler.BidSize, handler.AskSize);
+                if (UseLocalTickTime) {
+                    if (trace)
+                        log.TraceFormat("{0}: Bid {1} Ask: {2} BidShares {3} AskShares: {4}", symbol,
+                                        handler.Bid, handler.Ask, handler.BidSize, handler.AskSize);
                     SetLocalTickTIme(handler);
                     handler.SendQuote();
-                }
-                else
-                {
-                    if (sendQuote)
-                    {
-                        // is simulator.
+                } else {
+                    // is simulator.
+                    if (sendQuote) {
                         SetSimulatorTime(handler, ordertime);
                         handler.SendQuote();
                     }
                 }
-            }
-            else
+            } else
                 if (trace) log.TraceFormat("Quote not top of book");
         }
 
-        unsafe private static void SetSimulatorTime(SymbolHandler handler, long ordertime)
+        private static void SetSimulatorTime(SymbolHandler handler, long ordertime)
         {
             var currentTime = new TimeStamp(ordertime);
+            //SimulatorTime = currentTime;
             if (currentTime <= handler.Time)
             {
                 currentTime.Internal = handler.Time.Internal + 1;
@@ -466,7 +461,7 @@ namespace TickZoom.LimeQuotes
             handler.Time = currentTime;
         }
 
-        unsafe private static void SetLocalTickTIme(SymbolHandler handler)
+        private static void SetLocalTickTIme(SymbolHandler handler)
         {
             var currentTime = TimeStamp.UtcNow;
             if (currentTime <= handler.Time)

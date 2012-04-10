@@ -271,14 +271,6 @@ namespace TickZoom.FIX
         }
 
         /// <summary>
-        ///	58 Error or other message text.
-        /// </summary>
-        public void SetText(string value)
-        {
-            Append(58, value);
-        }
-
-        /// <summary>
         ///	59 Orders are assumed to be Day orders unless specified
         ///	otherwise. Valid values are: 0= Day , 1= GTC (req'd for
         ///	all Forex orders), 2= At the open, 3= Immediate or
@@ -323,6 +315,14 @@ namespace TickZoom.FIX
         public void SetLeavesQuantity(double value)
         {
             Append(151, value);
+        }
+
+        /// <summary>
+        ///	151 Leaves Quantity
+        /// </summary>
+        public void SetExcTransType(string value)
+        {
+            Append(20, value);
         }
 
         /// <summary>

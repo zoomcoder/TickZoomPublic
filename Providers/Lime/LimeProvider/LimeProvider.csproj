@@ -72,8 +72,10 @@
     <Compile Include="LimeFIX\LimeProvider.cs" />
     <Compile Include="LimeFIX\LimeQuoteProviderSupport.cs" />
     <Compile Include="LimeFIX\LimeQuotesProvider.cs" />
+    <Compile Include="LimeFIX\LimeQuotesSimulator.cs" />
     <Compile Include="LimeFIX\MessageFactoryLimeQuotes.cs" />
     <Compile Include="LimeFIX\PacketLimeQuotes.cs" />
+    <Compile Include="LimeProviderSimulator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

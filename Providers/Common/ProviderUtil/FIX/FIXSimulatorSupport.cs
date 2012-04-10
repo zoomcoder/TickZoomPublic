@@ -49,7 +49,7 @@ namespace TickZoom.FIX
         }
 
         private ProviderSimulatorSupport providerSimulator;
-        private FIXTFactory1_1 fixFactory;
+        protected FIXTFactory1_1 fixFactory;
 		private long realTimeOffset;
 		private object realTimeOffsetLocker = new object();
 		private YieldMethod MainLoopMethod;
@@ -621,7 +621,7 @@ namespace TickZoom.FIX
         private bool resetSequenceNumbersNextDisconnect;
         private void SendSystemOffline()
         {
-            var mbtMsg = (FIXMessage4_4)FixFactory.Create();
+            var mbtMsg = FixFactory.Create();
             mbtMsg.AddHeader("5");
             mbtMsg.SetText("System offline");
             SendMessage(mbtMsg);
@@ -629,7 +629,7 @@ namespace TickZoom.FIX
             //resetSequenceNumbersNextDisconnect = true;
         }
 
-        public void SendSessionStatusOnline()
+        public virtual void SendSessionStatusOnline()
         {
             if (debug) log.Debug("Sending session status online.");
             var wasOrderServerOnline = ProviderSimulator.IsOrderServerOnline;
@@ -649,22 +649,8 @@ namespace TickZoom.FIX
                 throw new InvalidOperationException("Invalid login request. Already logged in: \n" + packet);
             }
             fixState = ServerState.LoggedIn;
-            if (packet.IsResetSeqNum)
-            {
-                if( packet.Sequence != 1)
-                {
-                    throw new InvalidOperationException("Found reset sequence number flag is true but sequence was " + packet.Sequence + " instead of 1.");
-                }
-                if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
-                fixFactory = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
-                RemoteSequence = packet.Sequence;
-            }
-            else if (FixFactory == null)
-            {
-                throw new InvalidOperationException(
-                    "FIX login message specified tried to continue with sequence number " + packet.Sequence +
-                    " but simulator has no sequence history.");
-            }
+
+            SetupFixFactory(packet);
 
             simulators[SimulatorType.SendDisconnect].UpdateNext(FixFactory.LastSequence);
             simulators[SimulatorType.ReceiveDisconnect].UpdateNext(packet.Sequence);
@@ -676,6 +662,22 @@ namespace TickZoom.FIX
             if (debug) log.Debug("Sending login response: " + mbtMsg);
             SendMessage(mbtMsg);
             return true;
+        }
+
+        protected virtual void SetupFixFactory(MessageFIXT1_1 packet) {
+            if (packet.IsResetSeqNum) {
+                if (packet.Sequence != 1) {
+                    throw new InvalidOperationException("Found reset sequence number flag is true but sequence was " +
+                                                        packet.Sequence + " instead of 1.");
+                }
+                if (debug) log.Debug("Found reset seq number flag. Resetting seq number to " + packet.Sequence);
+                fixFactory = CreateFIXFactory(packet.Sequence, packet.Target, packet.Sender);
+                RemoteSequence = packet.Sequence;
+            } else if (FixFactory == null) {
+                throw new InvalidOperationException(
+                    "FIX login message specified tried to continue with sequence number " + packet.Sequence +
+                    " but simulator has no sequence history.");
+            }
         }
 
         private FIXTMessage1_1 CreateLoginResponse()
